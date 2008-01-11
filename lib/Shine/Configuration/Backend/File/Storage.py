@@ -41,11 +41,7 @@ class Storage(ModelFile):
         devices = ModelFile.get_with_dict(self, target)
         target_devices = []
         for dict in devices:
-            target_devices.append(TargetDevice(target,
-                                               name=dict['name'],
-                                               node_name=dict['node_name'],
-                                               dev=dict['dev'],
-                                               size=dict['size']))
+            target_devices.append(TargetDevice(target, dict))
         return target_devices
 
 
