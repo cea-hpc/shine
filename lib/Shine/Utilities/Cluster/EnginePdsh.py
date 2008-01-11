@@ -38,6 +38,7 @@ class EnginePdsh(Engine):
             raise
         self.workers = {}
         self.dictout = {}
+        self.running = False
 
     def add_msg(self, worker, nodename, msg):
         worker.add_node_msg(nodename, msg)
@@ -58,6 +59,11 @@ class EnginePdsh(Engine):
         del self.workers[fd]
         worker.close()
 
+    def add(self, worker):
+        Engine.add(self, worker)
+        if self.running:
+            self.register(worker.start())
+
     def run(self, timeout):
         """
         Pdsh engine run(): start workers and properly get replies
@@ -68,10 +74,11 @@ class EnginePdsh(Engine):
         # Start workers and register them in the poll()-based engine
         for worker in self.worker_list:
             self.register(worker.start())
-        
 
         if timeout == 0:
             timeout = -1
+
+        self.running = True
 
         # Run main event loop
         while len(self.workers) > 0:
@@ -106,7 +113,7 @@ class EnginePdsh(Engine):
 
                 assert event & select.POLLIN, "poll() returned without data to read"
 
-                #worker.handle_read()
+        self.running = False
 
     def read(self, node):
         result = ""
