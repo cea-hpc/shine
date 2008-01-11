@@ -29,9 +29,9 @@ import copy
 class TargetDevice:
     """ Objet representation of a target (mgt, mdt, ost) device (/dev/stuff)
     """
-    def __init__(self, target, **params):
+    def __init__(self, target, dic):
         self.target = target
-        self.dict = copy.copy(params)
+        self.dict = copy.copy(dic)
 
 #        self.dict       = { "name"      : name,
 #                            "node_name" : node_name,
@@ -52,5 +52,7 @@ class TargetDevice:
         node_name = self.dict['node_name']
         dev = self.dict['dev']
         size = self.dict['size']
-        return "%s on %s (dev=%s, size=%lu)" % (name, node_name, dev, size)
+        jdev = self.dict.get('jdev', '')
+        jsize = self.dict.get('jsize', 0)
+        return "%s on %s (dev=%s, size=%lu, jdev=%s, jsize=%lu)" % (name, node_name, dev, size, jdev, jsize)
 

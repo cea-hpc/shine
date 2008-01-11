@@ -41,16 +41,33 @@ class Format(Action):
         Action.__init__(self, task)
         self.fs = fs
         self.target = target
+        self.jformat = False
+        self.mkfsoptions = ""
         assert self.target != None
 
     def launch(self):
         """
         Format file system target.
         """
+
+        # Format journal device if specified
+        if self.target.jdev:
+            self.jformat = True
+
+            self.mkfsoptions = '"--mkfsoptions=-j -J device=%s"' % self.target.jdev
+
+            cmd = "mke2fs -q -O journal_dev -b 4096 %s" % self.target.jdev
+            self.task.shell(cmd, handler=self)
+        else:
+            self.launch_format()
+
+    def launch_format(self):
+        self.jformat = False
         if self.target.target_name == "MGS":
             # '--index' only valid for MDT,OST
             # '--mgs' and not '--mgt'
-            cmd = "mkfs.lustre --mgs --fsname=\"%s\" --reformat %s" % (self.fs.fs_name, self.target.dev)
+            cmd = "mkfs.lustre --mgs --fsname=\"%s\" --reformat %s %s" % (self.fs.fs_name,
+                self.mkfsoptions, self.target.dev)
 
         elif self.target.target_name == "MDT":
             cmd = "mkfs.lustre --mdt --fsname=\"%s\" --mgsnode=%s --index=%d --reformat" % (self.fs.fs_name,
@@ -64,27 +81,40 @@ class Format(Action):
             if p_stripesize:
                 cmd += " --param='lov.stripesize=%d'" % p_stripesize
 
-            cmd += " %s" % self.target.dev
+            cmd += " %s %s" % (self.mkfsoptions, self.target.dev)
 
         elif self.target.target_name == "OST":
 
-            cmd = "mkfs.lustre --ost --fsname=\"%s\" --mgsnode=%s --reformat %s" % (self.fs.fs_name,
-                self.fs.get_mgs_nid(), self.target.dev)
+            cmd = "mkfs.lustre --ost --fsname=\"%s\" --mgsnode=%s --reformat %s %s" % (self.fs.fs_name,
+                self.fs.get_mgs_nid(), self.mkfsoptions, self.target.dev)
 
         #cmd = "sleep 4"
         self.task.shell(cmd, handler=self)
 
 
     def ev_start(self, worker):
-        print "Formatting %s (%s)" % (self.target.target_name, self.target.dev)
+        if self.jformat:
+            print "Formatting %s journal (%s)" % (self.target.target_name, self.target.jdev)
+        else:
+            print "Formatting %s (%s)" % (self.target.target_name, self.target.dev)
+
         sys.stdout.flush()
 
     def ev_close(self, worker):
         rc = worker.get_rc()
-        if rc != 0:
-            print "Formatting of %s (%s) failed with error %d" % (self.target.target_name, self.target.dev, rc)
-            print worker.read_buffer()
+        if self.jformat:
+            if rc != 0:
+                print "Formatting of %s journal (%s) failed with error %d" % (self.target.target_name, self.target.jdev, rc)
+                print worker.read_buffer()
+            else:
+                print "Formatting of %s journal (%s) succeeded" % (self.target.target_name, self.target.jdev)
+                self.launch_format()
         else:
-            print "Formatting of %s (%s) succeeded" % (self.target.target_name, self.target.dev)
+            if rc != 0:
+                print "Formatting of %s (%s) failed with error %d" % (self.target.target_name, self.target.dev, rc)
+                print worker.read_buffer()
+            else:
+                print "Formatting of %s (%s) succeeded" % (self.target.target_name, self.target.dev)
+
         sys.stdout.flush()
 

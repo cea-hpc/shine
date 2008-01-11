@@ -20,7 +20,7 @@
 # $Id$
 
 from Backend import Backend
-import File
+from FileSupport.Storage import Storage
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.TargetDevice import TargetDevice
 
@@ -50,7 +50,7 @@ class File(Backend):
         self.status_clients = {}
 
     def _start_storage(self):
-        self.storage_file = File.Storage(Globals().get_storage_file())
+        self.storage_file = Storage(Globals().get_storage_file())
 
     def _start_status_client(self, fs_name):
 

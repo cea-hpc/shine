@@ -41,7 +41,6 @@ class MGT(Target, EventHandler):
     def test(self):
         print "test MGT %s" % self
         
-
     def start(self):
         self._mount()
 

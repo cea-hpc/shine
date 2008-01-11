@@ -65,7 +65,10 @@ class Status(ProxyAction):
         gdict = worker.gather_rc()
         for nodelist, rc in gdict.iteritems():
             if rc != 0:
-                raise ActionFailedError(rc, "Status failed on %s %s" % (self.target_name.upper(),
-                    nodelist.as_ranges()))
+                if self.target_name:
+                    raise ActionFailedError(rc, "Status of %s failed on %s" % (self.target_name.upper(),
+                        nodelist.as_ranges()))
+                else:
+                    raise ActionFailedError(rc, "Status failed on %s" % nodelist.as_ranges())
 
     

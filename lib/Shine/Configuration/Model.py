@@ -53,6 +53,16 @@ class Model(ModelFile):
        'ost'                : 'subelem'
        }
 
+    defaults = {
+       'stripe_size'        : 1048576,
+       'stripe_count'       : 1,
+       'stripe_pattern'     : '0',
+       'nettype'            : 'tcp',
+       'fstype'             : 'ldiskfs',
+       'failover'           : 'no',
+       'ha_timeout'         : 0
+       }
+
     def sub_element(self, key, value):
         return ModelDevice(key, value)
     

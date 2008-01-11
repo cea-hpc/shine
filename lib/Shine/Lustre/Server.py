@@ -45,7 +45,6 @@ class Server(NodeSet):
         """
         for target in self.targets:
             target.test()
-
         
     def start(self):
         """

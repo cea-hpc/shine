@@ -50,14 +50,16 @@ class FileSystem(Model):
 
         # Load the file system from model or extended model
         if not fs_name and lmf:
-            print "Loading File System from LMF"
+            print "Loading File System from LMF %s" % lmf
             Model.__init__(self, lmf)
+
+            self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, self.get_one('fs_name'))
 
             self._setup_target_devices()
 
             # Reload
-            self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, self.get_one('fs_name'))
             self.set_filename(self.xmf_path)
+
         elif fs_name:
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
             Model.__init__(self, self.xmf_path)
@@ -89,8 +91,9 @@ class FileSystem(Model):
                     self.add(target, matching.getline())
 
         # Create new XMF path
-        self.xmf_path = "%s/%s.xmf" % (Globals().get_conf_dir(), self.get_one('fs_name'))
-        # Save XMF self.save(self.xmf_path)
+        #self.xmf_path = "%s/%s.xmf" % (Globals().get_conf_dir(), self.get_one('fs_name'))
+        # Save XMF
+        self.save(self.xmf_path)
             
         
     def __str__(self):
