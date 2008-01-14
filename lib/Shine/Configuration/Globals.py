@@ -22,6 +22,8 @@
 GLOBAL_CONF_FILE="/etc/shine/shine.conf"
 
 from ModelFile import ModelFile
+import logging
+
 
 class Globals(object):
     """
@@ -49,6 +51,8 @@ class Globals(object):
             'cache_dir'                 : 'path',
             'conf_dir'                  : 'path',
             'tuning_file'               : 'path',
+            'log_file'                  : 'path',
+            'log_level'                 : [ 'debug', 'info', 'warn', 'error' ],
             'ssh_connect_timeout'       : 'digit',
             'install_timeout'           : 'digit',
             'start_timeout'             : 'digit',
@@ -86,5 +90,16 @@ class Globals(object):
 
         def get_tuning_file(self):
             return self.get_one('tuning_file')
+
+        def get_log_file(self):
+            return self.get_one('log_file')
+
+        def get_log_level(self):
+            levels = { 'debug' : logging.DEBUG,
+                       'info' : logging.INFO,
+                       'warn' : logging.WARN,
+                       'error' : logging.ERROR }
+
+            return levels[self.get_one('log_level')]
 
         # ...

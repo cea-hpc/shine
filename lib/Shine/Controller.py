@@ -25,10 +25,17 @@ from Commands.CommandRegistry import CommandRegistry
 from Configuration.ModelFile import ModelFileException
 
 import getopt
+import logging
 
 class Controller:
 
     def __init__(self):
+        self.logger = logging.getLogger("shine")
+        handler = logging.FileHandler(Globals().get_log_file())
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s : %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
 
     def cmds_usage(self):
@@ -40,6 +47,9 @@ class Controller:
             print "\t%-*s %s" % (cmd_maxlen, cmd.get_name(), cmd.get_params_desc())
 
     def run_command(self, cmd_name, args):
+
+        self.logger.info("running %s" % cmd_name)
+
         try:
             self.cmds.execute(cmd_name, args)
         except getopt.GetoptError, e:

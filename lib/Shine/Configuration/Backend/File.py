@@ -44,7 +44,7 @@ class File(Backend):
         pass
 
     def stop(self):
-        print "BACKEND STOP"
+        #print "BACKEND STOP"
         for d in self.status_clients.itervalues():
             d.close()
         self.status_clients = {}

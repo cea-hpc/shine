@@ -43,6 +43,7 @@ from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.Cluster.Worker import Worker
 from Shine.Utilities.AsciiTable import AsciiTable
 
+import logging
 import sys
 
 class FSProxy(FileSystem):
