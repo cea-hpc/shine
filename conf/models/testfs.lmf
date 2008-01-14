@@ -1,0 +1,221 @@
+######################################################################
+# This is a sample for lustre model file which describes ONE         #
+# filesystem using all available OSTs and the first available MDT    #
+######################################################################
+
+# First, we set default values for all filesystems
+
+######################################################################
+# stripe_size:
+# Specify the stripe size in bytes. Default is 1048576 (1M)
+
+# default value is used in this case
+stripe_size: 1048576
+
+######################################################################
+# stripe_count:
+# Specify the number of OSTs each file should be striped on. 
+# Default value is 0 and means to stripe on all available OSTs.
+
+# default value is used in this case
+stripe_count:1
+
+######################################################################
+# stripe_pattern:
+# Only pattern 0 (RAID 0) is supported currently.
+
+# default value is used in this case
+#stripe_pattern:
+
+######################################################################
+# nettype:
+# Possible values are tcp, elan or o2ib. Default is elan.
+
+# We want to use elan
+#nettype: elan
+#nettype: tcp
+nettype: tcp
+
+######################################################################
+# generic_client:
+# The name of the directory from wich the filesystem is mounted on the 
+# mds. If network is elan, default is clientelan. If network is tcp, 
+# default is clienttcp.
+
+# default value "clientelan" is used in this case
+#generic_client:
+
+######################################################################
+# fstype:
+# File system type. Possible values are ldiskfs or ext3. Default  
+# (and recommended) is ldiskfs.
+
+# default value is used in this case
+#fstype:ext3
+
+######################################################################
+# failover:
+# Enable failover support on OST. Possible values are yes or no. 
+# Default is no.
+
+# We say explicitely we do not want failover
+failover: no
+
+######################################################################
+# ha_timeout:
+# Timeout in second before going into recovery. Default is 30s.
+
+# default value is used in this case
+# ha_timeout:
+
+######################################################################
+# lustre_upcall:
+# Location of the Lustre upcall script used by the client for recovery.
+# No default script is defined.
+
+#lustre_upcall:
+
+######################################################################
+# portals_upcall:
+# Location of the Portals upcall script used by the client for 
+# recovery. No default script is defined.
+
+#portals_upcall:
+
+######################################################################
+# mdt_mkfs_options:
+# Optional argument to mkfs for MDT. Defaults is no options.
+
+# We want 4k block for mdt and 4096 bytes/inode ratio
+mdt_mkfs_options: -b 4096 -i 4096
+
+######################################################################
+# mdt_inode_size:
+# Specify new inode size for underlying MDT ext3 file system.
+# Defaults is self-evaluated.
+
+# Value is set to 512 in this case
+mdt_inode_size: 512
+
+######################################################################
+# mdt_mount_options:
+# Optional argument to mount fs. Default is no options.
+
+# acl and user_xattr are enabled in this case
+mdt_mount_options: acl
+
+######################################################################
+# ost_mkfs_options:
+# Optional argument to mkfs for OST. Defaults is no options.
+
+# We want 4k block for osts
+ost_mkfs_options: -b 4096
+
+######################################################################
+# ost_inode_size:
+# Specify new inode size for underlying OST ext3 file system.
+# Defaults is self-evaluated
+
+#ost_inode_size:
+
+######################################################################
+# ost_mount_options:
+# Optional argument to mount fs. Default is no options.
+
+# These options give the best performance
+ost_mount_options: extents,mballoc
+
+###################################################################### #
+#cluster_id:
+# Specify the cluster ID (one filesystem uses a single cluster id) 
+# default is 0
+
+# default value is used in this case
+# cluster_id:
+
+
+###################################################################### #
+# mount_options:
+# This define the default options to mount the filesystem on clients.
+# Options are separate with ","
+# Available options are ro rw user_xattr nouser_xattr acl noacl
+# Default is no option and filesystem will be mounted rw
+
+# Client are mounted with options user_xattr,acl
+mount_options: user_xattr,acl
+
+
+######################################################################
+# quota:
+# Enable quota support.
+# Possible values are yes or no.
+# Default is no.
+
+# We say explicitely we want quota support
+quota: no
+
+######################################################################
+# quota_options:
+# Describe options for quota support, if quota enabled
+# Default is quotaon=ug,iunit=5000,bunit=100,itune=50,btune=50
+# Refer to lmc(1) for more details
+
+# No special options 
+# quota_options:
+
+######################################################################
+# description:
+# A ONE LINE free description of your filesystem (up to 512 chars) 
+# Default is empty string
+
+description: fs1 is a demo filesystem provided with lustre rpms which uses the first available MDT and all the available OST. If you need to update this filesystem, do not forget that, once it will be installed, status of MDT and OST will not be "available" anymore but "formated", and so, rules on status should be "cfg_status=available|formated" instead of "cfg_status=available". Note also that this filesystem does not use failover, use "failover: yes" to use this feature.
+
+###################################################################### #
+#fs_name: 
+# This keyword is the starting point of a filesystem definition. It is 
+# the name of the filesystem (name  of the xml file or the entry in  
+# the ldap database). fs_name must be defined for each filesystem.
+
+# Our filesystem will be called fs1, so the XML will be fs1.xml
+# and put in the directory defined by LUSTRE_CONFIG_DIR in lustre.cfg
+fs_name: testfs
+	
+      ################################################################
+      # mount_path:
+      # The  mount-point to use to mount Lustre filesystem. Same 
+      # mount-point must not be used for another filesystem
+      # defined in the same model file. Default is /mnt/lustre_<fs_name>.
+
+      # We want the filesystem to be mounted on /mnt/lustre on clients
+      mount_path: /mnt/testfs
+
+      ################################################################
+      # ost: [ name=<RegExp> ] [ node_name=<RegExp> ] [ dev=<RegExp> ] 
+      # [ size=<RegExp> ] [ jdev=<RegExp> ] [ jsize=<RegExp> ]
+      # [ cfg_status=available|formated ]
+      #
+      # Specify OSTs to use with this filesystem, using regular 
+      # expressions matching their name, node_name,  device, size,
+      # journal  device, journal size. At least one field must be 
+      # specified. If several fields are specified, only OSTs matching 
+      # every fields of the lines will be choosen. You can use as many 
+      # ost lines as  you  need.At least one ost line must be defined 
+      # for each filesystem.
+
+      # We want to use all available osts
+      ost: node_name=cors115
+      #ost: node_name=cors116
+
+      ################################################################
+      # mdt: [ name=<RegExp> ] [ node_name=<RegExp> ] [ dev=<RegExp> ] 
+      # [ size=<RegExp> ] [ jdev=<RegExp> ] [ jsize=<RegExp> ]
+      # [ cfg_status=available|formated ]
+      #
+      # Specify MDT of this filesystem. It is the same syntax than 
+      # for OSTs. If several MDTs matche, the first will be used.One 
+      # and only one mdt line must be defined for each filesystem.
+
+      # We choose the first available mdt
+      mdt: node_name=cors115
+	
+      mgt: node_name=cors115
