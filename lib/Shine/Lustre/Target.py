@@ -29,8 +29,13 @@ from Actions.Format import Format
 from Actions.Mount import Mount
 from Actions.Umount import Umount
 
-import os
+from Shine.Commands.CommandRegistry import CommandRegistry
+
+import binascii
+import os 
+import pickle
 import stat
+import sys
 
 class TargetOpInProgressException(Exception):
     pass
@@ -99,29 +104,29 @@ class Target(NodeSet):
 
     def status(self):
         # Wrong status if the device doesn't exist
-        #self.dev = "/toto"
+
         mode = os.stat(self.dev)[stat.ST_MODE]
         if not stat.S_ISBLK(mode):
             raise TargetBlockDeviceNotFoundError(self)
 
+        sta = "UNKNOWN"
         f = open("/proc/mounts")
         try:
             mntps = [line for line in f if line.find("%s lustre" % self.mntp) >= 0]
             if len(mntps) == 0:
-                raise TargetNotMountedError(self)
+                sta = "NOT MOUNTED"
+                #raise TargetNotMountedError(self)
             elif len(mntps) > 1:
-                raise TargetMultiMountedError(self)
-
-            print "%s %s (%s) [OK]" % (self.type, self.name, self.dev)
-            """
-            import pickle, sys
-            s = "%s %s (%s) [OK]" % (self.type, self.name, self.dev)
-            pickle.dump(s, sys.stdout, -1)
-            #print "%s %s (%s) [OK]" % (self.type, self.name, self.dev)
-            """
-
+                sta = "MULTIPLE MOUNTS"
+                #raise TargetMultiMountedError(self)
+            else:
+                sta = "MOUNTED"
+                #"/proc/fs/lustre/mdt/testfs-MDT0000/recovery_status"
+            
         finally:
             f.close()
+        
+        CommandRegistry.output(type=self.type, name=self.name, dev=self.dev, status=sta)
 
 
     def format(self):

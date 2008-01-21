@@ -151,7 +151,7 @@ class FSLocal(FileSystem):
             except TargetException, e:
                 print e
 
-        if (not target or target == 'ost') and self.mds:
+        if (not target or target == 'ost') and self.oss:
             try:
                 self.oss.status()
             except TargetException, e:

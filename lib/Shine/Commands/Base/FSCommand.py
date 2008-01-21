@@ -31,6 +31,9 @@ import getopt
 import sys
 
 class FSCommand(Command):
+    
+    def __init__(self):
+        self.remote_call = False
 
     def get_params_desc(self):
         return "-f <fsname>"
@@ -41,12 +44,15 @@ class FSCommand(Command):
             fs_class = FSProxy
             fs_target = None
 
-            options, arguments = getopt.getopt(args, "f:Lt:")
+            options, arguments = getopt.getopt(args, "f:LRt:")
 
             for opt, arg in options:
                 if opt == '-f':
                     fs_name = arg
                 elif opt == '-L':
+                    fs_class = FSLocal
+                elif opt == '-R':
+                    self.remote_call = True
                     fs_class = FSLocal
                 elif opt == '-t':
                     fs_target = arg.lower()

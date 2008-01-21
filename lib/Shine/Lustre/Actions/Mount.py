@@ -24,6 +24,8 @@ from Shine.Configuration.Configuration import Configuration
 
 from Action import Action
 
+from Shine.Commands.CommandRegistry import CommandRegistry
+
 from Shine.Utilities.Cluster.NodeSet import NodeSet
 from Shine.Utilities.Cluster.Event import EventHandler
 from Shine.Utilities.Cluster.Task import Task
@@ -64,18 +66,24 @@ class Mount(Action):
     def ev_start(self, worker):
         if self.target:
             # server mounts
-            print "Starting %s (%s)" % (self.target.target_name, self.target.dev)
+            CommandRegistry.output(msg="STARTING",
+                                   target=self.target.target_name,
+                                   dev=self.target.dev)
         else:
             # client mounts
-            print "Mounting %s" % self.fs.fs_name
+            CommandRegistry.output(msg="MOUNTING",
+                                   fs=self.fs.fs_name)
+
         sys.stdout.flush()
 
     def ev_close(self, worker):
         rc = worker.get_rc()
         if self.target:
-            if rc != 0:
-                print "Starting of %s (%s) failed with error %d" % (self.target.target_name, self.target.dev, rc)
-                print worker.read_buffer()
+            CommandRegistry.output(msg="RESULT",
+                                   target=self.target.target_name,
+                                   dev=self.target.dev,
+                                   rc=rc,
+                                   buf=worker.read_buffer())
         else:
             if rc != 0:
                 print "Mounting of %s failed: %s" % (self.fs.fs_name, os.strerror(rc))

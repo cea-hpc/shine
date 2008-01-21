@@ -41,3 +41,10 @@ class Stop(FSCommand):
     def fs_execute(self, fs, fs_target):
         fs.stop(fs_target)
 
+    def output(self, dic):
+        if self.remote_call:
+            self._print_pickle(dic)
+        else:
+            print "%s" % dic
+
+

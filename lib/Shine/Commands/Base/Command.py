@@ -23,6 +23,7 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+import binascii, pickle
 
 # ----------------------------------------------------------------------
 # Base Command Class and command class definitions
@@ -45,5 +46,10 @@ class Command:
     def execute(self, args):
         raise NotImplementedError("Derived classes must implement.")
 
-
+    #
+    # Special output helper (pickling)
+    #
+    def _print_pickle(self, tpl):
+        assert self.remote_call == True
+        print binascii.b2a_base64(pickle.dumps(tpl, -1)), 
 

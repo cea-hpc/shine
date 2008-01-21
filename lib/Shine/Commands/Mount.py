@@ -60,3 +60,11 @@ class Mount(FSClientCommand):
         """
         fs.mount(nodes)
 
+
+    def output(self, dic):
+        if self.remote_call:
+            self._print_pickle(dic)
+        else:
+            print "Mounting %s" % dic['fs']
+
+    

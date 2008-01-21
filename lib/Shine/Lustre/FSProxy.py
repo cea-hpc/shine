@@ -41,7 +41,7 @@ from Actions.Proxies.Status import Status
 from Shine.Utilities.Cluster.NodeSet import NodeSet
 from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.Cluster.Worker import Worker
-from Shine.Utilities.AsciiTable import AsciiTable
+from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
 import logging
 import sys
@@ -134,14 +134,33 @@ class FSProxy(FileSystem):
             proxy.launch_and_run()
         else:
             try:
-                proxy = Start(task, self, 'mgt')
-                proxy.launch_and_run()
+                proxy_mgt = Start(task, self, 'mgt')
+                proxy_mgt.launch_and_run()
 
-                proxy = Start(task, self, 'ost')
-                proxy.launch_and_run()
+                proxy_ost = Start(task, self, 'ost')
+                proxy_ost.launch_and_run()
 
-                proxy = Start(task, self, 'mdt')
-                proxy.launch_and_run()
+                proxy_mdt = Start(task, self, 'mdt')
+                proxy_mdt.launch_and_run()
+
+                # Print stop status in an ascii table
+                tgt_list = proxy_mgt.get_tgt_list() + \
+                    proxy_mdt.get_tgt_list() + \
+                    proxy_ost.get_tgt_list()
+
+                layout = AsciiTableLayout()
+
+                layout.set_show_header(True)
+                layout.set_column("target", 0, AsciiTableLayout.LEFT)
+                layout.set_column("node", 1, AsciiTableLayout.CENTER)
+                layout.set_column("dev", 2, AsciiTableLayout.LEFT)
+                layout.set_column("status", 3, AsciiTableLayout.CENTER)
+
+                AsciiTable().print_from_list_of_dict(tgt_list, layout)
+
+            except Exception, e:
+                print e
+                raise
             except ActionErrorException, e:
                 print e
                 sys.exit(e.get_rc())
@@ -153,18 +172,40 @@ class FSProxy(FileSystem):
         task = Task.current()
 
         if target:
-            proxy = Stop(task, self, target)
-            proxy.launch_and_run()
+            proxy_target = Stop(task, self, target)
+            proxy_target.launch_and_run()
         else:
             try:
-                proxy = Stop(task, self, 'mdt')
-                proxy.launch_and_run()
+                # Stop MDT first
+                proxy_mdt = Stop(task, self, 'mdt')
+                proxy_mdt.launch_and_run()
 
-                proxy = Stop(task, self, 'ost')
-                proxy.launch_and_run()
+                # Stop OSTs
+                proxy_ost = Stop(task, self, 'ost')
+                proxy_ost.launch_and_run()
 
-                proxy = Stop(task, self, 'mgt')
-                proxy.launch_and_run()
+                # Stop MGT last
+                proxy_mgt = Stop(task, self, 'mgt')
+                proxy_mgt.launch_and_run()
+
+                # Print stop status in an ascii table
+                tgt_list = proxy_mgt.get_tgt_list() + \
+                    proxy_mdt.get_tgt_list() + \
+                    proxy_ost.get_tgt_list()
+
+                layout = AsciiTableLayout()
+
+                layout.set_show_header(True)
+                layout.set_column("target", 0, AsciiTableLayout.LEFT)
+                layout.set_column("node", 1, AsciiTableLayout.CENTER)
+                layout.set_column("dev", 2, AsciiTableLayout.LEFT)
+                layout.set_column("status", 3, AsciiTableLayout.CENTER)
+
+                AsciiTable().print_from_list_of_dict(tgt_list, layout)
+
+            except Exception, e:
+                print e
+                raise
             except ActionErrorException, e:
                 print e
                 sys.exit(e.get_rc())

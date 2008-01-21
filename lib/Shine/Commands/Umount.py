@@ -41,3 +41,11 @@ class Umount(FSClientCommand):
     def fs_execute(self, fs, nodes=None):
         fs.umount(nodes)
 
+    def output(self, dic):
+        if self.remote_call:
+            self._print_pickle(dic)
+        else:
+            print "Unmounting %s" % dic['fs']
+
+
+    

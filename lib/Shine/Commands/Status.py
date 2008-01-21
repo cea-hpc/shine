@@ -24,6 +24,8 @@ from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Exceptions import *
 from Base.FSCommand import FSCommand
 
+import binascii, pickle
+
 # ----------------------------------------------------------------------
 # * shine status
 # ----------------------------------------------------------------------
@@ -41,3 +43,11 @@ class Status(FSCommand):
     def fs_execute(self, fs, fs_target):
         fs.status(fs_target)
 
+    def output(self, dic):
+        if self.remote_call:
+            self._print_pickle(dic)
+        else:
+            print "%s" % dic
+
+
+    

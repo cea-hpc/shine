@@ -29,19 +29,19 @@ from Shine.Commands import commandList
 # Command Registry
 # ----------------------------------------------------------------------
 
+
 class CommandRegistry:
     """ Container object to deal with commands.
     """
+
+    current = None
+
     def __init__(self):
         self.cmd_list = []
         self.cmd_dict = {}
 
         # Autoload commands
         self._load()
-    
-    ###################
-    # Special methods #
-    ###################
 
     def __len__(self):
         "Return the number of commands."
@@ -63,7 +63,6 @@ class CommandRegistry:
     def get(self, name):
         return self.cmd_dict[name]
 
-
     def register(self, cmd):
         "Register a new command."
         if not isinstance(cmd, Command):
@@ -72,9 +71,12 @@ class CommandRegistry:
         self.cmd_list.append(cmd)
         self.cmd_dict[cmd.get_name()] = cmd
 
-    # Public methods
-
     def execute(self, name, args):
-        self.get(name).execute(args)
+        CommandRegistry.current = self.get(name)
+        CommandRegistry.current.execute(args)
+
+    def output(cls, *args, **kwargs):
+        CommandRegistry.current.output(kwargs)
+    output = classmethod(output)
 
 

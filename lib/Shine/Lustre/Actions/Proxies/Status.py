@@ -29,7 +29,10 @@ from Shine.Utilities.Cluster.NodeSet import NodeSet
 from Shine.Utilities.Cluster.Event import EventHandler
 from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.Cluster.Worker import Worker
-from Shine.Utilities.AsciiTable import AsciiTable
+from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
+import binascii, pickle
+
 
 class Status(ProxyAction):
     """
@@ -40,6 +43,7 @@ class Status(ProxyAction):
         ProxyAction.__init__(self, task)
         self.fs = fs
         self.target_name = target_name
+        self._tgt_list = []
 
     def launch(self):
         """
@@ -48,9 +52,9 @@ class Status(ProxyAction):
 
         # Prepare proxy command
         if self.target_name:
-            command = "%s status -f %s -L -t %s" % (self.progpath, self.fs.fs_name, self.target_name)
+            command = "%s status -f %s -R -t %s" % (self.progpath, self.fs.fs_name, self.target_name)
         else:
-            command = "%s status -f %s -L" % (self.progpath, self.fs.fs_name)
+            command = "%s status -f %s -R" % (self.progpath, self.fs.fs_name)
 
         selected_nodes = self.fs.get_target_nodes(self.target_name)
 
@@ -59,16 +63,41 @@ class Status(ProxyAction):
         self.task.run()
 
     def ev_read(self, worker):
-        print "%s: %s" % worker.get_last_read()
+        node, info = worker.get_last_read()
+        dic = pickle.loads(binascii.a2b_base64(info))
+        dic["node"] = node
+        self._tgt_list.append(dic)
 
     def ev_close(self, worker):
+        #gdict = worker.gather()
+        #print gdict
+
+        try:
+            layout = AsciiTableLayout()
+
+            layout.set_show_header(True)
+
+            layout.set_column("node", 0, AsciiTableLayout.LEFT)
+            layout.set_column("type", 1, AsciiTableLayout.CENTER)
+            layout.set_column("name", 2, AsciiTableLayout.LEFT)
+            layout.set_column("dev", 3, AsciiTableLayout.LEFT)
+            layout.set_column("status", 4, AsciiTableLayout.CENTER)
+
+            AsciiTable().print_from_list_of_dict(self._tgt_list, layout)
+
+        except Exception, e:
+            print e
+            raise
+
         gdict = worker.gather_rc()
         for nodelist, rc in gdict.iteritems():
             if rc != 0:
                 if self.target_name:
-                    raise ActionFailedError(rc, "Status of %s failed on %s" % (self.target_name.upper(),
-                        nodelist.as_ranges()))
+                    raise ActionFailedError(rc,
+                        "Status of %s failed on %s" % (self.target_name.upper(),
+                            nodelist.as_ranges()))
                 else:
-                    raise ActionFailedError(rc, "Status failed on %s" % nodelist.as_ranges())
+                    raise ActionFailedError(rc,
+                        "Status failed on %s" % nodelist.as_ranges())
 
     

@@ -73,6 +73,35 @@ class Globals(object):
             'plugin'                    : 'string'
         }
 
+        defaults = {
+            'backend'                   : 'file',
+            'storage_file'              : '/etc/shine/storage.conf',
+            'cache_dir'                 : '/var/cache/shine/status',
+            'conf_dir'                  : '/var/cache/shine/conf',
+            'tuning_file'               : '/etc/shine/tuning.conf',
+            'log_file'                  : 'warn',
+            'log_level'                 : 'warn',
+            'ssh_connect_timeout'       : 0,
+            'install_timeout'           : 0,
+            'start_timeout'             : 0,
+            'mount_timeout'             : 0,
+            'umount_timeout'            : 0,
+            'stop_timeout'              : 0,
+            'status_timeout'            : 0, 
+            'disable_nagios'            : 'yes',
+            'disable_chkconfig_for_ldap': 'yes',
+            'use_stormap_for_chk_dev'   : 'yes',
+            'set_ioscheds_timeout'      : 0,
+            'allow_loop_devices'        : 'yes',
+            'default_fanout'            : 'digit',
+            'check_only_mounted_nodes_on_mnt_status' : ['yes', 'no'],
+            'set_tuning_timeout'        : 'digit',
+            'disable_modules_unloading' : ['yes', 'no'],
+            'disable_mgmt_node_test'    : ['yes', 'no'],
+            'plugin'                    : 'string'
+        }
+
+
         def __init__(self, path=GLOBAL_CONF_FILE):
             ModelFile.__init__(self, path, "=")
 

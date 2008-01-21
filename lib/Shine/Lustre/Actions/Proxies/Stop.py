@@ -28,7 +28,9 @@ from Shine.Utilities.Cluster.NodeSet import NodeSet
 from Shine.Utilities.Cluster.Event import EventHandler
 from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.Cluster.Worker import Worker
-from Shine.Utilities.AsciiTable import AsciiTable
+from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
+import binascii, pickle
 
 class Stop(ProxyAction):
     """
@@ -40,6 +42,10 @@ class Stop(ProxyAction):
         self.fs = fs
         self.target_name = target_name
         assert self.target_name != None
+        self.tgt_list = []
+
+    def get_tgt_list(self):
+        return self.tgt_list
 
     def launch(self):
         """
@@ -47,7 +53,7 @@ class Stop(ProxyAction):
         """
 
         # Prepare proxy command
-        command = "%s stop -f %s -L -t %s" % (self.progpath, self.fs.fs_name, self.target_name)
+        command = "%s stop -f %s -R -t %s" % (self.progpath, self.fs.fs_name, self.target_name)
 
         selected_nodes = self.fs.get_target_nodes(self.target_name)
 
@@ -56,18 +62,33 @@ class Stop(ProxyAction):
         self.task.run()
 
     def ev_read(self, worker):
-        print "%s: %s" % worker.get_last_read()
+        node, info = worker.get_last_read()
+        dic = pickle.loads(binascii.a2b_base64(info))
+
+        msg = dic['msg']
+
+        dic['status'] = "UNKNOWN"
+
+        if msg == "STOPPING":
+            print "Stopping %s (%s) on %s" % (dic['target'], dic['dev'], node)
+        elif msg == "UMOUNTING":
+            print "Unmounting %s on %s" % (dic['fs'], node)
+        elif msg == "RESULT":
+            if dic['rc'] == 0:
+                dic['status'] = "STOPPED"
+            else:
+                if dic['buf'].find("not mounted") == -1:
+                    dic['status'] = "STOP FAILED"
+
+                    print "Stopping of %s (%s) on node %s failed with error %d" % (dic['target'],
+                        dic['dev'], node, dic['rc'])
+                    print "%s: %s" % (node, dic['buf'].strip())
+                else:
+                    dic['status'] = "ALREADY STOPPED"
+                    
+            dic["node"] = node
+            self.tgt_list.append(dic)
+
 
     def ev_close(self, worker):
-        #print "Proxies.Stop:ev_close"
         pass
-        """
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
-            print "Proxies.Format:ev_close %s rc = %d" % (nodelist.as_ranges(), rc)
-        gdict = worker.gather()
-        for nodelist, buf in gdict.iteritems():
-            print "Proxies.Format:ev_close %s %s" % (nodelist.as_ranges(), buf)
-        """
-
-    

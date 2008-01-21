@@ -31,6 +31,9 @@ import getopt
 import sys
 
 class FSClientCommand(Command):
+    
+    def __init__(self):
+        self.remote_call = False
 
     def get_params_desc(self):
         return "-f <fsname> -n <nodes>"
