@@ -1,5 +1,5 @@
-# FSCommand.py -- Base file system related command
-# Copyright (C) 2007 CEA
+# MultiFSCommand.py -- Base file system related command
+# Copyright (C) 2008 CEA
 #
 # This file is part of shine
 #
@@ -31,13 +31,14 @@ import getopt
 import os
 import sys
 
-class FSCommand(Command):
+class MultiFSCommand(Command):
     
     def __init__(self):
         self.remote_call = False
+        self.selected_fs = []
 
     def get_params_desc(self):
-        return "-f <fsname>"
+        return "[-f <fsname>]"
 
     def execute(self, args):
         try:
@@ -59,14 +60,20 @@ class FSCommand(Command):
                     fs_target = arg.lower()
 
             if not fs_name:
-                print "Error: you must specify -f <fsname>"
-                sys.exit(1)
+                for filename in os.listdir(Globals().get_conf_dir()):
+                    name, ext = os.path.splitext(filename)
+                    if len(name) > 0 and ext == '.xmf':
+                        # XXX check for bogus xmf ?
+                        self.selected_fs.append(name)
+            else:
+                self.selected_fs = [name.strip() for name in fs_name.split(',')]
 
-            conf = Configuration(fs_name=fs_name)
-            try:
-                self.fs_execute(fs_class(conf), fs_target)
-            finally:
-                conf.close()
+            for selected_fs_name in self.selected_fs:
+                conf = Configuration(fs_name=selected_fs_name)
+                try:
+                    self.fs_execute(fs_class(conf), fs_target)
+                finally:
+                    conf.close()
 
         except getopt.GetoptError, e:
             print e

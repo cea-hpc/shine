@@ -22,18 +22,18 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSCommand import FSCommand
+from Base.MultiFSCommand import MultiFSCommand
 
 # ----------------------------------------------------------------------
 # * shine start
 # ----------------------------------------------------------------------
-class Start(FSCommand):
+class Start(MultiFSCommand):
 
     def get_name(self):
         return "start"
 
     def get_params_desc(self):
-        return "-f <fsname> -t <target>"
+        return "[-f <fsname>] [-t <target>]"
 
     def get_desc(self):
         return "Start file system servers."

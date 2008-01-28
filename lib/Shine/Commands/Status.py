@@ -22,7 +22,7 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSCommand import FSCommand
+from Base.MultiFSCommand import MultiFSCommand
 
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
@@ -31,13 +31,13 @@ import binascii, pickle
 # ----------------------------------------------------------------------
 # * shine status
 # ----------------------------------------------------------------------
-class Status(FSCommand):
+class Status(MultiFSCommand):
 
     def get_name(self):
         return "status"
 
     def get_params_desc(self):
-        return "-f <fsname> -t <target>"
+        return "[-f <fsname>] [-t <target>]"
 
     def get_desc(self):
         return "Status of file system servers."
