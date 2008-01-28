@@ -1,5 +1,5 @@
-# Commands/__init__.py -- Commands module initialization
-# Copyright (C) 2007 CEA
+# List.py -- List FS
+# Copyright (C) 2008 CEA
 #
 # This file is part of shine
 #
@@ -19,28 +19,27 @@
 #
 # $Id$
 
+from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Exceptions import *
+
+from Base.Command import Command
+from Shine.Utilities.AsciiTable import *
+
 
 # ----------------------------------------------------------------------
-# List of enabled commands classes.
+# * list
 # ----------------------------------------------------------------------
+class List(Command):
+    def get_name(self):
+        return "list"
 
-commandList = []
+    def get_desc(self):
+        return "List configured file systems."
 
-for cmd in [ "Install",
-             "List",
-             "SetCfg",
-             "ShowConf",
-             "Start",
-             "Stop",
-             "Status",
-             "Info",
-             "Format",
-             "Mount",
-             "Umount",
-             "Test" ]:
+    def execute(self, args):
+        for filename in os.listdir(Globals().get_conf_dir()):
+            name, ext = os.path.splitext(filename)
+            if len(name) > 0 and ext == '.xmf':
+                print name
 
-    # Import command class file
-    mod = __import__(cmd, globals(), locals(), [cmd])
-
-    # Add class to global command list
-    commandList.append(getattr(mod, cmd))
