@@ -1,5 +1,5 @@
 # Status.py -- Status of file system
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007,2008 CEA
 #
 # This file is part of shine
 #
@@ -24,6 +24,8 @@ from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Exceptions import *
 from Base.FSCommand import FSCommand
 
+from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
 import binascii, pickle
 
 # ----------------------------------------------------------------------
@@ -47,7 +49,24 @@ class Status(FSCommand):
         if self.remote_call:
             self._print_pickle(dic)
         else:
-            print "%s" % dic
+            ldic = dic['listofdic']
+
+            # add fs name in table
+            for d in ldic:
+                d['fs'] = dic['fs']
+
+            # Print nice table layout
+            layout = AsciiTableLayout()
+
+            layout.set_show_header(True)
+            layout.set_column("fs", 0, AsciiTableLayout.LEFT)
+            layout.set_column("node", 1, AsciiTableLayout.LEFT)
+            layout.set_column("type", 2, AsciiTableLayout.CENTER)
+            layout.set_column("name", 3, AsciiTableLayout.LEFT)
+            layout.set_column("dev", 4, AsciiTableLayout.LEFT)
+            layout.set_column("status", 5, AsciiTableLayout.CENTER)
+
+            AsciiTable().print_from_list_of_dict(ldic, layout)
 
 
     

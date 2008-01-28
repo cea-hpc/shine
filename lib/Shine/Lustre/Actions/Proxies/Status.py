@@ -22,6 +22,8 @@
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
 
+from Shine.Commands.CommandRegistry import CommandRegistry
+
 from Shine.Lustre.Actions.Action import ActionFailedError
 from ProxyAction import ProxyAction
 
@@ -29,7 +31,8 @@ from Shine.Utilities.Cluster.NodeSet import NodeSet
 from Shine.Utilities.Cluster.Event import EventHandler
 from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.Cluster.Worker import Worker
-from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+#from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
 
 import binascii, pickle
 
@@ -73,17 +76,7 @@ class Status(ProxyAction):
         #print gdict
 
         try:
-            layout = AsciiTableLayout()
-
-            layout.set_show_header(True)
-
-            layout.set_column("node", 0, AsciiTableLayout.LEFT)
-            layout.set_column("type", 1, AsciiTableLayout.CENTER)
-            layout.set_column("name", 2, AsciiTableLayout.LEFT)
-            layout.set_column("dev", 3, AsciiTableLayout.LEFT)
-            layout.set_column("status", 4, AsciiTableLayout.CENTER)
-
-            AsciiTable().print_from_list_of_dict(self._tgt_list, layout)
+            CommandRegistry.output(fs=self.fs.fs_name, listofdic=self._tgt_list)
 
         except Exception, e:
             print e

@@ -51,13 +51,14 @@ class Target:
 
 class Configuration:
     def __init__(self, fs_name=None, lmf=None):
-        "Generic constructor."
+        """FS configuration initializer."""
 
         # Initialize FS configuration
         if fs_name or lmf:
             self._fs = FileSystem(fs_name, lmf)
         else:
             self._fs = None
+
         #DEBUG#print self._fs
 
     def __str__(self):
