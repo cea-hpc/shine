@@ -145,7 +145,7 @@ class Configuration:
 
     def set_status_clients_umount_complete(self, nodes, options):
         for node in nodes:
-            self._fs.set_status_client_umount_warning(node, options)
+            self._fs.set_status_client_umount_complete(node, options)
 
     def set_status_clients_umount_failed(self, nodes, options):
         for node in nodes:
