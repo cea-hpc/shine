@@ -55,7 +55,10 @@ class Configuration:
 
         # Initialize FS configuration
         if fs_name or lmf:
-            self._fs = FileSystem(fs_name, lmf)
+            try:
+                self._fs = FileSystem(fs_name, lmf)
+            except ConfigException, e:
+                raise ConfigException("Error during parsing of filesystem configuration file : %s" % e) 
         else:
             self._fs = None
 
@@ -155,3 +158,7 @@ class Configuration:
         for node in nodes:
             self._fs.set_status_client_umount_warning(node, options)
 
+    def get_status_clients(self):
+        return self._fs.get_status_clients()
+
+        

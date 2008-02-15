@@ -75,8 +75,11 @@ class FileSystem(Model):
             # Returns a list of TargetDevices
             candidates = copy.copy(self.backend.get_target_devices(target))
 
-            # Save the model target selection
-            target_models = copy.copy(self.get(target))
+            try:
+                # Save the model target selection
+                target_models = copy.copy(self.get(target))
+            except KeyError, e:
+                raise ConfigException("No %s target found" %(target))
 
             # To be replaced...
             self.delete(target)
@@ -127,4 +130,7 @@ class FileSystem(Model):
     def set_status_client_umount_warning(self, node, options):
         self.backend.set_status_client(self.fs_name, node,
             Backend.UMOUNT_WARNING, options)
+
+    def get_status_clients(self):
+        return self.backend.get_status_clients(self.fs_name)
 
