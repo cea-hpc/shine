@@ -75,11 +75,11 @@ class WorkerPdsh(Worker):
         # XXX self.nodes_cs() or range-based list ?
         if self.command:
             # Build pdsh command
-            cmd = "/usr/bin/pdsh -w '%s' '%s'" % (self.nodes_cs(), self.command)
+            cmd = "/usr/bin/pdsh -b -w '%s' '%s'" % (self.nodes_cs(), self.command)
             #print "PDSH : %s" % cmd
         else:
             # Build pdcp command
-            cmd = "/usr/bin/pdcp -w '%s' '%s' '%s'" % (self.nodes_cs(), self.source, self.dest)
+            cmd = "/usr/bin/pdcp -b -w '%s' '%s' '%s'" % (self.nodes_cs(), self.source, self.dest)
             #print "PDCP : %s" % cmd
 
         try:

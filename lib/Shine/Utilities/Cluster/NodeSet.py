@@ -75,7 +75,7 @@ class _NodeSetPatternIterator:
                         pad = len(begin)
                     else:
                         pad = 0
-                    begin = int(begins)
+                    begin = int(begin)
                     end = int(end.lstrip("0"))
                     yield "%s%%s%s" % (pfx, sfx), pad, begin, end
             else:
@@ -95,7 +95,7 @@ class _NodeSetPatternIterator:
                 if idx:
                     pat = "%s%%s%s" % (pfx, sfx)
                     idxs = idx.lstrip("0")
-                    begin = int(idxs)
+                    begin = int(idx)
                     if len(idx) - len(idxs) > 0:
                         pad = len(idx)
                     else:

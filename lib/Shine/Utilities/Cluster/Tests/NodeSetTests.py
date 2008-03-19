@@ -22,6 +22,21 @@ class NodeSetTests(unittest.TestCase):
         assert nodes.as_ranges() == "cws-cors"
         assert list(nodes) == [ "cws-cors" ]
 
+    def testNodeZero(self):
+        nodes = NodeSet("fortoy0")
+        assert nodes.as_ranges() == "fortoy0"
+        assert list(nodes) == [ "fortoy0" ]
+
+    def testNodeEightPad(self):
+        nodes = NodeSet("fortoy008")
+        assert nodes.as_ranges() == "fortoy008"
+        assert list(nodes) == [ "fortoy008" ]
+
+    def testNodeRangeIncludingZero(self):
+        nodes = NodeSet("fortoy[0-10]")
+        assert nodes.as_ranges() == "fortoy[0-10]"
+        assert list(nodes) == [ "fortoy0", "fortoy1", "fortoy2", "fortoy3", "fortoy4", "fortoy5", "fortoy6", "fortoy7", "fortoy8", "fortoy9", "fortoy10" ]
+
     def testSingle(self):
         nodes = NodeSet("cors115")
         assert nodes.as_ranges() == "cors115"

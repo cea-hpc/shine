@@ -71,7 +71,11 @@ class WorkerSh(Worker):
         return self.fid.fromchild.read(size)
 
     def close(self):
-        self.set_rc(self.fid.wait())
+        status = self.fid.wait()
+        if os.WIFEXITED(status):
+            self.set_rc(os.WEXITSTATUS(status))
+        else:
+            self.set_rc(0)
         self.fid.tochild.close()
         self.fid.fromchild.close()
         self.invoke_ev_close()
