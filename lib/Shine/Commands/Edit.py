@@ -41,6 +41,10 @@ import fcntl
 # * shine edit
 # ----------------------------------------------------------------------
 class Edit(Command):
+    """
+    Edit command : allow a wrapped access to shine FS config file which
+    add (1) an convenient access and (2) syntax/sanity checking.
+    """
     
     def __init__(self):
         Command.__init__(self)
