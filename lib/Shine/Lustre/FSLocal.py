@@ -76,10 +76,6 @@ class FSLocal(FileSystem):
         #return name == self.short_hostname or name == self.hostname or name == socket.getfqdn()
         return name == self.short_hostname or name == self.hostname
         
-    def get_mgs_nid(self):
-        #mgsdic = self.servers['mgs']
-        return "%s@%s0" %  (self.mgs_nn, self.config.get_nettype())
-
     def push_action(self, action):
         action.launch()
         self.actions.append(action)
@@ -111,7 +107,6 @@ class FSLocal(FileSystem):
             self.oss.format()
 
         self.process_actions()
-
 
     def start(self, target=None):
 
@@ -194,8 +189,6 @@ class FSLocal(FileSystem):
         else:
             print " %s" % self.config.get_description()
 
-        
-        
     def mount(self, nodes=None):
         action = Mount(Task.current(), self, target=None)
         action.launch_and_run()

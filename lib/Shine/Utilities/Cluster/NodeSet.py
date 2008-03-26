@@ -76,7 +76,7 @@ class _NodeSetPatternIterator:
                     else:
                         pad = 0
                     begin = int(begin)
-                    end = int(end.lstrip("0"))
+                    end = int(end)
                     yield "%s%%s%s" % (pfx, sfx), pad, begin, end
             else:
                 # In this case, either there is no comma and no bracket, or the

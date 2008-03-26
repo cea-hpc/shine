@@ -1,5 +1,5 @@
 # Target.py -- Lustre Target base class
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -62,14 +62,14 @@ class Target(NodeSet):
         self.type = cf_target.get_type()
 
         # Other target config parameters
-        self.name = cf_target.get_name()
+        self.tag = cf_target.get_tag()
         self.dev = cf_target.get_dev()
         self.dev_size = cf_target.get_dev_size()
         self.jdev = cf_target.get_jdev()
         self.jdev_size = cf_target.get_jdev_size()
 
         # Define target mount point
-        self.mntp = "/mnt/%s/%s" % (fs.fs_name, self.name)
+        self.mntp = "/mnt/%s/%s" % (fs.fs_name, self.tag)
 
         self.fs = fs
         self.worker = None
@@ -79,7 +79,6 @@ class Target(NodeSet):
 
         # Build target label
         self.label = "%s-%s%04x" % (self.fs.fs_name, self.type, self.index)
-
 
     def _mount(self):
         action = Mount(Task.current(), self.fs, self)
@@ -91,7 +90,7 @@ class Target(NodeSet):
 
     def set_status(self, new_cfg_status):
         pass
-        #self.fs.config.set_target_status(self.name,
+        #self.fs.config.set_target_status(self.tag,
         #                                 status="offline",
         #                                 cfg_status=new_cfg_status,
         #                                 fs_name=self.fs.fs_name)
@@ -126,8 +125,8 @@ class Target(NodeSet):
         finally:
             f.close()
         
-        CommandRegistry.output(type=self.type, name=self.name, dev=self.dev, status=sta)
-
+        CommandRegistry.output(type=self.type, tag=self.tag, dev=self.dev,
+            status=sta)
 
     def format(self):
         self.fs.push_action(Format(Task.current(), self.fs, self))

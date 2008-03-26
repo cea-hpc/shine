@@ -1,4 +1,4 @@
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -30,6 +30,7 @@ class Model(ModelFile):
        'stripe_count'       : 'digit',
        'stripe_pattern'     : [ '0' ],
        'nettype'            : [ 'elan', 'tcp', 'o2ib'],
+       'nid_map'            : 'string',
        'fstype'             : [ 'ldiskfs', 'ext3' ],
        'failover'           : [ 'yes', 'no' ],
        'ha_timeout'         : 'digit',
@@ -50,7 +51,8 @@ class Model(ModelFile):
 
        'mgt'                : 'subelem',
        'mdt'                : 'subelem',
-       'ost'                : 'subelem'
+       'ost'                : 'subelem',
+       'client'             : 'subelem'
        }
 
     defaults = {
@@ -93,12 +95,14 @@ class Model(ModelFile):
 class ModelDevice(SubElement):
 
     syntax = {
-      'name'       : 'string',
-      'node_name'  : 'string',
+      'tag'        : 'string',
+      'node'       : 'string',
       'dev'        : 'string',
       'jdev'       : 'string',
       'size'       : 'string',
       'jsize'      : 'string',
+      'path'       : 'string',
+      'index'      : 'digit',
       'cfg_status' : ['available', 'formated']
     }
 

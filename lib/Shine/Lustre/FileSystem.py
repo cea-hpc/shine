@@ -36,10 +36,7 @@ class FileSystem:
         self.fs_name = config.get_fs_name()
         
     def get_mgs_nid(self):
-        #mgsdic = self.servers['mgs']
-        mgt = self.targets['mgt'][0]
-        return "%s@%s0" %  (list(mgt)[0], self.config.get_nettype())
-
+        print self.config.get_nid(self.mgs)
 
     def test(self, target):
 

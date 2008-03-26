@@ -48,7 +48,7 @@ class Globals(object):
         syntax = {
             'backend'                   : ['clusterdb', 'file'],
             'storage_file'              : 'path',
-            'cache_dir'                 : 'path',
+            'status_dir'                 : 'path',
             'conf_dir'                  : 'path',
             'tuning_file'               : 'path',
             'log_file'                  : 'path',
@@ -76,7 +76,7 @@ class Globals(object):
         defaults = {
             'backend'                   : 'file',
             'storage_file'              : '/etc/shine/storage.conf',
-            'cache_dir'                 : '/var/cache/shine/status',
+            'status_dir'                 : '/var/cache/shine/status',
             'conf_dir'                  : '/var/cache/shine/conf',
             'tuning_file'               : '/etc/shine/tuning.conf',
             'log_file'                  : 'warn',
@@ -111,8 +111,8 @@ class Globals(object):
         def get_storage_file(self):
             return self.get_one('storage_file')
 
-        def get_cache_dir(self):
-            return self.get_one('cache_dir')
+        def get_status_dir(self):
+            return self.get_one('status_dir')
 
         def get_conf_dir(self):
             return self.get_one('conf_dir')

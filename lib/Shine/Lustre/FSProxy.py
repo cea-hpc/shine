@@ -87,11 +87,6 @@ class FSProxy(FileSystem):
             else:
                 raise FSBadTargetError()
    
-    def get_mgs_nid(self):
-        #mgsdic = self.servers['mgs']
-        mgt = self.targets['mgt'][0]
-        return "%s@%s0" %  (list(mgt)[0], self.config.get_nettype())
-
     def install(self):
         """
         Install file system configuration on remote nodes.
@@ -121,7 +116,6 @@ class FSProxy(FileSystem):
         except ActionErrorException, e:
             print e
             sys.exit(e.get_rc())
-        
 
     def start(self, target=None):
         """
@@ -250,12 +244,14 @@ class FSProxy(FileSystem):
         else:
             print " %s" % self.config.get_description()
 
-        
-        
     def mount(self, nodes):
         """
         Proxy mount command.
         """
+        # if no nodes are specified, use config
+        if not nodes:
+            nodes = self.config.get_client_nodes()
+            
         try:
             action = CreateDirs(Task.current(), self, nodes)
             action.launch_and_run()
@@ -268,11 +264,14 @@ class FSProxy(FileSystem):
         except ActionErrorException, e:
             print e
             sys.exit(e.get_rc())
-        
+
     def umount(self, nodes):
         """
         Proxy umount command.
         """
+        if not nodes:
+            nodes = self.config.get_client_nodes()
+
         try:
             proxy = Umount(Task.current(), self, NodeSet(nodes))
             proxy.launch_and_run()
@@ -280,3 +279,8 @@ class FSProxy(FileSystem):
             print e
             sys.exit(e.get_rc())
         
+    def mount_status(self, nodes):
+        """
+        Proxy mount status command.
+        """
+        pass

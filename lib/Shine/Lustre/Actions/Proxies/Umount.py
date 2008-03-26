@@ -65,10 +65,12 @@ class Umount(ProxyAction):
 
     def ev_close(self, worker):
         gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
+        for nodes, rc in gdict.iteritems():
             if rc != 0:
-                raise ActionFailedError(rc, "Unmounting client failed on %s" % nodelist.as_ranges())
+                self.fs.config.set_status_clients_umount_failed(nodes, None)
+                raise ActionFailedError(rc, "Unmounting client failed on %s" % nodes.as_ranges())
             else:
+                self.fs.config.set_status_clients_umount_complete(nodes, None)
                 print "File system %s successfully unmounted on %s" % (self.fs.fs_name,
-                    nodelist.as_ranges())
+                    nodes.as_ranges())
     

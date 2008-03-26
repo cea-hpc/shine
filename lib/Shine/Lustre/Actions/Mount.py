@@ -54,13 +54,12 @@ class Mount(Action):
             mntp = self.target.mntp
             cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (mntp, self.target.dev, mntp)
         else:
+            # Client mounts
             mntp = self.fs.config.get_mount_path()
             assert mntp != None
             cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s:/%s \"%s\"" % (mntp,
                 self.fs.get_mgs_nid(), self.fs.config.get_fs_name(), mntp)
 
-        #cmd = "false"
-        #cmd = "sleep 4"
         self.task.shell(cmd, handler=self)
 
     def ev_start(self, worker):

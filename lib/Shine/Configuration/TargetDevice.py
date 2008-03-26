@@ -23,7 +23,7 @@
 import copy
 
 #
-# ost: name=ost1_cors115 node_name=cors115 dev=/dev/cciss/c0d3 size=71126640
+# ost: tag=ost1_cors115 node=cors115 dev=/dev/cciss/c0d3 size=71126640 index=3
 #
 
 class TargetDevice:
@@ -32,11 +32,6 @@ class TargetDevice:
     def __init__(self, target, dic):
         self.target = target
         self.dict = copy.copy(dic)
-
-#        self.dict       = { "name"      : name,
-#                            "node_name" : node_name,
-#                            "dev"       : dev,
-#                            "size"      : size }
 
     def get(self, key):
         return self.dict[key]
@@ -48,11 +43,11 @@ class TargetDevice:
         return line.strip()
 
     def __str__(self):
-        name = self.dict['name']
-        node_name = self.dict['node_name']
+        tag = self.dict['tag']
+        node = self.dict['node']
         dev = self.dict['dev']
         size = self.dict['size']
         jdev = self.dict.get('jdev', '')
         jsize = self.dict.get('jsize', 0)
-        return "%s on %s (dev=%s, size=%lu, jdev=%s, jsize=%lu)" % (name, node_name, dev, size, jdev, jsize)
+        return "%s on %s (dev=%s, size=%lu, jdev=%s, jsize=%lu)" % (tag, node, dev, size, jdev, jsize)
 

@@ -24,9 +24,9 @@ from Globals import Globals
 from Model import Model
 from Exceptions import *
 
-from Backend.BackendRegistry import BackendRegistry
+from Shine.Utilities.Cluster.NodeSet import NodeSet
 
-from Backend.Backend import Backend
+from NidMap import NidMap
 
 import copy
 import os
@@ -39,9 +39,7 @@ class FileSystem(Model):
     def __init__(self, fs_name=None, lmf=None):
         """ Initialize File System config
         """
-        # XXX Start the selected config backend system. XXX
-        self.backend = BackendRegistry().get_selected()
-        self.backend.start()
+        self.backend = None
 
         globals = Globals()
 
@@ -64,12 +62,25 @@ class FileSystem(Model):
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
             Model.__init__(self, self.xmf_path)
 
+        self._setup_nid_map(self.get('nid_map'))
+
         self.fs_name = self.get_one('fs_name')
 
+    def _start_backend(self):
+        if not self.backend:
+
+            from Backend.BackendRegistry import BackendRegistry
+            from Backend.Backend import Backend
+
+            # Start the selected config backend system.
+            self.backend = BackendRegistry().get_selected()
+            self.backend.start()
 
     def _setup_target_devices(self):
         """ Generate the eXtended Model File XMF
         """
+        self._start_backend()
+
         for target in [ 'mgt', 'mdt', 'ost' ]:
 
             # Returns a list of TargetDevices
@@ -93,12 +104,18 @@ class FileSystem(Model):
                     candidates.remove(matching)
                     self.add(target, matching.getline())
 
-        # Create new XMF path
-        #self.xmf_path = "%s/%s.xmf" % (Globals().get_conf_dir(), self.get_one('fs_name'))
         # Save XMF
-        self.save(self.xmf_path)
+        self.save(self.xmf_path, "Shine Lustre file system config file for %s" % self.get_one('fs_name'))
             
-        
+    def _setup_nid_map(self, maps):
+
+        self.nid_map = NidMap().fromlist(maps)
+        #DEBUGprint self.nid_map
+        #print self.get_nid('fortoy30')
+
+    def get_nid(self, node):
+            return self.nid_map[node]
+
     def __str__(self):
         return ">> BACKEND:\n%s\n>> MODEL:\n%s" % (self.backend, Model.__str__(self))
 
@@ -108,29 +125,36 @@ class FileSystem(Model):
             self.backend = None
     
     def set_status_client_mount_complete(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.MOUNT_COMPLETE, options)
 
     def set_status_client_mount_failed(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.MOUNT_FAILED, options)
 
     def set_status_client_mount_warning(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.MOUNT_WARNING, options)
 
     def set_status_client_umount_complete(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.UMOUNT_COMPLETE, options)
 
     def set_status_client_umount_failed(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.UMOUNT_FAILED, options)
 
     def set_status_client_umount_warning(self, node, options):
+        self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
             Backend.UMOUNT_WARNING, options)
 
     def get_status_clients(self):
+        self._start_backend()
         return self.backend.get_status_clients(self.fs_name)
 

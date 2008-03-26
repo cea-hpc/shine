@@ -23,6 +23,10 @@ from Configuration.Globals import Globals
 from Commands.CommandRegistry import CommandRegistry
 
 from Configuration.ModelFile import ModelFileException
+from Configuration.ModelFile import ModelFileIOError
+
+from Configuration.Exceptions import ConfigException
+from Commands.Exceptions import CommandException
 
 import getopt
 import logging
@@ -38,13 +42,17 @@ class Controller:
         self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
 
-    def cmds_usage(self):
+    def usage(self):
         cmd_maxlen = 0
+
         for cmd in self.cmds:
-            if len(cmd.get_name()) > cmd_maxlen:
-                cmd_maxlen = len(cmd.get_name())
+            if not cmd.is_hidden():
+                if len(cmd.get_name()) > cmd_maxlen:
+                    cmd_maxlen = len(cmd.get_name())
         for cmd in self.cmds:
-            print "\t%-*s %s" % (cmd_maxlen, cmd.get_name(), cmd.get_params_desc())
+            if not cmd.is_hidden():
+                print "  %-*s %s" % (cmd_maxlen, cmd.get_name(),
+                    cmd.get_params_desc())
 
     def run_command(self, cmd_name, args):
 
@@ -54,11 +62,17 @@ class Controller:
             self.cmds.execute(cmd_name, args)
         except getopt.GetoptError, e:
             print "Syntax error: %s %s" % (cmd_name, e)
+        except ModelFileIOError, e:
+            print "Error - %s" % e.message
         except ModelFileException, e:
             print "ModelFile: %s" % e
+        except ConfigException, e:
+            print "Configuration: %s" % e
         except KeyError:
             print "Error - Unrecognized action: %s" % cmd_name
             print
             raise
+        except CommandException, e:
+            print "Error - %s" % e.message
 
 

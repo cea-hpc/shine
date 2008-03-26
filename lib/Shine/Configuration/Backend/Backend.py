@@ -47,20 +47,36 @@ class Backend:
     # Public methods.
 
     def start(self):
-        """The config backend storage system has been selected."""
+        """
+        The config backend storage system has been selected.
+        """
         raise NotImplementedError(NIEXC)
 
     def stop(self):
-        """Stop operations"""
+        """
+        Stop operations
+        """
         raise NotImplementedError(NIEXC)
         
 
     def get_target_devices(self, target):
-        """Get the targets configuration, as a TargetDevice list (for mgt, mdt, ost)."""
+        """
+        Get the targets configuration, as a TargetDevice list (for mgt, mdt, ost).
+        """
         raise NotImplementedError(NIEXC)
 
     def set_status_client(self, fs_name, nodes, status, options):
-        """Set status of file system client."""
+        """
+        Set status of file system client.
+        """
         raise NotImplementedError(NIEXC)
 
+    def get_status_clients(self, fs_name):
+        """
+        Get all client's status of the form { node1 : { 'status' : status,
+        'date' : datetime, 'options' : None }, node2 : ... }}
+        """
+        raise NotImplementedError(NIEXC)
+
+        
 

@@ -44,5 +44,3 @@ class OST(Target):
 
     def status(self):
         Target.status(self)
-        #
-        #  

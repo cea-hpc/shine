@@ -47,8 +47,8 @@ class Storage(ModelFile):
 
 class FileDevice(SubElement):
     syntax = {
-        'name'      : 'string',
-        'node_name' : 'string',
+        'tag'       : 'string',
+        'node'      : 'string',
         'dev'       : 'path',
         'size'      : 'digit',
         'jdev'      : 'path',

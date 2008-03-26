@@ -54,11 +54,21 @@ class Mount(ProxyAction):
         """
         Proxy file system mount command.
         """
-        # Prepare proxy command
-        command = "%s mount -f %s -L" % (self.progpath, self.fs.fs_name)
+        # Prepare proxy command for each different client mount path
+        mounts = self.fs.config.get_client_mounts()
 
-        # Run cluster command
-        self.task.shell(command, nodes=self.nodes, handler=self)
+        for path, nodes in mounts.iteritems():
+
+            # Build shine remote mount command
+            command = "%s mount -f %s -R -M %s" % (self.progpath, self.fs.fs_name,
+                path)
+
+            print command
+
+            # Schedule command for execution
+            self.task.shell(command, nodes=nodes, handler=self)
+
+        # Run cluster commands
         self.task.run()
 
     def ev_start(self, worker):

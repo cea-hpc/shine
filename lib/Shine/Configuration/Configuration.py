@@ -22,6 +22,11 @@
 from Globals import Globals
 from FileSystem import FileSystem
 
+from Shine.Utilities.Cluster.NodeSet import NodeSet
+
+class ConfigException(Exception):
+    pass
+
 class Target:
     def __init__(self, type, cf_target):
         self.type = type
@@ -30,11 +35,11 @@ class Target:
     def get_type(self):
         return self.type
 
-    def get_name(self):
-        return self.dic.get('name')
+    def get_tag(self):
+        return self.dic.get('tag')
         
     def get_nodename(self):
-        return self.dic.get('node_name')
+        return self.dic.get('node')
 
     def get_dev(self):
         return self.dic.get('dev')
@@ -48,6 +53,17 @@ class Target:
     def get_jdev_size(self):
         return self.dic.get('jsize')
     
+
+class Clients:
+    def __init__(self, cf_client):
+        self.dic = cf_client.get_dict()
+
+    def get_nodes(self):
+        return self.dic.get('node')
+
+    def get_path(self):
+        return self.dic.get('path')
+        
 
 class Configuration:
     def __init__(self, fs_name=None, lmf=None):
@@ -89,6 +105,34 @@ class Configuration:
         tgt_cf_list = self._fs.get('ost')
         for t in tgt_cf_list:
             yield Target('OST', t)
+
+    def get_client_nodes(self):
+        cli_cf_list = self._fs.get('client')
+        nodes = NodeSet()
+        for c in cli_cf_list:
+            clients = Clients(c)
+            nodes.add(clients.get_nodes())
+        return nodes
+
+    def get_client_mounts(self):
+        """
+        Get clients different mount paths. Returns a dict where keys are
+        mount paths and values are nodes.
+        """
+        cli_cf_list = self._fs.get('client')
+        # build a dict where keys are mount paths
+        mounts = {}
+        for c in cli_cf_list:
+            clients = Clients(c)
+            path = clients.get_path()
+            if not path:
+                path = self._fs.get_one('mount_path')
+            if mounts.has_key(path):
+                nodes = mounts[path]
+                nodes.add(clients.get_nodes())
+            else:
+                mounts[path] = NodeSet(clients.get_nodes())
+        return mounts
 
     # General FS getters
     #
