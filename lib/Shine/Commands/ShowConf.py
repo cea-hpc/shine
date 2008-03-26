@@ -1,5 +1,5 @@
 # ShowConf.py -- Show shine configuration
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -37,7 +37,7 @@ class ShowConf(Command):
     def get_desc(self):
         return "Show global configuration parameters."
 
-    def execute(self, args):
+    def execute(self):
         AsciiTable().print_from_simple_dict(Globals().get_dict())
 
 

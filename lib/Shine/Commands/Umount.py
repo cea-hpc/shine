@@ -1,5 +1,5 @@
 # Umount.py -- Unmount file system clients
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,24 +22,42 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSClientCommand import FSClientCommand
+
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
+
+from Base.RemoteCommand import RemoteCommand
+from Base.Support.FS import FS
+from Base.Support.Node import Node
+
 
 # ----------------------------------------------------------------------
 # * shine umount
 # ----------------------------------------------------------------------
-class Umount(FSClientCommand):
+class Umount(RemoteCommand):
+
+    def __init__(self):
+        RemoteCommand.__init__(self)
+        
+        # the umount command supports -f and -n
+        self.fs_support = FS(self)
+        self.node_support = Node(self)
 
     def get_name(self):
         return "umount"
 
-    def get_params_desc(self):
-        return "-f <fsname> -n <nodes>"
-
     def get_desc(self):
         return "Unmount file system client(s)."
 
-    def fs_execute(self, fs, nodes=None):
-        fs.umount(nodes)
+    def execute(self):
+        # for each selected file systems, get its config and unmount it on nodes
+        for fsname in self.fs_support.iter_fsname():
+            conf = Configuration(fs_name=fsname)
+            if self.local_flag or self.remote_call:
+                fs = FSLocal(conf)
+            else:
+                fs = FSProxy(conf)
+            fs.umount(self.node_support.get_nodes())
 
     def output(self, dic):
         if self.remote_call:

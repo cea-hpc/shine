@@ -1,4 +1,4 @@
-# List.py -- List FS
+# FS.py -- Impl. class for command FS support
 # Copyright (C) 2008 CEA
 #
 # This file is part of shine
@@ -23,31 +23,30 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Utilities.AsciiTable import *
+import os
 
-from Base.Command import Command
-from Base.Support.FS import FS
+class FS:
+    
+    def __init__(self, cmd, optional=True):
 
+        attr = { 'optional' : optional,
+                 'hidden' : False,
+                 'doc' : "apply command to file system fsname" }
 
-# ----------------------------------------------------------------------
-# * shine list
-# ----------------------------------------------------------------------
-class List(Command):
-    """
-    Simply list installed file systems.
-    """
-    def __init__(self):
-        Command.__init__(self)
+        self.cmd = cmd
+        self.cmd.add_option('f', 'fsname', attr)
 
-        self.fs_support = FS(self)
-
-    def get_name(self):
-        return "list"
-
-    def get_desc(self):
-        return "List configured file systems."
-
-    def execute(self):
-        for fsname in self.fs_support.iter_fsname():
-            print fsname
+    
+    def iter_fsname(self):
+        """
+        """
+        if self.cmd.opt_f:
+            for name in self.cmd.opt_f.split(','):
+                yield name.strip()
+        else:
+            for filename in os.listdir(Globals().get_conf_dir()):
+                name, ext = os.path.splitext(filename)
+                if len(name) > 0 and ext == '.xmf':
+                    yield name
+        
 

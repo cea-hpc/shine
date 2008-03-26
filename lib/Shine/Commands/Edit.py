@@ -1,4 +1,4 @@
-# Info.py -- Info of file system
+# Edit.py -- Info of file system
 # Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
@@ -27,14 +27,20 @@ from Shine.Lustre.FileSystem import FileSystem
 from Base.Command import Command
 from Base.Support.FS import FS
 
+from Exceptions import *
+
+from errno import *
 
 import getopt
+import os
 import sys
 
+import fcntl
+
 # ----------------------------------------------------------------------
-# * shine status
+# * shine edit
 # ----------------------------------------------------------------------
-class Info(Command):
+class Edit(Command):
     
     def __init__(self):
         Command.__init__(self)
@@ -42,7 +48,7 @@ class Info(Command):
         self.fs_support = FS(self, optional=False)
 
     def get_name(self):
-        return "info"
+        return "edit"
 
     def get_desc(self):
         return "General file system information."
@@ -53,9 +59,46 @@ class Info(Command):
             sys.exit(1)
         try:
             for fsname in self.fs_support.iter_fsname():
-                conf = Configuration(fs_name=fsname)
-                fs = FileSystem(conf)
-                fs.info()
+
+                # Check first if file system is installed
+                xmf = "%s/%s.xmf" % (Globals().get_conf_dir(), fsname)
+                if not os.path.exists(xmf):
+                    raise CommandXMFNotFoundError(fsname)
+
+                editor = None
+
+                # Check the VISUAL environment variable
+                e = os.getenv("VISUAL")
+                if e:
+                    editor = e
+
+                # Check the EDITOR environment variable
+                e = os.getenv("EDITOR")
+                if e:
+                    editor = e
+
+                # Default to vim, vi or nano editor if not specified.
+                infile = os.popen("type -p vim || type -p vi || type -p nano")
+                
+                result = infile.read()
+                if result:
+                    editor = os.path.normpath(result.strip("\n\r"))
+                infile.close()
+
+                if not editor:
+                    # Last chance...
+                    editor = "/bin/vi"
+
+                # Open editor if file not locked by us.
+                f = os.open(xmf, os.O_RDWR)
+                r = fcntl.lockf(f, fcntl.LOCK_EX|fcntl.LOCK_NB)
+                os.system("%s %s" % (editor, xmf))
+                os.close(f)
+
         except IOError, e:
-            print "Error: filesystem %s is not installed" % fsname
+            if e.errno == EACCES or e.errno == EAGAIN:
+                print "shine: %s.xmf file busy (already editing?), try again later" % fsname
+            else:
+                print "Error: filesystem %s is not installed" % fsname
+
 

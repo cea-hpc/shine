@@ -1,4 +1,4 @@
-# List.py -- List FS
+# RemoteCommand.py -- Base command with remote capabilities
 # Copyright (C) 2008 CEA
 #
 # This file is part of shine
@@ -22,32 +22,30 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
+from Command import Command
 
-from Shine.Utilities.AsciiTable import *
+import binascii, pickle
 
-from Base.Command import Command
-from Base.Support.FS import FS
-
-
-# ----------------------------------------------------------------------
-# * shine list
-# ----------------------------------------------------------------------
-class List(Command):
-    """
-    Simply list installed file systems.
-    """
+class RemoteCommand(Command):
+    
     def __init__(self):
         Command.__init__(self)
+        self.remote_call = False
+        self.local_flag = False
+        attr = { 'optional' : True, 'hidden' : True }
+        self.add_option('L', None, attr, cb=self.parse_L)
+        self.add_option('R', None, attr, cb=self.parse_R)
 
-        self.fs_support = FS(self)
+    def parse_L(self, opt, arg):
+        self.local_flag = True
 
-    def get_name(self):
-        return "list"
+    def parse_R(self, opt, arg):
+        self.remote_call = True
 
-    def get_desc(self):
-        return "List configured file systems."
-
-    def execute(self):
-        for fsname in self.fs_support.iter_fsname():
-            print fsname
+    #
+    # Special output helper (pickling)
+    #
+    def _print_pickle(self, tpl):
+        assert self.remote_call == True
+        print binascii.b2a_base64(pickle.dumps(tpl, -1)),
 

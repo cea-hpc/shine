@@ -72,8 +72,16 @@ class CommandRegistry:
         self.cmd_dict[cmd.get_name()] = cmd
 
     def execute(self, name, args):
-        CommandRegistry.current = self.get(name)
-        CommandRegistry.current.execute(args)
+        try:
+            CommandRegistry.current = self.get(name)
+        except KeyError, e:
+            raise CommandNotFoundError(cmd.get_name())
+
+        # Parse
+        CommandRegistry.current.parse(args)
+
+        # Execute
+        CommandRegistry.current.execute()
 
     def output(cls, *args, **kwargs):
         CommandRegistry.current.output(kwargs)

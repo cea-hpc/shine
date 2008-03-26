@@ -1,5 +1,5 @@
 # Command.py -- Base command class
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -23,33 +23,93 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-import binascii, pickle
+import getopt
 
 # ----------------------------------------------------------------------
 # Base Command Class and command class definitions
 # ----------------------------------------------------------------------
 
-class Command:
+class Command(object):
     """
     The base class for command objects that can be added to the commands
     registry.
     """
+    def __init__(self):
+        self.options = {}
+        self.getopt_string = ""
+        self.params_desc = ""
+        self.last_optional = 0
+        self.arguments = None
+
+    def is_hidden(self):
+        return False
+
     def get_name(self):
         raise NotImplementedError("Derived classes must implement.")
-
-    def get_params_desc(self):
-        return ""
 
     def get_desc(self):
         return "Undocumented"
 
-    def execute(self, args):
-        raise NotImplementedError("Derived classes must implement.")
+    def get_params_desc(self):
+        return self.params_desc.strip()
 
-    #
-    # Special output helper (pickling)
-    #
-    def _print_pickle(self, tpl):
-        assert self.remote_call == True
-        print binascii.b2a_base64(pickle.dumps(tpl, -1)), 
+    def add_option(self, flag, arg, attr, cb=None):
+        """
+        Add an option for getopt with optional argument.
+        """
+        assert not self.options.has_key(flag)
+
+        optional = attr.get('optional', False)
+        hidden = attr.get('hidden', False)
+
+        if cb:
+            self.options[flag] = cb
+        else:
+            object.__setattr__(self, "opt_%s" % flag, None)
+            
+        self.getopt_string += flag
+        if optional:
+            leftmark = '['
+            rightmark = ']'
+        else:
+            leftmark = ''
+            rightmark = ''
+
+        if arg:
+            self.getopt_string += ":"
+            if not hidden:
+                self.params_desc += "%s-%s <%s>%s " % (leftmark,
+                    flag, arg, rightmark)
+                self.last_optional = 0
+        elif not hidden:
+            if self.last_optional == 0:
+                self.params_desc += "%s-%s%s " % (leftmark, flag, rightmark)
+            else:
+                self.params_desc = self.params_desc[:-2] + "%s%s " % (flag,
+                    rightmark)
+            
+            if optional:
+                self.last_optional = 1
+            else:
+                self.last_optional = 2
+
+    def parse(self, args):
+        """
+        Parse command arguments."
+        """
+        try:
+#            print "getopt_string: %s" % self.getopt_string
+
+            options, arguments = getopt.getopt(args, self.getopt_string)
+            self.arguments = arguments
+
+            for opt, arg in options:
+                trim_opt = opt[1:]
+                callback = self.options.get(trim_opt)
+                if not callback:
+                    object.__setattr__(self, "opt_%s" % trim_opt, arg)
+                else:
+                    callback(trim_opt, arg)
+        except getopt.GetoptError, e:
+            raise
 

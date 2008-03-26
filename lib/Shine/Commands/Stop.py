@@ -1,5 +1,5 @@
 # Stop.py -- Stop file system
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,24 +22,42 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.MultiFSCommand import MultiFSCommand
+
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
+
+from Base.RemoteCommand import RemoteCommand
+from Base.Support.FS import FS
+from Base.Support.Target import Target
+
+
 
 # ----------------------------------------------------------------------
 # * shine stop
 # ----------------------------------------------------------------------
-class Stop(MultiFSCommand):
+class Stop(RemoteCommand):
+
+    def __init__(self):
+        RemoteCommand.__init__(self)
+
+        self.fs_support = FS(self)
+        self.target_support = Target(self)
 
     def get_name(self):
         return "stop"
 
-    def get_params_desc(self):
-        return "[-f <fsname>] [-t <target>]"
-
     def get_desc(self):
         return "Stop file system servers."
 
-    def fs_execute(self, fs, fs_target):
-        fs.stop(fs_target)
+    def execute(self):
+        target = self.target_support.get_target()
+        for fsname in self.fs_support.iter_fsname():
+            conf = Configuration(fs_name=fsname)
+            if self.local_flag or self.remote_call:
+                fs = FSLocal(conf)
+            else:
+                fs = FSProxy(conf)
+            fs.stop(target)
 
     def output(self, dic):
         if self.remote_call:

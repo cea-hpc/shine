@@ -1,5 +1,5 @@
-# Commands/__init__.py -- Commands module initialization
-# Copyright (C) 2007 CEA
+# Debug.py -- Impl. class for command debugging support 
+# Copyright (C) 2008 CEA
 #
 # This file is part of shine
 #
@@ -19,28 +19,25 @@
 #
 # $Id$
 
+from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Exceptions import *
 
-# ----------------------------------------------------------------------
-# List of enabled commands classes.
-# ----------------------------------------------------------------------
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
 
-commandList = []
+class Debug:
+    
+    def __init__(self, cmd):
 
-for cmd in [ "ShowConf",
-             "Install",
-             "Edit",
-             "Format",
-             "List",
-             "Start",
-             "Stop",
-             "Info",
-             "Status",
-             "Mount",
-             "Umount",
-             "Cache" ]:
-    # Import command class file
-    mod = __import__(cmd, globals(), locals(), [cmd])
+        attr = { 'optional' : True,
+                 'hidden' : True,
+                 'doc' : "enable debugging" }
 
-    # Add class to global command list
-    commandList.append(getattr(mod, cmd))
+        self.cmd = cmd
+        self.cmd.add_option('d', None, attr)
+
+    
+    def has_debug(self):
+        return self.cmd.opt_d
 

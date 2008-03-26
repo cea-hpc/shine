@@ -1,5 +1,5 @@
 # Format.py -- Format file system targets
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,22 +22,41 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSCommand import FSCommand
+from Base.RemoteCommand import RemoteCommand
+
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
+
+from Base.RemoteCommand import RemoteCommand
+from Base.Support.FS import FS
+from Base.Support.Target import Target
+
 
 # ----------------------------------------------------------------------
 # * shine format
 # ----------------------------------------------------------------------
-class Format(FSCommand):
+class Format(RemoteCommand):
+    
+    def __init__(self):
+        RemoteCommand.__init__(self)
+
+        self.fs_support = FS(self) # XXX add : force one FS ?
+        self.target_support = Target(self)
 
     def get_name(self):
         return "format"
 
-    def get_params_desc(self):
-        return "-f <fsname> [-t <target]"
-
     def get_desc(self):
         return "Format file system targets."
 
-    def fs_execute(self, fs, fs_target):
-        fs.format(fs_target)
+    def execute(self):
+        if not self.opt_f:
+            raise "No FS"
+        else:
+            assert self.local_flag
+            target = self.target_support.get_target()
+            for fsname in self.fs_support.iter_fsname():
+                conf = Configuration(fs_name=fsname)
+                fs = FSLocal(conf)
+                fs.format(target)
 

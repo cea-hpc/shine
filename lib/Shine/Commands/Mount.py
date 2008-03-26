@@ -1,5 +1,5 @@
 # Mount.py -- Mount file system clients
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,44 +22,42 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSClientCommand import FSClientCommand
+
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
+
+from Base.RemoteCommand import RemoteCommand
+from Base.Support.FS import FS
+from Base.Support.Node import Node
+
 
 # ----------------------------------------------------------------------
 # * shine mount
 # ----------------------------------------------------------------------
-class Mount(FSClientCommand):
+class Mount(RemoteCommand):
+    
+    def __init__(self):
+        RemoteCommand.__init__(self)
+
+        # the mount command supports -f and -n
+        self.fs_support = FS(self)
+        self.node_support = Node(self)
 
     def get_name(self):
         return "mount"
 
-    def get_params_desc(self):
-        return "-f <fsname> -n <nodes>"
-
     def get_desc(self):
         return "Mount file system client(s)."
 
-    def fs_execute(self, fs, nodes=None):
-        """
-        fs_conf_dir = os.path.expandvars(Globals.get_one('conf_dir'))
-        fs_conf_dir = os.path.normpath(fs_conf_dir)
-
-        f1 = "%s/%s.xmf" % (fs_conf_dir, fs)
-        task = Task.current()
-        worker1 = task.copy(f1, f1, nodes=NodeSet(nodes))
-        task.run()
-
-        gdict = worker1.gather_rc()
-        for nodelist, rc in gdict.iteritems():
-            if rc != 0:
-                print "set_cfg failed on %s: %s" % (nodelist.as_ranges(), os.strerror(rc))
-                print "Please verify that shine is correctly installed on these nodes."
-                sys.exit(1)
-            elif rc == 0:
-                print "set_cfg successful on %s" % nodelist.as_ranges()
-
-        """
-        fs.mount(nodes)
-
+    def execute(self):
+        # for each selected file systems, get its config and mount it on nodes
+        for fsname in self.fs_support.iter_fsname():
+            conf = Configuration(fs_name=fsname)
+            if self.local_flag or self.remote_call:
+                fs = FSLocal(conf)
+            else:
+                fs = FSProxy(conf)
+            fs.mount(self.node_support.get_nodes())
 
     def output(self, dic):
         if self.remote_call:

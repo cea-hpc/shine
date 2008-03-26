@@ -1,5 +1,5 @@
 # Install.py -- File system installation commands
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,9 +22,11 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Shine.Commands.Base.Command import Command
 
 from Shine.Lustre.FSProxy import FSProxy
+
+from Base.Command import Command
+from Base.Support.LMF import LMF
 
 import getopt
 
@@ -32,38 +34,27 @@ import getopt
 # * shine install
 # ----------------------------------------------------------------------
 class Install(Command):
+    
+    def __init__(self):
+        Command.__init__(self)
+
+        self.lmf_support = LMF(self)
+
     def get_name(self):
         return "install"
-
-    def get_params_desc(self):
-        return "-f <LMF path>"
 
     def get_desc(self):
         return "Install a new file system."
 
-    def execute(self, args):
-        try:
-            lmf_path = None
-            options, arguments = getopt.getopt(args, "f:")
-            for opt, arg in options:
-                if opt == '-f':
-                    lmf_path = arg
-            if lmf_path:
-                conf = Configuration(lmf=arg)
-                fs = FSProxy(conf)
-                fs.install()
-                fs.format()
-                print "File system %s is now installed and ready to use." % conf.get_fs_name()
-                print "Use `shine start -f %s' to start it." % conf.get_fs_name()
-
-            else:
-                # XXX raise something
-                print "Bad argument"
-
-        except getopt.GetoptError:
-            raise
-        except ConfigException, e:
-            print e
-        except IOError, e:
-            print e
+    def execute(self):
+        if not self.opt_f:
+            print "Bad argument"
+        else:
+            conf = Configuration(lmf=self.opt_f)
+            fs = FSProxy(conf)
+            fs.install()
+            ##############################fs.format()
+            ###
+            print "File system %s is now installed and ready to use." % conf.get_fs_name()
+            print "Use `shine start -f %s' to start it." % conf.get_fs_name()
 

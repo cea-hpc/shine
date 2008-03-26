@@ -1,4 +1,4 @@
-# List.py -- List FS
+# Node.py -- Impl. class for -n node option
 # Copyright (C) 2008 CEA
 #
 # This file is part of shine
@@ -23,31 +23,29 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Utilities.AsciiTable import *
+from Shine.Utilities.Cluster.NodeSet import NodeSet
 
-from Base.Command import Command
-from Base.Support.FS import FS
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
 
+class Node:
+    
+    def __init__(self, cmd, optional=True):
 
-# ----------------------------------------------------------------------
-# * shine list
-# ----------------------------------------------------------------------
-class List(Command):
-    """
-    Simply list installed file systems.
-    """
-    def __init__(self):
-        Command.__init__(self)
+        attr = { 'optional' : optional,
+                 'hidden' : False,
+                 'doc' : "node, node list or node range" }
 
-        self.fs_support = FS(self)
+        self.cmd = cmd
+        self.cmd.add_option('n', 'nodes', attr)
 
-    def get_name(self):
-        return "list"
+    
+    def get_nodes(self):
 
-    def get_desc(self):
-        return "List configured file systems."
+        # if nodes are specified, use them
+        if self.cmd.opt_n:
+            return NodeSet(self.cmd.opt_n)
 
-    def execute(self):
-        for fsname in self.fs_support.iter_fsname():
-            print fsname
+        return None
+
 
