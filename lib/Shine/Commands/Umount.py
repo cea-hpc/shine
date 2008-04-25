@@ -28,6 +28,7 @@ from Shine.Lustre.FSProxy import FSProxy
 
 from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
+from Base.Support.MountPoint import MountPoint
 from Base.Support.Node import Node
 
 
@@ -41,6 +42,7 @@ class Umount(RemoteCommand):
         
         # the umount command supports -f and -n
         self.fs_support = FS(self)
+        self.mntpt_support = MountPoint(self)
         self.node_support = Node(self)
 
     def get_name(self):

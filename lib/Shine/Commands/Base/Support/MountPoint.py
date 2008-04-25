@@ -1,5 +1,5 @@
-# Engine.py -- Base class for ClusterShell engine
-# Copyright (C) 2007 CEA
+# MountPoint.py -- Impl. class for -M mntpt option
+# Copyright (C) 2008 CEA
 #
 # This file is part of shine
 #
@@ -19,25 +19,30 @@
 #
 # $Id$
 
+from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Exceptions import *
 
-class Engine:
+from Shine.Lustre.FSLocal import FSLocal
+from Shine.Lustre.FSProxy import FSProxy
 
-    def __init__(self):
-        self.worker_list = []
+from ClusterShell.NodeSet import NodeSet
 
-    def add(self, worker):
-        self.worker_list.append(worker)
-
-    def reset(self):
-        self.worker_list = []
+class MountPoint:
     
-    def run(self, timeout):
-        raise NotImplementedError("Derived classes must implement.")
+    def __init__(self, cmd, optional=True):
 
-    def read(self):
-        raise NotImplementedError("Derived classes must implement.")
+        attr = { 'optional' : optional,
+                 'hidden' : False,
+                 'doc' : "mount point (a valid path)" }
 
-    def retcode(self):
-        raise NotImplementedError("Derived classes must implement.")
+        self.cmd = cmd
+        self.cmd.add_option('M', 'mntpt', attr)
+
+    
+    def get_mntpt(self):
+        if self.cmd.opt_M:
+            return self.cmd.opt_M
+        return None
 
 

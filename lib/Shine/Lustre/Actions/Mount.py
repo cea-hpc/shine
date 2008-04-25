@@ -26,10 +26,10 @@ from Action import Action
 
 from Shine.Commands.CommandRegistry import CommandRegistry
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 from Shine.Utilities.AsciiTable import AsciiTable
 
 import os
@@ -84,11 +84,8 @@ class Mount(Action):
                                    rc=rc,
                                    buf=worker.read_buffer())
         else:
-            if rc != 0:
-                print "Mounting of %s failed: %s" % (self.fs.fs_name, os.strerror(rc))
-                print worker.read_buffer()
-                sys.exit(1)
-            else:
-                print "File system %s successfully mounted on %s" % (self.fs.fs_name, self.fs.config.get_mount_path())
-        sys.stdout.flush()
+            CommandRegistry.output(msg="RESULT",
+                                   fs=self.fs.fs_name,
+                                   rc=rc,
+                                   buf=worker.read_buffer())
 

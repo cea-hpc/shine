@@ -29,10 +29,11 @@ from Shine.Lustre.MGS import MGS
 from Shine.Lustre.MDS import MDS
 from Shine.Lustre.OSS import OSS
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
+
 from Shine.Utilities.AsciiTable import AsciiTable
 
 class Test(Action):

@@ -21,9 +21,12 @@
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
+
+from Shine.Lustre.Target import Target
+
 
 
 class Server(NodeSet):
@@ -32,12 +35,14 @@ class Server(NodeSet):
         NodeSet.__init__(self, nodename)
         self.fs = fs
         self.targets = []
+        self.target_class = None
 
     def spawn(self, cf_target):
         """
         Spawn a target.
         """
-        raise NotImplementedError("Derived classes must implement.")
+        # Create new server's target and add to the targets list
+        self.targets.append(self.target_class(cf_target, self.fs))
 
     def test(self):
         """

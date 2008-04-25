@@ -21,9 +21,9 @@
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 
 from Actions.Format import Format
 from Actions.Mount import Mount

@@ -26,17 +26,23 @@ from MGS import MGS
 from MDS import MDS
 from OSS import OSS
 
-from Shine.Utilities.Cluster.Task import Task
 from Shine.Utilities.AsciiTable import AsciiTable
+
+from ClusterShell.Task import Task
 
 class FileSystem:
 
     def __init__(self, config):
         self.config = config
         self.fs_name = config.get_fs_name()
+        self.mgt = self.config.get_target_mgt()
+        self.debug = False
         
     def get_mgs_nid(self):
-        print self.config.get_nid(self.mgs)
+        return self.config.get_nid(self.mgt.get_nodename())
+
+    def set_debug(self, debug):
+        self.debug = debug
 
     def test(self, target):
 

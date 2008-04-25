@@ -22,7 +22,7 @@
 from Globals import Globals
 from FileSystem import FileSystem
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
+from ClusterShell.NodeSet import NodeSet
 
 class ConfigException(Exception):
     pass
@@ -69,6 +69,8 @@ class Configuration:
     def __init__(self, fs_name=None, lmf=None):
         """FS configuration initializer."""
 
+        self.debug = False
+
         # Initialize FS configuration
         if fs_name or lmf:
             try:
@@ -77,6 +79,7 @@ class Configuration:
                 raise ConfigException("Error during parsing of filesystem configuration file : %s" % e) 
         else:
             self._fs = None
+
 
         #DEBUG#print self._fs
 
@@ -92,6 +95,8 @@ class Configuration:
         self._fs.close()
 
     ###
+    def get_nid(self, who):
+        return self._fs.get_nid(who)
 
     def get_target_mgt(self):
         tgt_cf_list = self._fs.get('mgt')
@@ -107,8 +112,11 @@ class Configuration:
             yield Target('OST', t)
 
     def get_client_nodes(self):
-        cli_cf_list = self._fs.get('client')
         nodes = NodeSet()
+        if self._fs.has_key('client'):
+            cli_cf_list = self._fs.get('client')
+        else:
+            return nodes
         for c in cli_cf_list:
             clients = Clients(c)
             nodes.add(clients.get_nodes())
@@ -201,6 +209,9 @@ class Configuration:
     def set_status_clients_umount_warning(self, nodes, options):
         for node in nodes:
             self._fs.set_status_client_umount_warning(node, options)
+
+    def set_debug(self, debug):
+        self.debug = debug
 
     def get_status_clients(self):
         return self._fs.get_status_clients()

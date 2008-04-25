@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -24,12 +24,13 @@ from Globals import Globals
 from Model import Model
 from Exceptions import *
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
+from ClusterShell.NodeSet import NodeSet
 
 from NidMap import NidMap
 
 import copy
 import os
+import sys
 
 
 class FileSystem(Model):
@@ -67,6 +68,9 @@ class FileSystem(Model):
         self.fs_name = self.get_one('fs_name')
 
     def _start_backend(self):
+        """
+        Load and start backend subsystem once
+        """
         if not self.backend:
 
             from Backend.BackendRegistry import BackendRegistry
@@ -108,13 +112,18 @@ class FileSystem(Model):
         self.save(self.xmf_path, "Shine Lustre file system config file for %s" % self.get_one('fs_name'))
             
     def _setup_nid_map(self, maps):
-
+        """
+        Set self.nid_map using the NidMap helper class
+        """
         self.nid_map = NidMap().fromlist(maps)
-        #DEBUGprint self.nid_map
-        #print self.get_nid('fortoy30')
 
     def get_nid(self, node):
+        try:
             return self.nid_map[node]
+        except KeyError:
+            print "Cannot get NID for %s, aborting. Please verify `nid_map' configuration." % node
+            # FIXME : raise fatal exception
+            sys.exit(1)
 
     def __str__(self):
         return ">> BACKEND:\n%s\n>> MODEL:\n%s" % (self.backend, Model.__str__(self))
@@ -127,32 +136,32 @@ class FileSystem(Model):
     def set_status_client_mount_complete(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.MOUNT_COMPLETE, options)
+            self.backend.MOUNT_COMPLETE, options)
 
     def set_status_client_mount_failed(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.MOUNT_FAILED, options)
+            self.backend.MOUNT_FAILED, options)
 
     def set_status_client_mount_warning(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.MOUNT_WARNING, options)
+            self.backend.MOUNT_WARNING, options)
 
     def set_status_client_umount_complete(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.UMOUNT_COMPLETE, options)
+            self.backend.UMOUNT_COMPLETE, options)
 
     def set_status_client_umount_failed(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.UMOUNT_FAILED, options)
+            self.backend.UMOUNT_FAILED, options)
 
     def set_status_client_umount_warning(self, node, options):
         self._start_backend()
         self.backend.set_status_client(self.fs_name, node,
-            Backend.UMOUNT_WARNING, options)
+            self.backend.UMOUNT_WARNING, options)
 
     def get_status_clients(self):
         self._start_backend()

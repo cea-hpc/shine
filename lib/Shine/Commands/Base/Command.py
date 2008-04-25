@@ -23,6 +23,8 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+from Support.Debug import Debug
+
 import getopt
 
 # ----------------------------------------------------------------------
@@ -40,6 +42,7 @@ class Command(object):
         self.params_desc = ""
         self.last_optional = 0
         self.arguments = None
+        self.debug_support = Debug(self)
 
     def is_hidden(self):
         return False
@@ -107,6 +110,9 @@ class Command(object):
                 trim_opt = opt[1:]
                 callback = self.options.get(trim_opt)
                 if not callback:
+                    # If specified, fake an arg to True
+                    if not arg:
+                        arg = True
                     object.__setattr__(self, "opt_%s" % trim_opt, arg)
                 else:
                     callback(trim_opt, arg)

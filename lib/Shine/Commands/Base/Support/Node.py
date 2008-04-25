@@ -23,10 +23,10 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-
 from Shine.Lustre.FSLocal import FSLocal
 from Shine.Lustre.FSProxy import FSProxy
+
+from ClusterShell.NodeSet import NodeSet
 
 class Node:
     

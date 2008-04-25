@@ -22,7 +22,7 @@
 
 from Exceptions import *
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
+from ClusterShell.NodeSet import NodeSet
 
 
 class NidMap:

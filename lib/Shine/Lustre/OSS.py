@@ -25,10 +25,8 @@ from OST import OST
 
 class OSS(Server):
     
-    def spawn(self, cf_target):
-        """
-        Spawn an OST.
-        """
-        self.targets.append(OST(cf_target, self.fs))
+    def __init__(self, nodename, fs):
+        Server.__init__(self, nodename, fs)
+        self.target_class = OST
 
 

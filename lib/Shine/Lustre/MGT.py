@@ -20,9 +20,10 @@
 # $Id$
 
 from Shine.Configuration.Globals import Globals
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 
 from Target import Target
 

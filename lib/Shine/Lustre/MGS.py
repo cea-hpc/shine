@@ -25,10 +25,7 @@ from MGT import MGT
 
 class MGS(Server):
     
-    def spawn(self, cf_target):
-        """
-        Spawn a MGT.
-        """
-        self.targets.append(MGT(cf_target, self.fs))
+    def __init__(self, nodename, fs):
+        Server.__init__(self, nodename, fs)
+        self.target_class = MGT
 
-    

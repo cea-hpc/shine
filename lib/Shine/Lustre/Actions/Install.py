@@ -24,10 +24,10 @@ from Shine.Configuration.Configuration import Configuration
 
 from Action import Action, ActionFailedError
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 
 import os
 import sys
@@ -55,7 +55,7 @@ class Install(Action):
         self.task.copy(dst, src, nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
-        print "Installing file system configuration files on %s" % self.nodes.as_ranges()
+        print "Updating file system configuration files on %s" % self.nodes.as_ranges()
 
     def ev_close(self, worker):
         gdict = worker.gather_rc()

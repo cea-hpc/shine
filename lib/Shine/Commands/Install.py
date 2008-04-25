@@ -53,6 +53,7 @@ class Install(Command):
             conf = Configuration(lmf=self.opt_f)
             fs = FSProxy(conf)
             fs.install()
+            ###
             ##############################fs.format()
             ###
             print "File system %s is now installed and ready to use." % conf.get_fs_name()

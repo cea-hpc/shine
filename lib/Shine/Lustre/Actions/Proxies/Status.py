@@ -27,10 +27,10 @@ from Shine.Commands.CommandRegistry import CommandRegistry
 from Shine.Lustre.Actions.Action import ActionFailedError
 from ProxyAction import ProxyAction
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 #from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
 

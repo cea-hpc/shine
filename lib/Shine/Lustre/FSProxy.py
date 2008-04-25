@@ -38,10 +38,12 @@ from Actions.Proxies.Mount import Mount
 from Actions.Proxies.Umount import Umount
 from Actions.Proxies.Status import Status
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
+
 
 import logging
 import sys
@@ -251,6 +253,13 @@ class FSProxy(FileSystem):
         # if no nodes are specified, use config
         if not nodes:
             nodes = self.config.get_client_nodes()
+
+        if len(nodes) == 0:
+            print "Nothing to mount."
+            return
+        
+        if self.debug:
+            print "FSProxy mount nodes=%s" % nodes.as_ranges()
             
         try:
             action = CreateDirs(Task.current(), self, nodes)

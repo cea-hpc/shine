@@ -19,7 +19,7 @@
 #
 # $Id$
 
-from Shine.Utilities.Cluster.Event import EventHandler
+from ClusterShell.Event import EventHandler
 
 class ActionException(Exception):
     def __init__(self, rc, message):

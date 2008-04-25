@@ -28,6 +28,7 @@ from Shine.Lustre.FSProxy import FSProxy
 
 from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
+from Base.Support.MountPoint import MountPoint
 from Base.Support.Node import Node
 
 
@@ -41,6 +42,7 @@ class Mount(RemoteCommand):
 
         # the mount command supports -f and -n
         self.fs_support = FS(self)
+        self.mntpt_support = MountPoint(self)
         self.node_support = Node(self)
 
     def get_name(self):
@@ -57,12 +59,24 @@ class Mount(RemoteCommand):
                 fs = FSLocal(conf)
             else:
                 fs = FSProxy(conf)
+
+            conf.set_debug(self.opt_d)
+            fs.set_debug(self.opt_d)
+
             fs.mount(self.node_support.get_nodes())
 
     def output(self, dic):
         if self.remote_call:
             self._print_pickle(dic)
         else:
-            print "Mounting %s" % dic['fs']
+            if dic['msg'] == "MOUNTING":
+                print "Mounting %s" % dic['fs']
+            elif dic['msg'] == "RESULT":
+                if dic['rc'] == 0:
+                    print "Successully mounted %s" % dic['fs']
+                else:
+                    print "Failed to mount %s" % dic['fs']
+                    print dic['buf']
+
 
     

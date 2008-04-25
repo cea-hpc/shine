@@ -25,10 +25,7 @@ from MDT import MDT
 
 class MDS(Server):
     
-    def spawn(self, cf_target):
-        """
-        Spawn a MDT.
-        """
-        self.targets.append(MDT(cf_target, self.fs))
+    def __init__(self, nodename, fs):
+        Server.__init__(self, nodename, fs)
+        self.target_class = MDT
 
-    

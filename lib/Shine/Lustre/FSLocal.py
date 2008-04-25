@@ -34,13 +34,14 @@ from MDS import MDS
 from OSS import OSS
 
 from Shine.Utilities.AsciiTable import AsciiTable
-from Shine.Utilities.Cluster.Task import Task
+from ClusterShell.Task import Task
 
 import socket
 
 class FSLocal(FileSystem):
 
     def __init__(self, config):
+        FileSystem.__init__(self, config)
         self.config = config
         self.fs_name = config.get_fs_name()
         self.actions = []
@@ -190,6 +191,8 @@ class FSLocal(FileSystem):
             print " %s" % self.config.get_description()
 
     def mount(self, nodes=None):
+        #if self.debug:
+        #    print "FSProxy mount %s"  % nodes.as_ranges()
         action = Mount(Task.current(), self, target=None)
         action.launch_and_run()
 

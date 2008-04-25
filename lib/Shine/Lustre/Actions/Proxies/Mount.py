@@ -30,14 +30,15 @@ from Shine.Lustre.MGS import MGS
 from Shine.Lustre.MDS import MDS
 from Shine.Lustre.OSS import OSS
 
-from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Event import EventHandler
-from Shine.Utilities.Cluster.Task import Task
-from Shine.Utilities.Cluster.Worker import Worker
+from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Event import EventHandler
+from ClusterShell.Task import Task
+from ClusterShell.Worker import Worker
 from Shine.Utilities.AsciiTable import AsciiTable
 
 import os
 import sys
+import binascii, pickle
 
 class Mount(ProxyAction):
     """
@@ -48,7 +49,10 @@ class Mount(ProxyAction):
         ProxyAction.__init__(self, task)
         self.fs = fs
         self.nodes = nodes
-        self.record_buf = ""
+        self.good_nodes = NodeSet()
+        self.fail_nodes = NodeSet()
+        self.already_nodes = NodeSet()
+        self.max_rc = 0
 
     def launch(self):
         """
@@ -63,8 +67,6 @@ class Mount(ProxyAction):
             command = "%s mount -f %s -R -M %s" % (self.progpath, self.fs.fs_name,
                 path)
 
-            print command
-
             # Schedule command for execution
             self.task.shell(command, nodes=nodes, handler=self)
 
@@ -76,32 +78,49 @@ class Mount(ProxyAction):
         sys.stdout.flush()
 
     def ev_read(self, worker):
-        node, msg = worker.get_last_read()
-        if msg.find("successfully mounted on") >= 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        elif msg.find("Mounting %s" % self.fs.fs_name) == -1:
-            self.record_buf += "%s: %s\n" % (node, msg)
+        node, info = worker.get_last_read()
+        dic = pickle.loads(binascii.a2b_base64(info))
+
+        msg = dic['msg']
+
+        dic['status'] = 'UNKNOWN'
+
+        if msg == "MOUNTING":
+            pass
+        elif msg == "RESULT":
+            rc = dic['rc']
+            if rc == 0:
+                self.good_nodes.add(node)
+                print ".",
+            else:
+                if rc > self.max_rc:
+                    self.max_rc = rc
+                msg = dic['buf']
+                if msg.find("already mounted") >= 0:
+                    self.already_nodes.add(node)
+                    print ".",
+                else:
+                    self.fail_nodes.add(node)
+                    lines = msg.splitlines(False)
+                    if len(lines) > 0:
+                        print
+                    for line in lines:
+                        print "%s: %s" % (node, line)
 
     def ev_close(self, worker):
         print
-        fail_nodes = NodeSet()
-        max_rc = 0
+        if len(self.good_nodes) > 0:
+            # TODO add mount options
+            self.fs.config.set_status_clients_mount_complete(self.good_nodes, None)
+            print "File system %s successfully mounted on %s" % (self.fs.fs_name,
+                    self.good_nodes.as_ranges())
+        if len(self.already_nodes) > 0:
+            print "File system %s already mounted on %s" % (self.fs.fs_name,
+                    self.already_nodes.as_ranges())
+        if len(self.fail_nodes) > 0:
+            self.fs.config.set_status_clients_mount_failed(self.fail_nodes, None)
+            raise ActionFailedError(self.max_rc,
+                "Failed to mount client on %s" % self.fail_nodes.as_ranges())
 
-        gdict = worker.gather_rc()
-        for nodes, rc in gdict.iteritems():
-            if rc != 0:
-                max_rc = max(max_rc, rc)
-                fail_nodes.add(nodes)
-            else:
-                # TODO add mount options
-                self.fs.config.set_status_clients_mount_complete(nodes, None)
-                print "File system %s successfully mounted on %s" % (self.fs.fs_name,
-                    nodes.as_ranges())
-    
-        if len(fail_nodes):
-            self.fs.config.set_status_clients_mount_failed(fail_nodes, None)
-            print self.record_buf
-            raise ActionFailedError(max_rc,
-                "Failed to mount client on %s" % fail_nodes.as_ranges())
-
+    def has_debug(self):
+        return self.fs.debug
