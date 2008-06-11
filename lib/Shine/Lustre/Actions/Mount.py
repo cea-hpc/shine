@@ -44,21 +44,23 @@ class Mount(Action):
         Action.__init__(self, task)
         self.fs = fs
         self.target = target
+        self.mntp = None
 
     def launch(self):
         """
         Mount file system target.
         """
-        if self.target:
-            # Server mounts
-            mntp = self.target.mntp
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (mntp, self.target.dev, mntp)
-        else:
+        if not self.target:
             # Client mounts
-            mntp = self.fs.config.get_mount_path()
-            assert mntp != None
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s:/%s \"%s\"" % (mntp,
-                self.fs.get_mgs_nid(), self.fs.config.get_fs_name(), mntp)
+            self.mntp = self.fs.config.get_mount_path()
+            assert self.mntp != None
+            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s:/%s \"%s\"" % (self.mntp,
+                self.fs.get_mgs_nid(), self.fs.config.get_fs_name(), self.mntp)
+        else:
+            # Server mounts
+            self.mntp = self.target.mntp
+            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (self.mntp,
+                    self.target.dev, mntp)
 
         self.task.shell(cmd, handler=self)
 
@@ -71,7 +73,8 @@ class Mount(Action):
         else:
             # client mounts
             CommandRegistry.output(msg="MOUNTING",
-                                   fs=self.fs.fs_name)
+                                   fs=self.fs.fs_name,
+                                   mntp=self.mntp)
 
         sys.stdout.flush()
 
@@ -86,6 +89,7 @@ class Mount(Action):
         else:
             CommandRegistry.output(msg="RESULT",
                                    fs=self.fs.fs_name,
+                                   mntp=self.mntp,
                                    rc=rc,
                                    buf=worker.read_buffer())
 

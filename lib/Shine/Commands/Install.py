@@ -54,7 +54,7 @@ class Install(Command):
             fs = FSProxy(conf)
             fs.install()
             ###
-            ##############################fs.format()
+            fs.format()
             ###
             print "File system %s is now installed and ready to use." % conf.get_fs_name()
             print "Use `shine start -f %s' to start it." % conf.get_fs_name()

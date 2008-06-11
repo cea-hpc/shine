@@ -30,6 +30,25 @@ from Shine.Utilities.AsciiTable import AsciiTable
 
 from ClusterShell.Task import Task
 
+
+class FSException(Exception):
+    def __init__(self, message):
+        self.message = message
+    def __str__(self):
+        return self.message
+
+class FSSyntaxError(FSException):
+    def __init__(self, message):
+        self.message = "Syntax error: \"%s\"" % (message)
+    def __str__(self):
+        return self.message
+
+class FSBadTargetError(FSSyntaxError):
+    def __init__(self, target_name):
+        self.message = "Syntax error: unrecognized target \"%s\"" % (target_name)
+
+
+
 class FileSystem:
 
     def __init__(self, config):

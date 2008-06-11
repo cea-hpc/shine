@@ -1,1 +1,62 @@
 Preview release of shine, a Lustre file system administration utility.
+
+This is the source tarball. When possible, please use the RPM distribution
+for an easy install.
+
+ ------------------------
+ INSTALLATION FROM SOURCE
+ ------------------------
+
+In the source directory, please type :
+
+# python setup.py install
+
+IMPORTANT NOTICE
+
+To use shine, you will need to install ClusterShell python library.
+
+    http://sourceforge.net/projects/clustershell
+
+
+On RedHat like systems, you may want to use the provided init script:
+
+# cp /var/share/shine/shine.init.redhat /etc/rc.d/init.d/shine
+
+
+ -----------
+ QUICK START
+ -----------
+
+Make sure that shine is installed on all nodes.
+
+Edit the file /etc/shine/shine.conf and copy it on all nodes.
+
+ *** FLAT FILE STORAGE CONFIG ***
+On the management node, edit the file /etc/shine/storage.conf to list
+your cluster devices. This file is used during 'shine install'.
+
+ *** BULL CLUSTERDB STORAGE CONFIG ***
+Not available yet.
+
+To create 'mylfs' Lustre file system, copy the provided file system
+model file:
+
+# cd /etc/shine/models
+# cp testfs.lmf myfs.lmf
+
+Edit myfs.lmf to match your needs. This file describes the file system
+to be installed.
+
+
+Install the file system (format) with:
+
+# shine install -f /etc/shine/models/myfs.lmf
+
+Start servers with:
+
+# shine start -f myfs
+
+Mount clients with
+
+# shine mount -f myfs
+

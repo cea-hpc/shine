@@ -23,6 +23,7 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+from Shine.Lustre.FileSystem import FSException
 from Shine.Lustre.FSLocal import FSLocal
 from Shine.Lustre.FSProxy import FSProxy
 
@@ -72,18 +73,21 @@ class Status(RemoteCommand):
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
             conf = Configuration(fs_name=fsname)
-            if self.local_flag or self.remote_call:
-                fs = FSLocal(conf)
-            else:
-                fs = FSProxy(conf)
-            fs.status(target)
+            try:
+                if self.local_flag or self.remote_call:
+                    fs = FSLocal(conf)
+                else:
+                    fs = FSProxy(conf)
+                fs.status(target)
+            except FSException, e:
+                print e
 
     def output(self, dic):
         if self.remote_call:
             self._print_pickle(dic)
         else:
-            if dic.has_key('listofdic'):
-                ldic = dic['listofdic']
+            if dic.has_key('tgt_listofdic'):
+                ldic = dic['tgt_listofdic']
 
                 # add fs name in table
                 for d in ldic:
@@ -101,6 +105,46 @@ class Status(RemoteCommand):
                 layout.set_column("status", 5, AsciiTableLayout.CENTER)
 
                 AsciiTable().print_from_list_of_dict(ldic, layout)
+
+            elif dic.has_key('clt_listofdic'):
+
+                ldic = dic['clt_listofdic']
+
+                # Print nice table layout
+                layout = AsciiTableLayout()
+
+                layout.set_show_header(True)
+                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
+                layout.set_column("node", 1, AsciiTableLayout.LEFT)
+                layout.set_column("mount", 2, AsciiTableLayout.CENTER)
+                layout.set_column("status_client", 3, AsciiTableLayout.CENTER)
+
+                AsciiTable().print_from_list_of_dict(ldic, layout)
+
+            elif dic.has_key('status_client'):
+
+                # Print nice table layout
+                layout = AsciiTableLayout()
+
+                layout.set_show_header(True)
+                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
+                layout.set_column("node", 1, AsciiTableLayout.LEFT)
+                layout.set_column("mount", 2, AsciiTableLayout.LEFT)
+                layout.set_column("status_client", 3, AsciiTableLayout.CENTER)
+
+                AsciiTable().print_from_list_of_dict([dic], layout)
+
+            elif dic.has_key('health'):
+
+                # Print nice table layout
+                layout = AsciiTableLayout()
+
+                layout.set_show_header(True)
+                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
+                layout.set_column("node", 1, AsciiTableLayout.LEFT)
+                layout.set_column("health", 2, AsciiTableLayout.LEFT)
+
+                AsciiTable().print_from_list_of_dict([dic], layout)
 
             else:
                 print dic

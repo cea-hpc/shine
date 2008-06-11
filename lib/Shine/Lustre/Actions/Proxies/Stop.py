@@ -72,6 +72,7 @@ class Stop(ProxyAction):
         if msg == "STOPPING":
             print "Stopping %s (%s) on %s" % (dic['target'], dic['dev'], node)
         elif msg == "UMOUNTING":
+            print "stop?"
             print "Unmounting %s on %s" % (dic['fs'], node)
         elif msg == "RESULT":
             if dic['rc'] == 0:

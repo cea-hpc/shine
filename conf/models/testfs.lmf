@@ -2,6 +2,7 @@
 # This is a sample for lustre model file which describes ONE         #
 # filesystem using all available OSTs and the first available MDT    #
 ######################################################################
+# $Id$
 
 # First, we set default values for all filesystems
 
@@ -35,6 +36,11 @@ stripe_count:1
 #nettype: elan
 #nettype: tcp
 nettype: tcp
+
+######################################################################
+# nid_map:
+# Map your hostnames to lnet NIDs
+nid_map: nova[1-150] nova[1-150]@tcp
 
 ######################################################################
 # generic_client:
@@ -168,7 +174,7 @@ quota: no
 # A ONE LINE free description of your filesystem (up to 512 chars) 
 # Default is empty string
 
-description: fs1 is a demo filesystem provided with lustre rpms which uses the first available MDT and all the available OST. If you need to update this filesystem, do not forget that, once it will be installed, status of MDT and OST will not be "available" anymore but "formated", and so, rules on status should be "cfg_status=available|formated" instead of "cfg_status=available". Note also that this filesystem does not use failover, use "failover: yes" to use this feature.
+description: testfs is a demo filesystem provided with shine
 
 ###################################################################### #
 #fs_name: 
@@ -190,7 +196,7 @@ fs_name: testfs
       mount_path: /mnt/testfs
 
       ################################################################
-      # ost: [ name=<RegExp> ] [ node_name=<RegExp> ] [ dev=<RegExp> ] 
+      # ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
       # [ size=<RegExp> ] [ jdev=<RegExp> ] [ jsize=<RegExp> ]
       # [ cfg_status=available|formated ]
       #
@@ -203,11 +209,11 @@ fs_name: testfs
       # for each filesystem.
 
       # We want to use all available osts
-      ost: node_name=cors115
-      #ost: node_name=cors116
+      ost: node=nova115
+      #ost: node=nova116
 
       ################################################################
-      # mdt: [ name=<RegExp> ] [ node_name=<RegExp> ] [ dev=<RegExp> ] 
+      # mdt: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
       # [ size=<RegExp> ] [ jdev=<RegExp> ] [ jsize=<RegExp> ]
       # [ cfg_status=available|formated ]
       #
@@ -216,6 +222,14 @@ fs_name: testfs
       # and only one mdt line must be defined for each filesystem.
 
       # We choose the first available mdt
-      mdt: node_name=cors115
+      mdt: node=nova110
 	
-      mgt: node_name=cors115
+      mgt: node=nova110
+
+      # client: node=<nodeset> [path=<mount_path>]
+      # 
+      # Specify FS client nodes.
+      # 
+      client: node=nova[1-100]
+      
+

@@ -25,6 +25,9 @@ from Base.Command import Command
 # Import list of enabled commands (defined in the module __init__.py)
 from Shine.Commands import commandList
 
+from Exceptions import *
+
+
 # ----------------------------------------------------------------------
 # Command Registry
 # ----------------------------------------------------------------------
@@ -75,7 +78,7 @@ class CommandRegistry:
         try:
             CommandRegistry.current = self.get(name)
         except KeyError, e:
-            raise CommandNotFoundError(cmd.get_name())
+            raise CommandNotFoundError(name)
 
         # Parse
         CommandRegistry.current.parse(args)

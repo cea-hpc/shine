@@ -38,6 +38,7 @@ from Shine.Utilities.AsciiTable import AsciiTable
 
 import os
 import sys
+import binascii, pickle
 
 class Umount(ProxyAction):
     """
@@ -48,29 +49,61 @@ class Umount(ProxyAction):
         ProxyAction.__init__(self, task)
         self.fs = fs
         self.nodes = nodes
+        self.good_nodes = NodeSet()
+        self.fail_nodes = NodeSet()
+        self.max_rc = 0
 
     def launch(self):
         """
         Proxy file system umount command.
         """
         # Prepare proxy command
-        command = "%s umount -f %s -L" % (self.progpath, self.fs.fs_name)
+        command = "%s umount -f %s -R" % (self.progpath, self.fs.fs_name)
 
         # Run cluster command
         self.task.shell(command, nodes=self.nodes, handler=self)
         self.task.run()
 
+    def ev_start(self, worker):
+        print "Unmounting %s: " % self.fs.fs_name,
+        sys.stdout.flush()
+
     def ev_read(self, worker):
-        print "%s: %s" % worker.get_last_read()
+        node, info = worker.get_last_read()
+        dic = pickle.loads(binascii.a2b_base64(info))
+
+        msg = dic['msg']
+
+        dic['status'] = 'UNKNOWN'
+
+        if msg == "UMOUNTING":
+            pass
+        elif msg == "RESULT":
+            rc = dic['rc']
+            if rc == 0:
+                self.good_nodes.add(node)
+                sys.stdout.write(".")
+                sys.stdout.flush()
+            else:
+                if rc > self.max_rc:
+                    self.max_rc = rc
+                msg = dic['errbuf']
+                self.fail_nodes.add(node)
+                lines = msg.splitlines(False)
+                if len(lines) > 0:
+                    print
+                for line in lines:
+                    print "%s: %s" % (node, line)
 
     def ev_close(self, worker):
-        gdict = worker.gather_rc()
-        for nodes, rc in gdict.iteritems():
-            if rc != 0:
-                self.fs.config.set_status_clients_umount_failed(nodes, None)
-                raise ActionFailedError(rc, "Unmounting client failed on %s" % nodes.as_ranges())
-            else:
-                self.fs.config.set_status_clients_umount_complete(nodes, None)
-                print "File system %s successfully unmounted on %s" % (self.fs.fs_name,
-                    nodes.as_ranges())
-    
+        print
+        if len(self.good_nodes) > 0:
+            #self.fs.config.set_status_clients_umount_complete(nodes, None)
+            print "File system %s successully unmounted on %s" % (self.fs.fs_name,
+                    self.good_nodes.as_ranges())
+        if len(self.fail_nodes) > 0:
+            #self.fs.config.set_status_clients_umount_failed(nodes, None)
+            raise ActionFailedError(self.max_rc, "Unmounting client failed on %s" % \
+                    self.fail_nodes.as_ranges())
+
+

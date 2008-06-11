@@ -30,7 +30,10 @@ from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
 from Base.Support.MountPoint import MountPoint
 from Base.Support.Node import Node
+from Base.Support.Quiet import Quiet
 
+import os
+import sys
 
 # ----------------------------------------------------------------------
 # * shine umount
@@ -44,6 +47,7 @@ class Umount(RemoteCommand):
         self.fs_support = FS(self)
         self.mntpt_support = MountPoint(self)
         self.node_support = Node(self)
+        self.quiet_support = Quiet(self)
 
     def get_name(self):
         return "umount"
@@ -65,7 +69,16 @@ class Umount(RemoteCommand):
         if self.remote_call:
             self._print_pickle(dic)
         else:
-            print "Unmounting %s" % dic['fs']
+            if dic['msg'] == "UMOUNTING":
+                if not self.quiet_support.has_quiet():
+                    print "Unmounting %s" % dic['fs']
+            elif dic['msg'] == "RESULT":
+                rc = dic['rc']
+                if rc != 0:
+                    print "Unmounting of %s failed: %s" % (dic['fs'], os.strerror(rc))
+                    if dic['errbuf']:
+                        print "%s" % dic['errbuf']
+                    sys.exit(rc)
+                elif not self.quiet_support.has_quiet():
+                    print "File system %s successfully unmounted" % dic['fs']
 
-
-    

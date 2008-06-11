@@ -32,6 +32,7 @@ from Target import TargetException
 from MGS import MGS
 from MDS import MDS
 from OSS import OSS
+from Client import Client
 
 from Shine.Utilities.AsciiTable import AsciiTable
 from ClusterShell.Task import Task
@@ -72,9 +73,20 @@ class FSLocal(FileSystem):
                 if not self.oss:
                     self.oss = OSS(ost.get_nodename(), self)
                 self.oss.spawn(ost)
-        
+
+        client_nodes = self.config.get_client_nodes()
+
+        self.client = None
+        for host in self.short_hostname, self.hostname:
+            if client_nodes.intersection(host):
+                assert len(client_nodes) == 1
+                mntp = self.config.get_client_mount(client_nodes)
+                self.client = Client(client_nodes.first(), mntp, self)
+                break
+
+
     def check_nodename(self, name):
-        #return name == self.short_hostname or name == self.hostname or name == socket.getfqdn()
+        #### name == socket.getfqdn()
         return name == self.short_hostname or name == self.hostname
         
     def push_action(self, action):
@@ -152,6 +164,13 @@ class FSLocal(FileSystem):
                 self.oss.status()
             except TargetException, e:
                 print e
+
+        if (not target or target=='client') and self.client:
+            try:
+                self.client.status()
+            except TargetException, e:
+                print e
+
 
     def info(self):
         pass

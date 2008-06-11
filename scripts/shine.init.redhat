@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# chkconfig: 345 61 22
+# description: Lustre shine mounting script
+# config: /etc/sysconfig/shine
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# See also the shine homepage at:
+#     http://shine.sourceforge.net/
+# $Id$
+
+
+# TODO
+# FSLIST=ptmp,testfs
+#
+CONFIG=/etc/sysconfig/shine
+
+# Load config file
+if [ -f "$CONFIG" ]; then
+        . "$CONFIG"
+fi
+
+SHINE=/cea/local/shine/trunk/scripts/shine
+
+# Source function library.
+. /etc/init.d/functions
+
+RETVAL=0
+prog="shine"
+
+start() {
+	action $"Starting $prog: " $SHINE mount -L -q ${FSLIST:+-f $FSLIST}
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/shine
+}
+
+stop() {
+	action $"Stopping $prog: " $SHINE umount -L -q ${FSLIST:+-f $FSLIST}
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/shine
+}
+
+dostatus() {
+	$SHINE status -L
+	RETVAL=$?
+}
+
+restart() {
+	stop
+	start
+	RETVAL=$?
+}
+
+condrestart() {
+	[ -e /var/lock/subsys/shine ] && restart || :
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+	dostatus
+	;;
+  restart|reload)
+	restart
+	;;
+  condrestart)
+	condrestart
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+	exit 1
+esac
+
+exit $RETVAL

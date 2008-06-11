@@ -30,7 +30,10 @@ from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
 from Base.Support.MountPoint import MountPoint
 from Base.Support.Node import Node
+from Base.Support.Quiet import Quiet
 
+import os
+import sys
 
 # ----------------------------------------------------------------------
 # * shine mount
@@ -40,10 +43,11 @@ class Mount(RemoteCommand):
     def __init__(self):
         RemoteCommand.__init__(self)
 
-        # the mount command supports -f and -n
+        # Command options
         self.fs_support = FS(self)
         self.mntpt_support = MountPoint(self)
         self.node_support = Node(self)
+        self.quiet_support = Quiet(self)
 
     def get_name(self):
         return "mount"
@@ -70,13 +74,16 @@ class Mount(RemoteCommand):
             self._print_pickle(dic)
         else:
             if dic['msg'] == "MOUNTING":
-                print "Mounting %s" % dic['fs']
+                if not self.quiet_support.has_quiet():
+                    print "Mounting %s" % dic['fs']
             elif dic['msg'] == "RESULT":
-                if dic['rc'] == 0:
-                    print "Successully mounted %s" % dic['fs']
-                else:
-                    print "Failed to mount %s" % dic['fs']
-                    print dic['buf']
+                rc = dic['rc']
+                if rc != 0:
+                    print "Failed to mount %s on %s: %s" % (dic['fs'], dic['mntp'],
+                           os.strerror(rc))
+                    if dic['errbuf']:
+                        print "%s" % dic['errbuf']
+                    sys.exit(rc)
+                elif not self.quiet_support.has_quiet():
+                    print "Successfully mounted %s on %s" % (dic['fs'], dic['mntp'])
 
-
-    

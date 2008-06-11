@@ -46,6 +46,7 @@ class Status(ProxyAction):
         ProxyAction.__init__(self, task)
         self.fs = fs
         self.target_name = target_name
+        self._clt_list = []
         self._tgt_list = []
 
     def launch(self):
@@ -59,7 +60,8 @@ class Status(ProxyAction):
         else:
             command = "%s status -f %s -R" % (self.progpath, self.fs.fs_name)
 
-        selected_nodes = self.fs.get_target_nodes(self.target_name)
+        selected_nodes = self.fs.get_target_nodes(self.target_name, True)
+        #print "sel: %s" % selected_nodes.as_ranges()
 
         # Run cluster command
         self.task.shell(command, nodes=selected_nodes, handler=self)
@@ -67,16 +69,50 @@ class Status(ProxyAction):
 
     def ev_read(self, worker):
         node, info = worker.get_last_read()
-        dic = pickle.loads(binascii.a2b_base64(info))
-        dic["node"] = node
-        self._tgt_list.append(dic)
+        try:
+            dic = pickle.loads(binascii.a2b_base64(info))
+        except:
+            print "failed node %s" % node
+            raise
+        if dic.has_key('status_client'):
+
+            # compact nodes according to their status
+            node_added = False
+            for d in self._clt_list:
+                if d['status_client'] == dic['status_client']:
+                    ns = NodeSet(d['node'])
+                    ns.add(dic['node'])
+                    #print ns.as_ranges()
+                    d['node'] = ns.as_ranges()
+                    node_added = True
+
+            if not node_added:
+                self._clt_list.append(dic)
+
+            # check if node info is correct (we never know...)
+            if dic['node'] != node:
+                print "Warning: node mismatch for %s (replied %s)" % (node, dic['node'])
+        elif dic.has_key('tag'):
+            dic["node"] = node
+            self._tgt_list.append(dic)
+        elif dic.has_key('health'):
+            if dic['err'] == 2:
+                print "%s: Lustre not started?" % node
+            else:
+                print "%s: %s (errno %d)" % (node, dic['health'], dic['err'])
 
     def ev_close(self, worker):
         #gdict = worker.gather()
         #print gdict
 
         try:
-            CommandRegistry.output(fs=self.fs.fs_name, listofdic=self._tgt_list)
+            if len(self._tgt_list) > 0:
+                CommandRegistry.output(fs=self.fs.fs_name,
+                       tgt_listofdic=self._tgt_list)
+
+            if len(self._clt_list) > 0:
+                CommandRegistry.output(fs=self.fs.fs_name,
+                        clt_listofdic=self._clt_list)
 
         except Exception, e:
             print e

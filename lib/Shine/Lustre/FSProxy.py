@@ -22,7 +22,7 @@
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
 
-from FileSystem import FileSystem
+from FileSystem import FileSystem, FSBadTargetError
 from MGS import MGS
 from MDS import MDS
 from OSS import OSS
@@ -68,26 +68,30 @@ class FSProxy(FileSystem):
         for ost in self.config.iter_targets_ost():
             self.oss.setdefault(ost.get_nodename(), NodeSet(ost.get_nodename()))
 
-    def get_target_nodes(self, target=None):
-        if not target:
+    def get_target_nodes(self, target=None, flag_clients=False):
+        if not target or target == "client":
             # It's easy with NodeSets
             nodes = self.mgs + self.mds
             for ost in self.oss:
                 nodes += ost
+
+            if flag_clients:
+                nodes += self.config.get_client_nodes()
+
             return nodes
         else:
-            target = target.lower()
-            if target == 'mgt':
+            ltarget = target.lower()
+            if ltarget == 'mgt':
                 return self.mgs
-            elif target == 'mdt':
+            elif ltarget == 'mdt':
                 return self.mds
-            elif target == 'ost':
+            elif ltarget == 'ost':
                 nodes = NodeSet()
                 for ost in self.oss:
                     nodes += ost
                 return nodes
             else:
-                raise FSBadTargetError()
+                raise FSBadTargetError(target)
    
     def install(self):
         """

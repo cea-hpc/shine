@@ -1,5 +1,5 @@
-# Test.py -- Test shine
-# Copyright (C) 2007 CEA
+# Test.py -- Test
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -22,22 +22,44 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
-from Base.FSCommand import FSCommand
+from Shine.Lustre.FileSystem import FileSystem
+
+from Base.Command import Command
+from Base.Support.FS import FS
+
+from Exceptions import *
+
+from errno import *
+
+import getopt
+import os
+import sys
+
+import fcntl
 
 # ----------------------------------------------------------------------
 # * shine test
 # ----------------------------------------------------------------------
-class Test(FSCommand):
+class Test(Command):
+    """
+    Test command.
+    """
+    
+    def __init__(self):
+        Command.__init__(self)
+
+        #self.fs_support = FS(self, optional=False)
 
     def get_name(self):
         return "test"
 
-    def get_params_desc(self):
-        return "-f <fsname>"
-
     def get_desc(self):
-        return "Test shine internals."
+        return "General file system information."
 
-    def fs_execute(self, fs, fs_target):
-        fs.test(fs_target)
+    def execute(self):
+        try:
+          pass
+        except IOError, e:
+            raise
+
 

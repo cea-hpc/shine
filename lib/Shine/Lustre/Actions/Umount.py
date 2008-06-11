@@ -32,7 +32,6 @@ from ClusterShell.Task import Task
 from ClusterShell.Worker import Worker
 from Shine.Utilities.AsciiTable import AsciiTable
 
-import os
 import sys
 
 class Umount(Action):
@@ -44,6 +43,7 @@ class Umount(Action):
         Action.__init__(self, task)
         self.fs = fs
         self.target = target
+        self.mntp = None
 
     def launch(self):
         """
@@ -51,11 +51,12 @@ class Umount(Action):
         """
         if self.target:
             # Server umounts
-            cmd = "/bin/umount \"%s\"" % self.target.mntp
+            self.mntp = self.target.mntp
+            cmd = "/bin/umount \"%s\"" % self.mntp
         else:
-            mntp = self.fs.config.get_mount_path()
-            assert mntp != None
-            cmd = "/bin/umount \"%s\"" % mntp
+            self.mntp = self.fs.config.get_mount_path()
+            assert self.mntp != None
+            cmd = "/bin/umount \"%s\"" % self.mntp
 
         self.task.shell(cmd, handler=self)
 
@@ -68,7 +69,8 @@ class Umount(Action):
         else:
             # client umounts
             CommandRegistry.output(msg="UMOUNTING",
-                                   fs=self.fs.fs_name)
+                                   fs=self.fs.fs_name,
+                                   mntp=self.mntp)
         sys.stdout.flush()
 
     def ev_close(self, worker):
@@ -81,11 +83,15 @@ class Umount(Action):
                                    rc=rc,
                                    buf=worker.read_buffer())
         else:
+
+            errbuf = None
             if rc != 0:
-                print "Unmounting of %s failed: %s" % (self.fs.fs_name, os.strerror(rc))
-                print worker.read_buffer()
-                sys.exit(1)
-            else:
-                print "File system %s successfully unmounted" % self.fs.fs_name
+                errbuf = worker.read_buffer()
+
+            CommandRegistry.output(msg="RESULT",
+                                   fs=self.fs.fs_name,
+                                   mntp=self.mntp,
+                                   rc=rc,
+                                   errbuf=errbuf)
         sys.stdout.flush()
 

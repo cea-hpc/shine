@@ -59,7 +59,10 @@ class Mount(ProxyAction):
         Proxy file system mount command.
         """
         # Prepare proxy command for each different client mount path
-        mounts = self.fs.config.get_client_mounts()
+        mounts = self.fs.config.get_client_mounts(self.nodes)
+        if len(mounts) == 0:
+            print "Nothing to mount."
+            return
 
         for path, nodes in mounts.iteritems():
 
@@ -91,14 +94,16 @@ class Mount(ProxyAction):
             rc = dic['rc']
             if rc == 0:
                 self.good_nodes.add(node)
-                print ".",
+                sys.stdout.write(".")
+                sys.stdout.flush()
             else:
                 if rc > self.max_rc:
                     self.max_rc = rc
                 msg = dic['buf']
                 if msg.find("already mounted") >= 0:
                     self.already_nodes.add(node)
-                    print ".",
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
                 else:
                     self.fail_nodes.add(node)
                     lines = msg.splitlines(False)
@@ -111,14 +116,14 @@ class Mount(ProxyAction):
         print
         if len(self.good_nodes) > 0:
             # TODO add mount options
-            self.fs.config.set_status_clients_mount_complete(self.good_nodes, None)
+            ###self.fs.config.set_status_clients_mount_complete(self.good_nodes, None)
             print "File system %s successfully mounted on %s" % (self.fs.fs_name,
                     self.good_nodes.as_ranges())
         if len(self.already_nodes) > 0:
             print "File system %s already mounted on %s" % (self.fs.fs_name,
                     self.already_nodes.as_ranges())
         if len(self.fail_nodes) > 0:
-            self.fs.config.set_status_clients_mount_failed(self.fail_nodes, None)
+            ###self.fs.config.set_status_clients_mount_failed(self.fail_nodes, None)
             raise ActionFailedError(self.max_rc,
                 "Failed to mount client on %s" % self.fail_nodes.as_ranges())
 

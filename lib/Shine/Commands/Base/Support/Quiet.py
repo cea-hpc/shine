@@ -1,5 +1,5 @@
-# Commands/__init__.py -- Commands module initialization
-# Copyright (C) 2007 CEA
+# Quiet.py -- Impl. class for command quiet support 
+# Copyright (C) 2008 CEA
 #
 # This file is part of shine
 #
@@ -19,29 +19,22 @@
 #
 # $Id$
 
+from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Exceptions import *
 
-# ----------------------------------------------------------------------
-# List of enabled commands classes.
-# ----------------------------------------------------------------------
+class Quiet:
+    
+    def __init__(self, cmd):
 
-commandList = []
+        attr = { 'optional' : True,
+                 'hidden' : False,
+                 'doc' : "enable quiet output" }
 
-for cmd in [ "ShowConf",
-             "Install",
-             "Edit",
-             "Format",
-             "List",
-             "Start",
-             "Stop",
-             "Info",
-             "Status",
-             "Mount",
-             "Umount",
-             "Test",
-             "Cache" ]:
-    # Import command class file
-    mod = __import__(cmd, globals(), locals(), [cmd])
+        self.cmd = cmd
+        self.cmd.add_option('q', None, attr)
 
-    # Add class to global command list
-    commandList.append(getattr(mod, cmd))
+    
+    def has_quiet(self):
+        return self.cmd.opt_q
 

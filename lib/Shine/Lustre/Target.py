@@ -58,7 +58,7 @@ class Target(NodeSet):
     def __init__(self, cf_target, fs):
         NodeSet.__init__(self, cf_target.get_nodename())
 
-        # MGT, MDT or OST
+        # MGT, MDT, OST or CLIENT
         self.type = cf_target.get_type()
 
         # Other target config parameters
@@ -79,6 +79,15 @@ class Target(NodeSet):
 
         # Build target label
         self.label = "%s-%s%04x" % (self.fs.fs_name, self.type, self.index)
+
+    def is_mgt(self):
+        return self.type == 'MGT'
+
+    def is_mdt(self):
+        return self.type == 'MDT'
+
+    def is_ost(self):
+        return self.type == 'OST'
 
     def _mount(self):
         action = Mount(Task.current(), self.fs, self)

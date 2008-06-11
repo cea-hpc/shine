@@ -122,25 +122,56 @@ class Configuration:
             nodes.add(clients.get_nodes())
         return nodes
 
-    def get_client_mounts(self):
+
+    def get_client_mounts(self, select_nodes=None):
         """
         Get clients different mount paths. Returns a dict where keys are
         mount paths and values are nodes.
+        Optional argument select_nodes makes the result with these nodes only.
         """
         cli_cf_list = self._fs.get('client')
         # build a dict where keys are mount paths
         mounts = {}
+        default_path = self._fs.get_one('mount_path')
+
         for c in cli_cf_list:
             clients = Clients(c)
-            path = clients.get_path()
-            if not path:
-                path = self._fs.get_one('mount_path')
-            if mounts.has_key(path):
-                nodes = mounts[path]
-                nodes.add(clients.get_nodes())
-            else:
-                mounts[path] = NodeSet(clients.get_nodes())
+            concern_nodes = NodeSet(clients.get_nodes())
+            if select_nodes:
+                concern_nodes.intersection(select_nodes)
+            if len(concern_nodes) > 0:
+                path = clients.get_path()
+                if not path:
+                    path = default_path
+                if mounts.has_key(path):
+                    nodes = mounts[path]
+                    nodes.add(concern_nodes)
+                else:
+                    mounts[path] = NodeSet(concern_nodes)
+        
+        if select_nodes:
+            # fill unknown nodes with default mount point
+            # could be improved when the diff() method will be impl in CS
+            for node in select_nodes:
+                if mounts.has_key(default_path):
+                    mounts[default_path].add(node)
+                else:
+                    mounts[default_path] = NodeSet(node)
+
         return mounts
+
+    def get_client_mount(self, client):
+        """
+        Get mount path for a client.
+        """
+        mounts = self.get_client_mounts()
+        for path, nodes in mounts.iteritems():
+            if nodes.intersection(client):
+                return path
+
+        print "Warning: path not found for client %s ??" % client.as_ranges()
+        return self._fs.get_one('mount_path')
+
 
     # General FS getters
     #
