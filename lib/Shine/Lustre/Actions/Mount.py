@@ -60,7 +60,7 @@ class Mount(Action):
             # Server mounts
             self.mntp = self.target.mntp
             cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (self.mntp,
-                    self.target.dev, mntp)
+                    self.target.dev, self.mntp)
 
         self.task.shell(cmd, handler=self)
 
