@@ -27,6 +27,7 @@
 commandList = []
 
 for cmd in [ "ShowConf",
+             "Show",
              "Install",
              "Edit",
              "Format",

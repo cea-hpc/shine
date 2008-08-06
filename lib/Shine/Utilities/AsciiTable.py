@@ -46,8 +46,8 @@ class AsciiTableLayout:
     def set_show_header(self, show_header):
         self._show_header = show_header
 
-    def set_column(self, head_key, pos, align):
-        self._pos[pos] = head_key
+    def set_column(self, head_key, pos, align, title=None):
+        self._pos[pos] = (head_key, title or head_key)
         if head_key not in self._layout:
             lay = { "align" : align }
             self._layout[head_key] = lay
@@ -144,28 +144,28 @@ class AsciiTable:
         # Count the number of lines needed to display the column titles
         max_col = {}
         lines = 1
-        for k in keys:
+        for k, t in keys:
             max_col[k] = 0
-            lines = max(k.count("\n") + 1, lines)
+            lines = max(t.count("\n") + 1, lines)
 
         # Build a list of lines for each title's cell
         headers = {}
-        for k in keys:
-            k_lst = k.split("\n")
-            headers[k] = []
+        for k, t in keys:
+            k_lst = t.split("\n")
+            headers[t] = []
             appended = 0
             for line in k_lst:
-                headers[k].append(line)
+                headers[t].append(line)
                 max_col[k] = max(max_col[k], len(line))
                 appended += 1
             while appended < lines:
                 # if multilines, be carefull to fill the "virtual cells" with empty strings
-                headers[k].append("")
+                headers[t].append("")
                 appended += 1
 
         # Calc max length for each column
         for row in rows:  
-            for k in keys:
+            for k, t in keys:
                 val = row[k]
                 sz = len(str(val))
                 if max_col[k] < sz:
@@ -176,15 +176,15 @@ class AsciiTable:
         block=0
 
         # The following code will adjust the max length for each column if necessary
-        csize = max_col[keys[0]] + 3
-        for k in keys[1:]:
+        csize = max_col[keys[0][0]] + 3
+        for k, t in keys[1:]:
             # Check if the table fits or not
-            if csize + max_col[k] + 2 >= ncols and len(key_lst[block]) > 1:
+            if csize + max_col[k] + 2 >= ncols and len(key_lst[block][1]) > 1:
                 # Build other block table, with duplicated item 0
                 key_lst.append([keys[0]])
                 block += 1
-                csize = max_col[keys[0]] + 3
-            key_lst[block].append(k)
+                csize = max_col[keys[0][0]] + 3
+            key_lst[block].append((k, t))
             max_col[k] = min(ncols - csize - 2, max_col[k])
             if max_col[k] <= 0:
                 max_col[k] = 1
@@ -195,7 +195,7 @@ class AsciiTable:
         #
         for tab in key_lst:
             sep_line = "+"
-            for k in tab:
+            for k, t in tab:
                 sep_line += (max_col[k] + 1) * "-" + "+"
 
             self.out.write(sep_line + "\n")
@@ -203,8 +203,8 @@ class AsciiTable:
             if layout.show_header():
                 for l in range(0, lines):
                     self.out.write("|")
-                    for k in tab:
-                        self.out.write( "%-*s" % (max_col[k]+1, str(headers[k][l])) + "|" )
+                    for k, t in tab:
+                        self.out.write( "%-*s" % (max_col[k]+1, str(headers[t][l])) + "|" )
                     self.out.write("\n")
                 self.out.write("%.*s\n" % (ncols, sep_line))
 
@@ -214,7 +214,7 @@ class AsciiTable:
             for row in rows:
                 s = "|"
                 line_sup = s
-                for k in tab:
+                for k, t in tab:
                     target = row[k]
                     offset = 0
                     splt = []

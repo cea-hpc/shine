@@ -24,6 +24,8 @@ from Shine.Lustre.Actions.Action import Action
 import os
 import sys
 
+import binascii, pickle
+
 class ProxyAction(Action):
     """
     Astract shine proxy action class.
@@ -32,4 +34,16 @@ class ProxyAction(Action):
     def __init__(self, task):
         Action.__init__(self, task)
         self.progpath = os.path.abspath(sys.argv[0])
+
+    def _read_shine_msg(self, msg):
+        if msg.startswith("SHINE:"):
+            # Identified shine msg of the form SHINE:<version>:<pickle>
+            try:
+                version, info = msg[6:].split(':', 2)
+                return pickle.loads(binascii.a2b_base64(info))
+            except:
+                print "read_shine_msg failure"
+                raise
+        return None
+
 

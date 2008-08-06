@@ -118,7 +118,7 @@ class Target(NodeSet):
             raise TargetBlockDeviceNotFoundError(self)
 
         sta = "UNKNOWN"
-        f = open("/proc/mounts")
+        f = open("/proc/mounts", 'r')
         try:
             mntps = [line for line in f if line.find("%s lustre" % self.mntp) >= 0]
             if len(mntps) == 0:
@@ -129,10 +129,51 @@ class Target(NodeSet):
                 #raise TargetMultiMountedError(self)
             else:
                 sta = "MOUNTED"
-                #"/proc/fs/lustre/mdt/testfs-MDT0000/recovery_status"
-            
+
         finally:
             f.close()
+
+        if sta == "MOUNTED":
+            if self.is_mdt():
+                print "ok"
+
+                f = None
+
+                try:
+                    f = open("/proc/fs/lustre/mdt/%s/recovery_status" % self.label, 'r')
+                except IOError:
+                    try:
+                        f = open("/proc/fs/lustre/mds/%s/recovery_status" % self.label, 'r')
+                    except IOError:
+                        raise TargetLustreProcError(self)
+
+                status = "UNKNOWN"
+                recovery_duration = -1
+                completed_clients = -1
+                time_remaining = -1
+
+                for line in f:
+                    if line.startswith("status:"):
+                        key, status = line.rstrip().split(' ', 2)
+                        break
+                if status == "COMPLETE":
+                    print "complete"
+                    for line in f:
+                        if line.startswith("recovery_duration:"):
+                            key, recovery_duration = line.rstrip().split(' ', 2) 
+                        if line.startswith("completed_clients:"):
+                            key, completed_clients = line.rstrip().split(' ', 2)
+                if status == "RECOVERING":
+                    for line in f:
+                        if line.startswith("time_remaining:"):
+                            key, time_remaining = line.rstrip().split(' ', 2)
+                        if line.startswith("completed_clients:"):
+                            key, completed_clients = line.rstrip().split(' ', 2)
+                    sta = "Recovering %ss (%s)" % (time_remaining, completed_clients)
+
+
+            
+
         
         CommandRegistry.output(type=self.type, tag=self.tag, dev=self.dev,
             status=sta)

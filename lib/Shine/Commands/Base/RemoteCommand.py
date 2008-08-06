@@ -47,5 +47,5 @@ class RemoteCommand(Command):
     #
     def _print_pickle(self, tpl):
         assert self.remote_call == True
-        print binascii.b2a_base64(pickle.dumps(tpl, -1)),
+        print "SHINE:1:%s" % binascii.b2a_base64(pickle.dumps(tpl, -1)),
 

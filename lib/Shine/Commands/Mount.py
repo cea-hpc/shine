@@ -81,7 +81,7 @@ class Mount(RemoteCommand):
                 if rc != 0:
                     print "Failed to mount %s on %s: %s" % (dic['fs'], dic['mntp'],
                            os.strerror(rc))
-                    if dic['errbuf']:
+                    if dic.has_key('errbuf'):
                         print "%s" % dic['errbuf']
                     sys.exit(rc)
                 elif not self.quiet_support.has_quiet():

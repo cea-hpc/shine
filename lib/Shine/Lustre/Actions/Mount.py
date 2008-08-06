@@ -61,6 +61,8 @@ class Mount(Action):
             self.mntp = self.target.mntp
             cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (self.mntp,
                     self.target.dev, self.mntp)
+            #cmd = "mkdir -p \"%s\" && /bin/mount -t lustre -o abort_recov %s \"%s\"" % (self.mntp,
+            #        self.target.dev, self.mntp)
 
         self.task.shell(cmd, handler=self)
 

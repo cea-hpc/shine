@@ -32,7 +32,6 @@ from ClusterShell.Worker import Worker
 
 from Shine.Utilities.AsciiTable import AsciiTable
 
-import binascii, pickle
 
 class Start(ProxyAction):
     """
@@ -65,7 +64,7 @@ class Start(ProxyAction):
 
     def ev_read(self, worker):
         node, info = worker.get_last_read()
-        dic = pickle.loads(binascii.a2b_base64(info))
+        dic = self._read_shine_msg(info)
 
         msg = dic['msg']
 

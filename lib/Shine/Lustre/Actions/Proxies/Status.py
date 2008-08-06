@@ -31,10 +31,6 @@ from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import Task
 from ClusterShell.Worker import Worker
-#from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
-
-
-import binascii, pickle
 
 
 class Status(ProxyAction):
@@ -68,12 +64,13 @@ class Status(ProxyAction):
         self.task.run()
 
     def ev_read(self, worker):
-        node, info = worker.get_last_read()
-        try:
-            dic = pickle.loads(binascii.a2b_base64(info))
-        except:
-            print "failed node %s" % node
-            raise
+        node, msg = worker.get_last_read()
+        #print node, msg
+        dic = self._read_shine_msg(msg)
+        if not dic:
+            print "%s: %s" % (node, msg)
+            return
+
         if dic.has_key('status_client'):
 
             # compact nodes according to their status

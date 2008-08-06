@@ -34,12 +34,20 @@ class ModelFileIOError(ModelFileException):
         self.message = "Cannot access file %s" % file
 
 class ModelFileSyntaxError(ModelFileException):
-    def __init__(self, file, line_nbr, line):
+    def __init__(self, file, line_nbr, line, reason=""):
         self.file = file
         self.lineNbr = line_nbr
         self.line = line
-        self.message = "Syntax error in %s at line %d: \"%s\"" % \
+        self.reason = reason
+        self.message = "Syntax error in %s at line %d:\n\"%s\"" % \
                        (self.file, self.lineNbr, self.line)
+        if len(reason) > 0:
+            self.message += "\n%s" % self.reason
+
+class ModelFileSyntaxErrorReason(ModelFileException):
+    def __init__(self, reason):
+        self.message = reason
+
 
 class ModelFileKeywordError(ModelFileException):
     def __init__(self, key):
@@ -52,6 +60,8 @@ class ModelFileValueError(ModelFileException):
         self.value = value
         self.message = "Invalid value '%s' for '%s'. %s." % \
                         (value, key, text)
+
+
 
 class ModelFile:
 
@@ -76,6 +86,8 @@ class ModelFile:
             file.close()
         except ValueError, e:
             raise ModelFileSyntaxError(self.filename, line_nbr, line)
+        except ModelFileSyntaxErrorReason, e:
+            raise ModelFileSyntaxError(self.filename, line_nbr, line, e.message)
         except IOError, e:
             raise ModelFileIOError(self.filename)
 
@@ -89,12 +101,7 @@ class ModelFile:
         if filename:
             self._parse()
 
-    def add(self, key, value):
-
-        # Do we have a grammar and params are valid ?
-        if self.syntax:
-            value = self.validate(key, value)
-
+    def _add(self, key, value):
         # Key is unknown, create a list with 'value'
         if key not in self.keys:
             self.keys[key] = [value]
@@ -103,6 +110,19 @@ class ModelFile:
         # there's already a list for this key, add the value
         else:
             self.keys[key].append(value)
+
+    def add(self, key, value):
+
+        # Do we have a grammar and params are valid ?
+        if self.syntax:
+            value = self.validate(key, value)
+
+        # If needed, expand to multiple values (eg. for subelem pattern)
+        if type(value) is list:
+            for val in value:
+                self._add(key, val)
+        else:
+            self._add(key, value)
 
     def delete(self, key):
         if self.keys.has_key(key):

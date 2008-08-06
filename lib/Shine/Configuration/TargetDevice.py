@@ -43,10 +43,12 @@ class TargetDevice:
         return line.strip()
 
     def __str__(self):
-        tag = self.dict['tag']
+        # mandatory
         node = self.dict['node']
         dev = self.dict['dev']
-        size = self.dict['size']
+        # optional
+        tag = self.dict.get('tag', '')
+        size = self.dict.get('size', 0)
         jdev = self.dict.get('jdev', '')
         jsize = self.dict.get('jsize', 0)
         return "%s on %s (dev=%s, size=%lu, jdev=%s, jsize=%lu)" % (tag, node, dev, size, jdev, jsize)

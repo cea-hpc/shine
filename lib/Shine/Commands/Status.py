@@ -86,6 +86,7 @@ class Status(RemoteCommand):
         if self.remote_call:
             self._print_pickle(dic)
         else:
+            # Check what we got
             if dic.has_key('tgt_listofdic'):
                 ldic = dic['tgt_listofdic']
 
@@ -97,12 +98,12 @@ class Status(RemoteCommand):
                 layout = AsciiTableLayout()
 
                 layout.set_show_header(True)
-                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
-                layout.set_column("node", 1, AsciiTableLayout.LEFT)
-                layout.set_column("type", 2, AsciiTableLayout.CENTER)
-                layout.set_column("tag", 3, AsciiTableLayout.LEFT)
-                layout.set_column("dev", 4, AsciiTableLayout.LEFT)
-                layout.set_column("status", 5, AsciiTableLayout.CENTER)
+                layout.set_column("fs", 0, AsciiTableLayout.LEFT, "File System")
+                layout.set_column("node", 1, AsciiTableLayout.LEFT, "Node")
+                layout.set_column("type", 2, AsciiTableLayout.CENTER, "Type")
+                layout.set_column("tag", 3, AsciiTableLayout.LEFT, "Tag")
+                layout.set_column("dev", 4, AsciiTableLayout.LEFT, "Device")
+                layout.set_column("status", 5, AsciiTableLayout.CENTER, "Status")
 
                 AsciiTable().print_from_list_of_dict(ldic, layout)
 
