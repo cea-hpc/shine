@@ -64,23 +64,14 @@ class Format(ProxyAction):
 
         # Run cluster command
         self.task.shell(command, nodes=selected_nodes, handler=self)
-        self.task.run()
+        self.task.resume()
 
     def ev_read(self, worker):
-        print "%s: %s" % worker.get_last_read()
+        print "%s: %s" % worker.last_read()
 
     def ev_close(self, worker):
         gdict = worker.gather_rc()
         for nodelist, rc in gdict.iteritems():
             if rc != 0:
                 raise ActionFailedError(rc, "Formatting failed on %s" % nodelist.as_ranges())
-        """
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
-            print "Proxies.Format:ev_close %s rc = %d" % (nodelist.as_ranges(), rc)
-        gdict = worker.gather()
-        for nodelist, buf in gdict.iteritems():
-            print "Proxies.Format:ev_close %s %s" % (nodelist.as_ranges(), buf)
-        """
 
-    

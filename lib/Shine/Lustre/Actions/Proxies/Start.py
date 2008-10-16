@@ -60,10 +60,10 @@ class Start(ProxyAction):
 
         # Run cluster command
         self.task.shell(command, nodes=selected_nodes, handler=self)
-        self.task.run()
+        self.task.resume()
 
     def ev_read(self, worker):
-        node, info = worker.get_last_read()
+        node, info = worker.last_read()
         dic = self._read_shine_msg(info)
 
         msg = dic['msg']

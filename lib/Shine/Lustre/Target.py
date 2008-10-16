@@ -22,7 +22,7 @@
 from Shine.Configuration.Globals import Globals
 
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import Task
+from ClusterShell.Task import *
 from ClusterShell.Worker import Worker
 
 from Actions.Format import Format
@@ -90,11 +90,11 @@ class Target(NodeSet):
         return self.type == 'OST'
 
     def _mount(self):
-        action = Mount(Task.current(), self.fs, self)
+        action = Mount(task_self(), self.fs, self)
         action.launch()
 
     def _umount(self):
-        action = Umount(Task.current(), self.fs, self)
+        action = Umount(task_self(), self.fs, self)
         action.launch()
 
     def set_status(self, new_cfg_status):
@@ -179,7 +179,7 @@ class Target(NodeSet):
             status=sta)
 
     def format(self):
-        self.fs.push_action(Format(Task.current(), self.fs, self))
+        self.fs.push_action(Format(task_self(), self.fs, self))
 
     def fcsk(self):
         pass

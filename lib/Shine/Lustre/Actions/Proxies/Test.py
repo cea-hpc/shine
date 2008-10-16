@@ -54,7 +54,7 @@ class Test(ProxyAction):
 
         # Run cluster command
         self.task.shell(command, nodes=self.fs.get_all_nodes(), handler=self)
-        self.task.run()
+        self.task.resume()
 
     def ev_close(self, worker):
         print "Test:ev_close_proxy"

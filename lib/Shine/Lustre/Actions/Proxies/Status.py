@@ -61,10 +61,10 @@ class Status(ProxyAction):
 
         # Run cluster command
         self.task.shell(command, nodes=selected_nodes, handler=self)
-        self.task.run()
+        self.task.resume()
 
     def ev_read(self, worker):
-        node, msg = worker.get_last_read()
+        node, msg = worker.last_read()
         #print node, msg
         dic = self._read_shine_msg(msg)
         if not dic:
@@ -80,7 +80,7 @@ class Status(ProxyAction):
                     ns = NodeSet(d['node'])
                     ns.add(dic['node'])
                     #print ns.as_ranges()
-                    d['node'] = ns.as_ranges()
+                    d['node'] = str(ns)
                     node_added = True
 
             if not node_added:
@@ -90,6 +90,7 @@ class Status(ProxyAction):
             if dic['node'] != node:
                 print "Warning: node mismatch for %s (replied %s)" % (node, dic['node'])
         elif dic.has_key('tag'):
+            print dic
             dic["node"] = node
             self._tgt_list.append(dic)
         elif dic.has_key('health'):
@@ -115,15 +116,12 @@ class Status(ProxyAction):
             print e
             raise
 
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
+        for rc, nodeset in worker.iter_retcodes():
             if rc != 0:
                 if self.target_name:
                     raise ActionFailedError(rc,
-                        "Status of %s failed on %s" % (self.target_name.upper(),
-                            nodelist.as_ranges()))
+                        "Status of %s failed on %s" % (self.target_name.upper(), nodeset))
                 else:
-                    raise ActionFailedError(rc,
-                        "Status failed on %s" % nodelist.as_ranges())
+                    raise ActionFailedError(rc, "Status failed on %s" % nodeset)
 
     

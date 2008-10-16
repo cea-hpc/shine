@@ -73,14 +73,14 @@ class Mount(ProxyAction):
             self.task.shell(command, nodes=nodes, handler=self)
 
         # Run cluster commands
-        self.task.run()
+        self.task.resume()
 
     def ev_start(self, worker):
         print "Mounting %s: " % self.fs.fs_name,
         sys.stdout.flush()
 
     def ev_read(self, worker):
-        node, info = worker.get_last_read()
+        node, info = worker.last_read()
         dic = self._read_shine_msg(info)
 
         msg = dic['msg']

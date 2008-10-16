@@ -28,7 +28,7 @@ from OSS import OSS
 
 from Shine.Utilities.AsciiTable import AsciiTable
 
-from ClusterShell.Task import Task
+from ClusterShell.Task import *
 
 
 class FSException(Exception):
@@ -65,7 +65,7 @@ class FileSystem:
 
     def test(self, target):
 
-        task = Task.current()
+        task = task_self()
 
        # cmd = "shine test -L -f testfs"
 
@@ -82,7 +82,7 @@ class FileSystem:
         for oss in self.servers['oss'].itervalues():
             oss.test()
 
-        task.run()
+        task.resume()
 
     def format(self, target):
         pass
@@ -94,7 +94,7 @@ class FileSystem:
         pass
 
     def status(self):
-        task = Task.current()
+        task = task_self()
 
     def info(self):
         print "Filesystem %s:" % self.fs_name

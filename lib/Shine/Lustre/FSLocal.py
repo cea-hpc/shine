@@ -35,7 +35,7 @@ from OSS import OSS
 from Client import Client
 
 from Shine.Utilities.AsciiTable import AsciiTable
-from ClusterShell.Task import Task
+from ClusterShell.Task import *
 
 import socket
 
@@ -78,7 +78,7 @@ class FSLocal(FileSystem):
 
         self.client = None
         for host in self.short_hostname, self.hostname:
-            if client_nodes.intersection(host):
+            if client_nodes.intersection_update(host):
                 assert len(client_nodes) == 1
                 mntp = self.config.get_client_mount(client_nodes)
                 self.client = Client(client_nodes.first(), mntp, self)
@@ -96,7 +96,7 @@ class FSLocal(FileSystem):
             self.process_actions()
 
     def process_actions(self):
-        Task.current().run()
+        task_self().resume()
         self.actions = []
 
     def test(self, target):
@@ -212,11 +212,11 @@ class FSLocal(FileSystem):
     def mount(self, nodes=None):
         #if self.debug:
         #    print "FSProxy mount %s"  % nodes.as_ranges()
-        action = Mount(Task.current(), self, target=None)
+        action = Mount(task_self(), self, target=None)
         action.launch_and_run()
 
     def umount(self, nodes=None):
-        action = Umount(Task.current(), self, target=None)
+        action = Umount(task_self(), self, target=None)
         action.launch_and_run()
 
         

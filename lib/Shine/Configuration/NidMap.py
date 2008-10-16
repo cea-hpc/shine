@@ -51,6 +51,11 @@ class NidMap:
         return self.map[key]
 
     def add(self, mapline):
+        """
+        Add one-to-one mapping from mapline (as string) of the form
+        'nodeset nidset'. Sizes of the provided nodeset and nidset
+        must be the same.
+        """
 
         # Parse map line
         nodes, nids = mapline.split()
@@ -63,7 +68,7 @@ class NidMap:
             raise ConfigBadNidMapError(nodes_s, nids_s)
 
         # Fill map dict
-        nids_l = nids_s.as_list()
+        nids_l = list(nids_s)
         i = 0
         for node in nodes_s:
             self.map[node] = nids_l[i]

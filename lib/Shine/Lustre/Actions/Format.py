@@ -101,18 +101,18 @@ class Format(Action):
         sys.stdout.flush()
 
     def ev_close(self, worker):
-        rc = worker.get_rc()
+        rc = worker.retcode()
         if self.jformat:
             if rc != 0:
                 print "Formatting of %s journal (%s) failed with error %d" % (self.target.target_name, self.target.jdev, rc)
-                print worker.read_buffer()
+                print worker.read()
             else:
                 print "Formatting of %s journal (%s) succeeded" % (self.target.target_name, self.target.jdev)
                 self.launch_format()
         else:
             if rc != 0:
                 print "Formatting of %s (%s) failed with error %d" % (self.target.target_name, self.target.dev, rc)
-                print worker.read_buffer()
+                print worker.read()
             else:
                 print "Formatting of %s (%s) succeeded" % (self.target.target_name, self.target.dev)
 

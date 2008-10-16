@@ -66,6 +66,9 @@ class FileSystem(Model):
         self._setup_nid_map(self.get('nid_map'))
 
         self.fs_name = self.get_one('fs_name')
+        
+        #############XXX TEST#############
+        self._start_backend()
 
     def _start_backend(self):
         """
@@ -92,7 +95,7 @@ class FileSystem(Model):
 
             try:
                 # Save the model target selection
-                target_models = copy.copy(self.get(target))
+                TARGET_MOdels = copy.copy(self.get(target))
             except KeyError, e:
                 raise ConfigException("No %s target found" %(target))
 

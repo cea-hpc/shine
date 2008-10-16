@@ -28,6 +28,8 @@ from Configuration.ModelFile import ModelFileIOError
 from Configuration.Exceptions import ConfigException
 from Commands.Exceptions import CommandException
 
+from ClusterShell.Task import *
+
 import getopt
 import logging
 
@@ -41,6 +43,8 @@ class Controller:
         self.logger.addHandler(handler)
         self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
+
+        #task_self().set_info("debug", True)
 
     def usage(self):
         cmd_maxlen = 0

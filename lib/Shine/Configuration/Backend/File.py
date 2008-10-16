@@ -19,6 +19,8 @@
 #
 # $Id$
 
+
+
 from Backend import Backend
 from FileSupport.Storage import Storage
 from Shine.Configuration.Globals import Globals
@@ -27,6 +29,9 @@ from Shine.Configuration.TargetDevice import TargetDevice
 from datetime import datetime
 import os
 import shelve
+
+
+BACKEND_MODNAME="File"
 
 class File(Backend):
 

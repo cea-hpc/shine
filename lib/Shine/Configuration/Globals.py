@@ -46,7 +46,7 @@ class Globals(object):
     class __Globals(ModelFile):
         
         syntax = {
-            'backend'                   : ['clusterdb', 'file'],
+            'backend'                   : ['ClusterDB', 'file'],
             'storage_file'              : 'path',
             'status_dir'                 : 'path',
             'conf_dir'                  : 'path',
@@ -106,7 +106,7 @@ class Globals(object):
             ModelFile.__init__(self, path, "=")
 
         def get_backend(self):
-            return self.get_one('backend')
+            return self.get_one('backend').lower()
 
         def get_storage_file(self):
             return self.get_one('storage_file')

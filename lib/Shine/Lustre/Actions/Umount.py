@@ -74,19 +74,19 @@ class Umount(Action):
         sys.stdout.flush()
 
     def ev_close(self, worker):
-        rc = worker.get_rc()
+        rc = worker.retcode()
         if self.target:
 
             CommandRegistry.output(msg="RESULT",
                                    target=self.target.target_name,
                                    dev=self.target.dev,
                                    rc=rc,
-                                   buf=worker.read_buffer())
+                                   buf=worker.read())
         else:
 
             errbuf = None
             if rc != 0:
-                errbuf = worker.read_buffer()
+                errbuf = worker.read()
 
             CommandRegistry.output(msg="RESULT",
                                    fs=self.fs.fs_name,

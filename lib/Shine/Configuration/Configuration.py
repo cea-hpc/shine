@@ -119,7 +119,7 @@ class Configuration:
             return nodes
         for c in cli_cf_list:
             clients = Clients(c)
-            nodes.add(clients.get_nodes())
+            nodes.update(clients.get_nodes())
         return nodes
 
 
@@ -138,7 +138,7 @@ class Configuration:
             clients = Clients(c)
             concern_nodes = NodeSet(clients.get_nodes())
             if select_nodes:
-                concern_nodes.intersection(select_nodes)
+                concern_nodes.intersection_update(select_nodes)
             if len(concern_nodes) > 0:
                 path = clients.get_path()
                 if not path:
@@ -166,7 +166,7 @@ class Configuration:
         """
         mounts = self.get_client_mounts()
         for path, nodes in mounts.iteritems():
-            if nodes.intersection(client):
+            if nodes.intersection_update(client):
                 return path
 
         print "Warning: path not found for client %s ??" % client.as_ranges()

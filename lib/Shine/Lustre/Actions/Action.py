@@ -62,5 +62,5 @@ class Action(EventHandler):
     #
     def launch_and_run(self):
         self.launch()
-        self.task.run()
+        self.task.resume()
 

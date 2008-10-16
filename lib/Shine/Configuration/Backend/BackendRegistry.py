@@ -25,7 +25,7 @@ from Shine.Configuration.Globals import Globals
 
 # Available storage modules
 import ClusterDB
-import File
+#import File
 
 class BackendRegistry:
     """ Container object to deal with available storage systems.
@@ -33,8 +33,6 @@ class BackendRegistry:
     def __init__(self):
         self.backend_list = []
         self.backend_dict = {}
-
-        self._load()        # Autoload backend storages
 
     # Special methods
 
@@ -56,16 +54,28 @@ class BackendRegistry:
     # Public methods
 
     def get(self, name):
-        return self.backend_dict[name]
+
+        # Import Backend if not already done
+        if not self.backend_dict.has_key(name):
+            try:
+                mod = __import__(name, globals(), locals(), [])
+                cls = getattr(mod, mod.BACKEND_MODNAME)
+                self.register(cls())
+            except Exception, e:
+                raise
+
+
+        return self.backend_dict[name.lower()]
 
     def get_selected(self):
-        return self.backend_dict[Globals().get_backend()]
+        return self.get(Globals().get_backend())
 
     def register(self, obj):
         "Register a new config backend storage system."
         if not isinstance(obj, Backend):
             raise something
         self.backend_list.append(obj)
+        #print "adding %s" % obj.get_name()
         self.backend_dict[obj.get_name()] = obj
 
     

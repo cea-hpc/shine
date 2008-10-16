@@ -81,17 +81,17 @@ class Mount(Action):
         sys.stdout.flush()
 
     def ev_close(self, worker):
-        rc = worker.get_rc()
+        rc = worker.retcode()
         if self.target:
             CommandRegistry.output(msg="RESULT",
                                    target=self.target.target_name,
                                    dev=self.target.dev,
                                    rc=rc,
-                                   buf=worker.read_buffer())
+                                   buf=worker.read())
         else:
             CommandRegistry.output(msg="RESULT",
                                    fs=self.fs.fs_name,
                                    mntp=self.mntp,
                                    rc=rc,
-                                   buf=worker.read_buffer())
+                                   buf=worker.read())
 

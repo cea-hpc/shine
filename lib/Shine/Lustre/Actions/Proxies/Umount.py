@@ -62,14 +62,14 @@ class Umount(ProxyAction):
 
         # Run cluster command
         self.task.shell(command, nodes=self.nodes, handler=self)
-        self.task.run()
+        self.task.resume()
 
     def ev_start(self, worker):
         print "Unmounting %s: " % self.fs.fs_name,
         sys.stdout.flush()
 
     def ev_read(self, worker):
-        node, info = worker.get_last_read()
+        node, info = worker.last_read()
         dic = self._read_shine_msg(info)
 
         msg = dic['msg']

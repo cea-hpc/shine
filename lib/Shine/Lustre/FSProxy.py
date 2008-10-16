@@ -41,7 +41,7 @@ from Actions.Proxies.Status import Status
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import Task
+from ClusterShell.Task import *
 from ClusterShell.Worker import Worker
 
 
@@ -71,12 +71,12 @@ class FSProxy(FileSystem):
     def get_target_nodes(self, target=None, flag_clients=False):
         if not target or target == "client":
             # It's easy with NodeSets
-            nodes = self.mgs + self.mds
+            nodes = self.mgs | self.mds
             for ost in self.oss:
-                nodes += ost
+                nodes.update(ost)
 
             if flag_clients:
-                nodes += self.config.get_client_nodes()
+                nodes.update(self.config.get_client_nodes())
 
             return nodes
         else:
@@ -88,7 +88,7 @@ class FSProxy(FileSystem):
             elif ltarget == 'ost':
                 nodes = NodeSet()
                 for ost in self.oss:
-                    nodes += ost
+                    nodes.update(ost)
                 return nodes
             else:
                 raise FSBadTargetError(target)
@@ -98,10 +98,10 @@ class FSProxy(FileSystem):
         Install file system configuration on remote nodes.
         """
         try:
-            action = CreateDirs(Task.current(), self)
+            action = CreateDirs(task_self(), self)
             action.launch_and_run()
 
-            action = Install(Task.current(), self)
+            action = Install(task_self(), self)
             action.launch_and_run()
 
         except ActionErrorException, e:
@@ -109,7 +109,7 @@ class FSProxy(FileSystem):
             sys.exit(e.get_rc())
 
     def test(self, target=None):
-        proxy = Test(Task.current(), self, target)
+        proxy = Test(task_self(), self, target)
         proxy.launch_and_run()
 
     def format(self, target=None):
@@ -117,7 +117,7 @@ class FSProxy(FileSystem):
         Proxy file system format command.
         """
         try:
-            proxy = Format(Task.current(), self, target)
+            proxy = Format(task_self(), self, target)
             proxy.launch_and_run()
         except ActionErrorException, e:
             print e
@@ -127,7 +127,7 @@ class FSProxy(FileSystem):
         """
         Proxy file system start command.
         """
-        task = Task.current()
+        task = task_self()
 
         if target:
             proxy = Start(task, self, target)
@@ -169,7 +169,7 @@ class FSProxy(FileSystem):
         """
         Proxy file system stop command.
         """
-        task = Task.current()
+        task = task_self()
 
         if target:
             proxy_target = Stop(task, self, target)
@@ -211,7 +211,7 @@ class FSProxy(FileSystem):
                 sys.exit(e.get_rc())
 
     def status(self, target=None):
-        proxy = Status(Task.current(), self, target)
+        proxy = Status(task_self(), self, target)
         proxy.launch_and_run()
 
     def info(self):
@@ -266,13 +266,13 @@ class FSProxy(FileSystem):
             print "FSProxy mount nodes=%s" % nodes.as_ranges()
             
         try:
-            action = CreateDirs(Task.current(), self, nodes)
+            action = CreateDirs(task_self(), self, nodes)
             action.launch_and_run()
 
-            action = Install(Task.current(), self, nodes)
+            action = Install(task_self(), self, nodes)
             action.launch_and_run()
 
-            proxy = Mount(Task.current(), self, NodeSet(nodes))
+            proxy = Mount(task_self(), self, NodeSet(nodes))
             proxy.launch_and_run()
         except ActionErrorException, e:
             print e
@@ -286,7 +286,7 @@ class FSProxy(FileSystem):
             nodes = self.config.get_client_nodes()
 
         try:
-            proxy = Umount(Task.current(), self, NodeSet(nodes))
+            proxy = Umount(task_self(), self, NodeSet(nodes))
             proxy.launch_and_run()
         except ActionErrorException, e:
             print e

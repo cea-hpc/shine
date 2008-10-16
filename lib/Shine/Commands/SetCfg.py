@@ -25,7 +25,7 @@ from Shine.Configuration.Exceptions import *
 from Base.Command import Command
 
 from Shine.Utilities.Cluster.NodeSet import NodeSet
-from Shine.Utilities.Cluster.Task import Task
+from Shine.Utilities.Cluster.Task import *
 
 import getopt
 import os
@@ -57,19 +57,18 @@ class SetCfg(Command):
             else:
                 src = dst = "/etc/shine/shine.conf"
                 #f2 = "/etc/shine/storage.conf"
-                task = Task.current()
+                task = task_self()
                 worker1 = task.copy(src, dst, nodes=NodeSet(nodes))
                 #worker2 = task.copy(f2, f2, nodes=NodeSet(nodes))
-                task.run()
+                task.resume()
 
-                gdict = worker1.gather_rc()
-                for nodelist, rc in gdict.iteritems():
+                for rc, nodeset in worker1.iter_retcodes():
                     if rc != 0:
-                        print "set_cfg failed on %s: %s" % (nodelist.as_ranges(), os.strerror(rc))
+                        print "set_cfg failed on %s: %s" % (nodeset, os.strerror(rc))
                         print "Please verify that shine is correctly installed on these nodes."
                         sys.exit(1)
                     elif rc == 0:
-                        print "set_cfg successful on %s" % nodelist.as_ranges()
+                        print "set_cfg successful on %s" % nodeset
 
                 """
                 gdict = worker2.gather_rc()
