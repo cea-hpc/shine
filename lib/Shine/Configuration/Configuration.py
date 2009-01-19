@@ -134,11 +134,16 @@ class Configuration:
         mounts = {}
         default_path = self._fs.get_one('mount_path')
 
+        remain_nodes = None
+        if select_nodes:
+            remain_nodes = NodeSet(select_nodes)
+
         for c in cli_cf_list:
             clients = Clients(c)
             concern_nodes = NodeSet(clients.get_nodes())
-            if select_nodes:
-                concern_nodes.intersection_update(select_nodes)
+            if remain_nodes:
+                concern_nodes.intersection_update(remain_nodes)
+                remain_nodes.difference_update(concern_nodes)
             if len(concern_nodes) > 0:
                 path = clients.get_path()
                 if not path:
@@ -149,14 +154,12 @@ class Configuration:
                 else:
                     mounts[path] = NodeSet(concern_nodes)
         
-        if select_nodes:
+        if remain_nodes:
             # fill unknown nodes with default mount point
-            # could be improved when the diff() method will be impl in CS
-            for node in select_nodes:
-                if mounts.has_key(default_path):
-                    mounts[default_path].update(node)
-                else:
-                    mounts[default_path] = NodeSet(node)
+            if mounts.has_key(default_path):
+                mounts[default_path].update(remain_nodes)
+            else:
+                mounts[default_path] = remain_nodes
 
         return mounts
 
