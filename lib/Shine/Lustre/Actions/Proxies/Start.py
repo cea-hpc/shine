@@ -93,10 +93,4 @@ class Start(ProxyAction):
 
     def ev_close(self, worker):
         pass
-        """
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
-            if rc != 0:
-                raise ActionFailedError(rc, "Start of %s failed on %s" % (self.target_name.upper(), nodelist.as_ranges()))
-        """
     

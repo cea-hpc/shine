@@ -57,7 +57,7 @@ class Status(ProxyAction):
             command = "%s status -f %s -R" % (self.progpath, self.fs.fs_name)
 
         selected_nodes = self.fs.get_target_nodes(self.target_name, True)
-        #print "sel: %s" % selected_nodes.as_ranges()
+        #print "sel: %s" % selected_nodes
 
         # Run cluster command
         self.task.shell(command, nodes=selected_nodes, handler=self)
@@ -79,7 +79,7 @@ class Status(ProxyAction):
                 if d['status_client'] == dic['status_client']:
                     ns = NodeSet(d['node'])
                     ns.add(dic['node'])
-                    #print ns.as_ranges()
+                    #print "ADD %s" % ns
                     d['node'] = str(ns)
                     node_added = True
 
@@ -90,7 +90,7 @@ class Status(ProxyAction):
             if dic['node'] != node:
                 print "Warning: node mismatch for %s (replied %s)" % (node, dic['node'])
         elif dic.has_key('tag'):
-            print dic
+            #print dic
             dic["node"] = node
             self._tgt_list.append(dic)
         elif dic.has_key('health'):

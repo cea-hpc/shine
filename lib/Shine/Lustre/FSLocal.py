@@ -1,5 +1,5 @@
 # FSLocal.py -- Lustre FS
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -78,10 +78,11 @@ class FSLocal(FileSystem):
 
         self.client = None
         for host in self.short_hostname, self.hostname:
-            if client_nodes.intersection_update(host):
+            client_nodes.intersection_update(host)
+            if len(client_nodes) > 0:
                 assert len(client_nodes) == 1
                 mntp = self.config.get_client_mount(client_nodes)
-                self.client = Client(client_nodes.first(), mntp, self)
+                self.client = Client(client_nodes[0], mntp, self)
                 break
 
 
@@ -211,7 +212,7 @@ class FSLocal(FileSystem):
 
     def mount(self, nodes=None):
         #if self.debug:
-        #    print "FSProxy mount %s"  % nodes.as_ranges()
+        #    print "FSProxy mount %s"  % nodes
         action = Mount(task_self(), self, target=None)
         action.launch_and_run()
 

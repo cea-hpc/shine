@@ -23,6 +23,8 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+from ClusterShell.Task import task_self
+
 class Debug:
     
     def __init__(self, cmd):
@@ -32,9 +34,12 @@ class Debug:
                  'doc' : "enable debugging" }
 
         self.cmd = cmd
-        self.cmd.add_option('d', None, attr)
+        self.cmd.add_option('d', None, attr, cb=self.on_debug)
 
-    
     def has_debug(self):
         return self.cmd.opt_d
+    
+    def on_debug(self, opt, arg):
+        task = task_self()
+        task.set_info("debug", True)
 

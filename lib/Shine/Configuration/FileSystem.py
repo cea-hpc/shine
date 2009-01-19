@@ -95,7 +95,7 @@ class FileSystem(Model):
 
             try:
                 # Save the model target selection
-                TARGET_MOdels = copy.copy(self.get(target))
+                target_models = copy.copy(self.get(target))
             except KeyError, e:
                 raise ConfigException("No %s target found" %(target))
 

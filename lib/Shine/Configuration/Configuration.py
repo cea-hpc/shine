@@ -145,7 +145,7 @@ class Configuration:
                     path = default_path
                 if mounts.has_key(path):
                     nodes = mounts[path]
-                    nodes.add(concern_nodes)
+                    nodes.update(concern_nodes)
                 else:
                     mounts[path] = NodeSet(concern_nodes)
         
@@ -154,7 +154,7 @@ class Configuration:
             # could be improved when the diff() method will be impl in CS
             for node in select_nodes:
                 if mounts.has_key(default_path):
-                    mounts[default_path].add(node)
+                    mounts[default_path].update(node)
                 else:
                     mounts[default_path] = NodeSet(node)
 
@@ -169,7 +169,7 @@ class Configuration:
             if nodes.intersection_update(client):
                 return path
 
-        print "Warning: path not found for client %s ??" % client.as_ranges()
+        #print "Warning: path not found for client %s ??" % client
         return self._fs.get_one('mount_path')
 
 

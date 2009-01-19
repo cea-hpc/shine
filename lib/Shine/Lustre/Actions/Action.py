@@ -48,7 +48,6 @@ class Action(EventHandler):
     """
 
     def __init__(self, task):
-        EventHandler.__init__(self)
         self.task = task
 
     #

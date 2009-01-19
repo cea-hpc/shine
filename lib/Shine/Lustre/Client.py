@@ -52,11 +52,11 @@ class Client(NodeSet):
         try:
             f = open("/proc/fs/lustre/health_check")
             if not f.readline().startswith("healthy"):
-                CommandRegistry.output(fs=self.fs.fs_name, node=self.first(),
+                CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
                         health=f.read())
             f.close()
         except IOError, (errno, strerror):
-            CommandRegistry.output(fs=self.fs.fs_name, node=self.first(),
+            CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
                         health=strerror, err=errno)
         except Exception, e:
             print e
@@ -76,7 +76,7 @@ class Client(NodeSet):
         finally:
             f.close()
         
-        CommandRegistry.output(fs=self.fs.fs_name, node=self.first(),
+        CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
                 mount=self.mntp, status_client=sta)
 
     def format(self):

@@ -56,13 +56,11 @@ class CreateDirs(Action):
 
     def ev_start(self, worker):
         pass
-        #print "Creating configuration directories on %s" % self.nodes.as_ranges()
+        #print "Creating configuration directories on %s" % self.nodes
 
     def ev_close(self, worker):
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
+        for rc, nodeset in worker.iter_retcodes():
             if rc != 0:
-                raise ActionFailedError(rc,
-                    "Fatal: Cannot create file system configuration directories on %s (%s)" % (nodelist.as_ranges(),
+                raise ActionFailedError(rc, "Fatal: Cannot create file system " \
+                        "configuration directories on %s (%s)" % (nodeset,
                         os.strerror(rc)))
-

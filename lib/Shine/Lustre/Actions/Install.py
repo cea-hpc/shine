@@ -55,13 +55,12 @@ class Install(Action):
         self.task.copy(dst, src, nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
-        print "Updating file system configuration files on %s" % self.nodes.as_ranges()
+        print "Updating file system configuration files on %s" % self.nodes
 
     def ev_close(self, worker):
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
+        for rc, nodeset in worker.iter_retcodes():
             if rc != 0:
-                raise ActionFailedError(rc,
-                    "Fatal: Installation of file system configuration failed on %s (%s)" % (nodelist.as_ranges(),
-                        os.strerror(rc)))
+                raise ActionFailedError(rc, "Fatal: Installation of file system "
+                    "configuration failed on %s (%s)" % (nodeset,
+                    os.strerror(rc)))
 

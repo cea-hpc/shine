@@ -56,10 +56,8 @@ class SetCfg(Command):
                 sys.exit(1)
             else:
                 src = dst = "/etc/shine/shine.conf"
-                #f2 = "/etc/shine/storage.conf"
                 task = task_self()
                 worker1 = task.copy(src, dst, nodes=NodeSet(nodes))
-                #worker2 = task.copy(f2, f2, nodes=NodeSet(nodes))
                 task.resume()
 
                 for rc, nodeset in worker1.iter_retcodes():
@@ -69,18 +67,6 @@ class SetCfg(Command):
                         sys.exit(1)
                     elif rc == 0:
                         print "set_cfg successful on %s" % nodeset
-
-                """
-                gdict = worker2.gather_rc()
-                for nodelist, rc in gdict.iteritems():
-                    if rc != 0:
-                        print "set_cfg failed on %s: %s" % (nodelist.as_ranges(), os.strerror(rc))
-                        print "Please verify that shine is correctly installed on these nodes."
-                        sys.exit(1)
-                    elif rc == 0:
-                        print "set_cfg successful on %s" % nodelist.as_ranges()
-                """
-
 
         except getopt.GetoptError:
             raise

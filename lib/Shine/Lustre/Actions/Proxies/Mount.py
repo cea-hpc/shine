@@ -117,14 +117,14 @@ class Mount(ProxyAction):
             # TODO add mount options
             ###self.fs.config.set_status_clients_mount_complete(self.good_nodes, None)
             print "File system %s successfully mounted on %s" % (self.fs.fs_name,
-                    self.good_nodes.as_ranges())
+                    self.good_nodes)
         if len(self.already_nodes) > 0:
             print "File system %s already mounted on %s" % (self.fs.fs_name,
-                    self.already_nodes.as_ranges())
+                    self.already_nodes)
         if len(self.fail_nodes) > 0:
             ###self.fs.config.set_status_clients_mount_failed(self.fail_nodes, None)
             raise ActionFailedError(self.max_rc,
-                "Failed to mount client on %s" % self.fail_nodes.as_ranges())
+                "Failed to mount client on %s" % self.fail_nodes)
 
     def has_debug(self):
         return self.fs.debug

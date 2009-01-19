@@ -70,8 +70,7 @@ class Format(ProxyAction):
         print "%s: %s" % worker.last_read()
 
     def ev_close(self, worker):
-        gdict = worker.gather_rc()
-        for nodelist, rc in gdict.iteritems():
+        for rc, nodeset in worker.iter_retcodes():
             if rc != 0:
-                raise ActionFailedError(rc, "Formatting failed on %s" % nodelist.as_ranges())
+                raise ActionFailedError(rc, "Formatting failed on %s" % nodeset)
 

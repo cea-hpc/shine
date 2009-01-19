@@ -36,7 +36,6 @@ class MGT(Target, EventHandler):
     
     def __init__(self, cf_target, fs):
         Target.__init__(self, cf_target, fs)
-        EventHandler.__init__(self)
         self.target_name = "MGS" # MGS is more user-friendly than MGT
 
     def test(self):

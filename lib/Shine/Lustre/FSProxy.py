@@ -263,7 +263,7 @@ class FSProxy(FileSystem):
             return
         
         if self.debug:
-            print "FSProxy mount nodes=%s" % nodes.as_ranges()
+            print "FSProxy mount nodes=%s" % nodes
             
         try:
             action = CreateDirs(task_self(), self, nodes)

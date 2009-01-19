@@ -64,9 +64,6 @@ class Mount(RemoteCommand):
             else:
                 fs = FSProxy(conf)
 
-            conf.set_debug(self.opt_d)
-            fs.set_debug(self.opt_d)
-
             fs.mount(self.node_support.get_nodes())
 
     def output(self, dic):

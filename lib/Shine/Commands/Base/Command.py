@@ -101,7 +101,7 @@ class Command(object):
         Parse command arguments."
         """
         try:
-#            print "getopt_string: %s" % self.getopt_string
+            #print "getopt_string: %s" % self.getopt_string
 
             options, arguments = getopt.getopt(args, self.getopt_string)
             self.arguments = arguments

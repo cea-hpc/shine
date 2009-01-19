@@ -135,8 +135,6 @@ class Target(NodeSet):
 
         if sta == "MOUNTED":
             if self.is_mdt():
-                print "ok"
-
                 f = None
 
                 try:

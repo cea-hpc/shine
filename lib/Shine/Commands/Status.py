@@ -81,6 +81,8 @@ class Status(RemoteCommand):
                 fs.status(target)
             except FSException, e:
                 print e
+            except Exception, e:
+                print e
 
     def output(self, dic):
         if self.remote_call:
