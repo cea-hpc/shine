@@ -89,6 +89,16 @@ class Target(NodeSet):
     def is_ost(self):
         return self.type == 'OST'
 
+    def get_id(self):
+        """
+        Get target human readable identifier.
+        """
+        if self.tag is not None:
+            return self.tag
+
+        return self.label
+
+
     def _mount(self):
         action = Mount(task_self(), self.fs, self)
         action.launch()
@@ -173,7 +183,7 @@ class Target(NodeSet):
             
 
         
-        CommandRegistry.output(type=self.type, tag=self.tag, dev=self.dev,
+        CommandRegistry.output(type=self.type, id=self.get_id(), dev=self.dev,
             status=sta)
 
     def format(self):

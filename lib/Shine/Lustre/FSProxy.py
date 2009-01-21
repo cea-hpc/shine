@@ -21,6 +21,8 @@
 
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.TuningModel import TuningModel
+from Shine.Configuration.TuningModel import TuningParameterDeclarationException
 
 from FileSystem import FileSystem, FSBadTargetError
 from MGS import MGS
@@ -30,6 +32,9 @@ from OSS import OSS
 from Actions.Action import *
 from Actions.CreateDirs import CreateDirs
 from Actions.Install import Install
+from Actions.InstallTuningConf import InstallTuningConf
+from Actions.Proxies.Tune import Tune
+from Actions.Proxies.Remove import Remove
 from Actions.Proxies.Test import Test
 from Actions.Proxies.Format import Format
 from Actions.Proxies.Start import Start
@@ -47,6 +52,8 @@ from ClusterShell.Worker import Worker
 
 import logging
 import sys
+import os
+import socket
 
 class FSProxy(FileSystem):
     """
@@ -98,6 +105,10 @@ class FSProxy(FileSystem):
         Install file system configuration on remote nodes.
         """
         try:
+
+            # Register file system configuration to the backend
+            self.config.register_fs()
+
             action = CreateDirs(task_self(), self)
             action.launch_and_run()
 
@@ -136,13 +147,37 @@ class FSProxy(FileSystem):
             try:
                 proxy_mgt = Start(task, self, 'mgt')
                 proxy_mgt.launch_and_run()
-
+            
                 proxy_ost = Start(task, self, 'ost')
                 proxy_ost.launch_and_run()
-
+                
                 proxy_mdt = Start(task, self, 'mdt')
                 proxy_mdt.launch_and_run()
+                
+                # Is the tuning configuration file name specified ?               
+                if Globals().get_tuning_file().strip() == "":
+                    # No.  Create an empty tuning model.
+                    tuning_model = TuningModel()
+                    
+                else:
+                    # Yes.
+                    # Load the tuning configuration file
+                    tuning_model = TuningModel(filename=Globals().get_tuning_file())
+                    
+                    try:
+                        # Parse the tuning model
+                        tuning_model.parse()
+                                        
+                        # Add the quota tuning parameters to the tuning model.
+                        self.add_quota_tuning(tuning_model)
 
+                        # Tune the file system 
+                        self.tune(tuning_model)
+                        
+                    except TuningParameterDeclarationException, tpde:
+                        # An error has occured during parsing of tuning configuration file
+                        print "%s" %(str(tpde))
+                        
                 # Print stop status in an ascii table
                 tgt_list = proxy_mgt.get_tgt_list() + \
                     proxy_mdt.get_tgt_list() + \
@@ -274,6 +309,7 @@ class FSProxy(FileSystem):
 
             proxy = Mount(task_self(), self, NodeSet(nodes))
             proxy.launch_and_run()
+
         except ActionErrorException, e:
             print e
             sys.exit(e.get_rc())
@@ -288,6 +324,7 @@ class FSProxy(FileSystem):
         try:
             proxy = Umount(task_self(), self, NodeSet(nodes))
             proxy.launch_and_run()
+
         except ActionErrorException, e:
             print e
             sys.exit(e.get_rc())
@@ -297,3 +334,64 @@ class FSProxy(FileSystem):
         Proxy mount status command.
         """
         pass
+
+    def remove(self):
+        """
+        Proxy remove command
+        """
+        try:
+            print "Remove the File system from the database"
+        
+            # Build the remove action for remote hosts
+            action = Remove(task_self(), self, self.get_target_nodes(flag_clients=True))
+
+            # Start the shine remove action on remote hosts
+            action.launch_and_run()
+
+            # Build the full list of targets involved
+            # in the current File system
+            target_list=[]
+
+            # Add the MGT to the list
+            target_list.append(self.config.get_target_mgt())
+            
+            # Add the MDT to the list
+            target_list.append(self.config.get_target_mdt())
+
+            # Add all the OST to the list
+            for ost in self.config.iter_targets_ost():
+                target_list.append(ost)
+                
+            # Change the status of targets to avoid their use
+            # in an other file system
+            self.config.set_status_targets_available(target_list, None)
+
+        except ActionErrorException, e:
+            print e
+            sys.exit(e.get_rc())
+        
+    def tune(self, tuning_model):
+        """
+        Proxy tune command. This function is used to start the tune command on the
+        remote nodes to achieve the tune operation.
+        """
+        try:
+            # First copy the tuning configuration file to remote systems
+            install_action = InstallTuningConf(task_self(), self, \
+                    self.get_target_nodes(flag_clients=True), \
+                    tuning_model.get_filename())
+        
+            # Start the copy
+            install_action.launch_and_run()
+                    
+            # Start the Tuning on the differents sets of nodes
+
+            # Build the Tune action for remote hosts
+            tune_proxy_action = Tune(task_self(), self, \
+                    self.get_target_nodes(flag_clients=True), tuning_model)
+            
+            # Start the shine tune  action on remote hosts
+            tune_proxy_action.launch_and_run()
+            
+        except ActionErrorException, e:
+            sys.exit(e.get_rc())

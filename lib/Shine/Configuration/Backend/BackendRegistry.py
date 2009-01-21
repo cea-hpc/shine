@@ -23,9 +23,6 @@ from Backend import Backend
 
 from Shine.Configuration.Globals import Globals
 
-# Available storage modules
-import ClusterDB
-#import File
 
 class BackendRegistry:
     """ Container object to deal with available storage systems.
@@ -45,12 +42,6 @@ class BackendRegistry:
         for backend in self.backend_list:
             yield backend
 
-    # Private methods
-
-    def _load(self):
-        self.register(ClusterDB.ClusterDB())
-        self.register(File.File())
-
     # Public methods
 
     def get(self, name):
@@ -64,8 +55,7 @@ class BackendRegistry:
             except Exception, e:
                 raise
 
-
-        return self.backend_dict[name.lower()]
+        return self.backend_dict[name]
 
     def get_selected(self):
         return self.get(Globals().get_backend())

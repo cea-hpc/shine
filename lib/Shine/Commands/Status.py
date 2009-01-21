@@ -103,7 +103,7 @@ class Status(RemoteCommand):
                 layout.set_column("fs", 0, AsciiTableLayout.LEFT, "File System")
                 layout.set_column("node", 1, AsciiTableLayout.LEFT, "Node")
                 layout.set_column("type", 2, AsciiTableLayout.CENTER, "Type")
-                layout.set_column("tag", 3, AsciiTableLayout.LEFT, "Tag")
+                layout.set_column("id", 3, AsciiTableLayout.LEFT, "Identifier")
                 layout.set_column("dev", 4, AsciiTableLayout.LEFT, "Device")
                 layout.set_column("status", 5, AsciiTableLayout.CENTER, "Status")
 

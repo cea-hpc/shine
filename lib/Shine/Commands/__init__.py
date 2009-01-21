@@ -39,7 +39,9 @@ for cmd in [ "ShowConf",
              "Mount",
              "Umount",
              "Test",
-             "Cache" ]:
+             "Cache",
+             "Remove",
+             "Tune"]:
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 

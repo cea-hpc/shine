@@ -63,15 +63,39 @@ class Format(Action):
 
     def launch_format(self):
         self.jformat = False
+        
+        # Set flag for quota activation
+        activate_quota = False
+        
+        # Do we need to add some parameters to activate quota on startup ?
+        if self.fs.config.get_quota() == "yes":
+            
+            # Set flag to activate quota
+            activate_quota  =True
+            
+            # Yes it is. Now retrieve quota configuration informations.
+            quota_options_string = self.fs.config.get_quota_options()
+            
+            # Map the quota configuration information in a dictionary
+            quota_options_dict = dict([list(x.strip().split('=')) \
+                    for x in quota_options_string.split(',')])
+        
         if self.target.target_name == "MGS":
             # '--index' only valid for MDT,OST
             # '--mgs' and not '--mgt'
-            cmd = "mkfs.lustre --mgs --fsname=\"%s\" --reformat %s %s" % (self.fs.fs_name,
-                self.mkfsoptions, self.target.dev)
+            cmd = "mkfs.lustre --mgs --fsname=\"%s\" --reformat %s %s" % \
+                    (self.fs.fs_name, self.mkfsoptions, self.target.dev)
 
         elif self.target.target_name == "MDT":
-            cmd = "mkfs.lustre --mdt --fsname=\"%s\" --mgsnode=%s --index=%d --reformat" % (self.fs.fs_name,
-                self.fs.get_mgs_nid(), self.target.index)
+            
+            # Do we need to add some parameters to activate quota on startup ?
+            if activate_quota :
+                
+                self.mkfsoptions += "--param='mdt.quota_type=%s' " % \
+                        quota_options_dict['quotaon']
+            
+            cmd = "mkfs.lustre --mdt --fsname=\"%s\" --mgsnode=%s --index=%d --reformat" \
+                    % (self.fs.fs_name, self.fs.get_mgs_nid(), self.target.index)
 
             p_stripecount = self.fs.config.get_stripecount()
             if p_stripecount:
@@ -84,9 +108,16 @@ class Format(Action):
             cmd += " %s %s" % (self.mkfsoptions, self.target.dev)
 
         elif self.target.target_name == "OST":
+            
+            # Do we need to add some parameters to activate quota on startup ?
+            if activate_quota:
+                
+                self.mkfsoptions += "--param='ost.quota_type=%s' " \
+                        % quota_options_dict['quotaon']
 
-            cmd = "mkfs.lustre --ost --fsname=\"%s\" --mgsnode=%s --reformat %s %s" % (self.fs.fs_name,
-                self.fs.get_mgs_nid(), self.mkfsoptions, self.target.dev)
+            cmd = "mkfs.lustre --ost --fsname=\"%s\" --mgsnode=%s --reformat %s %s" \
+                    % (self.fs.fs_name, self.fs.get_mgs_nid(), self.mkfsoptions, \
+                    self.target.dev)
 
         #cmd = "sleep 4"
         self.task.shell(cmd, handler=self)
@@ -94,9 +125,11 @@ class Format(Action):
 
     def ev_start(self, worker):
         if self.jformat:
-            print "Formatting %s journal (%s)" % (self.target.target_name, self.target.jdev)
+            print "Formatting %s %s journal (%s)" % (self.target.target_name, \
+                    self.target.get_id(), self.target.jdev)
         else:
-            print "Formatting %s (%s)" % (self.target.target_name, self.target.dev)
+            print "Formatting %s %s (%s)" % (self.target.target_name, \
+                    self.target.get_id(), self.target.dev)
 
         sys.stdout.flush()
 
@@ -104,17 +137,25 @@ class Format(Action):
         rc = worker.retcode()
         if self.jformat:
             if rc != 0:
-                print "Formatting of %s journal (%s) failed with error %d" % (self.target.target_name, self.target.jdev, rc)
+                print "Formatting of %s %s journal (%s) failed with error %d" \
+                        %(self.target.target_name, self.target.get_id(), \
+                        self.target.jdev, rc)
                 print worker.read()
             else:
-                print "Formatting of %s journal (%s) succeeded" % (self.target.target_name, self.target.jdev)
+                print "Formatting of %s %s journal (%s) succeeded" \
+                        %(self.target.target_name, self.target.get_id(), \
+                        self.target.jdev)
                 self.launch_format()
         else:
             if rc != 0:
-                print "Formatting of %s (%s) failed with error %d" % (self.target.target_name, self.target.dev, rc)
+                print "Formatting of %s %s (%s) failed with error %d" \
+                        %(self.target.target_name, self.target.get_id(), \
+                        self.target.dev, rc)
                 print worker.read()
             else:
-                print "Formatting of %s (%s) succeeded" % (self.target.target_name, self.target.dev)
+                print "Formatting of %s %s (%s) succeeded" \
+                        %(self.target.target_name, self.target.get_id(), \
+                        self.target.dev)
 
         sys.stdout.flush()
 

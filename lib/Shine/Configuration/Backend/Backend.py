@@ -32,6 +32,20 @@ class Backend:
     UMOUNT_FAILED = 5
     UMOUNT_WARNING = 6
 
+    # Integers which represents the different target status
+    TARGET_UNKNOWN=1
+    TARGET_KO=2
+    TARGET_AVAILABLE=3
+    TARGET_FORMATING=4
+    TARGET_FORMAT_FAILED=5
+    TARGET_FORMATED=6
+    TARGET_OFFLINE=7
+    TARGET_STARTING=8
+    TARGET_ONLINE=9
+    TARGET_CRITICAL=10
+    TARGET_STOPPING=11
+    TARGET_UNREACHABLE=12
+
     def __init__(self):
         "Initializer."
         pass
@@ -57,7 +71,6 @@ class Backend:
         Stop operations
         """
         raise NotImplementedError(NIEXC)
-        
 
     def get_target_devices(self, target):
         """
@@ -65,7 +78,7 @@ class Backend:
         """
         raise NotImplementedError(NIEXC)
 
-    def set_status_client(self, fs_name, nodes, status, options):
+    def set_status_client(self, fs_name, node, status, options):
         """
         Set status of file system client.
         """
@@ -74,9 +87,43 @@ class Backend:
     def get_status_clients(self, fs_name):
         """
         Get all client's status of the form { node1 : { 'status' : status,
-        'date' : datetime, 'options' : None }, node2 : ... }}
+        'date' : datetime, 'options' : None }, node2 : ... }
+        """
+        raise NotImplementedError(NIEXC)
+    
+    def set_status_target(self, fs_name, targets, status, options):
+        """
+        Set status of file system target.
         """
         raise NotImplementedError(NIEXC)
 
-        
+    def get_status_target(self, fs_name):
+        """
+        Get all target status of the form { target1 : { 'status' : status, 
+        'date' : datetime, 'options' : None }, target2 : ... }
+        """
+        raise NotImplementedError(NIEXC)
 
+    def register_fs(self, fs):
+        """
+        This function is used to register a a filesystem configuration to the backend
+        """
+        raise NotImplementedError(NIEXC)
+
+    def unregister_fs(self, fs):
+        """
+        This function is used to remove a filesystem configuration to the backend
+        """
+        raise NotImplementedError(NIEXC)
+
+    def register_client(self, fs, node):
+        """
+        This function is used to register a filesystem client to the backend
+        """
+        raise NotImplementedError(NIEXC)
+
+    def unregister_client(self, fs, node):
+        """
+        This function is used to remove a filesystem client from the backend
+        """
+        raise NotImplementedError(NIEXC)

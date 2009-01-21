@@ -131,6 +131,88 @@ class FileSystem:
                 print w,
         else:
             print " %s" % self.config.get_description()
+            
+    def add_quota_tuning(self, tuning_model):
+        """
+        This function is used to add the quota tuning information to the tuning model
+        provided by the caller.
+        """
+        ###
+        # Create the aliases linked to quo tuning parameters
+        ###
+        # Create aliases for MDS tuning
+        tuning_model.create_parameter_alias('quota_iunit_mds', \
+                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_iunit_sz')
+        tuning_model.create_parameter_alias('quota_bunit_mds', \
+                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_bunit_sz')
+        tuning_model.create_parameter_alias('quota_itune_mds', \
+                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_itune_sz')
+        tuning_model.create_parameter_alias('quota_btune_mds', \
+                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_btune_sz')
 
+        # Create aliases for OSS tuning
+        tuning_model.create_parameter_alias('quota_iunit_oss', \
+                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_iunit_sz')
+        tuning_model.create_parameter_alias('quota_bunit_oss', \
+                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_bunit_sz')
+        tuning_model.create_parameter_alias('quota_itune_oss', \
+                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_itune_sz')
+        tuning_model.create_parameter_alias('quota_btune_oss', \
+                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
         
+        # Create aliases for quota_type tuning
+        tuning_model.create_parameter_alias('quota_type', \
+                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
         
+        # Is the quota activated in the configuration description ?
+        if self.config.get_quota() == "yes":
+            # Yes it is. Now retrieve quota configuration informations.
+            quota_options = self.config.get_quota_options()
+            
+            # Map the quota configuration information in a dictionary
+            quota_options_dict = dict([list(x.strip().split('=')) \
+                    for x in quota_options.split(',')])
+
+            # Walk through the list of quota configuration paramaters to add
+            # each one of them to the tuning model.
+            for (quota_option, option_value) in quota_options_dict.items():
+                if quota_option == 'iunit':
+                    quota_iunit_value = option_value
+                elif quota_option == 'bunit':
+                    quota_bunit_value = option_value
+                elif quota_option == 'itune':
+                    quota_itune_value = option_value
+                elif quota_option == 'btune':
+                    quota_btune_value = option_value
+                # elif quota_option == 'quotaon':
+                #    This option is processed in the mkfs.lustre invocation in
+                #    the Format command.
+
+            # Convert the values to the right units
+            # The bunit size value must be converted in KBs
+            quota_bunit_value = str( int(quota_bunit_value) * 1048576)
+            quota_itune_value = \
+                    str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
+            quota_btune_value = \
+                    str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
+
+            # Create the quota tuning parameters with the right values
+            tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
+                    ['mds'], None)
+            tuning_model.create_parameter('quota_iunit_oss', quota_iunit_value, \
+                    ['oss'], None)
+            tuning_model.create_parameter('quota_bunit_mds', quota_bunit_value, \
+                    ['mds'], None)
+            tuning_model.create_parameter('quota_bunit_oss', quota_bunit_value, \
+                    ['oss'], None)
+            tuning_model.create_parameter('quota_itune_mds', quota_itune_value, \
+                    ['mds'], None)
+            tuning_model.create_parameter('quota_itune_oss', quota_itune_value, \
+                    ['oss'], None)
+            tuning_model.create_parameter('quota_btune_mds', quota_btune_value, \
+                    ['mds'], None)
+            tuning_model.create_parameter('quota_btune_oss', quota_btune_value, \
+                    ['oss'], None)
+
+            # Convert the parameter aliases to the real parameter name
+            tuning_model.convert_parameter_aliases()

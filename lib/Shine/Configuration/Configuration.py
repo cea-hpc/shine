@@ -24,8 +24,9 @@ from FileSystem import FileSystem
 
 from ClusterShell.NodeSet import NodeSet
 
-class ConfigException(Exception):
-    pass
+from Exceptions import ConfigException
+
+import socket
 
 class Target:
     def __init__(self, type, cf_target):
@@ -53,7 +54,6 @@ class Target:
     def get_jdev_size(self):
         return self.dic.get('jsize')
     
-
 class Clients:
     def __init__(self, cf_client):
         self.dic = cf_client.get_dict()
@@ -110,6 +110,35 @@ class Configuration:
         tgt_cf_list = self._fs.get('ost')
         for t in tgt_cf_list:
             yield Target('OST', t)
+        
+    def get_target_from_tag_and_type(self, target_tag, target_type):
+        """
+        This function aims to retrieve a target look for it's type
+        and it's tag.
+        """
+        target = None
+            
+        if target_type == 'MGT' or target_type == 'MGS' :
+            # The target is the MGT
+            target =  self.get_target_mgt()
+        elif target_type == 'MDT':
+            # The target is the MDT
+            target = self.get_target_mdt()
+        elif target_type == 'OST':
+            # The target is an OST. Walk through the list of 
+            # OSTs to retrieve the right one.
+             for current_ost in self.iter_targets_ost():
+                 if current_ost.get_tag() == target_tag:
+                     # The ost tag match the searched one.
+                     # save the target and break the loop
+                     target = current_ost
+                     break
+        else:
+            # The target type is currently not supported by the
+            # configuration
+            raise ConfigException("Unknown target type %s" %target_type) 
+                        
+        return target
 
     def get_client_nodes(self):
         nodes = NodeSet()
@@ -176,6 +205,39 @@ class Configuration:
         return self._fs.get_one('mount_path')
 
 
+    def get_localnode_type(self):
+        """
+        Function used to known the Lustre target type supported by the local node
+        for the current file system
+        """
+        # List of type supported by the local node
+        type_list = []
+        
+        # Get the locahost name
+        localhost_name = socket.gethostname()
+        
+        # Is the node registered as a client 
+        if localhost_name in self.get_client_nodes():
+            type_list.append('client')
+        
+        # Is the node registered as mdt
+        if localhost_name == self.get_target_mdt().get_nodename():
+            type_list.append('mds')
+        
+        # Is the node registered as mgt
+        if localhost_name == self.get_target_mgt().get_nodename():
+            type_list.append('mgs')
+
+        # Is the node registered as an oss
+        for oss_node in self.iter_targets_ost():
+            
+            # is the node the current oss
+            if localhost_name == oss_node.get_nodename():
+                type_list.append('oss')
+                break
+            
+        return type_list
+
     # General FS getters
     #
     def get_fs_name(self):
@@ -186,12 +248,29 @@ class Configuration:
         Return FS xmf file path.
         """
         return self._fs.get_filename()
+    
+    def get_tuning_cfg_filename(self):
+        """
+        Return the tuning.conf file path
+        """
+        self._fs.tuning_model.get_filename()
 
     def get_description(self):
         return self._fs.get_one('description')
 
     def get_quota(self):
+        """
+        This function returns the value of the quota parameter set in 
+        the configuration file.
+        """
         return self._fs.get_one('quota')
+    
+    def get_quota_options(self):
+        """
+        This function returns the value of the quota_options parameter set  in 
+        configuration file.
+        """
+        return self._fs.get_one('quota_options')
 
     def get_mount_path(self):
         return self._fs.get_one('mount_path')
@@ -219,6 +298,28 @@ class Configuration:
     #
     #def set_target_status(self, ...):
     #    pass
+
+    def register_clients(self, nodes):
+        """
+        Cal l the file system new client registration function for each
+        nodes given as parameters.
+        Parameters:
+        @type nodes: List
+        @param nodes : list of nodes to register as new file system client
+        """
+        for node in nodes:
+            self._fs.register_client(node)
+
+    def unregister_clients(self, nodes):
+        """
+        Call the file system client unregistration function for each
+        nodes given as parameters.
+        Parameters:
+        @type nodes: List
+        @param nodes : list of nodes to unregister from file system client list
+        """
+        for node in nodes:
+            self._fs.unregister_client(node)
 
     def set_status_clients_mount_complete(self, nodes, options):
         for node in nodes:
@@ -250,4 +351,119 @@ class Configuration:
     def get_status_clients(self):
         return self._fs.get_status_clients()
 
-        
+    def set_status_targets_unknown(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to UNKNOWN
+        """
+        for target in targets:
+            self._fs.set_status_target_unknown(target, options)
+            
+    def set_status_target_ko(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to KO
+        """
+        for target in targets:
+            self._fs.set_status_target_ko(target, options)
+         
+    def set_status_targets_available(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to AVAILABLE
+        """
+        for target in targets:
+            self._fs.set_status_target_available(target, options)
+
+    def set_status_targets_formating(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to FORMATING
+        """
+        for target in targets:
+            self._fs.set_status_target_formating(target, options)
+
+    def set_status_targets_format_failed(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to FORMAT_FAILED
+        """
+        for target in targets:
+            self._fs.set_status_target_format_failed(target, options)
+
+    def set_status_targets_formated(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to FORMATED
+        """
+        for target in targets:
+            self._fs.set_status_target_formated(target, options)
+
+    def set_status_targets_offline(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to OFFLINE
+        """
+        for target in targets:
+            self._fs.set_status_target_offline(target, options)
+
+    def set_status_targets_starting(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to STARTING
+        """
+        for target in targets:
+            self._fs.set_status_target_starting(target, options)
+
+    def set_status_targets_online(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to ONLINE
+        """
+        for target in targets:
+            self._fs.set_status_target_online(target, options)
+
+    def set_status_targets_critical(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to CRITICAL
+        """
+        for target in targets:
+            self._fs.set_status_target_critical(target, options)
+
+    def set_status_targets_stopping(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to STOPPING
+        """
+        for target in targets:
+            self._fs.set_status_target_stopping(target, options)
+
+    def set_status_targets_unreachable(self, targets, options):
+        """
+        This function is used to set the status of specified targets
+        to UNREACHABLE
+        """
+        for target in targets:
+            self._fs.set_status_target_unreachable(target, options)
+            
+    def get_status_clients(self):
+        """
+        This function returns the status of each client
+        using the current file system.
+        """
+        return self._fs.get_status_clients()
+
+    def register_fs(self):
+        """
+        This function aims to register the file system configuration
+        to the backend.
+        """
+        self._fs.register()
+
+    def unregister_fs(self):
+        """
+        This function aims to unregister the file system configuration
+        from the backend.
+        """
+        self._fs.unregister()

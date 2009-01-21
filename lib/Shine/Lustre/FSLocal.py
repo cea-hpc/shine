@@ -21,11 +21,15 @@
 
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
+from Shine.Configuration.TuningModel import TuningModel
+from Shine.Configuration.TuningModel import TuningParameterDeclarationException
 
 from Actions.Test import Test
 from Actions.Format import Format
 from Actions.Mount import Mount
 from Actions.Umount import Umount
+from Actions.Remove import Remove
+from Actions.Tune import Tune
 
 from FileSystem import FileSystem
 from Target import TargetException
@@ -220,5 +224,15 @@ class FSLocal(FileSystem):
         action = Umount(task_self(), self, target=None)
         action.launch_and_run()
 
-        
+    def remove(self):
+        action = Remove(task_self(), self)
+        action.launch_and_run()
+
+    def tune(self, tuning_model):
+        """
+        Function used to apply the tuning on the local node. The tuning
+        model must be applied for the given target list.
+        """
+        action = Tune(task_self(), self, tuning_model.get_filename())        
+        action.launch_and_run()
 

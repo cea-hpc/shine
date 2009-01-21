@@ -41,7 +41,7 @@ class File(Backend):
         self.status_clients = {}
 
     def get_name(self):
-        return "file"
+        return "File"
 
     def get_desc(self):
         return "File Backend System."
@@ -105,8 +105,48 @@ class File(Backend):
         d.close()
         
     def get_status_clients(self, fs_name):
+        """
+        Get all client's status of the form { node1 : { 'status' : status,
+        'date' : datetime, 'options' : None }, node2 : ... }
+        """
         if not self.status_clients.has_key(fs_name):
             self._start_status_client(fs_name)
         return self.status_clients[fs_name]
         
+    def set_status_target(self, fs_name, targets, status, options):
+        """
+        Set status of file system target.
+        """
+        pass
+
+    def get_status_target(self, fs_name):
+        """
+        Get all target status of the form { target1 : { 'status' : status, 
+        'date' : datetime, 'options' : None }, target2 : ... }
+        """
+        pass
+
+    def register_fs(self, fs):
+        """
+        This function is used to register a a filesystem configuration to the backend
+        """
+        pass
+
+    def unregister_fs(self, fs):
+        """
+        This function is used to remove a filesystem configuration to the backend
+        """
+        pass
+
+    def register_client(self, fs, node):
+        """
+        This function is used to register a filesystem client to the backend
+        """
+        print "backend register_client %s/%s" % (fs, node)
+
+    def unregister_client(self, fs, node):
+        """
+        This function is used to remove a filesystem client from the backend
+        """
+        print "backend un_register_client %s/%s" % (fs, node)
 

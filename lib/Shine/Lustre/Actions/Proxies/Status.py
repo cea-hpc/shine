@@ -89,7 +89,7 @@ class Status(ProxyAction):
             # check if node info is correct (we never know...)
             if dic['node'] != node:
                 print "Warning: node mismatch for %s (replied %s)" % (node, dic['node'])
-        elif dic.has_key('tag'):
+        elif dic.has_key('id'):
             #print dic
             dic["node"] = node
             self._tgt_list.append(dic)
