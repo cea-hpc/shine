@@ -54,8 +54,14 @@ class Mount(Action):
             # Client mounts
             self.mntp = self.fs.config.get_mount_path()
             assert self.mntp != None
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s:/%s \"%s\"" % (self.mntp,
-                self.fs.get_mgs_nid(), self.fs.config.get_fs_name(), self.mntp)
+
+            mnt_opts = self.fs.config.get_mount_options()
+            if len(mnt_opts) > 0:
+                mnt_opts = "-o %s" % mnt_opts
+
+            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
+                    mnt_opts, self.fs.get_mgs_nid(),
+                    self.fs.config.get_fs_name(), self.mntp)
         else:
             # Server mounts
             self.mntp = self.target.mntp

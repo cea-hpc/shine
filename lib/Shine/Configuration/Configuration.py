@@ -275,6 +275,9 @@ class Configuration:
     def get_mount_path(self):
         return self._fs.get_one('mount_path')
         
+    def get_mount_options(self):
+        return self._fs.get_one('mount_options')
+        
 
     # Stripe info getters
     #

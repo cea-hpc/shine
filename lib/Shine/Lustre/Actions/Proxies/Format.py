@@ -1,5 +1,5 @@
 # Format.py -- Lustre proxy action class : format
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -38,6 +38,7 @@ from Shine.Utilities.AsciiTable import AsciiTable
 
 import os
 import sys
+import re
 
 class Format(ProxyAction):
     """
@@ -67,10 +68,43 @@ class Format(ProxyAction):
         self.task.resume()
 
     def ev_read(self, worker):
-        print "%s: %s" % worker.last_read()
+        node, buf = worker.last_read()
+        
+        # Display the new message
+        print "%s: %s" % (node, buf)
+        
+        # Is it a end of formatting process message ?
+        m = re.match(r"Formatting (of )?(?P<target_type>(OST|MDT|MGS)+) (?P<target_tag>[^ ]+) \((?P<target_dev>[^ ]+)\)(?P<target_status>( failed| succeeded)?)", buf)
+        
+        if not m == None:
+            
+            # Yes ! extract the data from message and update database
+            target_type = m.groupdict()['target_type']
+            target_tag = m.groupdict()['target_tag']
+            target_dev = m.groupdict()['target_dev']
+            target_status = m.groupdict()['target_status']
+            
+            # Retrieve the right target from the configuration
+            target_list=[]
+            target_list.append(self.fs.config.get_target_from_tag_and_type(target_tag, target_type))
+            
+            if not target_status == "":
+                
+                if target_status == " succeeded":
+                    # Change the status of targets to avoid their use
+                    # in an other file system
+                    self.fs.config.set_status_targets_formated(target_list, None)
+                else:
+                    # Change the status of targets to avoid their use
+                    # in an other file system
+                    self.fs.config.set_status_targets_format_failed(target_list, None)
+            else:
+                # Change the status of targets to avoid their use
+                # in an other file system
+                self.fs.config.set_status_targets_formating(target_list, None)
 
     def ev_close(self, worker):
-        for rc, nodeset in worker.iter_retcodes():
-            if rc != 0:
-                raise ActionFailedError(rc, "Formatting failed on %s" % nodeset)
+        for rc, nodelist in worker.iter_retcodes():
+            if rc != 0:    
+                raise ActionFailedError(rc, "Formatting failed on %s" % NodeSet.fromlist(nodelist))
 
