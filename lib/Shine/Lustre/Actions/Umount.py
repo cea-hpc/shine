@@ -65,6 +65,8 @@ class Umount(Action):
             # server umounts
             CommandRegistry.output(msg="STOPPING",
                                    target=self.target.target_name,
+                                   tag=self.target.tag,
+                                   type=self.target.type,
                                    dev=self.target.dev)
         else:
             # client umounts
@@ -79,6 +81,8 @@ class Umount(Action):
 
             CommandRegistry.output(msg="RESULT",
                                    target=self.target.target_name,
+                                   tag=self.target.tag,
+                                   type=self.target.type,
                                    dev=self.target.dev,
                                    rc=rc,
                                    buf=worker.read())

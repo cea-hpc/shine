@@ -77,6 +77,8 @@ class Mount(Action):
             # server mounts
             CommandRegistry.output(msg="STARTING",
                                    target=self.target.target_name,
+                                   tag=self.target.tag,
+                                   type=self.target.type,
                                    dev=self.target.dev)
         else:
             # client mounts
@@ -91,6 +93,8 @@ class Mount(Action):
         if self.target:
             CommandRegistry.output(msg="RESULT",
                                    target=self.target.target_name,
+                                   tag=self.target.tag,
+                                   type=self.target.type,
                                    dev=self.target.dev,
                                    rc=rc,
                                    buf=worker.read())
