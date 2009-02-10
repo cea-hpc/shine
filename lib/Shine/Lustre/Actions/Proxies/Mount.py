@@ -88,7 +88,9 @@ class Mount(ProxyAction):
         dic['status'] = 'UNKNOWN'
 
         if msg == "MOUNTING":
-            pass
+            # Register the node that sent the MOUNTING message as a new
+            # file system client
+            self.fs.config.register_clients([node])
         elif msg == "RESULT":
             rc = dic['rc']
             if rc == 0:
@@ -116,15 +118,29 @@ class Mount(ProxyAction):
         if len(self.good_nodes) > 0:
             # TODO add mount options
             ###self.fs.config.set_status_clients_mount_complete(self.good_nodes, None)
+            # Set the client status to mount complete
+            self.fs.config.set_status_clients_mount_complete(self.good_nodes,
+                    self.fs.config._fs.get_one('mount_options'))
             print "File system %s successfully mounted on %s" % (self.fs.fs_name,
                     self.good_nodes)
         if len(self.already_nodes) > 0:
+            # Set the client status to mount complete
+            self.fs.config.set_status_clients_mount_complete(self.already_nodes,
+                    self.fs.config._fs.get_one('mount_options'))
+            
             print "File system %s already mounted on %s" % (self.fs.fs_name,
                     self.already_nodes)
+            
         if len(self.fail_nodes) > 0:
+            
+            # Set the client status to mount failed
+            self.fs.config.set_status_clients_mount_failed(self.good_nodes,
+                    self.fs.config._fs.get_one('mount_options'))
+            
             ###self.fs.config.set_status_clients_mount_failed(self.fail_nodes, None)
             raise ActionFailedError(self.max_rc,
                 "Failed to mount client on %s" % self.fail_nodes)
+
 
     def has_debug(self):
         return self.fs.debug

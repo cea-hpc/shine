@@ -72,15 +72,39 @@ class Start(ProxyAction):
 
         if msg == "STARTING":
             print "Starting %s (%s) on %s" % (dic['target'], dic['dev'], node)
+            
+            # Retrieve the right target from the configuration
+            target_list=[]
+            target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'], dic['type']))
+            
+            # Change the status of targets 
+            self.fs.config.set_status_targets_starting(target_list, None)
+            
         elif msg == "MOUNTING":
             print "Mounting %s on %s" % (dic['fs'], node)
         elif msg == "RESULT":
+                
             if dic['rc'] == 0:
                 dic['status'] = "STARTED"
+
+                # Retrieve the right target from the configuration
+                target_list=[]
+                target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'], dic['type']))
+            
+                # Change the status of targets 
+                self.fs.config.set_status_targets_online(target_list, None)
+
             else:
                 if dic['buf'].find("is already mounted") == -1:
                     dic['status'] = "START FAILED"
 
+                    # Retrieve the right target from the configuration
+                    target_list=[]
+                    target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'],dic['type']))
+            
+                    # Change the status of targets 
+                    self.fs.config.set_status_targets_offline(target_list, None)
+                    
                     print "Starting of %s (%s) on node %s failed with error %d" % (dic['target'],
                         dic['dev'], node, dic['rc'])
                     print "%s: %s" % (node, dic['buf'].strip())
@@ -89,7 +113,6 @@ class Start(ProxyAction):
                     
             dic["node"] = node
             self.tgt_list.append(dic)
-
 
     def ev_close(self, worker):
         pass

@@ -98,11 +98,20 @@ class Umount(ProxyAction):
     def ev_close(self, worker):
         print
         if len(self.good_nodes) > 0:
-            #self.fs.config.set_status_clients_umount_complete(nodes, None)
+            
             print "File system %s successully unmounted on %s" % (self.fs.fs_name,
                     self.good_nodes)
+            
+            # Set the client status to umount complete
+            self.fs.config.set_status_clients_umount_complete(self.good_nodes,
+                    self.fs.config._fs.get_one('mount_options'))
+            
         if len(self.fail_nodes) > 0:
-            #self.fs.config.set_status_clients_umount_failed(nodes, None)
+            
+            # Set the client status to umount complete
+            self.fs.config.set_status_clients_umount_failed(self.good_nodes,
+                    self.fs.config._fs.get_one('mount_options'))
+            
             raise ActionFailedError(self.max_rc, "Unmounting client failed on %s" % \
                     self.fail_nodes)
 

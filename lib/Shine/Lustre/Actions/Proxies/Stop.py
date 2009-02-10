@@ -72,16 +72,41 @@ class Stop(ProxyAction):
 
         if msg == "STOPPING":
             print "Stopping %s (%s) on %s" % (dic['target'], dic['dev'], node)
+                                        
+            # Retrieve the right target from the configuration
+            target_list=[]
+            target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'], dic['type']))
+            
+            # Change the status of targets 
+            self.fs.config.set_status_targets_stopping(target_list, None)                        
+            
         elif msg == "UMOUNTING":
             print "stop?"
             print "Unmounting %s on %s" % (dic['fs'], node)
         elif msg == "RESULT":
+            
             if dic['rc'] == 0:
                 dic['status'] = "STOPPED"
+                                        
+                # Retrieve the right target from the configuration
+                target_list=[]
+                target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'], dic['type']))
+            
+                # Change the status of targets 
+                self.fs.config.set_status_targets_offline(target_list, None)
+
             else:
                 if dic['buf'].find("not mounted") == -1:
                     dic['status'] = "STOP FAILED"
 
+                                        
+                    # Retrieve the right target from the configuration
+                    target_list=[]
+                    target_list.append(self.fs.config.get_target_from_tag_and_type(dic['tag'], dic['type']))
+            
+                    # Change the status of targets 
+                    self.fs.config.set_status_targets_online(target_list, None)
+                    
                     print "Stopping of %s (%s) on node %s failed with error %d" % (dic['target'],
                         dic['dev'], node, dic['rc'])
                     print "%s: %s" % (node, dic['buf'].strip())
