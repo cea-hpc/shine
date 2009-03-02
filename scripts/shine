@@ -25,8 +25,6 @@ import sys
 
 sys.path.append("../lib")
 sys.path.append("/usr/lib/python2.3/site-packages")
-sys.path.append("/cea/local/shine/trunk/lib")
-sys.path.append("/cea/local/clustershell/trunk/lib")
 
 from Shine.Controller import Controller
 
@@ -44,7 +42,8 @@ def main():
         sys.exit(2)
 
     try:
-        controller.run_command(sys.argv[1], sys.argv[2:])
+        rc = controller.run_command(sys.argv[1], sys.argv[2:])
+        sys.exit(rc)
     except KeyError:
         usage(controller)
         raise # tmp
