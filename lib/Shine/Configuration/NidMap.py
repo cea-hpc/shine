@@ -29,8 +29,23 @@ class NidMap:
     """
     NID mapping helper class for shine.
     """
-    def __init__(self):
+    def __init__(self, nodes_pat, nids_pat):
         self.map = {}
+
+        # Convert to NodeSets
+        nodes, nids = NodeSet(nodes_pat), NodeSet(nids_pat)
+
+        # Sanity check
+        if len(nodes) != len(nids):
+            raise ConfigBadNidMapError(nodes, nids)
+
+        # Fill map dict
+        nids_l = list(nids)
+        i = 0
+        for node in nodes:
+            self.map[node] = nids_l[i]
+            i = i + 1
+
 
     def fromlist(cls, l):
         inst = NidMap()

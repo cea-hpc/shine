@@ -80,7 +80,6 @@ class File(Backend):
     def set_status_client(self, fs_name, node, status, options):
         """
         Set status of file system client.
-        """
         if not self.status_clients.has_key(fs_name):
             self._start_status_client(fs_name)
 
@@ -103,6 +102,7 @@ class File(Backend):
 
         #print "status: %s" % d
         d.close()
+        """
         
     def get_status_clients(self, fs_name):
         """

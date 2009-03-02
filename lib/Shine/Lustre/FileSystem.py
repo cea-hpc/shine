@@ -1,5 +1,5 @@
-# FileSystem.py -- Lustre FS base class
-# Copyright (C) 2007 CEA
+# FileSystem.py -- Lustre FS
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -22,13 +22,24 @@
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
 
-from MGS import MGS
-from MDS import MDS
-from OSS import OSS
+from EventHandler import *
+from Target import *
+from Server import *
 
-from Shine.Utilities.AsciiTable import AsciiTable
+import Actions.Proxies.Start
 
-from ClusterShell.Task import *
+# Action exceptions
+from Actions.Action import ActionErrorException
+from Actions.Proxies.ProxyAction import ProxyActionError
+
+from Actions.Install import Install
+from Actions.Proxies.Preinstall import Preinstall
+from Actions.Proxies.FSProxyAction import FSProxyAction
+
+from ClusterShell.NodeSet import NodeSet, RangeSet
+
+import copy
+import socket
 
 
 class FSException(Exception):
@@ -37,7 +48,12 @@ class FSException(Exception):
     def __str__(self):
         return self.message
 
-class FSSyntaxError(FSException):
+class FSError(FSException):
+    """
+    Base FileSystem error exception.
+    """
+
+class FSSyntaxError(FSError):
     def __init__(self, message):
         self.message = "Syntax error: \"%s\"" % (message)
     def __str__(self):
@@ -47,172 +63,491 @@ class FSBadTargetError(FSSyntaxError):
     def __init__(self, target_name):
         self.message = "Syntax error: unrecognized target \"%s\"" % (target_name)
 
+class FSStructureError(FSError):
+    """
+    Lustre file system structure error, raised after an invalid configuration
+    is encountered. For example, you will get this error if you try to assign
+    two targets `MGT' to a filesystem.
+    """
+
+class FSRemoteError(FSError):
+    """
+    Remote host(s) not available, or a remote operation failed.
+    """
+    def __init__(self, nodes, rc, message):
+        FSError.__init__(self, message)
+        self.nodes = nodes
+        self.rc = int(rc)
+
+    def __str__(self):
+        return "%s: %s [%d]" % (self.nodes, self.message, self.rc)
 
 
 class FileSystem:
+    """
+    The Lustre FileSystem abstract class.
+    """
 
-    def __init__(self, config):
-        self.config = config
-        self.fs_name = config.get_fs_name()
-        self.mgt = self.config.get_target_mgt()
+    def __init__(self, fs_name, event_handler=None):
+        self.fs_name = fs_name
         self.debug = False
-        
-    def get_mgs_nid(self):
-        return self.config.get_nid(self.mgt.get_nodename())
+        self.set_eventhandler(event_handler)
+
+        self.local_hostname = socket.gethostname()
+        self.local_hostname_short = self.local_hostname.split('.', 1)[0]
+
+        # file system MGT
+        self.mgt = None
+
+        # All FS server targets (MGT, MDT, OST...)
+        self.targets = []
+
+        # filled after successful install
+        self.mgt_servers = None
+        self.mgt_count = 0
+
+        self.mdt_servers = None
+        self.mdt_count = 0
+
+        self.ost_servers = None
+        self.ost_count = 0
 
     def set_debug(self, debug):
         self.debug = debug
 
-    def test(self, target):
+    #
+    # file system event handling
+    #
+
+    def _invoke_event(self, event, **kwargs):
+        if 'target' in kwargs:
+            kwargs.setdefault('node', None)
+        getattr(self.event_handler, event)(**kwargs)
+
+    def _invoke_dummy(self, event, **kwargs):
+        pass
+
+    def set_eventhandler(self, event_handler):
+        self.event_handler = event_handler
+        if self.event_handler is None:
+            self._invoke = self._invoke_dummy
+        else:
+            self._invoke = self._invoke_event
+
+    def _handle_shine_event(self, event, node, **params):
+        #print "_handle_shine_event %s %s" % (event, params)
+        target = params.get('target')
+        if target:
+            found = False
+            for t in self.targets:
+                if t.match(target):
+                    # perform sanity checks here
+                    old_nids = t.get_nids()
+                    if old_nids != target.get_nids():
+                        print "NIDs mismatch %s -> %s" % \
+                                (','.join(old.nids), ','.join(target.get_nids))
+                    # update target from remote one
+                    t.update(target)
+                    # substitute target parameter
+                    params['target'] = target
+                    found = True
+            if not found:
+                print "Target Update FAILED (%s)" % target
+
+        self._invoke(event, node=node, **params)
+
+    #
+    # file system construction
+    #
+
+    def _attach_target(self, target):
+        self.targets.append(target)
+        if target.type == 'mgt':
+            self.mgt = target
+        self._update_structure()
+
+    def new_target(self, server, type, index, dev, jdev=None, group=None,
+            tag=None, enabled=True):
+        """
+        Create a new attached target.
+        """
+        #print "new_target on %s type %s (enabled=%s)" % (server, type, enabled)
+
+        if type == 'mgt' and self.mgt and len(self.mgt.get_nids()) > 0:
+            raise FSStructureError("A Lustre FS has only one MGT.")
+
+        # Instantiate matching target class (eg. 'ost' -> OST).
+        target = getattr(sys.modules[self.__class__.__module__], type.upper())(fs=self,
+                server=server, index=index, dev=dev, jdev=jdev, group=group, tag=tag,
+                enabled=enabled)
+        
+        return target
+
+    def get_mgs_nids(self):
+        return self.mgt.get_nids()
+
+    def _distant_action_by_server(self, action_class, servers, **kwargs):
 
         task = task_self()
 
-       # cmd = "shine test -L -f testfs"
+        # filter local server
+        if self.local_hostname in servers:
+            distant_servers = servers.difference(self.local_hostname)
+        elif self.local_hostname_short in servers:
+            distant_servers = servers.difference(self.local_hostname_short)
+        else:
+            distant_servers = servers
 
-       # worker = task.worker(cmd, self.test_cb)
+        # perform action on distant servers
+        if len(distant_servers) > 0:
+            action = action_class(nodes=distant_servers, fs=self, **kwargs)
+            action.launch()
+            task.resume()
+
+    def install(self, fs_config_file):
+        """
+        """
+        servers = NodeSet()
+
+        for target in self.targets:
+            # install on failover partners too
+            for s in target.servers:
+                servers.add(s)
+
+        assert len(servers) > 0, "no servers?"
+
+        try:
+            self._distant_action_by_server(Preinstall, servers)
+            self._distant_action_by_server(Install, servers, fs_config_file=fs_config_file)
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
         
-        for mgs in self.servers['mgs'].itervalues():
-            mgs.test()
-            break
+        #self._update_target_counters()
 
-        for mds in self.servers['mds'].itervalues():
-            mds.test()
-            break
+    def _update_structure(self):
+        # convenience
+        for type, targets, servers in self._iter_targets_servers_by_type():
+            if type == 'ost':
+                self.ost_count = len(targets)
+                self.ost_servers = NodeSet(servers)
+            elif type == 'mdt':
+                self.mdt_count = len(targets)
+                self.mdt_servers = NodeSet(servers)
+            elif type == 'mgt':
+                self.mgt_count = len(targets)
+                self.mgt_servers = NodeSet(servers)
 
-        for oss in self.servers['oss'].itervalues():
-            oss.test()
+    def _iter_targets_servers_by_type(self, reverse=False):
+        """
+        Per type of target iterator : returns a tuple (list of targets,
+        list of servers) per target type.
+        """
+        last_target_type = None
+        servers = NodeSet()
+        targets = Set()
 
-        task.resume()
+        #self.targets.sort()
 
-    def format(self, target):
-        pass
+        if reverse:
+            self.targets.reverse()
 
-    def start(self, target):
-        pass
-        
-    def stop(self, target):
-        pass
+        for target in self.targets:
+            if last_target_type and last_target_type != target.type:
+                # type of target changed, commit actions
+                if len(targets) > 0:
+                    yield last_target_type, targets, servers
+                    servers.clear()     # ClusterShell 1.1+ needed (sorry)
+                    targets.clear()
 
+            if target.action_enabled:
+                targets.add(target)
+                # select server: change master_server for -F node
+                servers.add(target.get_selected_server())
+            last_target_type = target.type
+
+        if len(targets) > 0:
+            yield last_target_type, targets, servers
+
+    def _iter_targets_by_type(self, reverse=False):
+        """
+        Per type of target iterator : returns the following tuple:
+        (type, (list of all targets of this type, list of enabled targets))
+        per target type.
+        """
+        last_target_type = None
+        a_targets = Set()
+        e_targets = Set()
+
+        for target in self.targets:
+            if last_target_type and last_target_type != target.type:
+                # type of target changed, commit actions
+                if len(a_targets) > 0:
+                    yield last_target_type, (a_targets, e_targets)
+                    a_targets.clear()
+                    e_targets.clear()
+
+            a_targets.add(target)
+            if target.action_enabled:
+                e_targets.add(target)
+            last_target_type = target.type
+
+        if len(a_targets) > 0:
+            yield last_target_type, (a_targets, e_targets)
+
+    def _iter_targets_by_server(self):
+        """
+        Per server of target iterator : returns the following tuple:
+        (server, (list of all server targets, list of enabled targets))
+        per target server.
+        """
+        servers = {}
+        for target in self.targets:
+            a_targets, e_targets = servers.setdefault(target.get_selected_server(), (Set(), Set()))
+            a_targets.add(target)
+            if target.action_enabled:
+                e_targets.add(target)
+
+        return servers.iteritems()
+
+
+    def _iter_type_idx_for_targets(self, targets):
+        last_target_type = None
+
+        indexes = RangeSet(autostep=3)
+
+        #self.targets.sort()
+
+        for target in targets:
+            if last_target_type and last_target_type != target.type:
+                # type of target changed, commit actions
+                if len(indexes) > 0:
+                    yield last_target_type, indexes
+                    indexes.clear()     # CS 1.1+
+            indexes.add(int(target.index))
+            last_target_type = target.type
+
+        if len(indexes) > 0:
+            yield last_target_type, indexes
+
+    def format(self, **kwargs):
+
+        servers_formatall = NodeSet()
+
+        for server, (a_targets, e_targets) in self._iter_targets_by_server():
+            #print "S: %s %s %s" % (server, a_targets, e_targets)
+            
+            if server.is_local():
+                for target in e_targets:
+                    target.format(**kwargs)
+            else:
+                # distant server
+                if len(a_targets) == len(e_targets):
+                    # group in one action if "format all targets on this server"
+                    # is detected
+                    servers_formatall.add(server)
+                else:
+                    # otherwise, format per selected targets on this server
+                    for t_type, t_rangeset in \
+                            self._iter_type_idx_for_targets(e_targets):
+                        action = FSProxyAction(self, 'format',
+                                NodeSet(server), self.debug, t_type, t_rangeset)
+                        action.launch()
+
+        if len(servers_formatall) > 0:
+            action = FSProxyAction(self, 'format', servers_formatall, self.debug)
+            action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+
+
+    def _launch_target_action_on_servers(self, local_action, distant_action, targets, servers):
+        # start selected servers
+        print "targets %s" % targets[0].type
+
+        local_server = None
+
+        if self.local_hostname in servers:
+            distant_servers = servers.difference(self.local_hostname)
+            local_server = self.local_hostname
+        elif self.local_hostname_short in servers:
+            distant_servers = servers.difference(self.local_hostname_short)
+            local_server = self.local_hostname_short
+        else:
+            distant_servers = servers
+
+        if local_server:
+            for target in targets:
+                if str(target.master_server) == local_server:
+                    getattr(target, local_action)()
+
+        if len(distant_servers) > 0:
+            print "distant %s" % distant_servers
+
+            #Format(distant_servers, target, indexes, self)
+            #print binascii.b2a_base64(pickle.dumps(targets, -1))
+
+            #Actions.Proxies.Start.Start(distant_servers)
+    
     def status(self):
-        task = task_self()
+
+        for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
+            if len(e_s_targets) == 0:
+                continue
+
+            if server.is_local():
+                for target in e_s_targets:
+                    target.status()
+            else:
+                assert False
+
+    def status_target(self, target):
+        """
+        Launch a status request for a specific local or remote target.
+        """
+
+        # Don't call me if the target itself is not enabled.
+        assert target.action_enabled
+
+        server = target.get_selected_server()
+
+        if server.is_local():
+            # Target is local
+            target.status()
+            #target.check()
+        else:
+            action = FSProxyAction(self, 'status', NodeSet(server), self.debug,
+                    target.type, RangeSet(str(target.index)))
+            action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+
+    def start(self, **kwargs):
+        """
+        Start file system.
+        """
+        servers_startall = NodeSet()
+
+        # What starting order?
+        for target in self.targets:
+            if isinstance(target, MDT) and target.action_enabled:
+                # Found enabled MDT. Perform writeconf check.
+                self.status_target(target)
+                if target.has_first_time_flag() or target.has_writeconf_flag():
+                    MDT.target_order = 2
+                    print "WRITECONF!!"
+                    break
+
+        self.targets.sort()
+
+        #print "0:"
+        for type, (a_targets, e_targets) in self._iter_targets_by_type():
+            #print "1:", type, a_targets, e_targets
+            
+            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
+                #print "2:", server, e_s_targets
+
+                type_e_targets = e_targets.intersection(e_s_targets)
+                if len(type_e_targets) == 0:
+                    # skip as no target of this type is enabled on this server
+                    continue
+
+                if server.is_local():
+                    for target in type_e_targets:
+                        target.start(**kwargs)
+                else:
+                    # distant server: check if all server targets have been selected
+                    assert a_s_targets.issuperset(type_e_targets)
+                    assert len(type_e_targets) > 0
+
+                    if len(type_e_targets) == len(a_s_targets):
+                        # "start all targets on this server" detected
+                        servers_startall.add(server)
+                    else:
+                        # start per selected targets on this server
+                        for t_type, t_rangeset in \
+                                self._iter_type_idx_for_targets(type_e_targets):
+                            action = FSProxyAction(self, 'start',
+                                    NodeSet(server), self.debug, t_type, t_rangeset)
+                            action.launch()
+
+            if len(servers_startall) > 0:
+                action = FSProxyAction(self, 'start', servers_startall, self.debug)
+                action.launch()
+
+            # Resume current task, ie. perform the job now and act as
+            # a target-type barrier.
+            try:
+                task_self().resume()
+            except ProxyActionError, e:
+                # switch to public exception
+                raise FSRemoteError(e.nodes, e.rc, e.message)
+            
+            servers_startall.clear()
+
+    def stop(self, **kwargs):
+        """
+        Stop file system.
+        """
+        servers_stopall = NodeSet()
+
+        self.targets.sort()
+        self.targets.reverse()
+
+        #print "0:"
+        for type, (a_targets, e_targets) in self._iter_targets_by_type():
+            #print "1:", type, a_targets, e_targets
+            
+            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
+                #print "2:", server, e_s_targets
+
+                type_e_targets = e_targets.intersection(e_s_targets)
+                if len(type_e_targets) == 0:
+                    # skip as no target of this type is enabled on this server
+                    continue
+
+                if server.is_local():
+                    for target in type_e_targets:
+                        target.stop(**kwargs)
+                else:
+                    # distant server: check if all server targets have been selected
+                    assert a_s_targets.issuperset(type_e_targets)
+                    assert len(type_e_targets) > 0
+
+                    if len(type_e_targets) == len(a_s_targets):
+                        # "stop all targets on this server" detected
+                        servers_stopall.add(server)
+                    else:
+                        # stop per selected targets on this server
+                        for t_type, t_rangeset in \
+                                self._iter_type_idx_for_targets(type_e_targets):
+                            action = FSProxyAction(self, 'stop',
+                                    NodeSet(server), self.debug, t_type, t_rangeset)
+                            action.launch()
+
+            if len(servers_stopall) > 0:
+                action = FSProxyAction(self, 'stop', servers_stopall, self.debug)
+                action.launch()
+
+            # Resume current task, ie. perform the job now and act as
+            # a target-type barrier.
+            try:
+                task_self().resume()
+            except ProxyActionError, e:
+                # switch to public exception
+                raise FSRemoteError(e.nodes, e.rc, e.message)
+            
+            servers_stopall.clear()
+
 
     def info(self):
-        print "Filesystem %s:" % self.fs_name
+        pass
 
-        # XMF path
-        print "%20s : %s" % ("Cfg path", self.config.get_cfg_filename())
-
-        # Network type
-        print "%20s : %s" % ("Network", self.config.get_nettype())
-
-        # Quotas
-        print "%20s : %s" % ("Quotas", self.config.get_quota())
-
-        # Stripes
-        print "%20s : size=%d, count=%d" % ("LOV stripping", self.config.get_stripesize(),
-            self.config.get_stripecount())
-
-        # Print FS user description
-        print "%20s :" % "Description",
-        ncols = AsciiTable.get_term_cols()
-        margin = 22
-        # Pretty print (with left margin) if possible
-        if ncols > margin * 2:
-            splited = self.config.get_description().split()
-            sz = 0
-            while len(splited) > 0:
-                w = splited.pop(0)
-                wsz = len(w) + 1
-                sz += wsz
-                if sz > ncols - margin:
-                    print
-                    print " " * margin,
-                    sz = wsz
-                print w,
-        else:
-            print " %s" % self.config.get_description()
-            
-    def add_quota_tuning(self, tuning_model):
-        """
-        This function is used to add the quota tuning information to the tuning model
-        provided by the caller.
-        """
-        ###
-        # Create the aliases linked to quo tuning parameters
-        ###
-        # Create aliases for MDS tuning
-        tuning_model.create_parameter_alias('quota_iunit_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_iunit_sz')
-        tuning_model.create_parameter_alias('quota_bunit_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_bunit_sz')
-        tuning_model.create_parameter_alias('quota_itune_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_itune_sz')
-        tuning_model.create_parameter_alias('quota_btune_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_btune_sz')
-
-        # Create aliases for OSS tuning
-        tuning_model.create_parameter_alias('quota_iunit_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_iunit_sz')
-        tuning_model.create_parameter_alias('quota_bunit_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_bunit_sz')
-        tuning_model.create_parameter_alias('quota_itune_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_itune_sz')
-        tuning_model.create_parameter_alias('quota_btune_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
-        
-        # Create aliases for quota_type tuning
-        tuning_model.create_parameter_alias('quota_type', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
-        
-        # Is the quota activated in the configuration description ?
-        if self.config.get_quota() == "yes":
-            # Yes it is. Now retrieve quota configuration informations.
-            quota_options = self.config.get_quota_options()
-            
-            # Map the quota configuration information in a dictionary
-            quota_options_dict = dict([list(x.strip().split('=')) \
-                    for x in quota_options.split(',')])
-
-            # Walk through the list of quota configuration paramaters to add
-            # each one of them to the tuning model.
-            for (quota_option, option_value) in quota_options_dict.items():
-                if quota_option == 'iunit':
-                    quota_iunit_value = option_value
-                elif quota_option == 'bunit':
-                    quota_bunit_value = option_value
-                elif quota_option == 'itune':
-                    quota_itune_value = option_value
-                elif quota_option == 'btune':
-                    quota_btune_value = option_value
-                # elif quota_option == 'quotaon':
-                #    This option is processed in the mkfs.lustre invocation in
-                #    the Format command.
-
-            # Convert the values to the right units
-            # The bunit size value must be converted in KBs
-            quota_bunit_value = str( int(quota_bunit_value) * 1048576)
-            quota_itune_value = \
-                    str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
-            quota_btune_value = \
-                    str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
-
-            # Create the quota tuning parameters with the right values
-            tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_iunit_oss', quota_iunit_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_bunit_mds', quota_bunit_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_bunit_oss', quota_bunit_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_itune_mds', quota_itune_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_itune_oss', quota_itune_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_btune_mds', quota_btune_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_btune_oss', quota_btune_value, \
-                    ['oss'], None)
-
-            # Convert the parameter aliases to the real parameter name
-            tuning_model.convert_parameter_aliases()

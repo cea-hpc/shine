@@ -1,5 +1,5 @@
 # Server.py -- Lustre Server base class
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -22,61 +22,44 @@
 from Shine.Configuration.Globals import Globals
 
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import Task
-from ClusterShell.Worker import Worker
 
-from Shine.Lustre.Target import Target
-
+import socket
 
 
 class Server(NodeSet):
 
-    def __init__(self, nodename, fs):
-        NodeSet.__init__(self, nodename)
-        self.fs = fs
-        self.targets = []
-        self.target_class = None
+    def __init__(self, node_name, nid):
+        NodeSet.__init__(self, node_name)
+        self.nid = nid
 
-    def spawn(self, cf_target):
-        """
-        Spawn a target.
-        """
-        # Create new server's target and add to the targets list
-        self.targets.append(self.target_class(cf_target, self.fs))
+    def __str__(self):
+        return "%s (%s)" % (NodeSet.__str__(self), self.nid)
 
-    def test(self):
-        """
-        Test.
-        """
-        for target in self.targets:
-            target.test()
-        
-    def start(self):
-        """
-        Start server's targets.
-        """
-        for target in self.targets:
+    def is_local(self):
+        local_hostname = socket.gethostname()
+        local_hostname_short = local_hostname.split('.', 1)[0]
+        assert len(self) == 1
+        hostname = NodeSet.__str__(self)
+        return local_hostname == hostname or \
+                local_hostname_short == hostname
+
+
+"""
+class ServerLocal(Server):
+
+    def start(self, targets):
+        print "ServerLocal %s" % targets
+        for target in targets:
             target.start()
 
-    def stop(self):
-        """
-        Stop server's targets.
-        """
-        for target in self.targets:
-            target.stop()
 
-    def format(self):
-        """
-        Format server's targets.
-        """
-        for target in self.targets:
-            target.format()
+class ServerDistant(Server):
 
-    def status(self):
-        """
-        Status of targets.
-        """
-        for target in self.targets:
-            target.status()
+    def start(self, targets):
+        print "ServerDistant %s" % targets
+        # distant start....
+        
+        proxy = Start()
+        proxy.launch()
 
-
+"""

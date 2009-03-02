@@ -28,6 +28,7 @@ from TuningModel import TuningModel
 from ClusterShell.NodeSet import NodeSet
 
 from NidMap import NidMap
+from TargetDevice import TargetDevice
 
 import copy
 import os
@@ -50,7 +51,6 @@ class FileSystem(Model):
 
         # Load the file system from model or extended model
         if not fs_name and lmf:
-            print "Loading File System from LMF %s" % lmf
             Model.__init__(self, lmf)
 
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, self.get_one('fs_name'))
@@ -64,7 +64,7 @@ class FileSystem(Model):
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
             Model.__init__(self, self.xmf_path)
 
-        self._setup_nid_map(self.get('nid_map'))
+        self._setup_nid_map(self.get_one('nid_map'))
 
         self.fs_name = self.get_one('fs_name')
         
@@ -91,7 +91,10 @@ class FileSystem(Model):
 
             # Start the selected config backend system.
             self.backend = BackendRegistry().get_selected()
-            self.backend.start()
+            if self.backend:
+                self.backend.start()
+
+        return self.backend
 
     def _setup_target_devices(self):
         """ Generate the eXtended Model File XMF
@@ -100,35 +103,74 @@ class FileSystem(Model):
 
         for target in [ 'mgt', 'mdt', 'ost' ]:
 
-            # Returns a list of TargetDevices
-            candidates = copy.copy(self.backend.get_target_devices(target))
+            if self.backend:
 
-            try:
-                # Save the model target selection
-                target_models = copy.copy(self.get(target))
-            except KeyError, e:
-                raise ConfigException("No %s target found" %(target))
+                # Returns a list of TargetDevices
+                candidates = copy.copy(self.backend.get_target_devices(target))
 
-            # To be replaced...
-            self.delete(target)
-             
-            # Iterates on ModelDevices
-            for target_model in target_models:
-                result = target_model.match_device(candidates)
-                if len(result) == 0 and not target == 'mgt' :
-                    raise ConfigDeviceNotFoundError(target_model)
-                for matching in result:
-                    candidates.remove(matching)
-                    self.add(target, matching.getline())
+                try:
+                    # Save the model target selection
+                    target_models = copy.copy(self.get(target))
+                except KeyError, e:
+                    raise ConfigException("No %s target found" %(target))
+
+                # Delete it (to be replaced... see below)
+                self.delete(target)
+                 
+                # Iterates on ModelDevices
+                i = 0
+                for target_model in target_models:
+                    result = target_model.match_device(candidates)
+                    if len(result) == 0 and not target == 'mgt' :
+                        raise ConfigDeviceNotFoundError(target_model)
+                    for matching in result:
+                        candidates.remove(matching)
+                        #
+                        # target index is now mandatory in XMF files
+                        if not matching.has_index():
+                            matching.add_index(i)
+                            i += 1
+
+                        # `matching' is a TargetDevice, we want to add it to the
+                        # underlying Model object. The current way to do this to
+                        # create a configuration line string (performed by
+                        # TargetDevice.getline()) and then call Model.add(). 
+                        # TODO: add methods to Model/ModelDevice to avoid the use
+                        #       of temporary configuration string line.
+                        self.add(target, matching.getline())
+            else:
+                # no backend support
+
+                devices = copy.copy(self.get_with_dict(target))
+
+                self.delete(target)
+
+                target_devices = []
+                i = 0
+                for dict in devices:
+                    t = TargetDevice(target, dict)
+                    if not t.has_index():
+                        t.add_index(i)
+                        i += 1
+                    target_devices.append(TargetDevice(target, dict))
+                    self.add(target, t.getline())
+
+                if len(target_devices) == 0:
+                    raise ConfigDeviceNotFoundError(self)
+
+
+
 
         # Save XMF
-        self.save(self.xmf_path, "Shine Lustre file system config file for %s" % self.get_one('fs_name'))
+        self.save(self.xmf_path, "Shine Lustre file system config file for %s" % \
+                self.get_one('fs_name'))
             
     def _setup_nid_map(self, maps):
         """
         Set self.nid_map using the NidMap helper class
         """
-        self.nid_map = NidMap().fromlist(maps)
+        #self.nid_map = NidMap().fromlist(maps)
+        self.nid_map = NidMap(maps.get_one('nodes'), maps.get_one('nids'))
 
     def get_nid(self, node):
         try:
@@ -154,8 +196,8 @@ class FileSystem(Model):
         @type node: string
         @param node : is the new client node name
         """
-        self._start_backend()
-        self.backend.register_client(self.fs_name, node)
+        if self._start_backend():
+            self.backend.register_client(self.fs_name, node)
         
     def unregister_client(self, node):
         """
@@ -164,176 +206,176 @@ class FileSystem(Model):
         @type node: string
         @param node : is name of the client node to unregister
         """
-        self._start_backend()
-        self.backend.unregister_client(self.fs_name, node)
+        if self._start_backend():
+            self.backend.unregister_client(self.fs_name, node)
     
     def set_status_client_mount_complete(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.MOUNT_COMPLETE, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                    self.backend.MOUNT_COMPLETE, options)
 
     def set_status_client_mount_failed(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.MOUNT_FAILED, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                self.backend.MOUNT_FAILED, options)
 
     def set_status_client_mount_warning(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.MOUNT_WARNING, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                self.backend.MOUNT_WARNING, options)
 
     def set_status_client_umount_complete(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.UMOUNT_COMPLETE, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                self.backend.UMOUNT_COMPLETE, options)
 
     def set_status_client_umount_failed(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.UMOUNT_FAILED, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                self.backend.UMOUNT_FAILED, options)
 
     def set_status_client_umount_warning(self, node, options):
-        self._start_backend()
-        self.backend.set_status_client(self.fs_name, node,
-            self.backend.UMOUNT_WARNING, options)
+        if self._start_backend():
+            self.backend.set_status_client(self.fs_name, node,
+                self.backend.UMOUNT_WARNING, options)
 
     def get_status_clients(self):
-        self._start_backend()
-        return self.backend.get_status_clients(self.fs_name)
+        if self._start_backend():
+            return self.backend.get_status_clients(self.fs_name)
 
     def set_status_target_unknown(self, target, options):
         """
         This function is used to set the specified target status
         to UNKNOWN
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, node, 
-            self.backend.TARGET_UNKNOWN, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, node, 
+                self.backend.TARGET_UNKNOWN, options)
 
     def set_status_target_ko(self, target, options):
         """
         This function is used to set the specified target status
         to KO
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            backend.TARGET_KO, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                backend.TARGET_KO, options)
 
     def set_status_target_available(self, target, options):
         """
         This function is used to set the specified target status
         to AVAILABLE
         """
-        self._start_backend()
-        # Set the fs_name to Free since these targets are availble
-        # which means not used by any file system.
-        self.backend.set_status_target(None, target,
-            self.backend.TARGET_AVAILABLE, options)
+        if self._start_backend():
+            # Set the fs_name to Free since these targets are availble
+            # which means not used by any file system.
+            self.backend.set_status_target(None, target,
+                self.backend.TARGET_AVAILABLE, options)
 
     def set_status_target_formating(self, target, options):
         """
         This function is used to set the specified target status
         to FORMATING
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_FORMATING, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_FORMATING, options)
 
     def set_status_target_format_failed(self, target, options):
         """
         This function is used to set the specified target status
         to FORMAT_FAILED
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_FORMAT_FAILED, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_FORMAT_FAILED, options)
 
     def set_status_target_formated(self, target, options):
         """
         This function is used to set the specified target status
         to FORMATED
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_FORMATED, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_FORMATED, options)
 
     def set_status_target_offline(self, target, options):
         """
         This function is used to set the specified target status
         to OFFLINE
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_OFFLINE, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_OFFLINE, options)
 
     def set_status_target_starting(self, target, options):
         """
         This function is used to set the specified target status
         to STARTING
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_STARTING, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_STARTING, options)
 
     def set_status_target_online(self, target, options):
         """
         This function is used to set the specified target status
         to ONLINE
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_ONLINE, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_ONLINE, options)
 
     def set_status_target_critical(self, target, options):
         """
         This function is used to set the specified target status
         to CRITICAL
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_CRITICAL, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_CRITICAL, options)
 
     def set_status_target_stopping(self, target, options):
         """
         This function is used to set the specified target status
         to STOPPING
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_STOPPING, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_STOPPING, options)
 
     def set_status_target_unreachable(self, target, options):
         """
         This function is used to set the specified target status
         to UNREACHABLE
         """
-        self._start_backend()
-        self.backend.set_status_target(self.fs_name, target, 
-            self.backend.TARGET_UNREACHABLE, options)
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                self.backend.TARGET_UNREACHABLE, options)
 
     def get_status_targets(self):
         """
         This function returns the status of each targets
         involved in the current file system.
         """
-        self._start_backend()
-        return self.backend.get_status_targets(self.fs_name)
+        if self._start_backend():
+            return self.backend.get_status_targets(self.fs_name)
 
     def register(self):
         """
         This function aims to register the file system configuration
         to the backend.
         """
-        self._start_backend()
-        return self.backend.register_fs(self)
+        if self._start_backend():
+            return self.backend.register_fs(self)
 
     def unregister(self):
         """
         This function aims to remove a file system configuration from
         the backend.        
         """
-        self._start_backend()
-        result = self.backend.unregister_fs(self)
+        if self._start_backend():
+            result = self.backend.unregister_fs(self)
 
         # remove the XMF file
         os.unlink(self.xmf_path)

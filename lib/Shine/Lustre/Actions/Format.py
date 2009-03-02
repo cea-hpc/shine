@@ -20,142 +20,132 @@
 # $Id$
 
 from Shine.Configuration.Globals import Globals
-from Shine.Configuration.Configuration import Configuration
 
 from Action import Action
 
-from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Event import EventHandler
-from ClusterShell.Task import Task
-from ClusterShell.Worker import Worker
-from Shine.Utilities.AsciiTable import AsciiTable
-
-import sys
 
 class Format(Action):
     """
     File system format action class.
     """
 
-    def __init__(self, task, fs, target):
-        Action.__init__(self, task)
-        self.fs = fs
+    def __init__(self, target, **kwargs):
+        Action.__init__(self)
         self.target = target
-        self.jformat = False
-        self.mkfsoptions = ""
         assert self.target != None
+        self.stripecount = kwargs.get('stripecount', 1)
+        self.stripesize = kwargs.get('stripesize', 1048576)
+        self.format_params = kwargs.get('format_params')
+        self.mkfs_options = kwargs.get('mkfs_options')
+        self.activate_quota = kwargs.get('quota', False)
+        self.quota_options = kwargs.get('quota_options', "")
+        self.mkfsopts = []
+        self.jformat = False
 
     def launch(self):
         """
         Format file system target.
         """
-
-        # Format journal device if specified
+        # Format journal device first if specified.
         if self.target.jdev:
             self.jformat = True
-
-            self.mkfsoptions = '"--mkfsoptions=-j -J device=%s"' % self.target.jdev
-
-            cmd = "mke2fs -q -O journal_dev -b 4096 %s" % self.target.jdev
-            self.task.shell(cmd, handler=self)
+            self.mkfsopts = ["-j", "-J", "device=%s" % self.target.jdev]
+            command = "mke2fs -q -F -O journal_dev -b 4096 %s" % self.target.jdev
+            self.task.shell(command, handler=self)
         else:
             self.launch_format()
 
     def launch_format(self):
         self.jformat = False
         
-        # Set flag for quota activation
-        activate_quota = False
-        
-        # Do we need to add some parameters to activate quota on startup ?
-        if self.fs.config.get_quota() == "yes":
-            
-            # Set flag to activate quota
-            activate_quota  =True
-            
-            # Yes it is. Now retrieve quota configuration informations.
-            quota_options_string = self.fs.config.get_quota_options()
-            
-            # Map the quota configuration information in a dictionary
-            quota_options_dict = dict([list(x.strip().split('=')) \
-                    for x in quota_options_string.split(',')])
-        
-        if self.target.target_name == "MGS":
-            # '--index' only valid for MDT,OST
-            # '--mgs' and not '--mgt'
-            cmd = "mkfs.lustre --mgs --fsname=\"%s\" --reformat %s %s" % \
-                    (self.fs.fs_name, self.mkfsoptions, self.target.dev)
+        command = ["mkfs.lustre", "--reformat", '"--fsname=%s"' % \
+                self.target.fs.fs_name]
+        command.append("--quiet")
 
-        elif self.target.target_name == "MDT":
-            
-            # Do we need to add some parameters to activate quota on startup ?
-            if activate_quota :
-                
-                self.mkfsoptions += "--param='mdt.quota_type=%s' " % \
-                        quota_options_dict['quotaon']
-            
-            cmd = "mkfs.lustre --mdt --fsname=\"%s\" --mgsnode=%s --index=%d --reformat" \
-                    % (self.fs.fs_name, self.fs.get_mgs_nid(), self.target.index)
+        mgs_nids = self.target.fs.get_mgs_nids()
 
-            p_stripecount = self.fs.config.get_stripecount()
-            if p_stripecount:
-                cmd += " --param='lov.stripecount=%d'" % p_stripecount
+        if self.target.type == 'mgt':
 
-            p_stripesize = self.fs.config.get_stripesize()
-            if p_stripesize:
-                cmd += " --param='lov.stripesize=%d'" % p_stripesize
+            command.append("--mgs")     # '--mgs' and not '--mgt'
 
-            cmd += " %s %s" % (self.mkfsoptions, self.target.dev)
+        elif self.target.type == 'mdt':
 
-        elif self.target.target_name == "OST":
-            
-            # Do we need to add some parameters to activate quota on startup ?
-            if activate_quota:
-                
-                self.mkfsoptions += "--param='ost.quota_type=%s' " \
-                        % quota_options_dict['quotaon']
+            command.append("--mdt")
 
-            cmd = "mkfs.lustre --ost --fsname=\"%s\" --mgsnode=%s --reformat %s %s" \
-                    % (self.fs.fs_name, self.fs.get_mgs_nid(), self.mkfsoptions, \
-                    self.target.dev)
+            # MGS NIDs (several MGS supported but only one NID per MGS supported for now)
+            for nid in mgs_nids:
+                command.append('"--mgsnode=%s"' %  nid)
 
-        #cmd = "sleep 4"
-        self.task.shell(cmd, handler=self)
+            command.append("--index=%d" % self.target.index)
 
+            if self.stripecount:
+                command.append('"--param=lov.stripecount=%d"' % self.stripecount)
+            if self.stripesize:
+                command.append('"--param=lov.stripesize=%d"' % self.stripesize)
+
+            if self.activate_quota:
+                command.append('"--param=mdt.quota_type=%s"' % \
+                        self.quota_options['quotaon'])
+
+        elif self.target.type == 'ost':
+
+            command.append("--ost")
+
+            # MGS NIDs
+            for nid in mgs_nids:
+                command.append('"--mgsnode=%s"' %  nid)
+
+            command.append("--index=%d" % self.target.index)
+
+            if self.activate_quota:
+                command.append('"--param=ost.quota_type=%s"' % \
+                        self.quota_options['quotaon'])
+
+        # failnode: NID(s) of failover partner
+        target_nids = self.target.get_nids()
+        if len(target_nids) > 1:
+            for nid in target_nids[1:]:
+                command.append('"--failnode=%s"' % nid)
+
+        if self.mkfs_options:
+            opts = self.mkfs_options.get(self.target.type)
+            if opts:
+                self.mkfsopts.append(opts)
+
+        if len(self.mkfsopts) > 0:
+            command.append('"--mkfsoptions=%s"' % ' '.join(self.mkfsopts))
+
+        if self.format_params:
+            param = self.format_params.get(self.target.type)
+            if param:
+                command.append('"--param=%s"' % param)
+
+        # Loop devices handling
+        if not self.target.dev_isblk:
+            command.append('"--device-size=%d"' % (self.target.dev_size/1024))
+
+        command.append(self.target.dev)
+
+        self.task.shell(' '.join(command), handler=self)
 
     def ev_start(self, worker):
         if self.jformat:
-            print "Formatting %s %s journal (%s)" % (self.target.target_name, \
-                    self.target.get_id(), self.target.jdev)
-        else:
-            print "Formatting %s %s (%s)" % (self.target.target_name, \
-                    self.target.get_id(), self.target.dev)
-
-        sys.stdout.flush()
+            self.target.fs._invoke('ev_format_journal_start', target=self.target)
 
     def ev_close(self, worker):
         rc = worker.retcode()
         if self.jformat:
             if rc != 0:
-                print "Formatting of %s %s journal (%s) failed with error %d" \
-                        %(self.target.target_name, self.target.get_id(), \
-                        self.target.jdev, rc)
-                print worker.read()
+                self.target.fs._invoke('ev_format_journal_failed',
+                        target=self.target, rc=rc, message=worker.read())
             else:
-                print "Formatting of %s %s journal (%s) succeeded" \
-                        %(self.target.target_name, self.target.get_id(), \
-                        self.target.jdev)
+                self.target.fs._invoke('ev_format_journal_done', target=self.target)
+                # Journal is done, go to next step...
                 self.launch_format()
         else:
             if rc != 0:
-                print "Formatting of %s %s (%s) failed with error %d" \
-                        %(self.target.target_name, self.target.get_id(), \
-                        self.target.dev, rc)
-                print worker.read()
+                self.target.fs._invoke('ev_format_failed', target=self.target,
+                        rc=rc, message=worker.read())
             else:
-                print "Formatting of %s %s (%s) succeeded" \
-                        %(self.target.target_name, self.target.get_id(), \
-                        self.target.dev)
-
-        sys.stdout.flush()
+                self.target.fs._invoke('ev_format_done', target=self.target)
 

@@ -36,10 +36,7 @@ class FS:
         self.cmd = cmd
         self.cmd.add_option('f', 'fsname', attr)
 
-    
     def iter_fsname(self):
-        """
-        """
         if self.cmd.opt_f:
             for name in self.cmd.opt_f.split(','):
                 yield name.strip()
@@ -49,4 +46,3 @@ class FS:
                 if len(name) > 0 and ext == '.xmf':
                     yield name
         
-

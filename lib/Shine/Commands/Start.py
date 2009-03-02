@@ -1,5 +1,5 @@
 # Start.py -- Start file system
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -23,25 +23,89 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
+#from Shine.Lustre.FSLocal import FSLocal
+#from Shine.Lustre.FSProxy import FSProxy
+
+from Shine.FSUtils import open_lustrefs
 
 from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
+from Base.Support.Indexes import Indexes
+from Base.Support.Nodes import Nodes
 from Base.Support.Target import Target
+from Base.Support.Quiet import Quiet
+from RemoteCallEventHandler import RemoteCallEventHandler
+
+#from Shine.Lustre.EventHandler import EventHandler
+import Shine.Lustre.EventHandler
+
+import os
+import socket
+
+class GlobalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
+
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        self.failures = 0
+        self.success = 0
+
+    def ev_starttarget_start(self, node, target):
+        if self.verbose:
+            print "%s: Starting %s %s (%s)..." % (node, \
+                    target.type.upper(), target.get_id(), target.dev)
+
+    def ev_starttarget_done(self, node, target):
+        self.success += 1
+        if self.verbose:
+            if target.status_info:
+                print "%s: Start of %s %s (%s): %s" % \
+                        (node, target.type.upper(), target.get_id(), target.dev,
+                                target.status_info)
+            else:
+                print "%s: Start of %s %s (%s) succeeded" % \
+                        (node, target.type.upper(), target.get_id(), target.dev)
+
+    def ev_starttarget_failed(self, node, target, rc, message):
+        self.failures += 1
+        if rc:
+            strerr = os.strerror(rc)
+        else:
+            strerr = message
+        print "%s: Failed to start %s %s (%s): %s" % \
+                (node, target.type.upper(), target.get_id(), target.dev,
+                        strerr)
+        if rc:
+            print message
+
+    def complete(self):
+        if self.failures == 0:
+            print "Start successful."
+            return 0
+        else:
+            if self.failures == 1:
+                print "Start failed (%d error)" % self.failures
+            else:
+                print "Start failed (%d errors)" % self.failures
+            return 1
 
 
 
-# ----------------------------------------------------------------------
-# * shine start
-# ----------------------------------------------------------------------
+
+
 class Start(RemoteCommand):
+    """
+    shine start -f <filesystem>
+    """
 
     def __init__(self):
         RemoteCommand.__init__(self)
 
         self.fs_support = FS(self)
+        self.indexes_support = Indexes(self)
+        self.nodes_support = Nodes(self)
         self.target_support = Target(self)
+        self.quiet_support = Quiet(self)
+
 
     def get_name(self):
         return "start"
@@ -50,19 +114,36 @@ class Start(RemoteCommand):
         return "Start file system servers."
 
     def execute(self):
+
+        if self.local_flag or self.remote_call:
+            self.opt_n = socket.gethostname()
+
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
-            conf = Configuration(fs_name=fsname)
-            if self.local_flag or self.remote_call:
-                fs = FSLocal(conf)
+
+            if self.remote_call:
+                handler = RemoteCallEventHandler()
+            elif self.local_flag:
+                handler = LocalStartEventHandler(not self.opt_q)
             else:
-                fs = FSProxy(conf)
-            fs.start(target)
+                handler = GlobalStartEventHandler(not self.opt_q)
 
-    def output(self, dic):
-        if self.remote_call:
-            self._print_pickle(dic)
-        else:
-            print "%s" % dic
+            fs_conf, fs = open_lustrefs(fsname, target,
+                    nodes=self.nodes_support.get_nodeset(),
+                    indexes=self.indexes_support.get_rangeset(),
+                    event_handler=handler)
 
+            mount_options = {}
+            mount_paths = {}
+            for target_type in [ 'mgt', 'mdt', 'ost' ]:
+                mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
+                mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
+
+            fs.set_debug(self.debug_support.has_debug())
+
+            fs.start(mount_options=mount_options,
+                     mount_paths=mount_paths)
+
+            if not self.remote_call:
+                return handler.complete()
 

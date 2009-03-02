@@ -1,5 +1,5 @@
-# Format.py -- Lustre proxy action class : format
-# Copyright (C) 2007, 2008, 2009 CEA
+# FSProxyAction.py -- Lustre generic FS proxy action class
+# Copyright (C) 2009 CEA
 #
 # This file is part of shine
 #
@@ -27,28 +27,35 @@ from ProxyAction import *
 from ClusterShell.NodeSet import NodeSet
 
 
-class Format(ProxyAction):
+class FSProxyAction(ProxyAction):
     """
-    File system format action class.
+    Generic file system command proxy taction class.
     """
 
-    def __init__(self, fs, nodes, targets_type=None, targets_indexes=None):
+    def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None):
         ProxyAction.__init__(self)
         self.fs = fs
+        self.action = action
         assert isinstance(nodes, NodeSet)
         self.nodes = nodes
+        self.debug = debug
         self.targets_type = targets_type
         self.targets_indexes = targets_indexes
 
+        if self.fs.debug:
+            print "FSProxyAction %s on %s" % (action, nodes)
+
     def launch(self):
         """
-        Launch proxy format command.
+        Launch FS proxy command.
         """
-        # Prepare proxy format command
         command = ["%s" % self.progpath]
-        command.append("format")
+        command.append(self.action)
         command.append("-f %s" % self.fs.fs_name)
         command.append("-R")
+
+        if self.debug:
+            command.append("-d")
 
         if self.targets_type:
             command.append("-t %s" % self.targets_type)
@@ -64,10 +71,12 @@ class Format(ProxyAction):
             event, params = self._shine_msg_unpack(buf)
             self.fs._handle_shine_event(event, node, **params)
         except ProxyActionUnpackError, e:
-            print "%s: %s" % (node, buf)
+            pass # XXX
+            #print "%s: %s" % (node, buf)
 
     def ev_close(self, worker):
         for rc, nodelist in worker.iter_retcodes():
             if rc != 0:    
-                raise ProxyActionError(rc, "Formatting failed on %s" % \
-                       NodeSet.fromlist(nodelist))
+                raise ProxyActionError(rc, "Action %s failed on %s" % \
+                       (self.action, NodeSet.fromlist(nodelist)))
+

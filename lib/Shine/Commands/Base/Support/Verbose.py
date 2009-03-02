@@ -1,5 +1,5 @@
-# OSS.py -- Lustre OSS
-# Copyright (C) 2007 CEA
+# Verbose.py -- Impl. class for command verb support 
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,14 +19,19 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-from Server import Server
-from OST import OST
 
-class OSS(Server):
+class Verbose:
     
-    def __init__(self, nodename, fs):
-        Server.__init__(self, nodename, fs)
-        self.target_class = OST
+    def __init__(self, cmd):
 
+        attr = { 'optional' : True,
+                 'hidden' : False,
+                 'doc' : "enable verbose output" }
+
+        self.cmd = cmd
+        self.cmd.add_option('v', None, attr)
+
+    
+    def has_verbose(self):
+        return self.cmd.opt_v
 

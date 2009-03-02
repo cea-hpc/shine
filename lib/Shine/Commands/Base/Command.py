@@ -60,15 +60,15 @@ class Command(object):
         """
         Add an option for getopt with optional argument.
         """
-        assert not self.options.has_key(flag)
+        assert flag not in self.options
 
         optional = attr.get('optional', False)
         hidden = attr.get('hidden', False)
 
         if cb:
             self.options[flag] = cb
-        else:
-            object.__setattr__(self, "opt_%s" % flag, None)
+
+        object.__setattr__(self, "opt_%s" % flag, None)
             
         self.getopt_string += flag
         if optional:
@@ -109,13 +109,9 @@ class Command(object):
             for opt, arg in options:
                 trim_opt = opt[1:]
                 callback = self.options.get(trim_opt)
-                if not callback:
-                    # If specified, fake an arg to True
-                    if not arg:
-                        arg = True
-                    object.__setattr__(self, "opt_%s" % trim_opt, arg)
-                else:
+                if callback:
                     callback(trim_opt, arg)
+                object.__setattr__(self, "opt_%s" % trim_opt, arg or True)
         except getopt.GetoptError, e:
             raise
 

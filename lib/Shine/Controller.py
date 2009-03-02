@@ -28,10 +28,23 @@ from Configuration.ModelFile import ModelFileIOError
 from Configuration.Exceptions import ConfigException
 from Commands.Exceptions import CommandException
 
+from Lustre.FileSystem import FSRemoteError
+
 from ClusterShell.Task import *
 
 import getopt
 import logging
+import re
+import sys
+
+
+def print_csdebug(task, s):
+    m = re.search("(\w+): SHINE:\d:(\w+):", s)
+    if m:
+        print "%s<pickle>" % m.group(0)
+    else:
+        print s
+
 
 class Controller:
 
@@ -46,6 +59,8 @@ class Controller:
 
         #task_self().set_info("debug", True)
 
+        task_self().set_info("print_debug", print_csdebug)
+
     def usage(self):
         cmd_maxlen = 0
 
@@ -58,12 +73,15 @@ class Controller:
                 print "  %-*s %s" % (cmd_maxlen, cmd.get_name(),
                     cmd.get_params_desc())
 
+    def print_error(self, errmsg):
+        print >>sys.stderr, "Error:", errmsg
+
     def run_command(self, cmd_name, args):
 
         self.logger.info("running %s" % cmd_name)
 
         try:
-            self.cmds.execute(cmd_name, args)
+            return self.cmds.execute(cmd_name, args)
         except getopt.GetoptError, e:
             print "Syntax error: %s %s" % (cmd_name, e)
         except ModelFileIOError, e:
@@ -72,6 +90,13 @@ class Controller:
             print "ModelFile: %s" % e
         except ConfigException, e:
             print "Configuration: %s" % e
+            return 1
+
+        # file system
+        except FSRemoteError, e:
+            self.print_error(e)
+            return e.rc
+
         except KeyError:
             print "Error - Unrecognized action: %s" % cmd_name
             print

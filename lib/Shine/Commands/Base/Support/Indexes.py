@@ -1,5 +1,5 @@
-# Node.py -- Impl. class for -n node option
-# Copyright (C) 2008 CEA
+# Indexes.py -- Impl. class for command indexes support 
+# Copyright (C) 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,33 +19,25 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
+from ClusterShell.NodeSet import RangeSet
 
-from ClusterShell.NodeSet import NodeSet
 
-class Node:
-    
-    def __init__(self, cmd, optional=True):
+class Indexes:
+    """
+    Command support class for "-i <index_rangeset>" command option.
+    """
+    def __init__(self, cmd):
 
-        attr = { 'optional' : optional,
+        attr = { 'optional' : True,
                  'hidden' : False,
-                 'doc' : "node, node list or node range" }
+                 'doc' : "specify target index ranges, eg. 0-6/2" }
 
         self.cmd = cmd
-        self.cmd.add_option('n', 'nodes', attr)
+        self.cmd.add_option('i', 'index(es)', attr)
 
-    
-    def get_nodes(self):
-
-        # if nodes are specified, use them
-        if self.cmd.opt_n:
-            return NodeSet(self.cmd.opt_n)
-
+    def get_rangeset(self):
+        if self.cmd.opt_i:
+            return RangeSet(self.cmd.opt_i)
         return None
-
 

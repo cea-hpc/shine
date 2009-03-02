@@ -23,7 +23,7 @@
 import copy
 
 #
-# ost: tag=ost1_cors115 node=cors115 dev=/dev/cciss/c0d3 size=71126640 index=3
+# ost: tag=ost1_cors115 node=cors115 dev=/dev/cciss/c0d3 index=3
 #
 
 class TargetDevice:
@@ -31,25 +31,35 @@ class TargetDevice:
     """
     def __init__(self, target, dic):
         self.target = target
-        self.dict = copy.copy(dic)
+        self.params = copy.copy(dic)
 
     def get(self, key):
-        return self.dict[key]
+        return self.params.get(key)
 
     def getline(self):
         line = ""
-        for k, v in self.dict.iteritems():
-            line += "%s=%s " % (k, v)
+        for k, v in self.params.iteritems():
+            if type(v) is list:
+                for lv in v:
+                    line += "%s=%s " % (k, lv)
+            else:
+                line += "%s=%s " % (k, v)
         return line.strip()
 
+    def has_index(self):
+        return self.params.has_key('index')
+    
+    def add_index(self, index):
+        self.params['index'] = index
+
     def __str__(self):
-        # mandatory
-        node = self.dict['node']
-        dev = self.dict['dev']
-        # optional
-        tag = self.dict.get('tag', '')
-        size = self.dict.get('size', 0)
-        jdev = self.dict.get('jdev', '')
-        jsize = self.dict.get('jsize', 0)
-        return "%s on %s (dev=%s, size=%lu, jdev=%s, jsize=%lu)" % (tag, node, dev, size, jdev, jsize)
+        node = self.params.get('node', '')
+        ha_node = self.params.get('ha_node', '')
+        index = self.params.get('index', '')
+        tag = self.params.get('tag', '')
+        dev = self.params.get('dev', '')
+        jdev = self.params.get('jdev', '')
+        group = self.params.get('group', '')
+        return "\"%s\" on %s (dev=%s, jdev=%s, index=%d, group=%s)" % \
+                (tag, node, dev, jdev, index or -1, group)
 

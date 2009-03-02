@@ -46,15 +46,16 @@ class Globals(object):
     class __Globals(ModelFile):
         
         syntax = {
-            'backend'                   : ['ClusterDB', 'File'],
+            'backend'                   : ['ClusterDB', 'File', 'None'],
             'storage_file'              : 'path',
-            'status_dir'                 : 'path',
+            'status_dir'                : 'path',
             'conf_dir'                  : 'path',
+            'lmf_dir'                   : 'path',
             'tuning_file'               : 'path',
             'log_file'                  : 'path',
             'log_level'                 : [ 'debug', 'info', 'warn', 'error' ],
             'ssh_connect_timeout'       : 'digit',
-            'install_timeout'           : 'digit',
+            'default_timeout'           : 'digit',
             'start_timeout'             : 'digit',
             'mount_timeout'             : 'digit',
             'umount_timeout'            : 'digit',
@@ -74,15 +75,16 @@ class Globals(object):
         }
 
         defaults = {
-            'backend'                   : 'file',
+            'backend'                   : 'None',
             'storage_file'              : '/etc/shine/storage.conf',
-            'status_dir'                 : '/var/cache/shine/status',
+            'status_dir'                : '/var/cache/shine/status',
             'conf_dir'                  : '/var/cache/shine/conf',
+            'lmf_dir'                   : '/etc/shine/models',
             'tuning_file'               : '/etc/shine/tuning.conf',
             'log_file'                  : 'warn',
             'log_level'                 : 'warn',
             'ssh_connect_timeout'       : 0,
-            'install_timeout'           : 0,
+            'default_timeout'           : 30,
             'start_timeout'             : 0,
             'mount_timeout'             : 0,
             'umount_timeout'            : 0,
@@ -117,6 +119,9 @@ class Globals(object):
         def get_conf_dir(self):
             return self.get_one('conf_dir')
 
+        def get_lmf_dir(self):
+            return self.get_one('lmf_dir')
+
         def get_tuning_file(self):
             return self.get_one('tuning_file')
 
@@ -130,5 +135,8 @@ class Globals(object):
                        'error' : logging.ERROR }
 
             return levels[self.get_one('log_level')]
+
+        def get_status_timeout(self):
+            return float(self.get_one('status_timeout'))
 
         # ...

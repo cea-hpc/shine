@@ -149,7 +149,7 @@ class FSLocal(FileSystem):
             self.mgs.stop()
             self.process_actions()
         
-    def status(self, target=None):
+    def status(self, target=None, view=None):
         # XXX improve me with a list
 
         if (not target or target == 'mgt') and self.mgs:

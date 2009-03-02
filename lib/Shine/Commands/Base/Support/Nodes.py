@@ -1,5 +1,5 @@
-# MDS.py -- Lustre MDS
-# Copyright (C) 2007 CEA
+# Nodes.py -- Impl. class for -n node option
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,13 +19,27 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-from Server import Server
-from MDT import MDT
 
-class MDS(Server):
+from ClusterShell.NodeSet import NodeSet
+
+class Nodes:
+    """
+    Command support class for "-n <nodeset>" command option.
+    """
     
-    def __init__(self, nodename, fs):
-        Server.__init__(self, nodename, fs)
-        self.target_class = MDT
+    def __init__(self, cmd, optional=True):
+
+        attr = { 'optional' : optional,
+                 'hidden' : False,
+                 'doc' : "node, comma-separated list of nodes or nodeset, eg. red[2-10/2]" }
+
+        self.cmd = cmd
+        self.cmd.add_option('n', 'nodes', attr)
+    
+    def get_nodeset(self):
+        if self.cmd.opt_n:
+            return NodeSet(self.cmd.opt_n)
+
+        return None
+
 

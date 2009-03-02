@@ -21,10 +21,12 @@
 
 from Globals import Globals
 from FileSystem import FileSystem
+from ModelFile import ModelFileException
 
 from ClusterShell.NodeSet import NodeSet
 
 from Exceptions import ConfigException
+
 
 import socket
 
@@ -42,6 +44,18 @@ class Target:
     def get_nodename(self):
         return self.dic.get('node')
 
+    def ha_nodes(self):
+        """
+        Return ha_nodes list (failover hosts). An empty list is
+        returned when no ha_nodes are provided.
+        """
+        nodes = self.dic.get('ha_node')
+        if not nodes:
+            nodes = []
+        elif type(nodes) is not list:
+            nodes = [nodes]
+        return nodes
+
     def get_dev(self):
         return self.dic.get('dev')
 
@@ -53,7 +67,14 @@ class Target:
 
     def get_jdev_size(self):
         return self.dic.get('jsize')
+
+    def get_index(self):
+        return int(self.dic.get('index'))
+
+    def get_group(self):
+        return self.dic.get('group')
     
+
 class Clients:
     def __init__(self, cf_client):
         self.dic = cf_client.get_dict()
@@ -66,22 +87,22 @@ class Clients:
         
 
 class Configuration:
-    def __init__(self, fs_name=None, lmf=None):
+    def __init__(self, fs_name=None, fs_model=None):
         """FS configuration initializer."""
 
         self.debug = False
 
         # Initialize FS configuration
-        if fs_name or lmf:
+        if fs_name or fs_model:
             try:
-                self._fs = FileSystem(fs_name, lmf)
+                self._fs = FileSystem(fs_name, fs_model)
             except ConfigException, e:
                 raise ConfigException("Error during parsing of filesystem configuration file : %s" % e) 
+            except ModelFileException, e:
+                raise ConfigException("%s" % e)
         else:
             self._fs = None
 
-
-        #DEBUG#print self._fs
 
     def __str__(self):
         s = "> GLOBALS:\n%s" % Globals.GLOBALS
@@ -110,6 +131,15 @@ class Configuration:
         tgt_cf_list = self._fs.get('ost')
         for t in tgt_cf_list:
             yield Target('OST', t)
+
+    def iter_targets(self):
+        """
+        Return a generator over all FS targets.
+        """
+        for target_type in [ 'mgt', 'mdt', 'ost' ]:
+            tgt_cf_list = self._fs.get(target_type)
+            for t in tgt_cf_list:
+                yield Target(target_type, t)
         
     def get_target_from_tag_and_type(self, target_tag, target_type):
         """
@@ -258,19 +288,26 @@ class Configuration:
     def get_description(self):
         return self._fs.get_one('description')
 
-    def get_quota(self):
+    def has_quota(self):
         """
-        This function returns the value of the quota parameter set in 
-        the configuration file.
+        Return if quota has been enabled in the configuration file.
         """
-        return self._fs.get_one('quota')
+        return self._fs.get_one('quota') == 'yes'
     
     def get_quota_options(self):
         """
-        This function returns the value of the quota_options parameter set  in 
-        configuration file.
+        Return a mapped dictionary of quota options (quota_options parameter)
+        set in the configuration file.
         """
-        return self._fs.get_one('quota_options')
+        quota_options = self._fs.get_one('quota_options')
+        if len(quota_options) > 0:
+            if quota_options.find(',') == -1:
+                raise ConfigException("Syntax error for quota_options: `%s'" % quota_options)
+            else:
+                return dict([list(x.strip().split('=')) \
+                        for x in quota_options.split(',')])
+        else:
+            return None
 
     def get_mount_path(self):
         return self._fs.get_one('mount_path')
@@ -278,6 +315,17 @@ class Configuration:
     def get_mount_options(self):
         return self._fs.get_one('mount_options')
         
+    def get_target_mount_options(self, target):
+        return self._fs.get_one('%s_mount_options' % str(target).lower())
+
+    def get_target_mount_path(self, target):
+        return self._fs.get_one('%s_mount_path' % str(target).lower())
+
+    def get_target_format_params(self, target):
+        return self._fs.get_one('%s_format_params' % str(target).lower())
+
+    def get_target_mkfs_options(self, target):
+        return self._fs.get_one('%s_mkfs_options' % str(target).lower())
 
     # Stripe info getters
     #
@@ -304,7 +352,7 @@ class Configuration:
 
     def register_clients(self, nodes):
         """
-        Cal l the file system new client registration function for each
+        Call the file system new client registration function for each
         nodes given as parameters.
         Parameters:
         @type nodes: List
@@ -470,3 +518,6 @@ class Configuration:
         from the backend.
         """
         self._fs.unregister()
+
+
+

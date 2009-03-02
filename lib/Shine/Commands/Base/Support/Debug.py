@@ -1,5 +1,5 @@
 # Debug.py -- Impl. class for command debugging support 
-# Copyright (C) 2008 CEA
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,11 +19,8 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
 from ClusterShell.Task import task_self
+
 
 class Debug:
     

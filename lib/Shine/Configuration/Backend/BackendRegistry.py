@@ -46,8 +46,11 @@ class BackendRegistry:
 
     def get(self, name):
 
+        if name == "None":
+            return None
+
         # Import Backend if not already done
-        if not self.backend_dict.has_key(name):
+        if name not in self.backend_dict:
             try:
                 mod = __import__(name, globals(), locals(), [])
                 cls = getattr(mod, mod.BACKEND_MODNAME)

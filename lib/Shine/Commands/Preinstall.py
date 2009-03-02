@@ -1,5 +1,5 @@
-# Verbose.py -- Impl. class for command verb support 
-# Copyright (C) 2008 CEA
+# Preinstall.py -- File system installation commands
+# Copyright (C) 2007, 2008 CEA
 #
 # This file is part of shine
 #
@@ -23,21 +23,37 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
+from Shine.FSUtils import create_lustrefs
 
-class Verbose:
+from Base.RemoteCommand import RemoteCommand
+from Base.Support.FS import FS
+
+import os
+
+class Preinstall(RemoteCommand):
+    """
+    shine preinstall -f <filesystem name> -R
+    """
     
-    def __init__(self, cmd):
+    def __init__(self):
+        RemoteCommand.__init__(self)
+        self.fs_support = FS(self)
 
-        attr = { 'optional' : True,
-                 'hidden' : False,
-                 'doc' : "enable verbose output" }
+    def get_name(self):
+        return "preinstall"
 
-        self.cmd = cmd
-        self.cmd.add_option('v', None, attr)
+    def get_desc(self):
+        return "Preinstall a new file system."
 
-    
-    def has_verbose(self):
-        return self.cmd.opt_v
+    def is_hidden(self):
+        return True
+
+    def execute(self):
+        try:
+            conf_dir_path = Globals().get_conf_dir()
+            if not os.path.exists(conf_dir_path):
+                os.makedirs(conf_dir_path, 0755)
+        except OSError, ex:
+            print "OSError"
+            raise
 

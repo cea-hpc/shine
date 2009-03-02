@@ -84,7 +84,7 @@ class CommandRegistry:
         CommandRegistry.current.parse(args)
 
         # Execute
-        CommandRegistry.current.execute()
+        return CommandRegistry.current.execute()
 
     def output(cls, *args, **kwargs):
         CommandRegistry.current.output(kwargs)

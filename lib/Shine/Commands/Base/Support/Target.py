@@ -1,5 +1,5 @@
 # Target.py -- Impl. class for command target support 
-# Copyright (C) 2008 CEA
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,15 +19,12 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
 
 class Target:
-    
+    """
+    Command support class for "-t <target_type>" command option.
+    """
+
     def __init__(self, cmd):
 
         attr = { 'optional' : True,
@@ -37,7 +34,8 @@ class Target:
         self.cmd = cmd
         self.cmd.add_option('t', 'target', attr)
 
-    
     def get_target(self):
-        return self.cmd.opt_t
+        if self.cmd.opt_t:
+            return self.cmd.opt_t.lower()
+        return None
 

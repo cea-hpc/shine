@@ -37,22 +37,18 @@ class Install(Action):
     Action class: install file system configuration requirements on remote nodes.
     """
 
-    def __init__(self, task, fs, clients=None):
-        Action.__init__(self, task)
+    def __init__(self, nodes, fs, fs_config_file):
+        Action.__init__(self)
+        self.nodes = nodes
         self.fs = fs
-        if clients:
-            # Install on clients
-            self.nodes = NodeSet(clients)
-        else:
-            # Install on I/O nodes
-            self.nodes = self.fs.get_target_nodes()
+        self.fs_config_file = fs_config_file
 
     def launch(self):
         """
-        Do it.
+        Copy local configuration file to remote nodes.
         """
-        dst = src = self.fs.config.get_cfg_filename()
-        self.task.copy(dst, src, nodes=self.nodes, handler=self)
+        self.task.copy(self.fs_config_file, self.fs_config_file,
+                nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
         print "Updating file system configuration files on %s" % self.nodes

@@ -1,4 +1,4 @@
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -17,6 +17,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # $Id$
+
+from ClusterShell.NodeSet import RangeSet
 
 import datetime
 import re
@@ -152,11 +154,60 @@ class ModelFile:
             for e in val:
                 if isinstance(e, ModelFile):
                     e = e.get_dict()
-                result_dict[key] = e
+                if key in result_dict:
+                    if type(result_dict[key]) is list:
+                        result_dict[key].append(e)
+                    else:
+                        result_dict[key] = [ result_dict[key], e ]
+                else:
+                    result_dict[key] = e
         return result_dict
 
     def sub_element(self, key, value, sep = "="):
         return SubElement(self, value, sep)
+
+    def sub_element_expand(self, sub_class, key, value):
+        """
+        Expand RangeSet based sub_elements.
+        """
+        # Should we expand device pattern?
+        fmt = "" # Format string
+        rg_list = [] # List of ranges found
+        while value.find('[') >= 0:
+            pfx, sfx = value.split('[', 1)
+            rg, value = sfx.split(']', 1)
+            rg_list.append(rg)
+            fmt += "%s%%s" % pfx
+
+        if len(rg_list) == 0:
+            # No range, it's a single entry. Process directly.
+            return sub_class(self, value)
+
+        # Range(s) found, we will return a list of sub_class.
+        result = []
+
+        # Create range iterators for all ranges found.
+        rangesets = [RangeSet(rg) for rg in rg_list]
+
+        # Sanity check: all ranges must have the same size
+        lastsz = -1
+        for it in rangesets:
+            sz = len(it)
+            if lastsz > -1 and lastsz != sz:
+                raise ModelFileSyntaxErrorReason("Range size mismatch (%d != %d)" % \
+                        (lastsz, sz))
+            lastsz = sz
+
+        # Generate devices.
+        try:
+            rg_gens = [it.__iter__() for it in rangesets]
+            while True:
+                result.append(sub_class(self, fmt % tuple([rg_gens[i].next()
+                    for i in range(0, len(rg_gens))])))
+        except StopIteration:
+            pass
+        
+        return result
 
     def validate(self, key, value):
 
@@ -217,6 +268,7 @@ class ModelFile:
 class SubElement(ModelFile):
 
     def __init__(self, file, line, sep="="):
+        assert isinstance(file, ModelFile), type(file)
         self.file = file
         self.sep = sep
         self.line = line
@@ -230,17 +282,17 @@ class SubElement(ModelFile):
             for str in self.line.split():
                 key, value = str.split(self.sep, 2)
                 self.add(key, value)
-        except ValueError:
+        except ValueError, e:
             if self.file:
                 raise ModelFileSyntaxError(self.file.filename, 0, self.line)
             else:
                 raise ModelFileException("Internal error.")
             
     def __str__(self):    
-        str = ""
-        for k,v in self:
-            str += "%s%s%s " % (k, self.sep, v)
-        return str.strip()
+        elems = []
+        for k, v in self:
+            elems.append("%s%s%s" % (k, self.sep, v))
+        return ' '.join(elems)
 
 #
 # For test purposes only

@@ -37,19 +37,28 @@ import sys
 
 class Mount(Action):
     """
-    File system format action class.
+    File system mount action.
     """
 
-    def __init__(self, task, fs, target=None):
-        Action.__init__(self, task)
-        self.fs = fs
+    def __init__(self, target):
+        Action.__init__(self)
         self.target = target
-        self.mntp = None
 
     def launch(self):
         """
         Mount file system target.
         """
+
+        mnt_opts = self.target.self.fs.config.get_mount_options()
+        if len(mnt_opts) > 0:
+            mnt_opts = "-o %s" % mnt_opts
+
+        cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
+                mnt_opts, self.fs.get_mgs_nid(),
+                self.fs.config.get_fs_name(), self.mntp)
+
+
+
         if not self.target:
             # Client mounts
             self.mntp = self.fs.config.get_mount_path()
@@ -65,8 +74,14 @@ class Mount(Action):
         else:
             # Server mounts
             self.mntp = self.target.mntp
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s \"%s\"" % (self.mntp,
-                    self.target.dev, self.mntp)
+            assert self.mntp != None
+
+            mnt_opts = self.fs.config.get_target_mount_options(self.target.type)
+            if len(mnt_opts) > 0:
+                mnt_opts = "-o %s" % mnt_opts
+
+            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s \"%s\"" % (self.mntp,
+                    mnt_opts, self.target.dev, self.mntp)
             #cmd = "mkdir -p \"%s\" && /bin/mount -t lustre -o abort_recov %s \"%s\"" % (self.mntp,
             #        self.target.dev, self.mntp)
 
@@ -75,6 +90,8 @@ class Mount(Action):
     def ev_start(self, worker):
         if self.target:
             # server mounts
+            self.fs.eh.evt_start_(self.target)
+
             CommandRegistry.output(msg="STARTING",
                                    target=self.target.target_name,
                                    tag=self.target.tag,

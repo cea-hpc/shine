@@ -1,5 +1,5 @@
-# Status.py -- Status of file system
-# Copyright (C) 2007,2008 CEA
+# Status.py -- Check remote target status
+# Copyright (C) 2009 CEA
 #
 # This file is part of shine
 #
@@ -23,133 +23,59 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FileSystem import FSException
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
-
-from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+from Shine.FSUtils import open_lustrefs
 
 from Base.RemoteCommand import RemoteCommand
 from Base.Support.FS import FS
+from Base.Support.Indexes import Indexes
+from Base.Support.Nodes import Nodes
 from Base.Support.Target import Target
+from Base.Support.Quiet import Quiet
+from RemoteCallEventHandler import RemoteCallEventHandler
 
-import binascii, pickle
+#from Shine.Lustre.EventHandler import EventHandler
+import Shine.Lustre.EventHandler
 
-# ----------------------------------------------------------------------
-# * shine status
-# ----------------------------------------------------------------------
+from ClusterShell.NodeSet import NodeSet
+
+import os
+import socket
+
 class Status(RemoteCommand):
-    
+    """
+    shine status -f <filesystem> -t <type> -i <index>
+    """
+
     def __init__(self):
         RemoteCommand.__init__(self)
 
         self.fs_support = FS(self)
+        self.indexes_support = Indexes(self)
         self.target_support = Target(self)
-
-        #
-        # Configure status options
-        #
-        attr = { 'optional' : True, 'hidden' : False }
-
-        attr['doc'] = "check file system"
-        self.add_option('c', None, attr)
-
-        attr['doc'] = "print verbose messages"
-        self.add_option('v', None, attr)
-
-        attr['doc'] = "print view"
-        self.add_option('V', "view", attr)
 
 
     def get_name(self):
         return "status"
 
     def get_desc(self):
-        return "Status of file system servers and clients."
-
-    # -------------------------------------------------------------------
+        return "Check for file system target status."
 
     def execute(self):
+
+        assert self.remote_call, "Not implemented yet"
+
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
-            conf = Configuration(fs_name=fsname)
-            try:
-                if self.local_flag or self.remote_call:
-                    fs = FSLocal(conf)
-                else:
-                    fs = FSProxy(conf)
-                fs.status(target)
-            except FSException, e:
-                print e
-            except Exception, e:
-                print e
 
-    def output(self, dic):
-        if self.remote_call:
-            self._print_pickle(dic)
-        else:
-            # Check what we got
-            if dic.has_key('tgt_listofdic'):
-                ldic = dic['tgt_listofdic']
+            if self.remote_call:
+                handler = RemoteCallEventHandler()
 
-                # add fs name in table
-                for d in ldic:
-                    d['fs'] = dic['fs']
+            fs_conf, fs = open_lustrefs(fsname, target,
+                    nodes=NodeSet(socket.gethostname()),
+                    indexes=self.indexes_support.get_rangeset(),
+                    event_handler=handler)
 
-                # Print nice table layout
-                layout = AsciiTableLayout()
+            fs.set_debug(self.debug_support.has_debug())
 
-                layout.set_show_header(True)
-                layout.set_column("fs", 0, AsciiTableLayout.LEFT, "File System")
-                layout.set_column("node", 1, AsciiTableLayout.LEFT, "Node")
-                layout.set_column("type", 2, AsciiTableLayout.CENTER, "Type")
-                layout.set_column("id", 3, AsciiTableLayout.LEFT, "Identifier")
-                layout.set_column("dev", 4, AsciiTableLayout.LEFT, "Device")
-                layout.set_column("status", 5, AsciiTableLayout.CENTER, "Status")
+            fs.status()
 
-                AsciiTable().print_from_list_of_dict(ldic, layout)
-
-            elif dic.has_key('clt_listofdic'):
-
-                ldic = dic['clt_listofdic']
-
-                # Print nice table layout
-                layout = AsciiTableLayout()
-
-                layout.set_show_header(True)
-                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
-                layout.set_column("node", 1, AsciiTableLayout.LEFT)
-                layout.set_column("mount", 2, AsciiTableLayout.CENTER)
-                layout.set_column("status_client", 3, AsciiTableLayout.CENTER)
-
-                AsciiTable().print_from_list_of_dict(ldic, layout)
-
-            elif dic.has_key('status_client'):
-
-                # Print nice table layout
-                layout = AsciiTableLayout()
-
-                layout.set_show_header(True)
-                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
-                layout.set_column("node", 1, AsciiTableLayout.LEFT)
-                layout.set_column("mount", 2, AsciiTableLayout.LEFT)
-                layout.set_column("status_client", 3, AsciiTableLayout.CENTER)
-
-                AsciiTable().print_from_list_of_dict([dic], layout)
-
-            elif dic.has_key('health'):
-
-                # Print nice table layout
-                layout = AsciiTableLayout()
-
-                layout.set_show_header(True)
-                layout.set_column("fs", 0, AsciiTableLayout.LEFT)
-                layout.set_column("node", 1, AsciiTableLayout.LEFT)
-                layout.set_column("health", 2, AsciiTableLayout.LEFT)
-
-                AsciiTable().print_from_list_of_dict([dic], layout)
-
-            else:
-                print dic
-
-    

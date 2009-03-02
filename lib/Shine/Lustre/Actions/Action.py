@@ -20,15 +20,12 @@
 # $Id$
 
 from ClusterShell.Event import EventHandler
+from ClusterShell.Task import task_self
 
 class ActionException(Exception):
-    def __init__(self, rc, message):
-        self.rc = rc
+    def __init__(self, message, rc):
         self.message = message
-
-    def get_rc(self):
-        return self.rc
-
+        self.rc = rc
     def __str__(self):
         return self.message
 
@@ -47,7 +44,7 @@ class Action(EventHandler):
     Astract shine action class.
     """
 
-    def __init__(self, task):
+    def __init__(self, task=task_self()):
         self.task = task
 
     #

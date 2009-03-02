@@ -46,13 +46,15 @@ class AsciiTableLayout:
     def set_show_header(self, show_header):
         self._show_header = show_header
 
-    def set_column(self, head_key, pos, align, title=None):
+    def set_column(self, head_key, pos, align, title=None, title_align=None):
         self._pos[pos] = (head_key, title or head_key)
+        title_align = title_align or align
         if head_key not in self._layout:
-            lay = { "align" : align }
+            lay = { "align" : align, "title_align" : title_align }
             self._layout[head_key] = lay
         else:
             self._layout[head_key]['align'] = align
+            self._layout[head_key]['title_align'] = title_align
 
     # Getters
     #
@@ -72,8 +74,7 @@ class AsciiTableLayout:
 
     # Format
     #
-    def format_string(self, head_key, length, str):
-        align = self._layout[head_key]['align']
+    def _format_string(self, align, length, str):
         if align == AsciiTableLayout.CENTER:
             return str.center(length)
         elif align == AsciiTableLayout.LEFT:
@@ -81,6 +82,13 @@ class AsciiTableLayout:
         else:
             return str.rjust(length)
 
+    def format_string(self, head_key, length, str):
+        align = self._layout[head_key]['align']
+        return self._format_string(align, length, str)
+
+    def format_title_string(self, head_key, length, str):
+        align = self._layout[head_key]['title_align']
+        return self._format_string(align, length, str)
 
 class AsciiTable:
     
@@ -204,7 +212,8 @@ class AsciiTable:
                 for l in range(0, lines):
                     self.out.write("|")
                     for k, t in tab:
-                        self.out.write( "%-*s" % (max_col[k]+1, str(headers[t][l])) + "|" )
+                        self.out.write( layout.format_title_string(k,
+                            max_col[k], str(headers[t][l])) + " |" )
                     self.out.write("\n")
                 self.out.write("%.*s\n" % (ncols, sep_line))
 
@@ -215,7 +224,7 @@ class AsciiTable:
                 s = "|"
                 line_sup = s
                 for k, t in tab:
-                    target = row[k]
+                    target = str(row[k])
                     offset = 0
                     splt = []
                     while offset + max_col[k] < len(target):

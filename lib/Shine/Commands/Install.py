@@ -1,5 +1,5 @@
 # Install.py -- File system installation commands
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -21,19 +21,17 @@
 
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FSProxy import FSProxy
+from Shine.FSUtils import create_lustrefs
 
 from Base.Command import Command
 from Base.Support.LMF import LMF
 
-import getopt
 
-# ----------------------------------------------------------------------
-# * shine install
-# ----------------------------------------------------------------------
 class Install(Command):
+    """
+    shine install -f /path/to/model.lmf
+    """
     
     def __init__(self):
         Command.__init__(self)
@@ -47,15 +45,33 @@ class Install(Command):
         return "Install a new file system."
 
     def execute(self):
-        if not self.opt_f:
+        if not self.opt_m:
             print "Bad argument"
         else:
-            conf = Configuration(lmf=self.opt_f)
-            fs = FSProxy(conf)
-            fs.install()
-            ###
-            fs.format()
-            ###
-            print "File system %s is now installed and ready to use." % conf.get_fs_name()
-            print "Use `shine start -f %s' to start it." % conf.get_fs_name()
+            # Use this Shine.FSUtils convenience function.
+            fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
+                    event_handler=self)
+
+            # Install file system configuration files; normally, this should
+            # not be done by the Shine.Lustre.FileSystem object itself, but as
+            # all proxy methods are currently handled by it, it is more
+            # convenient this way...
+            fs.install(fs_conf.get_cfg_filename())
+
+            print "Configuration files for file system %s have been installed " \
+                    "successfully." % fs_conf.get_fs_name()
+
+            # Print short file system summary.
+            print
+            print "Lustre targets summary:"
+            print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
+            print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
+            print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
+            print
+
+            # Give pointer to next user step.
+            print "Use `shine format -f %s' to initialize the file system." % \
+                    fs_conf.get_fs_name()
+
+            return 0
 

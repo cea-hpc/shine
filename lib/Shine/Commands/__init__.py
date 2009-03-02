@@ -26,22 +26,29 @@
 
 commandList = []
 
+#for cmd in [ "ShowConf",
+#             "Show",
+#             "Install",
+#             "Edit",
+#             "Format",
+#             "List",
+#             "Start",
+#             "Stop",
+#             "Info",
+#             "Status",
+#             "Mount",
+#             "Umount",
+#             "Test",
+#             "Cache",
+#             "Remove",
+#             "Tune"]:
 for cmd in [ "ShowConf",
-             "Show",
              "Install",
-             "Edit",
              "Format",
-             "List",
-             "Start",
-             "Stop",
-             "Info",
+             "Preinstall",
              "Status",
-             "Mount",
-             "Umount",
-             "Test",
-             "Cache",
-             "Remove",
-             "Tune"]:
+             "Start",
+             "Stop"]:
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 

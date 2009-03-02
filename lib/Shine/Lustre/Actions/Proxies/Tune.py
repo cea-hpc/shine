@@ -60,8 +60,6 @@ class Tune(ProxyAction):
         # Run cluster command
         self.task.shell(command, nodes=self.nodes, handler=self)
             
-        self.task.resume()
-
     def ev_read(self, worker):
         """
         Function called each time a new message is read from a 
