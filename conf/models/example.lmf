@@ -1,0 +1,112 @@
+#
+# This is an example of lustre model file. It contains a set of
+# configuration directives to install a simple Lustre filesystem.
+#
+# $Id$
+
+### Section 1 - Required directives
+
+# fs_name
+# The Lustre filesystem name (8 characters max).
+fs_name: example
+
+# nid_map
+# Hosts to Lnet NIDs mapping.
+nid_map: nodes=nova[0-32] nids=nova[0-32]@tcp0
+
+# mount_path
+# Default clients mount point path.
+mount_path: /example
+
+
+### Section 2 - Target definitions
+
+# Defines your Lustre filesystem targets.
+#
+# ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
+#      [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
+#      [ group=<RegExp> ]
+#
+# Here, we don't use any backend (no File nor ClusterDB), so we have to
+# fully describe our targets (no RegExp accepted). For this simple
+# example, only minimum target information is provided.
+
+# mgt
+# Management Target
+mgt: node=nova4 dev=/dev/sde1
+
+# mdt
+# MetaData Target
+mdt: node=nova4 dev=/dev/sdf
+
+# ost
+# Object Storage Target(s)
+ost: node=nova5 dev=/dev/sdd
+ost: node=nova5 dev=/dev/sde
+ost: node=nova6 dev=/dev/sdd
+ost: node=nova6 dev=/dev/sde
+
+# client
+# FS clients
+client: node=nova[8-32]
+
+
+### Section 3 - Additionnal directives
+
+# failover
+# Enable failover support (yes), or failout (no).
+failover: yes
+
+# description
+# Optionnal FS description
+description: Example Lustre Filesystem
+
+# stripe_size
+# Specify the stripe size in bytes. Default is 1048576 (1M)
+stripe_size: 1048576
+
+# stripe_count
+# Specify the number of OSTs each file should be stripped on.
+# Default value is 0 and means to stripe on all available OSTs.
+stripe_count: 2
+
+# mdt_mkfs_options
+# Optional argument to mkfs for MDT. Defaults is no options.
+
+# We want 4k block for mdt and 4096 bytes/inode ratio.
+mdt_mkfs_options: -b 4096 -i 4096
+
+# mdt_mount_options
+# Optional argument to mount fs. Default is no options.
+
+# acl and user_xattr are enabled in this case.
+mdt_mount_options: acl,user_xattr
+
+# ost_mkfs_options
+# Optional argument to mkfs for OST. Defaults is no options.
+
+# We want 4k block for osts
+ost_mkfs_options: -b 4096
+
+# ost_mount_options:
+# Optional argument to mount fs. Default is no options.
+ost_mount_options: extents,mballoc
+
+# mount_options
+# This define the default options to mount the filesystem on clients.
+mount_options: acl,user_xattr
+
+# quota:
+# Enable quota support.
+# Possible values are yes or no (default is no).
+quota: no
+
+# quota_options
+# Describe options for quota support, if quota enabled
+#quota_options: quota_type=ug1
+
+# target mount path patterns
+mgt_mount_path: /mnt/$fs_name/mgt
+mdt_mount_path: /mnt/$fs_name/mdt/$index
+ost_mount_path: /mnt/$fs_name/ost/$index
+
