@@ -60,20 +60,16 @@ class TargetDeviceError(TargetError):
     def __str__(self):
         return self.message
 
-class TargetNotMountedError(TargetException):
-    def __str__(self):
-        return "%s %s (%s) [NOT MOUNTED]" % (self.target.type, \
-                self.target.name, self.target.dev)
 
-class TargetMultiMountedError(TargetException):
-    def __str__(self):
-        return "%s %s (%s) [MULTIPLE MOUNTS]" % (self.target.type, \
-                self.target.name, self.target.dev)
+# Constants for target states
+(DOWN, LOADED, MOUNT_RECOVERY, MOUNT_COMPLETE) = range(4)
 
 
 class Target(Disk):
 
     d_map = { 'mgt' : 'mgs', 'mdt' : 'mds', 'ost' : 'obdfilter' }
+
+    # 2nd mapping for older 1.6 versions
     d_map2 = { 'mgt' : 'mgt', 'mdt' : 'mdt', 'ost' : 'obdfilter' }
 
     def __init__(self, fs, server, type, index, dev, jdev=None, group=None,
@@ -113,12 +109,8 @@ class Target(Disk):
 
         self.action_enabled = enabled
 
-        self.state = "UNKNOWN"
+        self.state = None   # Unknown
         self.status_info = None
-
-        # optional config params, default values below
-        #self.mntp = "/mnt/%s/%s" % (fs.fs_name, self.tag)
-        #self.mnt_opts = ""
 
         self.fs._attach_target(self)
 
@@ -179,10 +171,12 @@ class Target(Disk):
 
         d_container = self.d_map[self.type]
 
-        self.state = None
+        self.state = None   # Unknown
 
         # check for label presence in /proc : is this lustre target started?
-        if os.path.isdir("/proc/fs/lustre/%s/%s" % (d_container, self.label)):
+        if not os.path.isdir("/proc/fs/lustre/%s/%s" % (d_container, self.label)):
+            self.state = DOWN
+        else:
             # get target's real device
             f = open("/proc/fs/lustre/%s/%s/mntdev" % (d_container, self.label))
             try:
@@ -190,7 +184,7 @@ class Target(Disk):
             finally:
                 f.close()
 
-            self.state = "UP"
+            self.state = LOADED
 
             # check presence in /proc/mounts
             f_proc_mounts = open("/proc/mounts", 'r')
@@ -198,21 +192,21 @@ class Target(Disk):
                 for line in f_proc_mounts:
                     if line.find("%s " % self.mntdev) == 0:
                         if line.split(' ', 3)[2] == "lustre":
-                            if self.state == "UP":
-                                self.state = "MOUNTED" 
+                            if self.state == LOADED:
+                                self.state = MOUNT_COMPLETE
                             else:
-                                self.state = "DUPMOUNT"
+                                raise TargetDeviceError(self, "multiple mounts detected for %s" % \
+                                        self.label)
             finally:
                 f_proc_mounts.close()
 
-            if self.state == "UP":
+            if self.state == LOADED:
                 # up but not mounted = incoherent state
-                self.state = "INCOHERENT"
+                # check for loaded state: ST, UP...
                 raise TargetDeviceError(self, "incoherent state for %s (started but not mounted?)" % \
                        self.label)
 
-
-            if self.state == "MOUNTED" and self.type != 'mgt':
+            if self.state == MOUNT_COMPLETE and self.type != 'mgt':
                 # check for MDT or OST recovery
                 try:
                     f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map[self.type],
@@ -222,8 +216,8 @@ class Target(Disk):
                         f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map2[self.type],
                             self.label), 'r')
                     except IOError:
-                        self.state = "INCOHERENT"
-                        raise TargetDeviceError(self, "recovery_state file not found for %s" % self.label)
+                        raise TargetDeviceError(self, "recovery_state file not found for %s" % \
+                                self.label)
 
                 try:
                     recovery_duration = -1
@@ -246,8 +240,8 @@ class Target(Disk):
                                 key, time_remaining = line.rstrip().split(' ', 2)
                             if line.startswith("completed_clients:"):
                                 key, completed_clients = line.rstrip().split(' ', 2)
-                        self.state = "RECOVERING"
-                        self.status_info = "Recovering %ss (%s)" % (time_remaining, completed_clients)
+                        self.state = MOUNT_RECOVERY
+                        self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
                 finally:
                     f.close()
 
@@ -278,7 +272,7 @@ class Target(Disk):
         self.fs._invoke('ev_status_start', target=self)
 
         self._disk_check()
-        #self._lustre_check()
+        self._lustre_check()
 
         self.fs._invoke('ev_status_done', target=self)
 
@@ -290,9 +284,9 @@ class Target(Disk):
             self._device_check()
             self._lustre_check()
 
-            if self.state is not None:
+            if self.state != DOWN:
                 # already mounted ?
-                if  self.state == 'MOUNTED':
+                if  self.state == MOUNT_RECOVERY or self.state == MOUNT_COMPLETE:
                     self.status_info = "%s is already started" % self.label
                     self.fs._invoke('ev_starttarget_done', target=self)
                     return
@@ -318,7 +312,7 @@ class Target(Disk):
             self._disk_check()
             self._lustre_check()
 
-            if self.state is None:
+            if self.state == DOWN:
                 self.status_info = "%s is already stopped" % self.label
                 self.fs._invoke('ev_stoptarget_done', target=self)
                 return

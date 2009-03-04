@@ -269,7 +269,7 @@ class FileSystem:
         if len(targets) > 0:
             yield last_target_type, targets, servers
 
-    def _iter_targets_by_type(self, reverse=False):
+    def targets_by_type(self, reverse=False):
         """
         Per type of target iterator : returns the following tuple:
         (type, (list of all targets of this type, list of enabled targets))
@@ -395,6 +395,8 @@ class FileSystem:
     
     def status(self):
 
+        servers_statusall = NodeSet()
+
         for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
             if len(e_s_targets) == 0:
                 continue
@@ -403,7 +405,29 @@ class FileSystem:
                 for target in e_s_targets:
                     target.status()
             else:
-                assert False
+                # distant server: check if all server targets have been selected
+                if len(a_s_targets) == len(e_s_targets):
+                    # "status on all targets for this server" detected
+                    servers_statusall.add(server)
+                else:
+                    # status per selected targets on this server
+                    for t_type, t_rangeset in \
+                            self._iter_type_idx_for_targets(e_s_targets):
+                        action = FSProxyAction(self, 'status',
+                                NodeSet(server), self.debug, t_type, t_rangeset)
+                        action.launch()
+
+            if len(servers_statusall) > 0:
+                action = FSProxyAction(self, 'status', servers_statusall, self.debug)
+                action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+        
+        servers_statusall.clear()
 
     def status_target(self, target):
         """
@@ -449,7 +473,7 @@ class FileSystem:
         self.targets.sort()
 
         #print "0:"
-        for type, (a_targets, e_targets) in self._iter_targets_by_type():
+        for type, (a_targets, e_targets) in self.targets_by_type():
             #print "1:", type, a_targets, e_targets
             
             for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
@@ -503,7 +527,7 @@ class FileSystem:
         self.targets.reverse()
 
         #print "0:"
-        for type, (a_targets, e_targets) in self._iter_targets_by_type():
+        for type, (a_targets, e_targets) in self.targets_by_type():
             #print "1:", type, a_targets, e_targets
             
             for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():

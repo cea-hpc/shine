@@ -84,6 +84,9 @@ class Controller:
             return self.cmds.execute(cmd_name, args)
         except getopt.GetoptError, e:
             print "Syntax error: %s %s" % (cmd_name, e)
+        except CommandException, e:
+            self.print_error(e.message)
+            return 1
         except ModelFileIOError, e:
             print "Error - %s" % e.message
         except ModelFileException, e:
@@ -101,7 +104,5 @@ class Controller:
             print "Error - Unrecognized action: %s" % cmd_name
             print
             raise
-        except CommandException, e:
-            print "Error - %s" % e.message
 
 

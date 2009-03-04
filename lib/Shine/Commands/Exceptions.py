@@ -45,3 +45,9 @@ class CommandXMFNotFoundError(CommandException):
         self.fsname = fsname
         self.message = "File system \"%s\" is not installed" % fsname
 
+class CommandBadParameterError(CommandException):
+    def __init__(self, param, valid_params=None):
+        self.message = "parameter \"%s\" not recognized" % param
+        if valid_params:
+            self.message += ", valid parameters are: %s" % valid_params
+

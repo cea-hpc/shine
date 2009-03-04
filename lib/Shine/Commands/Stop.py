@@ -19,24 +19,33 @@
 #
 # $Id$
 
+"""
+Shine `stop' command classes.
+
+The stop command aims to stop Lustre filesystem servers or just some
+of the filesystem targets on local or remote servers. It is available
+for any filesystems previously installed and formatted.
+"""
+
+# Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.FSUtils import open_lustrefs
-
-from Base.RemoteCommand import RemoteCommand
-from Base.Support.FS import FS
-from Base.Support.Indexes import Indexes
-from Base.Support.Nodes import Nodes
-from Base.Support.Target import Target
-from Base.Support.Quiet import Quiet
+# Command base class
+from Base.FSLiveCommand import FSLiveCommand
+# -R handler
 from RemoteCallEventHandler import RemoteCallEventHandler
 
+# Command helper
+from Shine.FSUtils import open_lustrefs
+
+# Lustre events
 import Shine.Lustre.EventHandler
 
 import os
 import socket
+
 
 class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
@@ -88,20 +97,13 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
 
 
-class Stop(RemoteCommand):
+class Stop(FSLiveCommand):
     """
-    shine stop -f <filesystem>
+    shine stop [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """
 
     def __init__(self):
-        RemoteCommand.__init__(self)
-
-        self.fs_support = FS(self)
-        self.indexes_support = Indexes(self)
-        self.nodes_support = Nodes(self)
-        self.target_support = Target(self)
-        self.quiet_support = Quiet(self)
-
+        FSLiveCommand.__init__(self)
 
     def get_name(self):
         return "stop"

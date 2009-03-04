@@ -1,5 +1,5 @@
 # Command.py -- Base command class
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -26,6 +26,10 @@ from Shine.Configuration.Exceptions import *
 from Support.Debug import Debug
 
 import getopt
+
+#
+# Command exceptions are defined in Shine.Command.Exceptions
+#
 
 # ----------------------------------------------------------------------
 # Base Command Class and command class definitions

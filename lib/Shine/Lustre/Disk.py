@@ -154,10 +154,22 @@ class Disk:
         if stat.S_ISBLK(mode):
             # block device
             self.dev_isblk = True
+            # get dev size
+            f = open("/proc/partitions", 'r')
+            try:
+                dev = os.path.basename(self.dev)
+                for line in f:
+                    d_info = line.rstrip('\n').split(' ')
+                    if len(d_info) > 1 and d_info[-1] == dev:
+                        self.dev_size = int(d_info[-2]) * 1024
+                        break
+            finally:
+                f.close()
+
         elif stat.S_ISREG(mode):
             # regular file
             self.dev_isblk = False
-            self.dev_size = info[stat.ST_SIZE]
+            self.dev_size = int(info[stat.ST_SIZE])
         else:
             # unsupported
             raise DiskDeviceError(self, "unsupported device type")
@@ -208,9 +220,31 @@ class Disk:
             os.unlink(tmp_mountdata)
             os.rmdir(tmp_dir)
 
+    def has_need_index_flag(self):
+        """LDD flag: need an index assignment"""
+        return self._ldd_flags & LDD_F_NEED_INDEX
+
     def has_first_time_flag(self):
+        """LDD flag: never registered"""
         return self._ldd_flags & LDD_F_VIRGIN
 
+    def has_update_flag(self):
+        """LDD flag: update all related config logs"""
+        return self._ldd_flags & LDD_F_UPDATE
+
+    def has_rewrite_ldd_flag(self):
+        """LDD flag: rewrite the LDD"""
+        return self._ldd_flags & LDD_F_REWRITE_LDD
+
     def has_writeconf_flag(self):
+        """LDD flag: regenerate all logs for this fs"""
         return self._ldd_flags & LDD_F_WRITECONF
+
+    def has_upgrade14_flag(self):
+        """LDD flag: COMPAT 14"""
+        return self._ldd_flags & LDD_F_UPGRADE14
+
+    def has_param_flag(self):
+        """LDD flag: process as lctl conf_param"""
+        return self._ldd_flags & LDD_F_PARAM
 
