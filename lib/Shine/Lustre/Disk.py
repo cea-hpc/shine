@@ -25,13 +25,15 @@ Lustre Disk abstraction module.
 
 """
 
-
+import copy
 import os
 import stat
 import struct
 import tempfile
 
 from ClusterShell.Task import task_self
+
+from Shine.Configuration.Globals import Globals
 
 ### From lustre/include/lustre_disk.h:
 
@@ -128,17 +130,24 @@ class Disk:
         self.dev_isblk = False
         self.dev_size = 0
 
-        # filled by _read_mountdata (use provided accessors)
+        # filled by _mountdata_check (use provided accessors if needed)
+        self.ldd_fsname = None
+        self.ldd_svname = None
         self._ldd_flags = 0
 
     def update(self, other):
+        """
+        Update my serializable fields from other/distant object.
+        """
         self.dev_isblk = other.dev_isblk
         self.dev_size = other.dev_size
+        self.ldd_fsname = copy.copy(other.ldd_fsname)
+        self.ldd_svname = copy.copy(other.ldd_svname)
         self._ldd_flags = other._ldd_flags
 
-    def _disk_check(self):
+    def _disk_check(self, fsname_check=None, label_check=None):
         self._device_check()
-        self._read_mountdata()
+        self._mountdata_check(fsname_check, label_check)
 
     def _device_check(self):
         """
@@ -174,47 +183,70 @@ class Disk:
             # unsupported
             raise DiskDeviceError(self, "unsupported device type")
 
-    def _read_mountdata(self):
+    def _mountdata_check(self, fsname_check=None, label_check=None):
         """
-        Read CONFIGS/mountdata.
+        Read on-disk CONFIGS/mountdata and optionally check its content against
+        provided fsname and service label.
         """
-
         task = task_self()
         tmp_dir = tempfile.mkdtemp()
 
+        # Run debugfs to read mountdata file without having to mount the
+        # ldiskfs filesystem.
         debugfs = task.shell("debugfs -c -R 'dump /%s %s/mountdata' '%s'" % \
-                (MOUNT_DATA_FILE, tmp_dir, self.dev), timeout=0)
+                (MOUNT_DATA_FILE, tmp_dir, self.dev),
+                timeout=Globals().get_default_timeout())
 
         task.resume()
 
-        print debugfs.retcode()
-        # XXX check for timeout
+        # Note: checking debugfs.retcode() is not reliable as debugfs seems
+        # to always return 0.
+
+        if task.num_timeout() > 0:
+            raise DiskDeviceError(self, "debugfs command timeout (%.0fs)" % \
+                    Globals().get_default_timeout())
 
         tmp_mountdata = os.path.join(tmp_dir, "mountdata")
-
-        f = open(tmp_mountdata, "r")
         try:
+            f = open(tmp_mountdata, "r")
+        except IOError, e:
+            # open() raises IOError which might be also a debugfs read failure.
+            raise DiskDeviceError(self, "Failed to open %s file (%s)" % \
+                    (MOUNT_DATA_FILE, e.strerror))
+
+        try:
+            # Read the beginning of struct lustre_disk_data.
             bytes = f.read(160)
-            required_bytes = struct.calcsize('IIIIIIII64s64s')
-            if len(bytes) < required_bytes:
-                # err
-                pass
+            required_length = struct.calcsize('IIIIIIII64s64s')
+            if len(bytes) < required_length:
+                raise DiskDeviceError(self, \
+                        "Unexpected EOF while reading %s" % MOUNT_DATA_FILE)
+            
+            # Unpack first fields of struct lustre_disk_data (in native byte order).
+            (ldd_magic, ldd_feat_compat, ldd_feat_rocompat, fdd_feat_incompat,
+                    ldd_config_ver, ldd_flags, ldd_svindex, ldd_mount_type,
+                    ldd_fsname, ldd_svname) = struct.unpack('IIIIIIII64s64s', bytes)
 
-            else:
-                (ldd_magic, ldd_feat_compat, ldd_feat_rocompat, fdd_feat_incompat,
-                        ldd_config_ver, ldd_flags, ldd_svindex, ldd_mount_type,
-                        ldd_fsname, ldd_svname) = struct.unpack('IIIIIIII64s64s', bytes)
+            # Light sanity check.
+            if ldd_magic != LDD_MAGIC:
+                raise DiskDeviceError(self, "Bad magic in %s: %x!=%x" % \
+                        (MOUNT_DATA_FILE, ldd_magic, LDD_MAGIC))
 
-                assert ldd_magic == LDD_MAGIC
+            # Could add supported features check here.
 
-                ldd_fsname = ldd_fsname.rstrip('\0')
+            # Data checks: check configured lustre service and fsname on this disk
+            self.ldd_fsname = ldd_fsname.rstrip('\0')
+            self.ldd_svname = ldd_svname.rstrip('\0')
 
-                ldd_svname = ldd_svname.rstrip('\0')
+            if fsname_check and self.ldd_fsname != fsname_check:
+                raise DiskDeviceError(self, "Found service %s for fs '%s'!='%s' on %s" % \
+                        (self.ldd_svname, self.ldd_fsname, fsname_check, self.dev))
 
-                # XXX
+            if label_check and self.ldd_svname != label_check:
+                raise DiskDeviceError(self, "Found service %s!=%s for fs '%s' on %s" % \
+                        (self.ldd_svname, label_check, self.ldd_fsname, self.dev))
 
             self._ldd_flags = ldd_flags
-
         finally:
             f.close()
             os.unlink(tmp_mountdata)

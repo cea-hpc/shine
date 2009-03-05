@@ -19,14 +19,20 @@
 #
 # $Id$
 
+"""
+Lustre FileSystem class.
+
+Represents a Lustre FS.
+"""
+
+import copy
+from sets import Set
+import socket
+
+from ClusterShell.NodeSet import NodeSet, RangeSet
+
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
-
-from EventHandler import *
-from Target import *
-from Server import *
-
-import Actions.Proxies.Start
 
 # Action exceptions
 from Actions.Action import ActionErrorException
@@ -35,11 +41,12 @@ from Actions.Proxies.ProxyAction import ProxyActionError
 from Actions.Install import Install
 from Actions.Proxies.Preinstall import Preinstall
 from Actions.Proxies.FSProxyAction import FSProxyAction
+from Actions.Proxies.FSClientProxyAction import FSClientProxyAction
 
-from ClusterShell.NodeSet import NodeSet, RangeSet
-
-import copy
-import socket
+from EventHandler import *
+from Server import *
+from Target import *
+import Client
 
 
 class FSException(Exception):
@@ -80,8 +87,13 @@ class FSRemoteError(FSError):
         self.rc = int(rc)
 
     def __str__(self):
-        return "%s: %s [%d]" % (self.nodes, self.message, self.rc)
+        return "%s: %s [rc=%d]" % (self.nodes, self.message, self.rc)
 
+
+STATUS_SERVERS      = 0x01
+STATUS_HASERVERS    = 0x02
+STATUS_CLIENTS      = 0x10
+STATUS_ANY          = 0xff
 
 class FileSystem:
     """
@@ -102,6 +114,9 @@ class FileSystem:
         # All FS server targets (MGT, MDT, OST...)
         self.targets = []
 
+        # All FS clients
+        self.clients = []
+
         # filled after successful install
         self.mgt_servers = None
         self.mgt_count = 0
@@ -120,7 +135,7 @@ class FileSystem:
     #
 
     def _invoke_event(self, event, **kwargs):
-        if 'target' in kwargs:
+        if 'target' in kwargs or 'client' in kwargs:
             kwargs.setdefault('node', None)
         getattr(self.event_handler, event)(**kwargs)
 
@@ -148,11 +163,24 @@ class FileSystem:
                                 (','.join(old.nids), ','.join(target.get_nids))
                     # update target from remote one
                     t.update(target)
-                    # substitute target parameter
-                    params['target'] = target
+                    # substitute target parameter by local one
+                    params['target'] = t
                     found = True
             if not found:
                 print "Target Update FAILED (%s)" % target
+        
+        client = params.get('client')
+        if client:
+            found = False
+            for c in self.clients:
+                if c.match(client):
+                    # update client from remote one
+                    c.update(client)
+                    # substitute client parameter
+                    params['client'] = c
+                    found = True
+            if not found:
+                print "Client Update FAILED (%s)" % client
 
         self._invoke(event, node=node, **params)
 
@@ -164,6 +192,10 @@ class FileSystem:
         self.targets.append(target)
         if target.type == 'mgt':
             self.mgt = target
+        self._update_structure()
+
+    def _attach_client(self, client):
+        self.clients.append(client)
         self._update_structure()
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
@@ -183,8 +215,37 @@ class FileSystem:
         
         return target
 
+    def new_client(self, server, mount_path, enabled=True):
+        """
+        Create a new attached client.
+        """
+        client = Client.Client(self, server, mount_path, enabled)
+
+        return client
+
     def get_mgs_nids(self):
         return self.mgt.get_nids()
+    
+    def get_client_servers(self):
+        return NodeSet.fromlist([c.server for c in self.clients])
+
+    def get_client_statecounters(self):
+        """
+        Get (ignored, down, loaded, mounted) client state counters tuple.
+        """
+        ignored = 0
+        states = {}
+        for client in self.clients:
+            if client.action_enabled:
+                state = states.setdefault(client.state, 0)
+                states[client.state] = state + 1
+            else:
+                ignored += 1
+        
+        return (ignored,
+                states.get(Client.DOWN, 0),
+                states.get(Client.LOADED, 0),
+                states.get(Client.MOUNTED, 0))
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
@@ -204,15 +265,22 @@ class FileSystem:
             action.launch()
             task.resume()
 
-    def install(self, fs_config_file):
+    def install(self, fs_config_file, nodes=None):
         """
+        Install FS config files.
         """
         servers = NodeSet()
 
         for target in self.targets:
             # install on failover partners too
             for s in target.servers:
-                servers.add(s)
+                if not nodes or s in nodes:
+                    servers.add(s)
+
+        for client in self.clients:
+            # install on failover partners too
+            if not nodes or client.server in nodes:
+                servers.add(client.server)
 
         assert len(servers) > 0, "no servers?"
 
@@ -365,6 +433,7 @@ class FileSystem:
             raise FSRemoteError(e.nodes, e.rc, e.message)
 
 
+    """
     def _launch_target_action_on_servers(self, local_action, distant_action, targets, servers):
         # start selected servers
         print "targets %s" % targets[0].type
@@ -392,39 +461,58 @@ class FileSystem:
             #print binascii.b2a_base64(pickle.dumps(targets, -1))
 
             #Actions.Proxies.Start.Start(distant_servers)
+    """
     
-    def status(self):
+    def status(self, flags=STATUS_ANY):
+        """
+        Get status of filesystem.
+        """
 
         servers_statusall = NodeSet()
 
-        for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-            if len(e_s_targets) == 0:
-                continue
+        # prepare servers status checks
+        if flags & STATUS_SERVERS:
+            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
+                if len(e_s_targets) == 0:
+                    continue
 
-            if server.is_local():
-                for target in e_s_targets:
-                    target.status()
-            else:
-                # distant server: check if all server targets have been selected
-                if len(a_s_targets) == len(e_s_targets):
-                    # "status on all targets for this server" detected
-                    servers_statusall.add(server)
+                if server.is_local():
+                    for target in e_s_targets:
+                        target.status()
                 else:
-                    # status per selected targets on this server
-                    for t_type, t_rangeset in \
-                            self._iter_type_idx_for_targets(e_s_targets):
-                        action = FSProxyAction(self, 'status',
-                                NodeSet(server), self.debug, t_type, t_rangeset)
-                        action.launch()
+                    # distant server: check if all server targets have been selected
+                    if len(a_s_targets) == len(e_s_targets):
+                        # "status on all targets for this server" detected
+                        servers_statusall.add(server)
+                    else:
+                        # status per selected targets on this server
+                        for t_type, t_rangeset in \
+                                self._iter_type_idx_for_targets(e_s_targets):
+                            action = FSProxyAction(self, 'status',
+                                    NodeSet(server), self.debug, t_type, t_rangeset)
+                            action.launch()
 
-            if len(servers_statusall) > 0:
-                action = FSProxyAction(self, 'status', servers_statusall, self.debug)
-                action.launch()
+        # prepare clients status checks
+        if flags & STATUS_CLIENTS:
+            for client in self.clients:
+                if client.action_enabled:
+                    server = client.server
+                    if server.is_local():
+                        client.status()
+                    elif server not in servers_statusall:
+                        servers_statusall.add(server)
 
+        # launch distant actions
+        if len(servers_statusall) > 0:
+            action = FSProxyAction(self, 'status', servers_statusall, self.debug)
+            action.launch()
+
+        # runloop
         try:
             task_self().resume()
         except ProxyActionError, e:
             # switch to public exception
+            servers_statusall.clear()
             raise FSRemoteError(e.nodes, e.rc, e.message)
         
         servers_statusall.clear()
@@ -571,6 +659,65 @@ class FileSystem:
             
             servers_stopall.clear()
 
+    def mount(self, **kwargs):
+        """
+        """
+        servers_mountall = NodeSet()
+
+        for client in self.clients:
+
+            if not client.action_enabled:
+                continue
+
+            if client.server.is_local():
+                # local client
+                client.start(**kwargs)
+            else:
+                # distant client
+                servers_mountall.add(client.server)
+
+        if len(servers_mountall) > 0:
+            action = FSClientProxyAction(self, 'mount', servers_mountall, self.debug)
+            action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            servers_mountall.clear()
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+
+        servers_mountall.clear()
+
+    def umount(self, **kwargs):
+        """
+        """
+        servers_umountall = NodeSet()
+
+        for client in self.clients:
+
+            if not client.action_enabled:
+                continue
+
+            if client.server.is_local():
+                # local client
+                client.stop(**kwargs)
+            else:
+                # distant client
+                servers_umountall.add(client.server)
+
+        if len(servers_umountall) > 0:
+            action = FSClientProxyAction(self, 'umount', servers_umountall, self.debug)
+            action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            servers_umountall.clear()
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+
+        servers_umountall.clear()
 
     def info(self):
         pass

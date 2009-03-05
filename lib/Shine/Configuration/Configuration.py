@@ -181,7 +181,6 @@ class Configuration:
             nodes.update(clients.get_nodes())
         return nodes
 
-
     def get_client_mounts(self, select_nodes=None):
         """
         Get clients different mount paths. Returns a dict where keys are
@@ -234,6 +233,14 @@ class Configuration:
         #print "Warning: path not found for client %s ??" % client
         return self._fs.get_one('mount_path')
 
+    def iter_clients(self):
+        """
+        Iterate over (node, mount_path)
+        """
+        mounts = self.get_client_mounts()
+        for path, nodes in mounts.iteritems():
+            for node in nodes:
+                yield node, path
 
     def get_localnode_type(self):
         """

@@ -72,6 +72,17 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
         for ha_node in cf_target.ha_nodes():
             target.add_server(Server(ha_node, fs_conf.get_nid(ha_node)))
 
+    # Create attached file system clients...
+    for client_node, mount_path in fs_conf.iter_clients():
+        server = servers.setdefault(client_node, Server(client_node, fs_conf.get_nid(client_node)))
+
+        # filter on nodes
+        client_action_enabled = True
+        if nodes is not None and server not in nodes:
+            client_action_enabled = False
+
+        client = fs.new_client(server, mount_path, client_action_enabled)
+
     return fs
 
 

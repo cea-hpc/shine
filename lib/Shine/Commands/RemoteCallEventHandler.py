@@ -62,13 +62,13 @@ class RemoteCallEventHandler(EventHandler):
     def ev_format_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
-    def ev_status_start(self, node, target):
+    def ev_statustarget_start(self, node, target):
         self._shine_pickle(target=target)
 
-    def ev_status_done(self, node, target):
+    def ev_statustarget_done(self, node, target):
         self._shine_pickle(target=target)
 
-    def ev_status_failed(self, node, target, rc, message):
+    def ev_statustarget_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
     def ev_starttarget_start(self, node, target):
@@ -89,4 +89,30 @@ class RemoteCallEventHandler(EventHandler):
     def ev_stoptarget_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
+    def ev_statusclient_start(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_statusclient_done(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_statusclient_failed(self, node, client, rc, message):
+        self._shine_pickle(client=client, rc=rc, message=message)
+
+    def ev_startclient_start(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_startclient_done(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_startclient_failed(self, node, client, rc, message):
+        self._shine_pickle(client=client, rc=rc, message=message)
+
+    def ev_stopclient_start(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_stopclient_done(self, node, client):
+        self._shine_pickle(client=client)
+
+    def ev_stopclient_failed(self, node, client, rc, message):
+        self._shine_pickle(client=client, rc=rc, message=message)
 

@@ -29,7 +29,7 @@ from ClusterShell.NodeSet import NodeSet
 
 class FSProxyAction(ProxyAction):
     """
-    Generic file system command proxy taction class.
+    Generic file system command proxy action class.
     """
 
     def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None):
@@ -71,12 +71,14 @@ class FSProxyAction(ProxyAction):
             event, params = self._shine_msg_unpack(buf)
             self.fs._handle_shine_event(event, node, **params)
         except ProxyActionUnpackError, e:
-            pass # XXX
-            #print "%s: %s" % (node, buf)
+            # ignore any non shine messages
+            pass
 
     def ev_close(self, worker):
         for rc, nodelist in worker.iter_retcodes():
             if rc != 0:    
-                raise ProxyActionError(rc, "Action %s failed on %s" % \
-                       (self.action, NodeSet.fromlist(nodelist)))
+                nodes = NodeSet.fromlist(nodelist)
+                buffer = worker.node_buffer(nodes[0])
+                raise ProxyActionError(nodes, "Action %s failed\n%s" % \
+                        (self.action, buffer), rc)
 

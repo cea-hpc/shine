@@ -19,22 +19,22 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
+import os 
+import stat
+import struct
+import sys
 
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import *
 
-from Disk import Disk
-from Server import Server
+from Shine.Configuration.Globals import Globals
 
 from Actions.Format import Format
 from Actions.StartTarget import StartTarget
 from Actions.StopTarget import StopTarget
 
-import os 
-import stat
-import struct
-import sys
+from Disk import *
+from Server import Server
 
 
 class TargetOpInProgressException(Exception):
@@ -125,6 +125,9 @@ class Target(Disk):
                 str(self.servers[0]) == str(other.servers[0])
 
     def update(self, other):
+        """
+        Update my serializable fields from other/distant object.
+        """
         Disk.update(self, other)
         self.dev_isblk = other.dev_isblk
         self.dev_size = other.dev_size
@@ -141,9 +144,6 @@ class Target(Disk):
     def __setstate__(self, dict):
         self.__dict__.update(dict)
         self.fs = None
-
-    def _attach_fs(self, fs):
-        self.fs = fs
 
     def add_server(self, server):
         assert isinstance(server, Server)
@@ -186,7 +186,7 @@ class Target(Disk):
 
             self.state = LOADED
 
-            # check presence in /proc/mounts
+            # check for presence in /proc/mounts
             f_proc_mounts = open("/proc/mounts", 'r')
             try:
                 for line in f_proc_mounts:
@@ -269,12 +269,18 @@ class Target(Disk):
         """
         Check target status.
         """
-        self.fs._invoke('ev_status_start', target=self)
+        self.fs._invoke('ev_statustarget_start', target=self)
 
-        self._disk_check()
+        try:
+            # check for disk level status
+            self._disk_check(self.fs.fs_name, self.label)
+        except DiskDeviceError, e:
+            self.fs._invoke('ev_statustarget_failed', target=self, rc=1, message=e.message)
+
+        # check for Lustre level status
         self._lustre_check()
 
-        self.fs._invoke('ev_status_done', target=self)
+        self.fs._invoke('ev_statustarget_done', target=self)
 
     def start(self, **kwargs):
 

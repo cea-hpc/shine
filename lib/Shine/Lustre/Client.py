@@ -1,5 +1,5 @@
-# Client.py -- Lustre Client (pseudo target)
-# Copyright (C) 2008 CEA
+# Client.py -- Lustre Client
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,70 +19,181 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
+import glob
+import os 
+import stat
+import struct
+import sys
+
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import Task
-from ClusterShell.Worker import Worker
+from ClusterShell.Task import *
 
-from Target import Target
+from Shine.Configuration.Globals import Globals
 
-from Shine.Commands.CommandRegistry import CommandRegistry
+from Actions.Format import Format
+from Actions.StartClient import StartClient
+from Actions.StopClient import StopClient
+
+from Server import Server
 
 
-class Client(NodeSet):
-    
-    def __init__(self, node, mntp, fs):
-        NodeSet.__init__(self, node)
+class ClientException(Exception):
+    def __init__(self, client):
+        self.client = client
+
+class ClientError(ClientException):
+    """
+    Client error.
+    """
+    def __init__(self, client, message):
+        ClientException.__init__(self, client)
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
+# Constants for client states
+(DOWN, LOADED, MOUNTED) = range(3)
+
+
+class Client:
+
+    def __init__(self, fs, server, mount_path, enabled=True):
+        """
+        Initialize a Lustre client object.
+        """
+
+        ### Not serializable
+
+        # attached file system
         self.fs = fs
-        self.mntp = mntp
 
-    def test(self):
-        print "test CLIENT %s" % self
+        ### Serializable
+        assert isinstance(server, Server)
+        self.server = server
+        self.mount_path = mount_path
+        self.action_enabled = enabled
 
-    def start(self):
-        #self._mount()
-        pass
+        self.state = None   # Unknown
+        self.status_info = None
 
-    def stop(self):
-        #self._umount()
-        pass
+        self.fs._attach_client(self)
+
+    def match(self, other):
+        return self.server in other.server
+
+    def update(self, other):
+        """
+        Update my serializable fields from other/distant object.
+        """
+        self.mount_path = other.mount_path
+        self.state = other.state
+        self.status_info = other.status_info
+
+    def __getstate__(self):
+        odict = self.__dict__.copy()
+        del odict['fs']
+        return odict
+
+    def __setstate__(self, dict):
+        self.__dict__.update(dict)
+        self.fs = None
+
+    def _lustre_check(self):
+        """
+        Lustre client state check.
+        """
+
+        self.state = None   # Undefined
+
+        proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % self.fs.fs_name)
+
+        if len(proc_lov_match) == 0:
+            self.state = DOWN
+        else:
+            proc_lov = proc_lov_match[0]
+            if os.path.isdir(proc_lov):
+                self.state = LOADED
+
+            # check for presence in /proc/mounts
+            f_proc_mounts = open("/proc/mounts", 'r')
+            try:
+                for line in f_proc_mounts:
+                    if line.find(" %s lustre " % self.mount_path) > 0:
+                        lnetdev, mntp = line.split(' ', 2)[0:2]
+                        if self.state == LOADED:
+                            self.lnetdev = lnetdev
+                            self.state = MOUNTED
+                            self.status_info = "%s" % mntp
+                        else:
+                            if lnetdev != self.lnetdev:
+                                raise ClientError(self, "conflicting mounts detected for %s and %s on %s" % \
+                                        (lnetdev, self.lnetdev, self.mount_path))
+                            else:
+                                raise ClientError(self, "multiple mounts detected for %s (%s)" % \
+                                        (lnetdev, self.mount_path))
+            finally:
+                f_proc_mounts.close()
+
+            if self.state == LOADED:
+                # up but not mounted = incoherent state
+                raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
+                        self.fs.fs_name)
+
 
     def status(self):
-        # Check Lustre Health
-        try:
-            f = open("/proc/fs/lustre/health_check")
-            if not f.readline().startswith("healthy"):
-                CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
-                        health=f.read())
-            f.close()
-        except IOError, (errno, strerror):
-            CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
-                        health=strerror, err=errno)
-        except Exception, e:
-            print e
+        """
+        Check client status.
+        """
+        self.fs._invoke('ev_statusclient_start', client=self)
 
-
-        # Check Mounts
-        sta = "UNKNOWN"
-        f = open("/proc/mounts")
         try:
-            mntps = [line for line in f if line.find("%s lustre" % self.mntp) >= 0]
-            if len(mntps) == 0:
-                sta = "NOT MOUNTED"
-            elif len(mntps) > 1:
-                sta = "MULTIPLE MOUNTS"
+            self._lustre_check()
+
+        except ClientError, e:
+            self.fs._invoke('ev_statusclient_failed', client=self, rc=None, message=e.message)
+
+        self.fs._invoke('ev_statusclient_done', client=self)
+
+    def start(self, **kwargs):
+        """
+        Start Lustre client.
+        """
+
+        self.fs._invoke('ev_startclient_start', client=self)
+
+        try:
+            self._lustre_check()
+
+            if self.state == MOUNTED:
+                self.status_info = "%s is already mounted on %s" % (self.fs.fs_name, self.status_info)
+                self.fs._invoke('ev_startclient_done', client=self)
             else:
-                sta = "MOUNTED"
-        finally:
-            f.close()
-        
-        CommandRegistry.output(fs=self.fs.fs_name, node=self[0],
-                mount=self.mntp, status_client=sta)
+                action = StartClient(self, **kwargs)
+                action.launch()
 
-    def format(self):
-        pass
-        #self.fs.push_action(Format(Task.current(), self.fs, self))
+        except ClientError, e:
+            self.fs._invoke('ev_startclient_failed', client=self, rc=None, message=str(e))
 
-    def fcsk(self):
-        pass
+    def stop(self, **kwargs):
+        """
+        Stop Lustre client.
+        """
+
+        self.fs._invoke('ev_stopclient_start', client=self)
+
+        try:
+            self._lustre_check()
+
+            if self.state == DOWN:
+                self.status_info = "%s is not mounted" % (self.fs.fs_name)
+                self.fs._invoke('ev_stopclient_done', client=self)
+            else:
+                action = StopClient(self, **kwargs)
+                action.launch()
+
+        except ClientError, e:
+            self.fs._invoke('ev_stopclient_failed', client=self, rc=None, message=str(e))
+
 

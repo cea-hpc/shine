@@ -136,6 +136,9 @@ class Globals(object):
 
             return levels[self.get_one('log_level')]
 
+        def get_default_timeout(self):
+            return float(self.get_one('default_timeout'))
+
         def get_status_timeout(self):
             return float(self.get_one('status_timeout'))
 

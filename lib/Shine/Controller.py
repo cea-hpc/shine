@@ -86,15 +86,12 @@ class Controller:
             print "Syntax error: %s %s" % (cmd_name, e)
         except CommandException, e:
             self.print_error(e.message)
-            return 1
         except ModelFileIOError, e:
             print "Error - %s" % e.message
         except ModelFileException, e:
             print "ModelFile: %s" % e
         except ConfigException, e:
             print "Configuration: %s" % e
-            return 1
-
         # file system
         except FSRemoteError, e:
             self.print_error(e)
@@ -104,5 +101,7 @@ class Controller:
             print "Error - Unrecognized action: %s" % cmd_name
             print
             raise
+        
+        return 1
 
 

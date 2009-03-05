@@ -51,8 +51,10 @@ from Shine.FSUtils import open_lustrefs
 # Command output formatting
 from Shine.Utilities.AsciiTable import *
 
-# Lustre events
+# Lustre events and errors
 import Shine.Lustre.EventHandler
+from Shine.Lustre.Disk import *
+from Shine.Lustre.FileSystem import *
 from Shine.Lustre.Target import *
 
 from ClusterShell.NodeSet import NodeSet
@@ -70,25 +72,28 @@ class GlobalStatusEventHandler(Shine.Lustre.EventHandler.EventHandler):
         self.failures = 0
         self.success = 0
 
-    def ev_status_start(self, node, target):
+    def ev_statustarget_start(self, node, target):
         pass
-        #print "ev_status_start"
 
-    def ev_status_done(self, node, target):
+    def ev_statustarget_done(self, node, target):
         self.success += 1
         #print "ev_status_done %s" % target
 
-    def ev_status_failed(self, node, target, rc, message):
+    def ev_statustarget_failed(self, node, target, rc, message):
         self.failures += 1
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to start %s %s (%s): %s" % \
-                (node, target.type.upper(), target.get_id(), target.dev,
-                        strerr)
-        if rc:
-            print message
+        print "%s: Failed to status %s %s (%s)" % (node, target.type.upper(), \
+                target.get_id(), target.dev)
+        print ">> %s" % message
+
+    def ev_statusclient_start(self, node, client):
+        pass
+
+    def ev_statusclient_done(self, node, client):
+        pass
+
+    def ev_statusclient_failed(self, node, client, rc, message):
+        print "%s: Failed to status of FS %s" % (node, client.fs.fs_name)
+        print ">> %s" % message
 
     def complete(self):
         if self.failures == 0:
@@ -137,17 +142,26 @@ class Status(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
-            fs.status()
-
-            if self.local_flag or self.remote_call:
-                return
-
+            status_flags = STATUS_ANY
             view = self.view_support.get_view()
 
+            # default view
             if view is None:
                 view = "fs"
             else:
                 view = view.lower()
+
+            # disable client checks when not requested
+            if view.startswith("disk") or view.startswith("target"):
+                status_flags &= ~STATUS_CLIENTS
+            # disable servers checks when not requested
+            if view.startswith("client"):
+                status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
+
+            fs.status(status_flags)
+
+            if self.local_flag or self.remote_call:
+                return
 
             if view == "fs":
                 self.status_view_fs(fs)
@@ -164,7 +178,7 @@ class Status(FSLiveCommand):
         """
         View: lustre targets
         """
-        print "FILESYSTEM: %s" % fs.fs_name
+        print "FILESYSTEM TARGETS (%s)" % fs.fs_name
 
         # override dict to allow target sorting by index
         class target_dict(dict):
@@ -217,6 +231,8 @@ class Status(FSLiveCommand):
         View: lustre FS summary
         """
         ldic = []
+
+        # targets
         for type, (a_targets, e_targets) in fs.targets_by_type():
             nodes = NodeSet()
             t_offline = []
@@ -241,26 +257,45 @@ class Status(FSLiveCommand):
 
             status = []
             if len(t_offline) > 0:
-                status.append("%d offline" % len(t_offline))
+                status.append("offline (%d)" % len(t_offline))
             if len(t_incoherent) > 0:
-                status.append("%d INCOHERENT" % len(t_incoherent))
+                status.append("INCOHERENT (%d)" % len(t_incoherent))
             if len(t_recovering) > 0:
-                status.append("%d recovering (%s)" % (len(t_recovering), t_recovering[0].status_info))
+                status.append("recovering (%d) for %s" % (len(t_recovering),
+                    t_recovering[0].status_info))
             if len(t_online) > 0:
-                status.append("%d online" % len(t_online))
+                status.append("online (%d)" % len(t_online))
             if len(t_unknown) > 0:
-                status.append("%d not checked" % len(t_unknown))
+                status.append("not checked (%d)" % len(t_unknown))
 
             if len(t_unknown) < len(a_targets):
-                ldic.append(dict([["type", "%d %s" % (len(a_targets), type.upper())],
-                    ["nodes", nodes], ["status", ', '.join(status)]]))
+                ldic.append(dict([["type", "%s" % type.upper()],
+                    ["count", len(a_targets)], ["nodes", nodes],
+                    ["status", ', '.join(status)]]))
+
+        # clients
+        (c_ign, c_down, c_loaded, c_mounted) = fs.get_client_statecounters()
+        status = []
+        if c_ign > 0:
+            status.append("not checked (%d)" % c_ign)
+        if c_down > 0:
+            status.append("not mounted (%d)" % c_down)
+        if c_loaded > 0:
+            status.append("INCOHERENT (%d)" % c_loaded)
+        if c_mounted > 0:
+            status.append("mounted (%d)" % c_mounted)
+
+        ldic.append(dict([["type", "CLI"], ["count", len(fs.clients)],
+            ["nodes", "%s" % fs.get_client_servers()], ["status", ', '.join(status)]]))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)
-        layout.set_column("type", 0, AsciiTableLayout.CENTER, fs.fs_name)
-        layout.set_column("nodes", 1, AsciiTableLayout.LEFT, "nodes")
-        layout.set_column("status", 2, AsciiTableLayout.LEFT, "status")
+        layout.set_column("type", 0, AsciiTableLayout.CENTER, "type", AsciiTableLayout.CENTER)
+        layout.set_column("count", 1, AsciiTableLayout.RIGHT, "#", AsciiTableLayout.CENTER)
+        layout.set_column("nodes", 2, AsciiTableLayout.LEFT, "nodes", AsciiTableLayout.CENTER)
+        layout.set_column("status", 3, AsciiTableLayout.LEFT, "status", AsciiTableLayout.CENTER)
 
+        print "FILESYSTEM COMPONENTS STATUS (%s)" % fs.fs_name
         AsciiTable().print_from_list_of_dict(ldic, layout)
 
 
@@ -269,13 +304,12 @@ class Status(FSLiveCommand):
         View: lustre disks
         """
 
-        print "FILESYSTEM: %s" % fs.fs_name
+        print "FILESYSTEM DISKS (%s)" % fs.fs_name
 
         # override dict to allow target sorting by index
         class target_dict(dict):
             def __lt__(self, other):
-                return self["index"] < other["index"]
-
+                return self["index"] < other["index"] 
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False

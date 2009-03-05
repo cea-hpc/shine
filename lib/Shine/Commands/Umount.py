@@ -1,5 +1,5 @@
-# Umount.py -- Unmount file system clients
-# Copyright (C) 2007, 2008 CEA
+# Umount.py -- Unmount file system on clients
+# Copyright (C) 2007, 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,66 +19,113 @@
 #
 # $Id$
 
+"""
+Shine `umount' command classes.
+
+The umount command aims to stop Lustre filesystem clients.
+"""
+
+import os
+import socket
+
+# Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.Lustre.FSLocal import FSLocal
-from Shine.Lustre.FSProxy import FSProxy
+# Command base class
+from Base.FSClientLiveCommand import FSClientLiveCommand
+# -R handler
+from RemoteCallEventHandler import RemoteCallEventHandler
 
-from Base.RemoteCommand import RemoteCommand
-from Base.Support.FS import FS
-from Base.Support.MountPoint import MountPoint
-from Base.Support.Node import Node
-from Base.Support.Quiet import Quiet
+# Command helper
+from Shine.FSUtils import open_lustrefs
 
-import os
-import sys
+# Lustre events
+import Shine.Lustre.EventHandler
 
-# ----------------------------------------------------------------------
-# * shine umount
-# ----------------------------------------------------------------------
-class Umount(RemoteCommand):
+
+class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
+
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        self.failures = 0
+        self.success = 0
+
+    def ev_stopclient_start(self, node, client):
+        if self.verbose:
+            print "%s: Unmounting %s on %s ..." % (node, client.fs.fs_name, client.mount_path)
+
+    def ev_stopclient_done(self, node, client):
+        self.success += 1
+        if self.verbose:
+            if client.status_info:
+                print "%s: Umount: %s" % (node, client.status_info)
+            else:
+                print "%s: FS %s succesfully unmounted from %s" % (node,
+                        client.fs.fs_name, client.mount_path)
+
+    def ev_stopclient_failed(self, node, client, rc, message):
+        self.failures += 1
+        if rc:
+            strerr = os.strerror(rc)
+        else:
+            strerr = message
+        print "%s: Failed to unmount FS %s from %s: %s" % \
+                (node, client.fs.fs_name, client.mount_path, strerr)
+        if rc:
+            print message
+
+    def complete(self):
+        if self.failures == 0:
+            print "Umount successful."
+            return 0
+        else:
+            if self.failures == 1:
+                print "Umount failed (%d error)" % self.failures
+            else:
+                print "Umount failed (%d errors)" % self.failures
+            return 1
+
+
+
+class Umount(FSClientLiveCommand):
+    """
+    shine umount
+    """
 
     def __init__(self):
-        RemoteCommand.__init__(self)
-        
-        # the umount command supports -f and -n
-        self.fs_support = FS(self)
-        self.mntpt_support = MountPoint(self)
-        self.node_support = Node(self)
-        self.quiet_support = Quiet(self)
+        FSClientLiveCommand.__init__(self)
 
     def get_name(self):
         return "umount"
 
     def get_desc(self):
-        return "Unmount file system client(s)."
+        return "Unmount file system clients."
 
     def execute(self):
-        # for each selected file systems, get its config and unmount it on nodes
-        for fsname in self.fs_support.iter_fsname():
-            conf = Configuration(fs_name=fsname)
-            if self.local_flag or self.remote_call:
-                fs = FSLocal(conf)
-            else:
-                fs = FSProxy(conf)
-            fs.umount(self.node_support.get_nodes())
 
-    def output(self, dic):
-        if self.remote_call:
-            self._print_pickle(dic)
-        else:
-            if dic['msg'] == "UMOUNTING":
-                if not self.quiet_support.has_quiet():
-                    print "Unmounting %s" % dic['fs']
-            elif dic['msg'] == "RESULT":
-                rc = dic['rc']
-                if rc != 0:
-                    print "Unmounting of %s failed: %s" % (dic['fs'], os.strerror(rc))
-                    if dic['errbuf']:
-                        print "%s" % dic['errbuf']
-                    sys.exit(rc)
-                elif not self.quiet_support.has_quiet():
-                    print "File system %s successfully unmounted" % dic['fs']
+        if self.local_flag or self.remote_call:
+            self.opt_n = socket.gethostname()
+
+        for fsname in self.fs_support.iter_fsname():
+
+            if self.remote_call:
+                handler = RemoteCallEventHandler()
+            elif self.local_flag:
+                handler = LocalMountEventHandler(not self.opt_q)
+            else:
+                handler = GlobalUmountEventHandler(not self.opt_q)
+
+            fs_conf, fs = open_lustrefs(fsname, None,
+                    nodes=self.nodes_support.get_nodeset(),
+                    indexes=None,
+                    event_handler=handler)
+
+            fs.set_debug(self.debug_support.has_debug())
+
+            fs.umount()
+
+            if not self.remote_call:
+                return handler.complete()
 

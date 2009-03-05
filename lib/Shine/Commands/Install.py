@@ -26,6 +26,7 @@ from Shine.FSUtils import create_lustrefs
 
 from Base.Command import Command
 from Base.Support.LMF import LMF
+from Base.Support.Nodes import Nodes
 
 
 class Install(Command):
@@ -37,6 +38,7 @@ class Install(Command):
         Command.__init__(self)
 
         self.lmf_support = LMF(self)
+        self.nodes_support = Nodes(self)
 
     def get_name(self):
         return "install"
@@ -52,26 +54,34 @@ class Install(Command):
             fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
                     event_handler=self)
 
+            install_nodes = self.nodes_support.get_nodeset()
+
             # Install file system configuration files; normally, this should
             # not be done by the Shine.Lustre.FileSystem object itself, but as
             # all proxy methods are currently handled by it, it is more
             # convenient this way...
-            fs.install(fs_conf.get_cfg_filename())
+            fs.install(fs_conf.get_cfg_filename(), nodes=install_nodes)
+
+            if install_nodes:
+                nodestr = " on %s" %  install_nodes
+            else:
+                nodestr = ""
 
             print "Configuration files for file system %s have been installed " \
-                    "successfully." % fs_conf.get_fs_name()
+                    "successfully%s." % (fs_conf.get_fs_name(), nodestr)
 
-            # Print short file system summary.
-            print
-            print "Lustre targets summary:"
-            print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
-            print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
-            print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
-            print
+            if not install_nodes:
+                # Print short file system summary.
+                print
+                print "Lustre targets summary:"
+                print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
+                print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
+                print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
+                print
 
-            # Give pointer to next user step.
-            print "Use `shine format -f %s' to initialize the file system." % \
-                    fs_conf.get_fs_name()
+                # Give pointer to next user step.
+                print "Use `shine format -f %s' to initialize the file system." % \
+                        fs_conf.get_fs_name()
 
             return 0
 

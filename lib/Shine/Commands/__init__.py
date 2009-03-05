@@ -48,7 +48,9 @@ for cmd in [ "ShowConf",
              "Preinstall",
              "Status",
              "Start",
-             "Stop"]:
+             "Stop",
+             "Mount",
+             "Umount"]:
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 
