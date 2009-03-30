@@ -106,7 +106,7 @@ class Umount(FSClientLiveCommand):
     def execute(self):
 
         if self.local_flag or self.remote_call:
-            self.opt_n = socket.gethostname()
+            self.opt_n = socket.gethostname().split('.', 1)[0]
 
         for fsname in self.fs_support.iter_fsname():
 

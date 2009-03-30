@@ -27,6 +27,9 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
+import os
+import socket
+
 # Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
@@ -43,16 +46,11 @@ from Shine.FSUtils import open_lustrefs
 # Lustre events
 import Shine.Lustre.EventHandler
 
-import os
-import socket
-
 
 class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def __init__(self, verbose=False):
         self.verbose = verbose
-        self.failures = 0
-        self.success = 0
 
     def ev_stoptarget_start(self, node, target):
         if self.verbose:
@@ -60,7 +58,6 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
                     target.type.upper(), target.get_id(), target.dev)
 
     def ev_stoptarget_done(self, node, target):
-        self.success += 1
         if self.verbose:
             if target.status_info:
                 print "%s: Stop of %s %s (%s): %s" % \
@@ -71,7 +68,6 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
                         (node, target.type.upper(), target.get_id(), target.dev)
 
     def ev_stoptarget_failed(self, node, target, rc, message):
-        self.failures += 1
         if rc:
             strerr = os.strerror(rc)
         else:
@@ -81,20 +77,6 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
                         strerr)
         if rc:
             print message
-
-    def complete(self):
-        if self.failures == 0:
-            print "Stop successful."
-            return 0
-        else:
-            if self.failures == 1:
-                print "Stop failed (%d error)" % self.failures
-            else:
-                print "Stop failed (%d errors)" % self.failures
-            return 1
-
-
-
 
 
 class Stop(FSLiveCommand):
@@ -114,7 +96,7 @@ class Stop(FSLiveCommand):
     def execute(self):
 
         if self.local_flag or self.remote_call:
-            self.opt_n = socket.gethostname()
+            self.opt_n = socket.gethostname().split('.', 1)[0]
 
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
@@ -139,8 +121,18 @@ class Stop(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
-            fs.stop()
+            ok = fs.stop()
 
-            if not self.remote_call:
-                return handler.complete()
+            if self.remote_call:
+                # Remote call: lustre errors handled by caller.
+                return 0
+
+            if ok:
+                if not self.quiet_support.has_quiet():
+                    print "Stop successful."
+                return 0
+            else:
+                if not self.quiet_support.has_quiet():
+                    print "Stop failed."
+                return 1
 

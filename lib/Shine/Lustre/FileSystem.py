@@ -432,6 +432,16 @@ class FileSystem:
             # switch to public exception
             raise FSRemoteError(e.nodes, e.rc, e.message)
 
+        servers_formatall.clear()
+
+        # Ok, workers have completed, perform late status check...
+        #for target in targets_launched:
+        #    if target.state < MOUNT_RECOVERY:
+        #        # Avoid broken cascading starts, so we break now if any
+        #        # target of previous type failed to start.
+        #        return False
+
+
 
     """
     def _launch_target_action_on_servers(self, local_action, distant_action, targets, servers):
@@ -544,120 +554,175 @@ class FileSystem:
 
     def start(self, **kwargs):
         """
-        Start file system.
+        Start Lustre file system servers.
         """
-        servers_startall = NodeSet()
 
-        # What starting order?
+        # What starting order to use?
         for target in self.targets:
             if isinstance(target, MDT) and target.action_enabled:
-                # Found enabled MDT. Perform writeconf check.
+                # Found enabled MDT: perform writeconf check.
                 self.status_target(target)
                 if target.has_first_time_flag() or target.has_writeconf_flag():
-                    MDT.target_order = 2
-                    print "WRITECONF!!"
+                    # first_time or writeconf flag found, start MDT before OSTs
+                    MDT.target_order = 2 # change MDT class variable order
                     break
-
         self.targets.sort()
 
-        #print "0:"
-        for type, (a_targets, e_targets) in self.targets_by_type():
-            #print "1:", type, a_targets, e_targets
-            
-            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-                #print "2:", server, e_s_targets
+        # servers_startall is used for optimization, it contains nodes
+        # where we have to perform the start operation on all targets
+        # found for this FS. This will limit the number of FSProxyAction
+        # to spawn.
+        servers_startall = NodeSet()
 
+        # Remember targets launched, so we can check their status once
+        # all operations are done (here, status are checked after all
+        # targets of the same type have completed the start operation -
+        # with possible failure).
+        targets_launched = Set()
+
+        # iterate over targets by type
+        for type, (a_targets, e_targets) in self.targets_by_type():
+            
+            # iterate over lustre servers
+            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
+
+                # To summary, we keep targets that are:
+                # 1. enabled
+                # 2. of according type
+                # 3. on this server
                 type_e_targets = e_targets.intersection(e_s_targets)
                 if len(type_e_targets) == 0:
                     # skip as no target of this type is enabled on this server
                     continue
 
                 if server.is_local():
+                    # Start targets if we are on the good server.
                     for target in type_e_targets:
+                        # Note that target.start() should never block here:
+                        # it will perform necessary non-blocking actions and
+                        # (when needed) will start local ClusterShell workers.
                         target.start(**kwargs)
                 else:
-                    # distant server: check if all server targets have been selected
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
+                    # Distant server: for code and requests optimizations,
+                    # we check when all server targets have been selected.
                     if len(type_e_targets) == len(a_s_targets):
-                        # "start all targets on this server" detected
+                        # "start all FS targets on this server" detected
                         servers_startall.add(server)
                     else:
-                        # start per selected targets on this server
+                        # Start per selected targets on this server.
                         for t_type, t_rangeset in \
                                 self._iter_type_idx_for_targets(type_e_targets):
                             action = FSProxyAction(self, 'start',
                                     NodeSet(server), self.debug, t_type, t_rangeset)
                             action.launch()
 
+                # Remember launched targets of this server for late status check.
+                targets_launched.update(type_e_targets)
+
             if len(servers_startall) > 0:
+                # Perform the start operations on all targets for these nodes.
                 action = FSProxyAction(self, 'start', servers_startall, self.debug)
                 action.launch()
 
-            # Resume current task, ie. perform the job now and act as
-            # a target-type barrier.
+            # Resume current task, ie. start runloop, process workers events
+            # and also act as a target-type barrier.
             try:
                 task_self().resume()
             except ProxyActionError, e:
-                # switch to public exception
+                # something wrong occured, switch to public exception
                 raise FSRemoteError(e.nodes, e.rc, e.message)
-            
+
+            # Ok, workers have completed, perform late status check...
+            for target in targets_launched:
+                if target.state < MOUNT_RECOVERY:
+                    # Avoid broken cascading starts, so we break now if
+                    # a target of the previous type failed to start.
+                    return False
+
+            # Some needed cleanup before next target type.
             servers_startall.clear()
+            targets_launched.clear()
+
+        return True
+
 
     def stop(self, **kwargs):
         """
         Stop file system.
         """
-        servers_stopall = NodeSet()
+        ok = True
 
+        # Stop: reverse order
         self.targets.sort()
         self.targets.reverse()
 
-        #print "0:"
-        for type, (a_targets, e_targets) in self.targets_by_type():
-            #print "1:", type, a_targets, e_targets
-            
-            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-                #print "2:", server, e_s_targets
+        # servers_stopall is used for optimization, see the comment in
+        # start() for servers_startall.
+        servers_stopall = NodeSet()
 
+        # Remember targets when stop was launched.
+        targets_stopping = Set()
+
+        # We use a similar logic than start(): see start() for comments.
+        # iterate over targets by type
+        for type, (a_targets, e_targets) in self.targets_by_type():
+            # iterate over lustre servers
+            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
                 type_e_targets = e_targets.intersection(e_s_targets)
                 if len(type_e_targets) == 0:
                     # skip as no target of this type is enabled on this server
                     continue
 
                 if server.is_local():
+                    # Stop targets if we are on the good server.
                     for target in type_e_targets:
                         target.stop(**kwargs)
                 else:
-                    # distant server: check if all server targets have been selected
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
+                    # Distant server: for code and requests optimizations,
+                    # we check when all server targets have been selected.
                     if len(type_e_targets) == len(a_s_targets):
-                        # "stop all targets on this server" detected
+                        # "stop all FS targets on this server" detected
                         servers_stopall.add(server)
                     else:
-                        # stop per selected targets on this server
+                        # Stop per selected targets on this server.
                         for t_type, t_rangeset in \
                                 self._iter_type_idx_for_targets(type_e_targets):
                             action = FSProxyAction(self, 'stop',
                                     NodeSet(server), self.debug, t_type, t_rangeset)
                             action.launch()
 
+                # Remember launched stopping targets of this server for late status check.
+                targets_stopping.update(type_e_targets)
+
             if len(servers_stopall) > 0:
+                # Perform the stop operations on all targets for these nodes.
                 action = FSProxyAction(self, 'stop', servers_stopall, self.debug)
                 action.launch()
 
-            # Resume current task, ie. perform the job now and act as
-            # a target-type barrier.
             try:
                 task_self().resume()
             except ProxyActionError, e:
-                # switch to public exception
                 raise FSRemoteError(e.nodes, e.rc, e.message)
-            
+
+            # Ok, workers have completed, perform late status check...
+            for target in targets_stopping:
+                if target.state > DOWN:
+                    # Avoid broken cascading stop?
+                    ok = False
+                    print "WRONG state %d for %s" % (target.state, target.dev)
+                    break
+
+            # Some needed cleanup before next target type.
             servers_stopall.clear()
+            targets_stopping.clear()
+
+        return ok
 
     def mount(self, **kwargs):
         """
@@ -721,4 +786,44 @@ class FileSystem:
 
     def info(self):
         pass
+
+    def tune(self, tuning_model):
+        """
+        Tune server.
+        """
+        tune_all = NodeSet()
+        type_map = { 'mgt': 'mgs', 'mdt': 'mds', 'ost' : 'oss' }
+
+        for server, (a_targets, e_targets) in self._iter_targets_by_server():
+            
+            if server.is_local():
+                types = Set()
+                for t in e_targets:
+                    types.add(type_map[t.type])
+
+                server.tune(tuning_model, types, self.fs_name)
+            else:
+                # distant server
+                if len(a_targets) == len(e_targets):
+                    # group in one action
+                    tune_all.add(server)
+                else:
+                    # otherwise, tune per selected targets on this server
+                    for t_type, t_rangeset in \
+                            self._iter_type_idx_for_targets(e_targets):
+                        action = FSProxyAction(self, 'tune',
+                                NodeSet(server), self.debug, t_type, t_rangeset)
+                        action.launch()
+
+        if len(tune_all) > 0:
+            action = FSProxyAction(self, 'tune', tune_all, self.debug)
+            action.launch()
+
+        try:
+            task_self().resume()
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
+
+        tune_all.clear()
 

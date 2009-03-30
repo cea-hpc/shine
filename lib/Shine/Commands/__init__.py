@@ -50,7 +50,8 @@ for cmd in [ "ShowConf",
              "Start",
              "Stop",
              "Mount",
-             "Umount"]:
+             "Umount",
+             "Tune"]:
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 

@@ -227,7 +227,7 @@ class Format(RemoteCommand):
             raise "No FS"
         try:
             if self.local_flag or self.remote_call:
-                self.opt_n = socket.gethostname()
+                self.opt_n = socket.gethostname().split('.', 1)[0]
 
             target = self.target_support.get_target()
             for fsname in self.fs_support.iter_fsname():
@@ -263,12 +263,14 @@ class Format(RemoteCommand):
                     mkfs_options[target_type] = \
                             fs_conf.get_target_mkfs_options(target_type) 
 
-                fs.format(stripecount=fs_conf.get_stripecount(),
-                          stripesize=fs_conf.get_stripesize(),
-                          format_params=format_params,
-                          mkfs_options=mkfs_options,
-                          quota=fs_conf.has_quota(),
-                          quota_options=fs_conf.get_quota_options())
+                ok = fs.format(stripecount=fs_conf.get_stripecount(),
+                        stripesize=fs_conf.get_stripesize(),
+                        format_params=format_params,
+                        mkfs_options=mkfs_options,
+                        quota=fs_conf.has_quota(),
+                        quota_options=fs_conf.get_quota_options())
+
+                print "format: %s" % ok
 
                 if not self.remote_call:
                     return handler.complete()

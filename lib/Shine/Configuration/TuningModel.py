@@ -212,7 +212,7 @@ class TuningParameter:
         Function used to create a string representation of the
         parameter object
         """
-        return "value : %s - name : %s - nodes: %s" % (self._parameter_value, \
+        return "value : %s - name : %s - nodes/types: %s" % (self._parameter_value, \
                 self._parameter_name, str(self._node_type_list))
         
     def parse_parameter_string(parameter_string):
@@ -262,37 +262,37 @@ class TuningParameter:
     parse_parameter_string = staticmethod(parse_parameter_string)
     
     def build_tuning_command(self, fs_name):
-            """
-            This function aims to apply the tuning parameter to the
-            local node
-            """
-            file_path_pattern = self._parameter_name
-            
-            # Replace variables in the command string
-            # The three possibles vars are $[fsname}, ${ost} and ${mdt}
-            # that match respectivly the name of the file system , all the ost
-            # and all the mdt involved in the considered file system
-            file_path_pattern = file_path_pattern.replace("${ost}", \
-                    "%s-OST" %(fs_name))
-            file_path_pattern = file_path_pattern.replace("${mdt}", \
-                    "%s-MDT" %(fs_name))
-            file_path_pattern = file_path_pattern.replace("${fsname}", \
-                    "%s" %(fs_name))
-                        
-            # Expands wild cards
-            file_pathes = glob.glob(file_path_pattern)
-            
-            # Initialize the list of commands
-            command_list = []
-            
-            # Walk through the list of pathes and create a command for each one
-            # of them
-            for path in file_pathes:
-                command_list.append("echo \"%s\" > %s" % \
-                        (self._parameter_value, path))
+        """
+        This function aims to apply the tuning parameter to the
+        local node
+        """
+        file_path_pattern = self._parameter_name
+        
+        # Replace variables in the command string
+        # The three possibles vars are $[fsname}, ${ost} and ${mdt}
+        # that match respectively the name of the file system , all the ost
+        # and all the mdt involved in the considered file system
+        file_path_pattern = file_path_pattern.replace("${ost}", \
+                "%s-OST" %(fs_name))
+        file_path_pattern = file_path_pattern.replace("${mdt}", \
+                "%s-MDT" %(fs_name))
+        file_path_pattern = file_path_pattern.replace("${fsname}", \
+                "%s" %(fs_name))
+                    
+        # Expands wild cards
+        file_pathes = glob.glob(file_path_pattern)
+        
+        # Initialize the list of commands
+        command_list = []
+        
+        # Walk through the list of pathes and create a command for each one
+        # of them
+        for path in file_pathes:
+            command_list.append("echo \"%s\" > %s" % \
+                    (self._parameter_value, path))
 
-            # Return the newly created commands to the caller
-            return command_list
+        # Return the newly created commands to the caller
+        return command_list
 
 
 class TuningParameterDeclarationException(ConfigException):
@@ -478,7 +478,7 @@ class TuningModel:
         
         # Build the patterns to retrieve alias and parameter declaration
         alias_pattern="^\s*alias *"
-        parameter_pattern="^\s*\".*\"\s *"
+        parameter_pattern='^\s*"*[A-Za-z0-9_-]+"*\s+[A-Za-z0-9_-]+\s+[A-Za-z]+'
         
         # Build regexp objects for pattern matching
         alias_regexp = re.compile(alias_pattern)

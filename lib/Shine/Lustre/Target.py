@@ -310,6 +310,22 @@ class Target(Disk):
         except TargetDeviceError, e:
             self.fs._invoke('ev_starttarget_failed', target=self, rc=None, message=str(e))
 
+    def _start_done(self):
+        """Called by Actions.StartTarget when done"""
+        self._lustre_check()
+        assert self.state >= MOUNT_RECOVERY
+        self.fs._invoke('ev_starttarget_done', target=self)
+
+    def _start_timeout(self):
+        """Called by Actions.StartTarget on timeout"""
+        self._lustre_check()
+        self.fs._invoke('ev_starttarget_timeout', target=self)
+
+    def _start_failed(self, rc, message):
+        """Called by Actions.StartTarget on failure"""
+        self._lustre_check()
+        self.fs._invoke('ev_starttarget_failed', target=self, rc=rc, message=message)
+
     def stop(self, **kwargs):
 
         self.fs._invoke('ev_stoptarget_start', target=self)
@@ -332,6 +348,21 @@ class Target(Disk):
 
         except TargetDeviceError, e:
             self.fs._invoke('ev_stoptarget_failed', target=self, rc=None, message=str(e))
+
+    def _stop_done(self):
+        """Called by Actions.StopTarget when done"""
+        self._lustre_check()
+        self.fs._invoke('ev_stoptarget_done', target=self)
+
+    def _stop_timeout(self):
+        """Called by Actions.StopTarget on timeout"""
+        self._lustre_check()
+        self.fs._invoke('ev_stoptarget_timeout', target=self)
+
+    def _stop_failed(self, rc, message):
+        """Called by Actions.StopTarget on failure"""
+        self._lustre_check()
+        self.fs._invoke('ev_stoptarget_failed', target=self, rc=rc, message=message)
 
     def fcsk(self):
         pass

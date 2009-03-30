@@ -124,8 +124,10 @@ class Status(FSLiveCommand):
 
     def execute(self):
 
+        result = -1
+
         if self.local_flag or self.remote_call:
-            self.opt_n = socket.gethostname()
+            self.opt_n = socket.gethostname().split('.', 1)[0]
 
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
@@ -158,7 +160,9 @@ class Status(FSLiveCommand):
             if view.startswith("client"):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
 
-            fs.status(status_flags)
+            rc = fs.status(status_flags)
+            if rc > result:
+                result = rc
 
             if self.local_flag or self.remote_call:
                 return
@@ -172,7 +176,7 @@ class Status(FSLiveCommand):
             else:
                 raise CommandBadParameterError(self.view_support.get_view(),
                         "fs, targets, disks")
-            
+        return result
 
     def status_view_targets(self, fs):
         """
@@ -383,10 +387,10 @@ class Status(FSLiveCommand):
         layout = AsciiTableLayout()
         layout.set_show_header(True)
         i = 0
-        layout.set_column("nodes", i, AsciiTableLayout.LEFT, "node(s)",
+        layout.set_column("dev", i, AsciiTableLayout.LEFT, "device",
                 AsciiTableLayout.CENTER)
         i += 1
-        layout.set_column("dev", i, AsciiTableLayout.LEFT, "device",
+        layout.set_column("nodes", i, AsciiTableLayout.LEFT, "node(s)",
                 AsciiTableLayout.CENTER)
         i += 1
         layout.set_column("size", i, AsciiTableLayout.RIGHT, "dev size",

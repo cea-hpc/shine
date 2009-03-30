@@ -178,6 +178,7 @@ class ModelFile:
             rg, value = sfx.split(']', 1)
             rg_list.append(rg)
             fmt += "%s%%s" % pfx
+        fmt += value
 
         if len(rg_list) == 0:
             # No range, it's a single entry. Process directly.

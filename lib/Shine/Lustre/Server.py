@@ -22,6 +22,8 @@
 from Shine.Configuration.Globals import Globals
 
 from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Task import task_self
+
 
 import socket
 
@@ -40,8 +42,35 @@ class Server(NodeSet):
         local_hostname_short = local_hostname.split('.', 1)[0]
         assert len(self) == 1
         hostname = NodeSet.__str__(self)
-        return local_hostname == hostname or \
-                local_hostname_short == hostname
+        if local_hostname == hostname or local_hostname_short == hostname:
+            return True
+        hostname_short = hostname.split('.', 1)[0]
+        return hostname_short == local_hostname_short
+
+    def tune(self, tuning_model, types, fs_name):
+        """
+        Tune server parameters.
+        """
+        task = task_self()
+
+        # Retrieve the list of tuning parameters that must be applied to
+        # the current node
+        tuning_parameters = tuning_model.get_params_for_name(NodeSet.__str__(self),
+                types)
+        
+        # Walk through the tuning parameters list and apply each one of them
+        for tuning_parameter in tuning_parameters:
+            # Build the command which must be executed on this node to
+            # tune de file system.
+            command_list = tuning_parameter.build_tuning_command(fs_name)
+            
+            # Walk through the list of commands created for this parameters
+            # and create a shell for each one of them.
+            for command in command_list:
+                task.shell(command)
+
+        task.resume()
+
 
 
 """

@@ -52,9 +52,13 @@ class StopTarget(Action):
         """
         Check process termination status and generate appropriate events.
         """
-        if worker.retcode() == 0:
-            self.target.fs._invoke('ev_stoptarget_done', target=self.target)
+        if worker.did_timeout():
+            # action timed out
+            self.target._stop_timeout()
+        elif worker.retcode() == 0:
+            # action succeeded
+            self.target._stop_done()
         else:
-            self.target.fs._invoke('ev_stoptarget_failed', target=self.target,
-                    rc=worker.retcode(), message=worker.read())
+            # action failure
+            self.target._stop_failed(worker.retcode(), worker.read())
 

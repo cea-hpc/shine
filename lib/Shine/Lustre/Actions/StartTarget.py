@@ -119,9 +119,13 @@ class StartTarget(Action):
         """
         Check process termination status and generate appropriate events.
         """
-        if worker.retcode() == 0:
-            self.target.fs._invoke('ev_starttarget_done', target=self.target)
+        if worker.did_timeout():
+            # action timed out
+            self.target._start_timeout()
+        elif worker.retcode() == 0:
+            # action succeeded
+            self.target._start_done()
         else:
-            self.target.fs._invoke('ev_starttarget_failed', target=self.target,
-                    rc=worker.retcode(), message=worker.read())
+            # action failure
+            self.target._start_failed(worker.retcode(), worker.read())
 
