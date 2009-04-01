@@ -1,5 +1,5 @@
 # RemoteCommand.py -- Base command with remote capabilities
-# Copyright (C) 2008 CEA
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -23,8 +23,11 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 from Command import Command
+from RemoteCallEventHandler import RemoteCallEventHandler
+from Support.Nodes import Nodes
 
-import binascii, pickle
+import socket
+
 
 class RemoteCommand(Command):
     
@@ -35,6 +38,8 @@ class RemoteCommand(Command):
         attr = { 'optional' : True, 'hidden' : True }
         self.add_option('L', None, attr, cb=self.parse_L)
         self.add_option('R', None, attr, cb=self.parse_R)
+        self.nodes_support = Nodes(self)
+        self.eventhandler = None
 
     def parse_L(self, opt, arg):
         self.local_flag = True
@@ -42,10 +47,32 @@ class RemoteCommand(Command):
     def parse_R(self, opt, arg):
         self.remote_call = True
 
-    #
-    # Special output helper (pickling)
-    #
-    def _print_pickle(self, tpl):
-        assert self.remote_call == True
-        print "SHINE:1:%s" % binascii.b2a_base64(pickle.dumps(tpl, -1)),
+    def has_local_flag(self):
+        return self.local_flag or self.remote_call
+
+    def init_execute(self):
+        """
+        Initialize execution of remote command, if needed. Should be called
+        first from derived classes before really executing the command.
+        """
+        # Limit the scope of the command if called with local flag (-L) or
+        # called remotely (-R).
+        if self.has_local_flag():
+            self.opt_n = socket.gethostname().split('.', 1)[0]
+
+    def install_eventhandler(self, local_eventhandler, global_eventhandler):
+        """
+        Select and install the appropriate event handler.
+        """
+        if self.remote_call:
+            # When called remotely (-R), install a special event handler
+            # that knows how to speak the Shine Proxy Protocol using pickle.
+            self.eventhandler = RemoteCallEventHandler()
+        elif self.local_flag:
+            self.eventhandler = local_eventhandler
+        else:
+            self.eventhandler = global_eventhandler
+        # return handler for convenience
+        return self.eventhandler
+
 

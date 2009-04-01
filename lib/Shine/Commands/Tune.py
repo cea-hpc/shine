@@ -34,53 +34,34 @@ from Shine.Configuration.TuningModel import TuningParameterDeclarationException
 
 # Command base class
 from Base.FSLiveCommand import FSLiveCommand
+from Base.CommandRCDefs import *
 # -R handler
-from RemoteCallEventHandler import RemoteCallEventHandler
+from Base.RemoteCallEventHandler import RemoteCallEventHandler
 
 # Command helper
 from Shine.FSUtils import open_lustrefs
 
 # Lustre events
 import Shine.Lustre.EventHandler
-
-import socket
+from Shine.Lustre.FileSystem import *
 
 
 class GlobalTuneEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=1):
         self.verbose = verbose
 
-    """
-    TODO : add tune events
+    def pre(self, fs):
+        if self.verbose > 0:
+            print "Tuning filesystem %s..." % fs.fs_name
 
-    def ev_starttarget_start(self, node, target):
-        if self.verbose:
-            print "%s: Starting %s %s (%s)..." % (node, \
-                    target.type.upper(), target.get_id(), target.dev)
+    def post_ok(self, fs):
+        if self.verbose > 0:
+            print "Filesystem %s successfully tuned." % fs.fs_name
 
-    def ev_starttarget_done(self, node, target):
-        if self.verbose:
-            if target.status_info:
-                print "%s: Start of %s %s (%s): %s" % \
-                        (node, target.type.upper(), target.get_id(), target.dev,
-                                target.status_info)
-            else:
-                print "%s: Start of %s %s (%s) succeeded" % \
-                        (node, target.type.upper(), target.get_id(), target.dev)
-
-    def ev_starttarget_failed(self, node, target, rc, message):
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to start %s %s (%s): %s" % \
-                (node, target.type.upper(), target.get_id(), target.dev,
-                        strerr)
-        if rc:
-            print message
-    """
-
+    def post_ko(self, fs, status):
+        if self.verbose > 0:
+            print "Tuning of filesystem %s failed." % fs.fs_name
 
 
 class Tune(FSLiveCommand):
@@ -95,54 +76,82 @@ class Tune(FSLiveCommand):
         return "Tune file system servers."
 
     def execute(self):
+        result = 0
 
-        if self.local_flag or self.remote_call:
-            self.opt_n = socket.gethostname()
+        self.init_execute()
+
+        # Get verbose level.
+        vlevel = self.verbose_support.get_verbose_level()
 
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
 
-            if self.remote_call:
-                handler = RemoteCallEventHandler()
-            elif self.local_flag:
-                handler = LocalStartEventHandler(not self.opt_q)
-            else:
-                handler = GlobalTuneEventHandler(not self.opt_q)
+            # Install appropriate event handler.
+            eh = self.install_eventhandler(None,
+                    GlobalTuneEventHandler(vlevel))
 
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     indexes=self.indexes_support.get_rangeset(),
-                    event_handler=handler)
+                    event_handler=eh)
 
             fs.set_debug(self.debug_support.has_debug())
 
-            # Is the tuning configuration file name specified ?
-            if not Globals().get_tuning_file():
-                # No.  Create an empty tuning model.
-                tuning = TuningModel()
+            tuning = self.get_tuning(fs_conf)
+            if not tuning:
+                continue
+
+            # Will call the handle_pre() method defined by the event handler.
+            if hasattr(eh, 'pre'):
+                eh.pre(fs)
+                
+            status = fs.tune(tuning)
+            if status == RUNTIME_ERROR:
+                for nodes, msg in fs.proxy_errors:
+                    print nodes
+                    print '-' * 15
+                    print msg
+                return RC_RUNTIME_ERROR
+            elif status == 0:
+                if hasattr(eh, 'post_ok'):
+                    eh.post_ok(fs)
             else:
-                # Yes.
-                # Load the tuning configuration file
-                tuning = TuningModel(filename=Globals().get_tuning_file())
-                try:
-                    # Parse the tuning model
-                    tuning.parse()
+                if hasattr(eh, 'post_ko'):
+                    eh.post_ko(fs, status)
 
-                    # Add the quota tuning parameters to the tuning model.
-                    self._add_quota_tuning(tuning, fs_conf)
+            return RC_OK
 
-                except TuningParameterDeclarationException, tpde:
-                    # An error has occured during parsing of tuning configuration file
-                    print "%s" % str(tpde)
-                    # Break the tuning process for the currently processed file system
-                    continue
+    def get_tuning(cls, fs_conf):
+        """
+        Tune class method: get TuningModel for a fs configuration.
+        """
+        tuning = None
+        # Is the tuning configuration file name specified ?
+        if not Globals().get_tuning_file():
+            # No.  Create an empty tuning model.
+            tuning = TuningModel()
+        else:
+            # Yes.
+            # Load the tuning configuration file
+            tuning = TuningModel(filename=Globals().get_tuning_file())
+            try:
+                # Parse the tuning model
+                tuning.parse()
 
-            fs.tune(tuning)
+                # Add the quota tuning parameters to the tuning model.
+                cls._add_quota_tuning(tuning, fs_conf)
 
-    #        if not self.remote_call:
-    #            return handler.complete()
+            except TuningParameterDeclarationException, tpde:
+                # An error has occured during parsing of tuning configuration file
+                print "%s" % str(tpde)
+                # Break the tuning process for the currently processed file system
+                return None
 
-    def _add_quota_tuning(self, tuning_model, fs_conf):
+        return tuning
+
+    get_tuning = classmethod(get_tuning)
+
+    def _add_quota_tuning(cls, tuning_model, fs_conf):
         """
         This function is used to add the quota tuning information to the tuning model
         provided by the caller.
@@ -222,4 +231,6 @@ class Tune(FSLiveCommand):
 
             # Convert the parameter aliases to the real parameter name
             tuning_model.convert_parameter_aliases()
+
+    _add_quota_tuning = classmethod(_add_quota_tuning)
 

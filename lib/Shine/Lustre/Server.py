@@ -71,24 +71,5 @@ class Server(NodeSet):
 
         task.resume()
 
+        return task.max_retcode()
 
-
-"""
-class ServerLocal(Server):
-
-    def start(self, targets):
-        print "ServerLocal %s" % targets
-        for target in targets:
-            target.start()
-
-
-class ServerDistant(Server):
-
-    def start(self, targets):
-        print "ServerDistant %s" % targets
-        # distant start....
-        
-        proxy = Start()
-        proxy.launch()
-
-"""

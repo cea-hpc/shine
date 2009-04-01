@@ -31,7 +31,29 @@ class Verbose:
         self.cmd = cmd
         self.cmd.add_option('v', None, attr)
 
+        attr = { 'optional' : True,
+                 'hidden' : False,
+                 'doc' : "enable quiet output" }
+
+        self.cmd.add_option('q', None, attr)
     
     def has_verbose(self):
         return self.cmd.opt_v
+
+    def has_quiet(self):
+        return self.cmd.opt_q
+    
+    def get_verbose_level(self):
+        """
+        Get verbose level:
+            0 = quiet, no output
+            1 = standard
+            2 = verbose ouptut
+        """
+        if self.has_quiet():
+            return 0
+        elif not self.has_verbose():
+            return 1
+        else:
+            return 2
 

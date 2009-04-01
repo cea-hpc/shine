@@ -1,5 +1,5 @@
 # CommandRegistry.py -- Shine commands registry
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007, 2009 CEA
 #
 # This file is part of shine
 #
@@ -42,6 +42,7 @@ class CommandRegistry:
     def __init__(self):
         self.cmd_list = []
         self.cmd_dict = {}
+        self.cmd_optargs = {}
 
         # Autoload commands
         self._load()
@@ -68,26 +69,52 @@ class CommandRegistry:
 
     def register(self, cmd):
         "Register a new command."
-        if not isinstance(cmd, Command):
-            raise something   # FIXME
+        assert isinstance(cmd, Command)
 
         self.cmd_list.append(cmd)
         self.cmd_dict[cmd.get_name()] = cmd
 
-    def execute(self, name, args):
+        # Keep an eye on ALL option arguments, this is to insure a global
+        # options coherency within shine and allow us to intermix options and
+        # command -- see execute() below.
+        for i in range(0, len(cmd.getopt_string)-1):
+            c = cmd.getopt_string[i]
+            if c == ':':
+                continue
+            has_arg = (cmd.getopt_string[i+1] == ':')
+            if c in self.cmd_optargs:
+                assert self.cmd_optargs[c] == has_arg, "Incoherency in option arguments"
+            else:
+                self.cmd_optargs[c] = has_arg 
+
+    def execute(self, args):
+        """
+        Execute a shine script command.
+        """
+        # Get command and options. Options and command may be intermixed.
+        CommandRegistry.current = None
+        new_args = []
         try:
-            CommandRegistry.current = self.get(name)
+            # Find command through options...
+            next_is_arg = False
+            for opt in args:
+                if opt.startswith('-'):
+                    new_args.append(opt)
+                    next_is_arg = self.cmd_optargs[opt[-1:]]
+                elif next_is_arg:
+                    new_args.append(opt)
+                    next_is_arg = False
+                else:
+                    if CommandRegistry.current:
+                        raise CommandHelpException("Syntax error.", CommandRegistry.current)
+                    CommandRegistry.current = self.get(opt)
+                    next_is_arg = False
         except KeyError, e:
-            raise CommandNotFoundError(name)
+            raise CommandNotFoundError(opt)
 
         # Parse
-        CommandRegistry.current.parse(args)
+        CommandRegistry.current.parse(new_args)
 
         # Execute
         return CommandRegistry.current.execute()
-
-    def output(cls, *args, **kwargs):
-        CommandRegistry.current.output(kwargs)
-    output = classmethod(output)
-
 

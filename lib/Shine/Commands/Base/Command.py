@@ -25,15 +25,14 @@ from Shine.Configuration.Exceptions import *
 
 from Support.Debug import Debug
 
+from CommandRCDefs import *
+
 import getopt
+
 
 #
 # Command exceptions are defined in Shine.Command.Exceptions
 #
-
-# ----------------------------------------------------------------------
-# Base Command Class and command class definitions
-# ----------------------------------------------------------------------
 
 class Command(object):
     """
@@ -46,6 +45,8 @@ class Command(object):
         self.params_desc = ""
         self.last_optional = 0
         self.arguments = None
+
+        # All commands have debug support.
         self.debug_support = Debug(self)
 
     def is_hidden(self):
@@ -102,20 +103,15 @@ class Command(object):
 
     def parse(self, args):
         """
-        Parse command arguments."
+        Parse command arguments.
         """
-        try:
-            #print "getopt_string: %s" % self.getopt_string
+        options, arguments = getopt.getopt(args, self.getopt_string)
+        self.arguments = arguments
 
-            options, arguments = getopt.getopt(args, self.getopt_string)
-            self.arguments = arguments
-
-            for opt, arg in options:
-                trim_opt = opt[1:]
-                callback = self.options.get(trim_opt)
-                if callback:
-                    callback(trim_opt, arg)
-                object.__setattr__(self, "opt_%s" % trim_opt, arg or True)
-        except getopt.GetoptError, e:
-            raise
+        for opt, arg in options:
+            trim_opt = opt[1:]
+            callback = self.options.get(trim_opt)
+            if callback:
+                callback(trim_opt, arg)
+            object.__setattr__(self, "opt_%s" % trim_opt, arg or True)
 

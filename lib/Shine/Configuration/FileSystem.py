@@ -374,10 +374,11 @@ class FileSystem(Model):
         This function aims to remove a file system configuration from
         the backend.        
         """
+        result = 0
         if self._start_backend():
             result = self.backend.unregister_fs(self)
 
-        # remove the XMF file
-        os.unlink(self.xmf_path)
+        if not result:
+            os.unlink(self.xmf_path)
 
         return result

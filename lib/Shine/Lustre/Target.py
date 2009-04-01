@@ -61,8 +61,8 @@ class TargetDeviceError(TargetError):
         return self.message
 
 
-# Constants for target states
-(DOWN, LOADED, MOUNT_RECOVERY, MOUNT_COMPLETE) = range(4)
+# Constants for target/client states
+(MOUNTED, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(7)
 
 
 class Target(Disk):
@@ -91,6 +91,7 @@ class Target(Disk):
         ## Always available variables
 
         # target's servers: master server is always self.servers[0]
+        self.server = server # temp until HA is fully implemented
         self.servers = [ server ]
 
         # selected server
@@ -175,7 +176,7 @@ class Target(Disk):
 
         # check for label presence in /proc : is this lustre target started?
         if not os.path.isdir("/proc/fs/lustre/%s/%s" % (d_container, self.label)):
-            self.state = DOWN
+            self.state = OFFLINE
         else:
             # get target's real device
             f = open("/proc/fs/lustre/%s/%s/mntdev" % (d_container, self.label))
@@ -184,7 +185,7 @@ class Target(Disk):
             finally:
                 f.close()
 
-            self.state = LOADED
+            loaded = True
 
             # check for presence in /proc/mounts
             f_proc_mounts = open("/proc/mounts", 'r')
@@ -192,21 +193,22 @@ class Target(Disk):
                 for line in f_proc_mounts:
                     if line.find("%s " % self.mntdev) == 0:
                         if line.split(' ', 3)[2] == "lustre":
-                            if self.state == LOADED:
-                                self.state = MOUNT_COMPLETE
+                            if loaded:
+                                self.state = MOUNTED
                             else:
                                 raise TargetDeviceError(self, "multiple mounts detected for %s" % \
                                         self.label)
             finally:
                 f_proc_mounts.close()
 
-            if self.state == LOADED:
+            if self.state != MOUNTED and loaded:
+                self.state = TARGET_ERROR
                 # up but not mounted = incoherent state
                 # check for loaded state: ST, UP...
                 raise TargetDeviceError(self, "incoherent state for %s (started but not mounted?)" % \
                        self.label)
 
-            if self.state == MOUNT_COMPLETE and self.type != 'mgt':
+            if self.state == MOUNTED and self.type != 'mgt':
                 # check for MDT or OST recovery
                 try:
                     f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map[self.type],
@@ -240,7 +242,7 @@ class Target(Disk):
                                 key, time_remaining = line.rstrip().split(' ', 2)
                             if line.startswith("completed_clients:"):
                                 key, completed_clients = line.rstrip().split(' ', 2)
-                        self.state = MOUNT_RECOVERY
+                        self.state = RECOVERING
                         self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
                 finally:
                     f.close()
@@ -249,18 +251,36 @@ class Target(Disk):
 
     def format(self, **kwargs):
 
+        self.state = INPROGRESS
         self.fs._invoke('ev_format_start', target=self)
 
         try:
             self._device_check()
+        except DiskDeviceError, e:
+            self.state = TARGET_ERROR
+            self.fs._invoke('ev_format_failed', target=self, rc=1, message=e.message)
+            return
 
-            # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
-            if not self.dev_isblk:
-                # configure one engine client max per task (sequential, bah.)
-                task_self().set_info("fanout", 1)
+        try:
+            self._lustre_check()
 
-            action = Format(self, **kwargs)
-            action.launch()
+            if self.state == OFFLINE:
+                # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
+                if not self.dev_isblk:
+                    # configure one engine client max per task (sequential, bah.)
+                    task_self().set_info("fanout", 1)
+
+                self.state = INPROGRESS
+                action = Format(self, **kwargs)
+                action.launch()
+            else:
+                # Target state is not DOWN... cannot format device.
+                if self.state > LOADED:
+                    reason = "Cannot format: target %s (%s) is started"
+                else:
+                    reason = "Cannot format: target %s (%s) is busy"
+
+                raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetDeviceError, e:
             self.fs._invoke('ev_format_failed', target=self, rc=-1, message=str(e))
@@ -275,7 +295,9 @@ class Target(Disk):
             # check for disk level status
             self._disk_check(self.fs.fs_name, self.label)
         except DiskDeviceError, e:
+            self.state = TARGET_ERROR
             self.fs._invoke('ev_statustarget_failed', target=self, rc=1, message=e.message)
+            return
 
         # check for Lustre level status
         self._lustre_check()
@@ -284,15 +306,16 @@ class Target(Disk):
 
     def start(self, **kwargs):
 
+        self.state = INPROGRESS
         self.fs._invoke('ev_starttarget_start', target=self)
 
         try:
             self._device_check()
             self._lustre_check()
 
-            if self.state != DOWN:
+            if self.state != OFFLINE:
                 # already mounted ?
-                if  self.state == MOUNT_RECOVERY or self.state == MOUNT_COMPLETE:
+                if  self.state == RECOVERING or self.state == MOUNTED:
                     self.status_info = "%s is already started" % self.label
                     self.fs._invoke('ev_starttarget_done', target=self)
                     return
@@ -310,31 +333,31 @@ class Target(Disk):
         except TargetDeviceError, e:
             self.fs._invoke('ev_starttarget_failed', target=self, rc=None, message=str(e))
 
-    def _start_done(self):
-        """Called by Actions.StartTarget when done"""
+    def _action_done(self, act):
+        """Called by Actions.* when done"""
         self._lustre_check()
-        assert self.state >= MOUNT_RECOVERY
-        self.fs._invoke('ev_starttarget_done', target=self)
+        self.fs._invoke('ev_%s_done' % act, target=self)
 
-    def _start_timeout(self):
-        """Called by Actions.StartTarget on timeout"""
+    def _action_timeout(self, act):
+        """Called by Actions.* on timeout"""
         self._lustre_check()
-        self.fs._invoke('ev_starttarget_timeout', target=self)
+        self.fs._invoke('ev_%s_timeout' % act, target=self)
 
-    def _start_failed(self, rc, message):
-        """Called by Actions.StartTarget on failure"""
+    def _action_failed(self, act, rc, message):
+        """Called by Actions.* on failure"""
         self._lustre_check()
-        self.fs._invoke('ev_starttarget_failed', target=self, rc=rc, message=message)
+        self.fs._invoke('ev_%s_failed' % act, target=self, rc=rc, message=message)
 
     def stop(self, **kwargs):
 
+        self.state = INPROGRESS
         self.fs._invoke('ev_stoptarget_start', target=self)
 
         try:
             self._disk_check()
             self._lustre_check()
 
-            if self.state == DOWN:
+            if self.state == OFFLINE:
                 self.status_info = "%s is already stopped" % self.label
                 self.fs._invoke('ev_stoptarget_done', target=self)
                 return

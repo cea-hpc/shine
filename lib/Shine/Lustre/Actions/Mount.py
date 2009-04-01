@@ -49,15 +49,15 @@ class Mount(Action):
         Mount file system target.
         """
 
+        """
         mnt_opts = self.target.self.fs.config.get_mount_options()
         if len(mnt_opts) > 0:
             mnt_opts = "-o %s" % mnt_opts
 
-        cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
+        cmd = "/sbin/modprobe lustre && mkdir -p \"%s\" && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
                 mnt_opts, self.fs.get_mgs_nid(),
                 self.fs.config.get_fs_name(), self.mntp)
-
-
+        """
 
         if not self.target:
             # Client mounts
@@ -68,7 +68,7 @@ class Mount(Action):
             if len(mnt_opts) > 0:
                 mnt_opts = "-o %s" % mnt_opts
 
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
+            cmd = "mkdir -p \"%s\" && /sbin/modprobe lustre && /bin/mount -t lustre %s %s:/%s \"%s\"" % (self.mntp,
                     mnt_opts, self.fs.get_mgs_nid(),
                     self.fs.config.get_fs_name(), self.mntp)
         else:
@@ -80,7 +80,7 @@ class Mount(Action):
             if len(mnt_opts) > 0:
                 mnt_opts = "-o %s" % mnt_opts
 
-            cmd = "mkdir -p \"%s\" && /bin/mount -t lustre %s %s \"%s\"" % (self.mntp,
+            cmd = "mkdir -p \"%s\" && /sbin/modprobe lustre && /bin/mount -t lustre %s %s \"%s\"" % (self.mntp,
                     mnt_opts, self.target.dev, self.mntp)
             #cmd = "mkdir -p \"%s\" && /bin/mount -t lustre -o abort_recov %s \"%s\"" % (self.mntp,
             #        self.target.dev, self.mntp)

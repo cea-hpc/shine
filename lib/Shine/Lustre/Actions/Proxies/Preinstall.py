@@ -1,5 +1,5 @@
-# CreateDirs.py -- Create shine Lustre FS config directories
-# Copyright (C) 2007 CEA
+# Preinstall.py -- Create shine Lustre FS config directories
+# Copyright (C) 2007, 2009 CEA
 #
 # This file is part of shine
 #

@@ -30,24 +30,23 @@ from ClusterShell.Task import Task
 from ClusterShell.Worker import Worker
 
 import os
-import sys
 
 class Install(Action):
     """
-    Action class: install file system configuration requirements on remote nodes.
+    Action class: install file configuration requirements on remote nodes.
     """
 
-    def __init__(self, nodes, fs, fs_config_file):
+    def __init__(self, nodes, fs, config_file):
         Action.__init__(self)
         self.nodes = nodes
         self.fs = fs
-        self.fs_config_file = fs_config_file
+        self.config_file = config_file
 
     def launch(self):
         """
         Copy local configuration file to remote nodes.
         """
-        self.task.copy(self.fs_config_file, self.fs_config_file,
+        self.task.copy(self.config_file, self.config_file,
                 nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):

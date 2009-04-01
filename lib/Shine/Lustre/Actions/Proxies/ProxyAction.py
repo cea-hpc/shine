@@ -27,6 +27,8 @@ import sys
 
 import binascii, pickle
 
+# SHINE PROXY PROTOCOL CONSTANTS
+
 SHINE_MSG_VERSION = 2
 
 

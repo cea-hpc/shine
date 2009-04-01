@@ -28,17 +28,20 @@ for any filesystems previously installed and formatted.
 """
 
 import os
-import socket
 
 # Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+from Shine.Commands.Status import Status
+
 # Command base class
 from Base.FSLiveCommand import FSLiveCommand
+from Base.FSEventHandler import FSGlobalEventHandler
+from Base.CommandRCDefs import *
 # -R handler
-from RemoteCallEventHandler import RemoteCallEventHandler
+from Base.RemoteCallEventHandler import RemoteCallEventHandler
 
 # Command helper
 from Shine.FSUtils import open_lustrefs
@@ -46,19 +49,34 @@ from Shine.FSUtils import open_lustrefs
 # Lustre events
 import Shine.Lustre.EventHandler
 
+# Shine Proxy Protocol
+from Shine.Lustre.Actions.Proxies.ProxyAction import *
+from Shine.Lustre.FileSystem import *
 
-class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
+
+class GlobalStopEventHandler(FSGlobalEventHandler):
 
     def __init__(self, verbose=False):
-        self.verbose = verbose
+        FSGlobalEventHandler.__init__(self, verbose)
+
+    def handle_pre(self, fs):
+        if self.verbose > 0:
+            print "Stopping %d targets on %s" % (fs.target_count,
+                    fs.target_servers)
+
+    def handle_post(self, fs):
+        if self.verbose > 0:
+            Status.status_view_fs(fs, show_clients=False)
 
     def ev_stoptarget_start(self, node, target):
-        if self.verbose:
+        if self.verbose > 1:
             print "%s: Stopping %s %s (%s)..." % (node, \
                     target.type.upper(), target.get_id(), target.dev)
+        self.update()
 
     def ev_stoptarget_done(self, node, target):
-        if self.verbose:
+        self.status_changed = True
+        if self.verbose > 1:
             if target.status_info:
                 print "%s: Stop of %s %s (%s): %s" % \
                         (node, target.type.upper(), target.get_id(), target.dev,
@@ -66,8 +84,10 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
             else:
                 print "%s: Stop of %s %s (%s) succeeded" % \
                         (node, target.type.upper(), target.get_id(), target.dev)
+        self.update()
 
     def ev_stoptarget_failed(self, node, target, rc, message):
+        self.status_changed = True
         if rc:
             strerr = os.strerror(rc)
         else:
@@ -77,6 +97,12 @@ class GlobalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
                         strerr)
         if rc:
             print message
+        self.update()
+
+class LocalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
+
+    def __init__(self, verbose=1):
+        self.verbose = verbose
 
 
 class Stop(FSLiveCommand):
@@ -93,25 +119,36 @@ class Stop(FSLiveCommand):
     def get_desc(self):
         return "Stop file system servers."
 
-    def execute(self):
+    target_status_rc_map = { \
+            MOUNTED : RC_FAILURE,
+            RECOVERING : RC_FAILURE,
+            OFFLINE : RC_OK,
+            TARGET_ERROR : RC_TARGET_ERROR,
+            CLIENT_ERROR : RC_CLIENT_ERROR,
+            RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-        if self.local_flag or self.remote_call:
-            self.opt_n = socket.gethostname().split('.', 1)[0]
+    def fs_status_to_rc(self, status):
+        return self.target_status_rc_map[status]
+
+    def execute(self):
+        result = 0
+
+        self.init_execute()
+
+        # Get verbose level.
+        vlevel = self.verbose_support.get_verbose_level()
 
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
 
-            if self.remote_call:
-                handler = RemoteCallEventHandler()
-            elif self.local_flag:
-                handler = LocalStopEventHandler(not self.opt_q)
-            else:
-                handler = GlobalStopEventHandler(not self.opt_q)
+            # Install appropriate event handler.
+            eh = self.install_eventhandler(LocalStopEventHandler(vlevel),
+                    GlobalStopEventHandler(vlevel))
 
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     indexes=self.indexes_support.get_rangeset(),
-                    event_handler=handler)
+                    event_handler=eh)
 
             mount_options = {}
             mount_paths = {}
@@ -121,18 +158,24 @@ class Stop(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
-            ok = fs.stop()
+            # Will call the handle_pre() method defined by the event handler.
+            if hasattr(eh, 'pre'):
+                eh.pre(fs)
+                
+            status = fs.stop()
+            rc = self.fs_status_to_rc(status)
+            if rc > result:
+                result = rc
 
-            if self.remote_call:
-                # Remote call: lustre errors handled by caller.
-                return 0
-
-            if ok:
-                if not self.quiet_support.has_quiet():
+            if rc == RC_OK:
+                if vlevel > 0:
                     print "Stop successful."
-                return 0
-            else:
-                if not self.quiet_support.has_quiet():
-                    print "Stop failed."
-                return 1
+            elif rc == RC_RUNTIME_ERROR:
+                for nodes, msg in fs.proxy_errors:
+                    print "%s: %s" % (nodes, msg)
+
+            if hasattr(eh, 'post'):
+                eh.post(fs)
+
+        return result
 

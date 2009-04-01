@@ -40,7 +40,8 @@ class StartClient(Action):
         Mount file system client.
         """
         command = ["mkdir", "-p", "\"%s\"" % self.client.mount_path]
-        command += ["&&", "mount", "-t", "lustre"]
+        command += ["&&", "/sbin/modprobe", "lustre"]
+        command += ["&&", "/bin/mount", "-t", "lustre"]
 
         # Other custom mount options
         if self.mount_options:
@@ -60,9 +61,13 @@ class StartClient(Action):
         """
         Check process termination status and generate appropriate events.
         """
-        if worker.retcode() == 0:
-            self.client.fs._invoke('ev_startclient_done', client=self.client)
+        if worker.did_timeout():
+            # action timed out
+            self.client._action_timeout("startclient")
+        elif worker.retcode() == 0:
+            # action succeeded
+            self.client._action_done("startclient")
         else:
-            self.client.fs._invoke('ev_startclient_failed', client=self.client,
-                    rc=worker.retcode(), message=worker.read())
+            # action failure
+            self.client._action_failed("startclient", worker.retcode(), worker.read())
 

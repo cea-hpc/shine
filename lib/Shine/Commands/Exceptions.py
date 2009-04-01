@@ -27,6 +27,14 @@ class CommandException(Exception):
     def __str__(self):
         return self.message
 
+class CommandHelpException(CommandException):
+    """
+    Raised when help on this command should be printed.
+    """
+    def __init__(self, message, cmd):
+        CommandException.__init__(self, message)
+        self.cmd = cmd
+
 class CommandSyntaxError(CommandException):
     def __init__(self, file, line_nbr, line):
         self.file = file

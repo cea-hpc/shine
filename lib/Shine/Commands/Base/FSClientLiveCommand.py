@@ -28,7 +28,6 @@ from RemoteCommand import RemoteCommand
 # Options support classes
 from Support.Nodes import Nodes
 from Support.FS import FS
-from Support.Quiet import Quiet
 from Support.Verbose import Verbose
 
 
@@ -42,6 +41,5 @@ class FSClientLiveCommand(RemoteCommand):
 
         self.fs_support = FS(self, optional=True)
         self.nodes_support = Nodes(self)
-        self.quiet_support = Quiet(self)
         self.verbose_support = Verbose(self)
 

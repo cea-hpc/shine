@@ -26,11 +26,13 @@ from Configuration.ModelFile import ModelFileException
 from Configuration.ModelFile import ModelFileIOError
 
 from Configuration.Exceptions import ConfigException
-from Commands.Exceptions import CommandException
+from Commands.Exceptions import *
+from Commands.Base.CommandRCDefs import *
 
 from Lustre.FileSystem import FSRemoteError
 
 from ClusterShell.Task import *
+from ClusterShell.NodeSet import *
 
 import getopt
 import logging
@@ -50,11 +52,11 @@ class Controller:
 
     def __init__(self):
         self.logger = logging.getLogger("shine")
-        handler = logging.FileHandler(Globals().get_log_file())
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s : %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(Globals().get_log_level())
+        #handler = logging.FileHandler(Globals().get_log_file())
+        #formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s : %(message)s')
+        #handler.setFormatter(formatter)
+        #self.logger.addHandler(handler)
+        #self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
 
         #task_self().set_info("debug", True)
@@ -76,29 +78,46 @@ class Controller:
     def print_error(self, errmsg):
         print >>sys.stderr, "Error:", errmsg
 
-    def run_command(self, cmd_name, args):
+    def print_help(self, msg, cmd):
+        if msg:
+            print msg
+            print
+        print "Usage: %s %s" % (cmd.get_name(), cmd.get_params_desc())
+        print
+        print cmd.get_desc()
 
-        self.logger.info("running %s" % cmd_name)
+    def run_command(self, cmd_args):
+
+        #self.logger.info("running %s" % cmd_name)
 
         try:
-            return self.cmds.execute(cmd_name, args)
+            return self.cmds.execute(cmd_args)
         except getopt.GetoptError, e:
-            print "Syntax error: %s %s" % (cmd_name, e)
+            print "Syntax error: %s" % e
+        except CommandHelpException, e:
+            self.print_help(e.message, e.cmd)
         except CommandException, e:
             self.print_error(e.message)
+            return RC_USER_ERROR
         except ModelFileIOError, e:
             print "Error - %s" % e.message
         except ModelFileException, e:
             print "ModelFile: %s" % e
         except ConfigException, e:
             print "Configuration: %s" % e
+            return RC_RUNTIME_ERROR
         # file system
         except FSRemoteError, e:
             self.print_error(e)
             return e.rc
-
+        except NodeSetParseError, e:
+            self.print_error("%s" % e)
+            return RC_USER_ERROR
+        except RangeSetParseError, e:
+            self.print_error("%s" % e)
+            return RC_USER_ERROR
         except KeyError:
-            print "Error - Unrecognized action: %s" % cmd_name
+            print "Error - Unrecognized action"
             print
             raise
         

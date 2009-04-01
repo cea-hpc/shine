@@ -35,6 +35,7 @@ from Actions.StartClient import StartClient
 from Actions.StopClient import StopClient
 
 from Server import Server
+from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR
 
 
 class ClientException(Exception):
@@ -51,10 +52,6 @@ class ClientError(ClientException):
 
     def __str__(self):
         return self.message
-
-
-# Constants for client states
-(DOWN, LOADED, MOUNTED) = range(3)
 
 
 class Client:
@@ -110,11 +107,12 @@ class Client:
         proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % self.fs.fs_name)
 
         if len(proc_lov_match) == 0:
-            self.state = DOWN
+            self.state = OFFLINE
         else:
+            loaded = False
             proc_lov = proc_lov_match[0]
             if os.path.isdir(proc_lov):
-                self.state = LOADED
+                loaded = True
 
             # check for presence in /proc/mounts
             f_proc_mounts = open("/proc/mounts", 'r')
@@ -122,11 +120,12 @@ class Client:
                 for line in f_proc_mounts:
                     if line.find(" %s lustre " % self.mount_path) > 0:
                         lnetdev, mntp = line.split(' ', 2)[0:2]
-                        if self.state == LOADED:
+                        if loaded:
                             self.lnetdev = lnetdev
                             self.state = MOUNTED
                             self.status_info = "%s" % mntp
                         else:
+                            self.state = ERROR
                             if lnetdev != self.lnetdev:
                                 raise ClientError(self, "conflicting mounts detected for %s and %s on %s" % \
                                         (lnetdev, self.lnetdev, self.mount_path))
@@ -136,10 +135,25 @@ class Client:
             finally:
                 f_proc_mounts.close()
 
-            if self.state == LOADED:
+            if loaded and self.state != MOUNTED:
                 # up but not mounted = incoherent state
                 raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
                         self.fs.fs_name)
+
+    def _action_done(self, act):
+        """Called by Actions.* when done"""
+        self._lustre_check()
+        self.fs._invoke('ev_%s_done' % act, client=self)
+
+    def _action_timeout(self, act):
+        """Called by Actions.* on timeout"""
+        self._lustre_check()
+        self.fs._invoke('ev_%s_timeout' % act, client=self)
+
+    def _action_failed(self, act, rc, message):
+        """Called by Actions.* on failure"""
+        self._lustre_check()
+        self.fs._invoke('ev_%s_failed' % act, client=self, rc=rc, message=message)
 
 
     def status(self):
@@ -186,7 +200,7 @@ class Client:
         try:
             self._lustre_check()
 
-            if self.state == DOWN:
+            if self.state == OFFLINE:
                 self.status_info = "%s is not mounted" % (self.fs.fs_name)
                 self.fs._invoke('ev_stopclient_done', client=self)
             else:

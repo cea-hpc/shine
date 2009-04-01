@@ -51,9 +51,13 @@ class StopClient(Action):
         """
         Check process termination status and generate appropriate events.
         """
-        if worker.retcode() == 0:
-            self.client.fs._invoke('ev_stopclient_done', client=self.client)
+        if worker.did_timeout():
+            # action timed out
+            self.client._action_timeout("stopclient")
+        elif worker.retcode() == 0:
+            # action succeeded
+            self.client._action_done("stopclient")
         else:
-            self.client.fs._invoke('ev_stopclient_failed', client=self.client,
-                    rc=worker.retcode(), message=worker.read())
+            # action failure
+            self.client._action_failed("stopclient", worker.retcode(), worker.read())
 

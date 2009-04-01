@@ -1,4 +1,4 @@
-# FSProxyAction.py -- Lustre generic FS proxy action class
+# FSClientProxyAction.py -- Lustre generic FS client proxy action
 # Copyright (C) 2009 CEA
 #
 # This file is part of shine
@@ -19,35 +19,33 @@
 #
 # $Id$
 
+from ClusterShell.NodeSet import NodeSet
+
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
 
 from ProxyAction import *
 
-from ClusterShell.NodeSet import NodeSet
 
-
-class FSProxyAction(ProxyAction):
+class FSClientProxyAction(ProxyAction):
     """
-    Generic file system command proxy action class.
+    Generic file system client command proxy action class.
     """
 
-    def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None):
+    def __init__(self, fs, action, nodes, debug):
         ProxyAction.__init__(self)
         self.fs = fs
         self.action = action
         assert isinstance(nodes, NodeSet)
         self.nodes = nodes
         self.debug = debug
-        self.targets_type = targets_type
-        self.targets_indexes = targets_indexes
 
         if self.fs.debug:
-            print "FSProxyAction %s on %s" % (action, nodes)
+            print "FSClientProxyAction %s on %s" % (action, nodes)
 
     def launch(self):
         """
-        Launch FS proxy command.
+        Launch FS client proxy command.
         """
         command = ["%s" % self.progpath]
         command.append(self.action)
@@ -56,11 +54,6 @@ class FSProxyAction(ProxyAction):
 
         if self.debug:
             command.append("-d")
-
-        if self.targets_type:
-            command.append("-t %s" % self.targets_type)
-            if self.targets_indexes:
-                command.append("-i %s" % self.targets_indexes)
 
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)

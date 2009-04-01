@@ -97,7 +97,8 @@ class StartTarget(Action):
                     self.target.type, self.target.index)
 
         command = ["mkdir", "-p", "\"%s\"" % mount_path]
-        command += ["&&", "mount", "-t", "lustre"]
+        command += ["&&", "/sbin/modprobe", "lustre"]
+        command += ["&&", "/bin/mount", "-t", "lustre"]
 
         # Loop devices handling
         if not self.target.dev_isblk:
@@ -121,11 +122,11 @@ class StartTarget(Action):
         """
         if worker.did_timeout():
             # action timed out
-            self.target._start_timeout()
+            self.target._action_timeout("starttarget")
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._start_done()
+            self.target._action_done("starttarget")
         else:
             # action failure
-            self.target._start_failed(worker.retcode(), worker.read())
+            self.target._action_failed("starttarget", worker.retcode(), worker.read())
 
