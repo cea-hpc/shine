@@ -53,7 +53,7 @@ def main():
         sys.exit(0)
 
     try:
-        rc = controller.run_command(sys.argv[1], sys.argv[2:])
+        rc = controller.run_command(sys.argv[1:])
         sys.exit(rc)
     except KeyError:
         usage(controller)

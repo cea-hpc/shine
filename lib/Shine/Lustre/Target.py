@@ -196,6 +196,7 @@ class Target(Disk):
                             if loaded:
                                 self.state = MOUNTED
                             else:
+                                self.state = TARGET_ERROR
                                 raise TargetDeviceError(self, "multiple mounts detected for %s" % \
                                         self.label)
             finally:
@@ -218,6 +219,7 @@ class Target(Disk):
                         f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map2[self.type],
                             self.label), 'r')
                     except IOError:
+                        self.state = TARGET_ERROR
                         raise TargetDeviceError(self, "recovery_state file not found for %s" % \
                                 self.label)
 
@@ -279,7 +281,7 @@ class Target(Disk):
                     reason = "Cannot format: target %s (%s) is started"
                 else:
                     reason = "Cannot format: target %s (%s) is busy"
-
+                self.state = TARGET_ERROR
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetDeviceError, e:
@@ -319,7 +321,6 @@ class Target(Disk):
                     self.status_info = "%s is already started" % self.label
                     self.fs._invoke('ev_starttarget_done', target=self)
                     return
-
                 raise TargetDeviceError(self, "bad state `%s' for %s" % \
                         (self.state, self.label))
 
