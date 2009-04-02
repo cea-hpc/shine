@@ -115,3 +115,11 @@ class Command(object):
                 callback(trim_opt, arg)
             object.__setattr__(self, "opt_%s" % trim_opt, arg or True)
 
+    def ask_confirm(self, prompt):
+        """
+        Ask user for confirmation.
+        
+        Return True when the user confirms the action, False otherwise.
+        """
+        i = raw_input("%s (y)es/(N)o: " % prompt)
+        return i == 'y' or i == 'Y'

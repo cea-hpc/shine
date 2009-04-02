@@ -25,6 +25,7 @@ from Shine.Configuration.Exceptions import *
 from Command import Command
 from RemoteCallEventHandler import RemoteCallEventHandler
 from Support.Nodes import Nodes
+from Support.Yes import Yes
 
 import socket
 
@@ -75,4 +76,27 @@ class RemoteCommand(Command):
         # return handler for convenience
         return self.eventhandler
 
+    def ask_confirm(self, prompt):
+        """
+        Ask user for confirmation. Overrides Command.ask_confirm to
+        avoid confirmation when called remotely (-R).
+
+        Return True when the user confirms the action, False otherwise.
+        """
+        return self.remote_call or Command.ask_confirm(self, prompt)
+
+
+class RemoteCriticalCommand(RemoteCommand):
+
+    def __init__(self):
+        RemoteCommand.__init__(self)
+        self.yes_support = Yes(self)
+
+    def ask_confirm(self, prompt):
+        """
+        Ask user for confirmation if -y not specified.
+
+        Return True when the user confirms the action, False otherwise.
+        """
+        return self.yes_support.has_yes() or RemoteCommand.ask_confirm(self, prompt)
 

@@ -237,6 +237,12 @@ class FileSystem:
     def get_client_servers(self):
         return NodeSet.fromlist([c.server for c in self.clients])
 
+    def get_enabled_client_servers(self):
+        return NodeSet.fromlist([c.server for c in self.clients if c.action_enabled])
+
+    def get_enabled_target_servers(self):
+        return NodeSet.fromlist([t.server for t in self.targets if t.action_enabled])
+
     def get_client_statecounters(self):
         """
         Get (ignored, offline, error, runtime_error, mounted) client state counters tuple.

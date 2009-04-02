@@ -23,7 +23,7 @@
 Base class for live filesystem commands (start, stop, status, etc.).
 """
 
-from RemoteCommand import RemoteCommand
+from RemoteCommand import RemoteCommand, RemoteCriticalCommand
 
 # Options support classes
 from Support.Indexes import Indexes
@@ -31,6 +31,7 @@ from Support.Nodes import Nodes
 from Support.FS import FS
 from Support.Target import Target
 from Support.Verbose import Verbose
+from Support.Yes import Yes
 
 
 class FSLiveCommand(RemoteCommand):
@@ -46,4 +47,18 @@ class FSLiveCommand(RemoteCommand):
         self.indexes_support = Indexes(self)
         self.nodes_support = Nodes(self)
         self.verbose_support = Verbose(self)
+
+class FSLiveCriticalCommand(FSLiveCommand):
+
+    def __init__(self):
+        FSLiveCommand.__init__(self)
+        self.yes_support = Yes(self)
+
+    def ask_confirm(self, prompt):
+        """
+        Ask user for confirmation if -y not specified.
+
+        Return True when the user confirms the action, False otherwise.
+        """
+        return self.yes_support.has_yes() or FSLiveCommand.ask_confirm(self, prompt)
 

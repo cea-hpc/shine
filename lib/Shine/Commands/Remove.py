@@ -25,7 +25,7 @@ from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Exceptions import *
 
 # Command base class
-from Base.RemoteCommand import RemoteCommand
+from Base.RemoteCommand import RemoteCriticalCommand
 from Base.CommandRCDefs import *
 from Base.Support.FS import FS
 from Base.Support.Nodes import Nodes
@@ -50,7 +50,7 @@ class GlobalRemoveEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def __init__(self):
         pass
 
-class Remove(RemoteCommand):
+class Remove(RemoteCriticalCommand):
     """
     This Remove Command object is used to completly remove the
     File System description from the Shine environment.
@@ -62,7 +62,7 @@ class Remove(RemoteCommand):
         Initialization of the Remove command object
         """
         # Call parent intialization function
-        RemoteCommand.__init__(self)
+        RemoteCriticalCommand.__init__(self)
         self.fs_support = FS(self, optional=False)
 
     def get_name(self):
@@ -132,9 +132,8 @@ class Remove(RemoteCommand):
 
                 if status_info:
                     print status_info
-                confirm = "Please confirm the removal of filesystem ``%s'' (y)es/(N)o: " % fs.fs_name
-                i = raw_input(confirm)
-                if i == 'y' or i == 'Y':
+
+                if self.ask_confirm("Please confirm the removal of filesystem ``%s''" % fs.fs_name):
                     print "Removing filesystem %s..." % fs.fs_name
                     rc = fs.remove()
                     if rc:
@@ -147,6 +146,8 @@ class Remove(RemoteCommand):
                         print "Error: failed to unregister FS from backend (rc=%d)" % rc
                     else:
                         print "Filesystem %s removed." % fs.fs_name
+                else:
+                    result = RC_FAILURE
 
             elif self.remote_call:
                 rc = fs.remove()

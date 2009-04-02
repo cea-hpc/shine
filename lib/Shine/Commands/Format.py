@@ -26,7 +26,7 @@ from Shine.Configuration.Exceptions import *
 from Status import Status
 from Exceptions import *
 
-from Base.FSLiveCommand import FSLiveCommand
+from Base.FSLiveCommand import FSLiveCriticalCommand
 from Base.FSEventHandler import FSGlobalEventHandler
 from Base.CommandRCDefs import *
 # -R handler
@@ -166,13 +166,13 @@ class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
         print message
 
 
-class Format(FSLiveCommand):
+class Format(FSLiveCriticalCommand):
     """
     shine format -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
     
     def __init__(self):
-        FSLiveCommand.__init__(self)
+        FSLiveCriticalCommand.__init__(self)
 
     def get_name(self):
         return "format"
@@ -217,11 +217,17 @@ class Format(FSLiveCommand):
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
 
-            if not (self.remote_call or self.local_flag):
+            if not self.has_local_flag():
+                # Allow global handler to access fs_conf.
                 eh.set_fs_config(fs_conf)
 
             # Prepare options...
             fs.set_debug(self.debug_support.has_debug())
+
+            if not self.ask_confirm("Format %s on %s: are you sure?" % (fsname,
+                    fs.get_enabled_target_servers())):
+                result = RC_FAILURE
+                continue
 
             mkfs_options = {}
             format_params = {}
