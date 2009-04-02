@@ -125,7 +125,7 @@ class Client:
                             self.state = MOUNTED
                             self.status_info = "%s" % mntp
                         else:
-                            self.state = ERROR
+                            self.state = CLIENT_ERROR
                             if lnetdev != self.lnetdev:
                                 raise ClientError(self, "conflicting mounts detected for %s and %s on %s" % \
                                         (lnetdev, self.lnetdev, self.mount_path))
@@ -137,6 +137,7 @@ class Client:
 
             if loaded and self.state != MOUNTED:
                 # up but not mounted = incoherent state
+                self.state = CLIENT_ERROR
                 raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
                         self.fs.fs_name)
 
