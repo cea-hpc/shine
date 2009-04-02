@@ -77,11 +77,12 @@ class CommandRegistry:
         # Keep an eye on ALL option arguments, this is to insure a global
         # options coherency within shine and allow us to intermix options and
         # command -- see execute() below.
-        for i in range(0, len(cmd.getopt_string)-1):
+        opt_len = len(cmd.getopt_string)
+        for i in range(0, opt_len):
             c = cmd.getopt_string[i]
             if c == ':':
                 continue
-            has_arg = (cmd.getopt_string[i+1] == ':')
+            has_arg = not (i == opt_len - 1) and (cmd.getopt_string[i+1] == ':')
             if c in self.cmd_optargs:
                 assert self.cmd_optargs[c] == has_arg, "Incoherency in option arguments"
             else:
