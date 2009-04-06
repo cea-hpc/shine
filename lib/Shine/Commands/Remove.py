@@ -103,11 +103,15 @@ class Remove(RemoteCriticalCommand):
             # Install appropriate event handler.
             eh = self.install_eventhandler(None, GlobalRemoveEventHandler())
 
-            # Open configuration and instantiate a Lustre FS.
-            fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=self.nodes_support.get_nodeset(),
-                    indexes=None,
-                    event_handler=eh)
+            try:
+                # Open configuration and instantiate a Lustre FS.
+                fs_conf, fs = open_lustrefs(fsname, None,
+                        nodes=self.nodes_support.get_nodeset(),
+                        indexes=None,
+                        event_handler=eh)
+            except:
+                print "Problem with filesystem ``%s'' configuration files." % fsname
+                raise
 
             # Prepare options...
             fs.set_debug(self.debug_support.has_debug())

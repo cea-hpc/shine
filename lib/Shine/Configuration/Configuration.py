@@ -103,15 +103,6 @@ class Configuration:
         else:
             self._fs = None
 
-
-    def __str__(self):
-        s = "> GLOBALS:\n%s" % Globals.GLOBALS
-        if self._fs:
-            s = s + "\n> FILESYSTEM:\n%s" % self._fs
-        else:
-            s = s + "\n> NO FILESYSTEM"
-        return s
-
     def close(self):
         self._fs.close()
 

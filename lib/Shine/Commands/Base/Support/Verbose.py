@@ -22,7 +22,7 @@
 
 class Verbose:
     
-    def __init__(self, cmd):
+    def __init__(self, cmd, with_quiet=True):
 
         attr = { 'optional' : True,
                  'hidden' : False,
@@ -32,7 +32,7 @@ class Verbose:
         self.cmd.add_option('v', None, attr)
 
         attr = { 'optional' : True,
-                 'hidden' : False,
+                 'hidden' : not with_quiet,
                  'doc' : "enable quiet output" }
 
         self.cmd.add_option('q', None, attr)

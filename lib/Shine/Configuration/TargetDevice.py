@@ -54,12 +54,20 @@ class TargetDevice:
 
     def __str__(self):
         node = self.params.get('node', '')
-        ha_node = self.params.get('ha_node', '')
-        index = self.params.get('index', '')
+        ha_node = self.params.get('ha_node')
+        if not ha_node:
+            ha_node = ""
+        else:
+            ha_node = ",%s" % ",".join(ha_node)
+        index = self.params.get('index', 'AUTO')
         tag = self.params.get('tag', '')
         dev = self.params.get('dev', '')
         jdev = self.params.get('jdev', '')
+        if jdev:
+            jdev = "jdev=%s, " % jdev
         group = self.params.get('group', '')
-        return "\"%s\" on %s (dev=%s, jdev=%s, index=%d, group=%s)" % \
-                (tag, node, dev, jdev, index or -1, group)
+        if group:
+            group = ", group=%s" % group
+        return "%s on %s%s tag=\"%s\" (%sindex=%s%s)" % \
+                (dev, node, ha_node, tag, jdev, index, group)
 

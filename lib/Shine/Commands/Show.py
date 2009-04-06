@@ -1,5 +1,5 @@
-# Show.py -- Show shine configs
-# Copyright (C) 2008 CEA
+# Show.py -- Show command
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -19,60 +19,142 @@
 #
 # $Id$
 
+"""
+Shine `show' command classes.
+
+The show command aims to show various shine configuration parameters.
+"""
+
+# Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
+from Exceptions import *
+
+# Command base class
+from Base.Command import Command
+from Base.CommandRCDefs import *
+from Base.Support.FS import FS
+from Base.Support.Verbose import Verbose
+# -R handler
+from Base.RemoteCallEventHandler import RemoteCallEventHandler
+
+# Command helper
+from Shine.FSUtils import open_lustrefs
+
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
-from Base.Command import Command
 
-import sys
-
-
-# ----------------------------------------------------------------------
-# * shine show
-# ----------------------------------------------------------------------
 class Show(Command):
+    """
+    shine show [-f <fsname>] <conf|fs|info|storage|tuning>
+    """
 
     def __init__(self):
         Command.__init__(self)
-
-    def is_hidden(self):
-        return False
+        self.fs_support = FS(self, optional=True)
+        self.verbose_support = Verbose(self, with_quiet=False)
+        self.subcmd = None
 
     def get_name(self):
         return "show"
 
     def get_desc(self):
-        return "Show conf and misc internals"
+        return "Show configuration parameters."
+
+    def has_subcommand(self):
+        """The show command supports and even requires a subcommand."""
+        return True
+
+    def get_subcommands(self):
+        return [ "conf", "fs", "info", "storage", "tuning" ]
+
+    def cmd_show_conf(self):
+        """Show shine.conf"""
+        AsciiTable().print_from_simple_dict(Globals().get_dict())
+        return 0
+    
+    def cmd_show_fs(self):
+        """Show filesystems"""
+        verb = self.verbose_support.has_verbose()
+        fslist = []
+        for fsname in self.fs_support.iter_fsname():
+            try:
+                fs_conf = Configuration(fsname)
+            except:
+                print "Error with FS ``%s'' configuration files." % fsname
+                raise
+            if not verb:
+                print fs_conf.get_fs_name()
+            else:
+                fslist.append(dict([['FS name', fs_conf.get_fs_name()],
+                    ['Description', fs_conf.get_description()]]))
+        if verb:
+            layout = AsciiTableLayout()
+            layout.set_show_header(True)
+            layout.set_column("FS name", 0, AsciiTableLayout.LEFT)
+            layout.set_column("Description", 1, AsciiTableLayout.LEFT)
+            AsciiTable().print_from_list_of_dict(fslist, layout)
+
+        return 0
+
+    def cmd_show_info(self):
+        """Show filesystem info"""
+        pass
+
+    def cmd_show_storage(self):
+        """Show storage info"""
+        from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
+        from Shine.Configuration.Backend.Backend import Backend
+
+        backend = BackendRegistry().get_selected()
+        if not backend:
+            # no backend? check to be sure
+            assert Globals().get_backend() == "None", \
+                    "Error: please check your storage backend configuration" \
+                    "(backend=%s)" % Globals().get_backend()
+            print "Storage backend is disabled, please check storage information " \
+                    "as a per-filesystem basis with ``show info''."
+        else:
+            backend.start() 
+            cnt = 0
+            for t in [ 'mgt', 'mdt', 'ost']:
+                for dev in backend.get_target_devices(t):
+                    print dev
+                    cnt += 1
+            print "Total: %d devices" % cnt
+        return 0
+
+    def cmd_show_tuning(self):
+        """Show global tuning info"""
+        print "Not implemented yet."
 
     def execute(self):
-        if len(self.arguments) < 1:
-            print "Usage: show <conf|storage>"
-            sys.exit(1)
-            
-        cmd = self.arguments[0]
-        if cmd == "conf":
-            AsciiTable().print_from_simple_dict(Globals().get_dict())
-        elif cmd == "storage":
-            from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
-            from Shine.Configuration.Backend.Backend import Backend
+        result = 0
 
-            backend = BackendRegistry().get_selected()
-            backend.start() 
+        if len(self.arguments) != 1:
+            raise CommandHelpException("Invalid command usage.", self)
 
-            devs = backend.get_target_devices('mgt')
-            for dev in devs:
-                print dev
+        self.subcmd = self.arguments[0]
+        if self.subcmd not in self.get_subcommands():
+            raise CommandHelpException("Cannot show this.", self)
 
-            devs = backend.get_target_devices('mdt')
-            for dev in devs:
-                print dev
-
-            devs = backend.get_target_devices('ost')
-            for dev in devs:
-                print dev
+        return getattr(self, 'cmd_show_%s' % self.subcmd)()
+        
+        
 
 
-            
+
+
+        for fsname in self.fs_support.iter_fsname():
+
+            # Open configuration and instantiate a Lustre FS.
+            fs_conf, fs = open_lustrefs(fsname, None,
+                    nodes=None, indexes=None, event_handler=None)
+
+            fs.set_debug(self.debug_support.has_debug())
+
+
+        
+        return result

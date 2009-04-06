@@ -34,10 +34,7 @@ from Exceptions import *
 
 
 class CommandRegistry:
-    """ Container object to deal with commands.
-    """
-
-    current = None
+    """Container object to deal with commands."""
 
     def __init__(self):
         self.cmd_list = []
@@ -93,7 +90,7 @@ class CommandRegistry:
         Execute a shine script command.
         """
         # Get command and options. Options and command may be intermixed.
-        CommandRegistry.current = None
+        command = None
         new_args = []
         try:
             # Find command through options...
@@ -106,16 +103,22 @@ class CommandRegistry:
                     new_args.append(opt)
                     next_is_arg = False
                 else:
-                    if CommandRegistry.current:
-                        raise CommandHelpException("Syntax error.", CommandRegistry.current)
-                    CommandRegistry.current = self.get(opt)
+                    if command:
+                        # Command has already been found, so?
+                        if command.has_subcommand():
+                            # The command supports subcommand: keep it in new_args.
+                            new_args.append(opt)
+                        else:
+                            raise CommandHelpException("Syntax error.", command)
+                    else:
+                        command = self.get(opt)
                     next_is_arg = False
         except KeyError, e:
             raise CommandNotFoundError(opt)
 
         # Parse
-        CommandRegistry.current.parse(new_args)
+        command.parse(new_args)
 
         # Execute
-        return CommandRegistry.current.execute()
+        return command.execute()
 

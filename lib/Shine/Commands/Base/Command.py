@@ -50,8 +50,9 @@ class Command(object):
         self.debug_support = Debug(self)
 
     def is_hidden(self):
+        """Return whether the command should not be displayed to user."""
         return False
-
+    
     def get_name(self):
         raise NotImplementedError("Derived classes must implement.")
 
@@ -59,8 +60,19 @@ class Command(object):
         return "Undocumented"
 
     def get_params_desc(self):
-        return self.params_desc.strip()
+        pdesc = self.params_desc.strip()
+        if self.has_subcommand():
+            return "%s %s" % ('|'.join(self.get_subcommands()), pdesc)
+        return pdesc
 
+    def has_subcommand(self):
+        """Return whether the command supports subcommand(s)."""
+        return False
+
+    def get_subcommands(self):
+        """Return the list of subcommand(s)."""
+        raise NotImplementedError("Derived classes must implement.")
+    
     def add_option(self, flag, arg, attr, cb=None):
         """
         Add an option for getopt with optional argument.
@@ -105,7 +117,7 @@ class Command(object):
         """
         Parse command arguments.
         """
-        options, arguments = getopt.getopt(args, self.getopt_string)
+        options, arguments = getopt.gnu_getopt(args, self.getopt_string)
         self.arguments = arguments
 
         for opt, arg in options:

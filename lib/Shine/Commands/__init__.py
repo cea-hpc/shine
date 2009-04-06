@@ -42,7 +42,7 @@ commandList = []
 #             "Cache",
 #             "Remove",
 #             "Tune"]:
-for cmd in [ "ShowConf",
+for cmd in [ "Show",
              "Install",
              "Preinstall",
              "Remove",
