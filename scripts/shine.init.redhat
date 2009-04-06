@@ -23,9 +23,12 @@
 # $Id$
 
 
-# TODO
+# Config file, example of content:
 # FSLIST=ptmp,testfs
-#
+# 
+# If empty, all configured FS are started/stopped. You can see them
+# with ``shine show fs -v''.
+# 
 CONFIG=/etc/sysconfig/shine
 
 # Load config file
@@ -33,7 +36,7 @@ if [ -f "$CONFIG" ]; then
         . "$CONFIG"
 fi
 
-SHINE=/cea/local/shine/trunk/scripts/shine
+SHINE=/usr/sbin/shine
 
 # Source function library.
 . /etc/init.d/functions

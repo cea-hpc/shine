@@ -25,13 +25,14 @@ Lustre 1.6+ filesystem administration tool.
 
 __version__ = "$Revision$"
 __author__ = "Stephane Thiell"
-# $Source$
+
 
 import getopt
 import sys
 
 sys.path.append("../lib")
 
+from Shine import public_version, __version__ as __libversion__
 from Shine.Controller import Controller
 
 
@@ -49,7 +50,7 @@ def main():
         sys.exit(2)
 
     if sys.argv[1] in ["version", "-v", "--version"]:
-        print __version__
+        print "%s lib %s script %s" % (public_version, __libversion__, __version__)
         sys.exit(0)
 
     try:
@@ -58,7 +59,8 @@ def main():
     except KeyError:
         usage(controller)
         sys.exit(2)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
+        print >>sys.stderr, "Exiting."
         sys.exit(2)
         
 
