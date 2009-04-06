@@ -56,15 +56,18 @@ def main():
         print "%s (lib: r%s, script: r%s)" % (public_version, librev, scrrev)
         sys.exit(0)
 
+    rc = 128
+
     try:
         rc = controller.run_command(sys.argv[1:])
-        sys.exit(rc)
     except KeyError:
         usage(controller)
-        sys.exit(2)
-    except (KeyboardInterrupt, SystemExit):
+    except KeyboardInterrupt:
         print >>sys.stderr, "Exiting."
-        sys.exit(2)
+    except SystemExit, e:
+        rc = r.code or rc
+
+    sys.exit(rc)
         
 
 if __name__ == '__main__':

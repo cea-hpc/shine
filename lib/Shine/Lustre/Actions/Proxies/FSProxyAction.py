@@ -80,9 +80,11 @@ class FSProxyAction(ProxyAction):
         """
         # Gather nodes by return code
         for rc, nodes in worker.iter_retcodes():
+            # some common remote errors:
             # rc 127 = command not found
             # rc 126 = found but not executable
-            if rc >= 126:
+            # rc 1 = python failure...
+            if rc != 0:
                 # Gather these nodes by buffer
                 for buffer, nodes in worker.iter_buffers(nodes):
                     # Handle proxy command error which rc >= 127 and 

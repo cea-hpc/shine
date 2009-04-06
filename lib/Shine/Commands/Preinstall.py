@@ -26,6 +26,7 @@ from Shine.Configuration.Exceptions import *
 from Shine.FSUtils import create_lustrefs
 
 from Base.RemoteCommand import RemoteCommand
+from Base.CommandRCDefs import *
 from Base.Support.FS import FS
 
 import os
@@ -54,6 +55,7 @@ class Preinstall(RemoteCommand):
             if not os.path.exists(conf_dir_path):
                 os.makedirs(conf_dir_path, 0755)
         except OSError, ex:
-            print "OSError"
-            raise
+            print "OSError %s" % ex
+            return RC_RUNTIME_ERROR
 
+        return RC_OK

@@ -98,29 +98,23 @@ class Controller:
             self.print_help(e.message, e.cmd)
         except CommandException, e:
             self.print_error(e.message)
-            return RC_USER_ERROR
         except ModelFileIOError, e:
             print "Error - %s" % e.message
         except ModelFileException, e:
             print "ModelFile: %s" % e
         except ConfigException, e:
             print "Configuration: %s" % e
-            return RC_RUNTIME_ERROR
         # file system
         except FSRemoteError, e:
             self.print_error(e)
             return e.rc
         except NodeSetParseError, e:
             self.print_error("%s" % e)
-            return RC_USER_ERROR
         except RangeSetParseError, e:
             self.print_error("%s" % e)
-            return RC_USER_ERROR
         except KeyError:
-            print "Error - Unrecognized action"
-            print
             raise
         
-        return 1
+        return RC_RUNTIME_ERROR
 
 

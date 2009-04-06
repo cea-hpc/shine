@@ -121,7 +121,7 @@ class Status(FSLiveCommand):
 
     def execute(self):
 
-        result = -1
+        result = 0
 
         self.init_execute()
 
@@ -158,6 +158,8 @@ class Status(FSLiveCommand):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
 
             statusdict = fs.status(status_flags)
+            if not statusdict:
+                continue
 
             if RUNTIME_ERROR in statusdict:
                 # get targets that couldn't be checked
@@ -176,15 +178,17 @@ class Status(FSLiveCommand):
             if rc > result:
                 result = rc
 
-            if view == "fs":
-                self.status_view_fs(fs)
-            elif view.startswith("target"):
-                self.status_view_targets(fs)
-            elif view.startswith("disk"):
-                self.status_view_disks(fs)
-            else:
-                raise CommandBadParameterError(self.view_support.get_view(),
-                        "fs, targets, disks")
+            if not self.remote_call and vlevel > 0:
+                if view == "fs":
+                    self.status_view_fs(fs)
+                elif view.startswith("target"):
+                    self.status_view_targets(fs)
+                elif view.startswith("disk"):
+                    self.status_view_disks(fs)
+                else:
+                    raise CommandBadParameterError(self.view_support.get_view(),
+                            "fs, targets, disks")
+
         return result
 
     def status_view_targets(self, fs):

@@ -25,9 +25,11 @@ from Shine.Configuration.Globals import Globals
 from Shine.FSUtils import create_lustrefs
 
 from Base.Command import Command
+from Base.CommandRCDefs import *
 from Base.Support.LMF import LMF
 from Base.Support.Nodes import Nodes
 
+from Exceptions import *
 
 class Install(Command):
     """
@@ -48,7 +50,7 @@ class Install(Command):
 
     def execute(self):
         if not self.opt_m:
-            print "Bad argument"
+            raise CommandHelpException("Lustre model file path (-m <model_file>) argument required.", self)
         else:
             # Use this Shine.FSUtils convenience function.
             fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
@@ -83,5 +85,5 @@ class Install(Command):
                 print "Use `shine format -f %s' to initialize the file system." % \
                         fs_conf.get_fs_name()
 
-            return 0
+            return RC_OK
 

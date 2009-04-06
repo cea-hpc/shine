@@ -23,6 +23,7 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 from Command import Command
+from CommandRCDefs import *
 from RemoteCallEventHandler import RemoteCallEventHandler
 from Support.Nodes import Nodes
 from Support.Yes import Yes
@@ -84,6 +85,18 @@ class RemoteCommand(Command):
         Return True when the user confirms the action, False otherwise.
         """
         return self.remote_call or Command.ask_confirm(self, prompt)
+
+    def filter_rc(self, rc):
+        """
+        When called remotely, return code are not used to handle shine action
+        success or failure, nor for status info. To properly detect ssh or remote
+        shine installation failures, we filter the return code here.
+        """
+        if self.remote_call:
+            # Only errors of type RUNTIME ERROR are allowed to go up.
+            rc &= RC_FLAG_RUNTIME_ERROR
+
+        return Command.filter_rc(self, rc)
 
 
 class RemoteCriticalCommand(RemoteCommand):

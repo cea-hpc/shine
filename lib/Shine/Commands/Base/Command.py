@@ -135,3 +135,12 @@ class Command(object):
         """
         i = raw_input("%s (y)es/(N)o: " % prompt)
         return i == 'y' or i == 'Y'
+
+
+    def filter_rc(self, rc):
+        """
+        Allow derived classes to filter return codes.
+        """
+        # default is to not filter return code
+        return rc
+

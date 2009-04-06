@@ -214,4 +214,4 @@ class Start(FSLiveCommand):
             if hasattr(eh, 'post'):
                 eh.post(fs)
 
-            return rc
+        return result

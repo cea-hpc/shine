@@ -592,6 +592,8 @@ class FileSystem:
                         target.state = RUNTIME_ERROR
 
         for target in launched:
+            if target.state == None:
+                print target, target.server
             assert target.state != None
             targets = rdict.setdefault(target.state, [])
             targets.append(target)

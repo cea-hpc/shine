@@ -176,9 +176,7 @@ class FileSystem(Model):
         try:
             return self.nid_map[node]
         except KeyError:
-            print "Cannot get NID for %s, aborting. Please verify `nid_map' configuration." % node
-            # FIXME : raise fatal exception
-            sys.exit(1)
+            raise ConfigException("Cannot get NID for %s, aborting. Please verify `nid_map' configuration." % node)
 
     def __str__(self):
         return ">> BACKEND:\n%s\n>> MODEL:\n%s" % (self.backend, Model.__str__(self))

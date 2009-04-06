@@ -120,5 +120,8 @@ class CommandRegistry:
         command.parse(new_args)
 
         # Execute
-        return command.execute()
+        rc = command.execute()
+
+        # Filter rc
+        return command.filter_rc(rc)
 

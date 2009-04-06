@@ -59,7 +59,7 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def ev_startclient_done(self, node, client):
         if self.verbose > 1:
             if client.status_info:
-                print "%s: Mount: %s" % (node, client.status_info)
+                print "%s: Mount %s: %s" % (node, client.fs.fs_name, client.status_info)
             else:
                 print "%s: FS %s succesfully mounted on %s" % (node,
                         client.fs.fs_name, client.mount_path)
@@ -126,17 +126,26 @@ class Mount(FSClientLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
+            if not self.remote_call and vlevel > 0:
+                if nodes:
+                    m_nodes = nodes.intersection(fs.get_client_servers())
+                else:
+                    m_nodes = fs.get_client_servers()
+                print "Starting %s clients on %s..." % (fs.fs_name, m_nodes)
+
             status = fs.mount(mount_options=fs_conf.get_mount_options())
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc
 
-            if rc == RC_OK:
-                if vlevel > 0:
-                    print "Mount successful."
-            elif rc == RC_RUNTIME_ERROR:
-                for nodes, msg in fs.proxy_errors:
-                    print "%s: %s" % (nodes, msg)
+            if not self.remote_call:
+                if rc == RC_OK:
+                    if vlevel > 0:
+                        # m_nodes is defined if not self.remote_call and vlevel > 0
+                        print "Mount successful on %s" % m_nodes
+                elif rc == RC_RUNTIME_ERROR:
+                    for nodes, msg in fs.proxy_errors:
+                        print "%s: %s" % (nodes, msg)
 
         return result
 

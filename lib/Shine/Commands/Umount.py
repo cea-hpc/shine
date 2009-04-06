@@ -58,7 +58,7 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def ev_stopclient_done(self, node, client):
         if self.verbose > 1:
             if client.status_info:
-                print "%s: Umount: %s" % (node, client.status_info)
+                print "%s: Umount %s: %s" % (node, client.fs.fs_name, client.status_info)
             else:
                 print "%s: FS %s succesfully unmounted from %s" % (node,
                         client.fs.fs_name, client.mount_path)
@@ -126,6 +126,13 @@ class Umount(FSClientLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
+            if not self.remote_call and vlevel > 0:
+                if nodes:
+                    m_nodes = nodes.intersection(fs.get_client_servers())
+                else:
+                    m_nodes = fs.get_client_servers()
+                print "Stopping %s clients on %s..." % (fs.fs_name, m_nodes)
+
             status = fs.umount()
             rc = self.fs_status_to_rc(status)
             if rc > result:
@@ -133,7 +140,8 @@ class Umount(FSClientLiveCommand):
 
             if rc == RC_OK:
                 if vlevel > 0:
-                    print "Unmount successful."
+                        # m_nodes is defined if not self.remote_call and vlevel > 0
+                    print "Unmount successful on %s" % m_nodes
             elif rc == RC_RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
                     print "%s: %s" % (nodes, msg)
