@@ -75,12 +75,19 @@ class FSProxyAction(ProxyAction):
             pass
 
     def ev_close(self, worker):
-        for rc, nodelist in worker.iter_retcodes():
-            if rc >= 127:
-                nodes = NodeSet.fromlist(nodelist)
-                buffer = worker.node_buffer(nodes[0])
-                self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
-                        (self.action, buffer))
+        """
+        End of proxy command.
+        """
+        # Gather nodes by return code
+        for rc, nodes in worker.iter_retcodes():
+            # rc 127 = command not found
+            # rc 126 = found but not executable
+            if rc >= 126:
+                # Gather these nodes by buffer
+                for buffer, nodes in worker.iter_buffers(nodes):
+                    # Handle proxy command error which rc >= 127 and 
+                    self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
+                            (self.action, buffer))
 
         self.fs.action_refcnt -= 1
         if self.fs.action_refcnt == 0:
