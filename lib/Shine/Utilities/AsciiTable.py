@@ -187,7 +187,7 @@ class AsciiTable:
         csize = max_col[keys[0][0]] + 3
         for k, t in keys[1:]:
             # Check if the table fits or not
-            if csize + max_col[k] + 2 >= ncols and len(key_lst[block][1]) > 1:
+            if csize + max_col[k] + 2 >= ncols and len(key_lst[block][0]) > 2:
                 # Build other block table, with duplicated item 0
                 key_lst.append([keys[0]])
                 block += 1
@@ -238,12 +238,12 @@ class AsciiTable:
                     if len(splt) > 1:
                         to_print = s + layout.format_string(k, max_col[k], splt[0]) + " |"
                         for w in splt[1:]:
-                            to_print += line_sup + layout.format_string(k, max_col[k], w) + " |\n"
+                            to_print += line_sup + "+" + layout.format_string(k, max_col[k], w) + " |\n"
                         to_print = to_print[:-1]
                         break
                     else:
                         s += layout.format_string(k, max_col[k], target) + " |"
-                        line_sup += (max_col[k] + 2) * " "
+                        line_sup += (max_col[k] + 1) * " "
                         to_print = s
                     
                 self.out.write(to_print + "\n")
