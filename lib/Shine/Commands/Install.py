@@ -50,9 +50,18 @@ class Install(Command):
 
     def execute(self):
         if not self.opt_m:
-            raise CommandHelpException("Lustre model file path (-m <model_file>) argument required.", self)
+            raise CommandHelpException("Lustre model file path (-m <model_file>) " \
+                    "argument required.", self)
         else:
             # Use this Shine.FSUtils convenience function.
+            lmf = self.lmf_support.get_lmf_path()
+            if lmf:
+                print "Using Lustre model file %s" % lmf
+            else:
+                raise CommandHelpException("Lustre model file for ``%s'' not found: " \
+                        "please use filename or full LMF path.\n" \
+                        "Your default model files directory (lmf_dir) " \
+                        "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
             fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
                     event_handler=self)
 

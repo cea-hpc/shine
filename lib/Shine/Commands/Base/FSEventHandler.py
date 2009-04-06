@@ -74,6 +74,6 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
             self.action_timer.invalidate()
         elif self.verbose > 0 and (not self.action_timer or not self.action_timer.is_valid()):
             # timer on
-            self.action_timer = task_self().timer(1.0, handler=self, interval=3.0)
+            self.action_timer = task_self().timer(2.0, handler=self, interval=20.0)
             assert self.action_timer != None
 
