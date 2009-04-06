@@ -50,7 +50,10 @@ def main():
         sys.exit(2)
 
     if sys.argv[1] in ["version", "-v", "--version"]:
-        print "%s lib %s script %s" % (public_version, __libversion__, __version__)
+        import re
+        librev = re.search('Revision:\s+(\d+)', __libversion__).group(1)
+        scrrev = re.search('Revision:\s+(\d+)', __version__).group(1)
+        print "%s (lib: r%s, script: r%s)" % (public_version, librev, scrrev)
         sys.exit(0)
 
     try:
