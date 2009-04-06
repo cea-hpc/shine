@@ -126,7 +126,7 @@ class Mount(FSClientLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
-            status = fs.mount()
+            status = fs.mount(mount_options=fs_conf.get_mount_options())
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc
