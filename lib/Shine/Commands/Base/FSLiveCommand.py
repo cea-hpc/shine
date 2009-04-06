@@ -27,7 +27,6 @@ from RemoteCommand import RemoteCommand, RemoteCriticalCommand
 
 # Options support classes
 from Support.Indexes import Indexes
-from Support.Nodes import Nodes
 from Support.FS import FS
 from Support.Target import Target
 from Support.Verbose import Verbose
@@ -45,7 +44,6 @@ class FSLiveCommand(RemoteCommand):
         self.fs_support = FS(self, optional=True)
         self.target_support = Target(self)
         self.indexes_support = Indexes(self)
-        self.nodes_support = Nodes(self)
         self.verbose_support = Verbose(self)
 
 class FSLiveCriticalCommand(FSLiveCommand):
