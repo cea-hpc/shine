@@ -29,6 +29,9 @@ fi
 
 mkdir -p $TOPDIR/{SOURCES,BUILD,SPECS}
 
+# Regenerate MANIFEST each time (from setup.py + MANIFEST.in)
+rm -f $PWD/MANIFEST
+
 # build a source distribution
 SHINEVERSION=$version
 export SHINEVERSION
