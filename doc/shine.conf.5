@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.\" Copyright (c) 2007 CEA.  All rights reserved.
+.\" Copyright (c) 2007, 2008, 2009 CEA.  All rights reserved.
 .\" 
 .\" This file may be copied under the terms of the GNU Public License.
 .\" Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 .\" ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\" 
 .\" $Id$
-.Dd December 14, 2007    \" DATE 
+.Dd April 8, 2009        \" DATE 
 .Dt shine.conf 5         \" Program name and manual section number 
 .Os Linux
 .Sh NAME                 \" Section Header
@@ -55,20 +55,24 @@ treated as comments.
 .Pp
 .Ss Storage backend
 .Bl -tag -width Ds -compact
-.It Ic backend Ns = Ns file|clusterdb
-specifies shine's selected backend type. If this variable is set to
-.Ic clusterdb Ns ,
+.It Ic backend Ns = Ns None|File|ClusterDB
+specifies selected storage backend type. If this variable is set to
+.Ic None Ns ,
+storage information is retrieved directly from each Lustre model file
+(this way, storage info like device names is not centralized).
+If this variable is set to
+.Ic ClusterDB Ns ,
 storage, filesystem and mount information is retrieved and stored from
 tables lustre_ost, lustre_mdt, lustre_mount and lustre_fs of ClusterDB.
 If backend is set to
-.Ic file Ns ,
+.Ic File Ns ,
 storage information is retrieved from
 .Ar storage_file
 and status information is stored in
 .Ar cache_dir
 directory on the management node. 
 Default is
-.Ic file Ns .
+.Ic None Ns .
 .El
 .Ss File backend specific settings
 .Bl -tag -width Ds -compact
@@ -92,7 +96,7 @@ Default directory is
 .Ss Optional configuration files
 .Bl -tag -width Ds -compact
 .It Ic tuning_file Ns = Ns Ar pathname
-is the file describing Lustre tuning parameters.
+is the file describing Lustre tuning parameters applicable for all installed filesystems.
 Default is
 .Pa /etc/shine/tuning.conf
 .El
@@ -100,6 +104,8 @@ Default is
 .Bl -tag -width Ds -compact
 .It Ic ssh_connect_timeout Ns = Ns Ar secs
 is the timeout in seconds for ssh connections.
+.It Ic default_timeout Ns = Ns Ar secs
+is the timeout in seconds for any operations.
 .It Ic start_timeout Ns = Ns Ar secs
 is the timeout in seconds for start operation.
 .It Ic stop_timeout Ns = Ns Ar secs
@@ -112,10 +118,6 @@ is the timeout in seconds for umount operation.
 is the timeout in seconds for status operation.
 .It Ic set_tuning_timeout Ns = Ns Ar secs
 is the timeout in seconds for applying tuning parameters.
-.It Ic allow_loop_devices Ns = Ns yes|no
-set it to yes if you want to use loop devices.
-Default is
-.Ic no Ns .
 .El
 .Sh FILES                \" File used or created by the topic of the man page
 .Bl -tag -width "/Library/StartupItems/balanced/uninstall.sh" -compact
