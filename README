@@ -31,26 +31,30 @@ Make sure that shine is installed on all nodes.
 
 Edit the file /etc/shine/shine.conf and copy it on all nodes.
 
- *** FLAT FILE STORAGE CONFIG ***
+ *** NO STORAGE CENTRALIZED CONFIG (backend=None) ***
+Supply the needed storage info in the model file directly.
+
+ *** FLAT FILE STORAGE CONFIG (backend=File) ***
 On the management node, edit the file /etc/shine/storage.conf to list
 your cluster devices. This file is used during 'shine install'.
-
- *** BULL CLUSTERDB STORAGE CONFIG ***
-Not available yet.
 
 To create 'mylfs' Lustre file system, copy the provided file system
 model file:
 
 # cd /etc/shine/models
-# cp testfs.lmf myfs.lmf
+# cp example.lmf myfs.lmf
 
 Edit myfs.lmf to match your needs. This file describes the file system
 to be installed.
 
 
-Install the file system (format) with:
+Install the file system with:
 
-# shine install -f /etc/shine/models/myfs.lmf
+# shine install -m /etc/shine/models/myfs.lmf
+
+Then format the file system with:
+
+# shine format -f myfs
 
 Start servers with:
 
