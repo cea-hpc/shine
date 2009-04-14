@@ -1,5 +1,5 @@
 %define name shine
-%define release 1
+%define release 1.el5
 
 Summary: Lustre shine administration utility
 Name: %{name}

@@ -27,7 +27,6 @@ if [ `grep -c "^public_version = \"$version\"" $VERSIONFILE` -eq 0 ]; then
     fi
 fi
 
-exit 1
 mkdir -p $TOPDIR/{SOURCES,BUILD,SPECS}
 
 # Regenerate MANIFEST each time (from setup.py + MANIFEST.in)
