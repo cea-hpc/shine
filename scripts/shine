@@ -60,8 +60,6 @@ def main():
 
     try:
         rc = controller.run_command(sys.argv[1:])
-    except KeyError:
-        usage(controller)
     except KeyboardInterrupt:
         print >>sys.stderr, "Exiting."
     except SystemExit, e:

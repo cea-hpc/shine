@@ -178,9 +178,15 @@ class Configuration:
         mount paths and values are nodes.
         Optional argument select_nodes makes the result with these nodes only.
         """
-        cli_cf_list = self._fs.get('client')
         # build a dict where keys are mount paths
         mounts = {}
+        # no client defined?
+        if not self._fs.has_key('client'):
+            return mounts
+        cli_cf_list = self._fs.get('client')
+
+        if not self._fs.has_key('mount_path'):
+            raise ConfigException("mount_path not specified")
         default_path = self._fs.get_one('mount_path')
 
         remain_nodes = None
