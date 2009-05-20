@@ -33,7 +33,7 @@ from Exceptions import *
 
 class Install(Command):
     """
-    shine install -f /path/to/model.lmf
+    shine install -m /path/to/model.lmf
     """
     
     def __init__(self):
