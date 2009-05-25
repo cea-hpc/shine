@@ -911,15 +911,16 @@ class FileSystem:
         self.proxy_errors = []
         result = 0
 
-        # Install tuning.conf on enabled distant servers
-        for server, (a_targets, e_targets) in self._iter_targets_by_server():
-            if e_targets and not server.is_local():
-                tune_all.add(server)
-        if len(tune_all) > 0:
-            self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
-            self.action_refcnt += 1
-            task.resume()
-            tune_all.clear()
+        if Globals().get_tuning_file():
+            # Install tuning.conf on enabled distant servers
+            for server, (a_targets, e_targets) in self._iter_targets_by_server():
+                if e_targets and not server.is_local():
+                    tune_all.add(server)
+            if len(tune_all) > 0:
+                self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
+                self.action_refcnt += 1
+                task.resume()
+                tune_all.clear()
 
         # Apply tunings
         self.action_refcnt = 0

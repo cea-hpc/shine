@@ -55,7 +55,7 @@ class Install(Action):
     def ev_close(self, worker):
         for rc, nodeset in worker.iter_retcodes():
             if rc != 0:
-                raise ActionFailedError(rc, "Fatal: Installation of file system "
-                    "configuration failed on %s (%s)" % (nodeset,
-                    os.strerror(rc)))
+                raise ActionFailedError("Fatal: Installation of file system " \
+                    "configuration failed on %s (%s)" % (nodeset, os.strerror(rc)),
+                    rc)
 
