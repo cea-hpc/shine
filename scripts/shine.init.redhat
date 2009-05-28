@@ -57,7 +57,7 @@ stop() {
 }
 
 dostatus() {
-	$SHINE status -L
+	$SHINE status -L ${FSLIST:+-f $FSLIST}
 	RETVAL=$?
 }
 
