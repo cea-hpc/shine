@@ -1,5 +1,5 @@
 # NidMap.py -- Nid mapping helpers
-# Copyright (C) 2008 CEA
+# Copyright (C) 2008, 2009 CEA
 #
 # This file is part of shine
 #
@@ -29,30 +29,32 @@ class NidMap:
     """
     NID mapping helper class for shine.
     """
-    def __init__(self, nodes_pat, nids_pat):
+    def __init__(self, nodes_pat=None, nids_pat=None):
         self.map = {}
 
-        # Convert to NodeSets
-        nodes, nids = NodeSet(nodes_pat), NodeSet(nids_pat)
+        if nodes_pat:
+            # Convert to NodeSets
+            nodes, nids = NodeSet(nodes_pat), NodeSet(nids_pat)
 
-        # Sanity check
-        if len(nodes) != len(nids):
-            raise ConfigBadNidMapError(nodes, nids)
+            # Sanity check
+            if len(nodes) != len(nids):
+                raise ConfigBadNidMapError(nodes, nids)
 
-        # Fill map dict
-        nids_l = list(nids)
-        i = 0
-        for node in nodes:
-            self.map[node] = nids_l[i]
-            i = i + 1
-
+            # Fill map dict
+            nids_l = list(nids)
+            i = 0
+            for node in nodes:
+                self.map[node] = nids_l[i]
+                i = i + 1
 
     def fromlist(cls, l):
+        """
+        Helper class method to build a NidMap object from a list of
+        ModelNidMap objects as provided by Model.py.
+        """
         inst = NidMap()
-
         for map in l:
             inst.add(map)
-
         return inst
     fromlist = classmethod(fromlist)
 
@@ -65,15 +67,15 @@ class NidMap:
     def __getitem__(self, key):
         return self.map[key]
 
-    def add(self, mapline):
+    def add(self, modelnidmap):
         """
-        Add one-to-one mapping from mapline (as string) of the form
-        'nodeset nidset'. Sizes of the provided nodeset and nidset
-        must be the same.
+        Add one-to-one mapping from an nidmap line entry as ModelNidMap.
+        Sizes of the provided nodeset and nidset must be the same.
         """
-
-        # Parse map line
-        nodes, nids = mapline.split()
+        # Get nodes and nids from the ModelNidMap object representing
+        # one nid_map: line
+        nodes = modelnidmap.get_one('nodes')
+        nids = modelnidmap.get_one('nids')
 
         # Convert to nodesets
         nodes_s, nids_s = NodeSet(nodes), NodeSet(nids)
@@ -88,4 +90,3 @@ class NidMap:
         for node in nodes_s:
             self.map[node] = nids_l[i]
             i = i + 1
-

@@ -64,7 +64,8 @@ class FileSystem(Model):
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
             Model.__init__(self, self.xmf_path)
 
-        self._setup_nid_map(self.get_one('nid_map'))
+        # Set nodes to nids mapping using the NidMap helper class
+        self.nid_map = NidMap.fromlist(self.get('nid_map'))
 
         self.fs_name = self.get_one('fs_name')
         
@@ -165,13 +166,6 @@ class FileSystem(Model):
         self.save(self.xmf_path, "Shine Lustre file system config file for %s" % \
                 self.get_one('fs_name'))
             
-    def _setup_nid_map(self, maps):
-        """
-        Set self.nid_map using the NidMap helper class
-        """
-        #self.nid_map = NidMap().fromlist(maps)
-        self.nid_map = NidMap(maps.get_one('nodes'), maps.get_one('nids'))
-
     def get_nid(self, node):
         try:
             return self.nid_map[node]
