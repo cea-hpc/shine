@@ -58,7 +58,7 @@ client: node=nova[8-32]
 failover: yes
 
 # description
-# Optionnal FS description
+# Optional FS description
 description: Example Lustre Filesystem
 
 # stripe_size
