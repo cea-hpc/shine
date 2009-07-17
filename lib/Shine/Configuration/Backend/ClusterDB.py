@@ -20,9 +20,9 @@
 # Import Section
 from Shine.Configuration.Backend.Backend import Backend
 from Shine.Configuration.TargetDevice import TargetDevice
-from Shine.Lustre.OST import OST
-from Shine.Lustre.MDT import MDT
-from Shine.Lustre.MGT import MGT
+from Shine.Lustre.Target import OST
+from Shine.Lustre.Target import MDT
+from Shine.Lustre.Target import MGT
 from LustreAdmin.Errors.LustreAdminExceptions import LustreAdminException
 from LustreAdmin.ClusterMgmtDB.ClusterMgmtDB import ClusterMgmtDB
 from LustreAdmin.ClusterMgmtDB.OSTQuery import OSTQuery
@@ -93,13 +93,13 @@ class ClusterDB(Backend):
                 # Process OST target list request
                 target_devices = self.get_OST_devices(target)
                 
-            elif target == 'mdt' or target == 'mgt':
+            elif target == 'mdt':                
                 # Process MDT target list request
                 target_devices = self.get_MDT_devices(target)
                 
-            #elif target == 'mgt':
-            #    # Process MGT target list request
-            #    target_devices = self.get_MGT_devices(target)
+            elif target == 'mgt':
+                # Process MGT target list request
+                target_devices = self.get_MGT_devices(target)
             
             else:
                 # Requested target type is not supported
@@ -137,8 +137,9 @@ class ClusterDB(Backend):
             # Register a new target in the target device list
             OST_devices.append(TargetDevice(target,{'tag':target['ost_name'],
                                                'node':target['oss_node_name'],
-                                               'dev':target['ost_dev'],
-                                               'size':target['ost_size']}))
+                                               'dev':target['ost_dev']}))
+#                                               'dev':target['ost_dev'],
+#                                               'size':target['ost_size']}))
 
         return OST_devices
             
@@ -169,8 +170,9 @@ class ClusterDB(Backend):
             # Register a new target in the target device list
             MDT_devices.append(TargetDevice(target,{'tag':target['mdt_name'],
                                                'node':target['mds_node_name'],
-                                               'dev':target['mdt_dev'],
-                                               'size':target['mdt_size']}))
+                                               'dev':target['mdt_dev']}))
+#                                               'dev':target['mdt_dev'],
+#                                               'size':target['mdt_size']}))
         return MDT_devices
     
     def get_MGT_devices(self, target):
@@ -199,8 +201,9 @@ class ClusterDB(Backend):
             # Register a new target in the target device list
             MGT_devices.append(TargetDevice(target, {'tag':target['mgt_name'],
                                                'node':target['mgs_node_name'],
-                                               'dev':target['mgt_dev'],
-                                               'size':target['mgt_size']}))
+                                               'dev':target['mgt_dev']}))                                               
+#                                               'dev':target['mgt_dev'],
+#                                               'size':target['mgt_size']}))
         return MGT_devices
 
     def set_status_target(self, fs_name, target, status, options):
