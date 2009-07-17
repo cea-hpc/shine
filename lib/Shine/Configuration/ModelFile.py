@@ -64,7 +64,6 @@ class ModelFileValueError(ModelFileException):
                         (value, key, text)
 
 
-
 class ModelFile:
 
     syntax = {}
@@ -73,25 +72,15 @@ class ModelFile:
     def __init__(self, filename=None, sep=':'):
         self.keysuplen = 16
         self.valsuplen = 16
-        self.set_filename(filename, sep)
+        self.sep = sep
+        self.keys = {}
+        self.filename = filename
+        if filename:
+            self.load_from_file(filename)
 
-    def _parse(self):
-        line_nbr = 0
-        try:
-            file = open(self.filename, 'r')
-            for line in file:
-                line_nbr += 1
-                line = line.split('#', 1)[0].strip()
-                if line:
-                    key, value = line.split(self.sep, 1)
-                    self.add(key.strip(), value.strip())
-            file.close()
-        except ValueError, e:
-            raise ModelFileSyntaxError(self.filename, line_nbr, line)
-        except ModelFileSyntaxErrorReason, e:
-            raise ModelFileSyntaxError(self.filename, line_nbr, line, e.message)
-        except IOError, e:
-            raise ModelFileIOError(self.filename)
+    #
+    # File management
+    #
 
     def get_filename(self):
         return self.filename
@@ -101,7 +90,75 @@ class ModelFile:
         self.sep = sep
         self.keys = {}
         if filename:
-            self._parse()
+            self._parse(filename)
+
+    def load_from_file(self, filename):
+        """
+        Read the file pointed by @filename, parse it and load its content in 
+        the current instance. The current content is reset.
+        ModelFile.filename now points to @filename.
+        """
+        self.keys = {}
+        self._parse(filename)
+        self.filename = filename
+ 
+    def save_to_file(self, filename=None):
+        """
+        Save the current content the a specified filename if provided. If not
+        filename was already set for this object, it becomes its filename.
+        """
+
+        # If not filename, use the current name
+        if not filename:
+            filename = self.filename
+        # If no filename was specified before, store this one
+        if not self.filename:
+            self.filename = filename
+
+        # If I still got no filename, this is an error
+        # XXX: This should be a specific exception.
+        if not self.filename:
+            raise ModelFileException("No filename defined.")
+
+        self.save(filename)
+
+    def save(self, path, header=None):
+        f = open(path, 'w+')
+        # Add a header if provided
+        if header:
+            f.write("#" * 72 + "\n")
+            f.write("# %s\n" % header)
+            f.write("# %s\n" % datetime.datetime.now().ctime())
+            f.write("#" * 72 + "\n")
+        # Save content order by keys
+        keylist = self.keys.keys()
+        keylist.sort(self._keycmp)
+        for k in keylist:
+            for sub_value in self.keys[k]:
+                f.write("%s: %s\n" % (k, sub_value))
+        f.close()
+
+    #
+    # Item management
+    #
+
+    def _parse(self, filename):
+        line_nbr = 0
+        try:
+            file = open(filename, 'r')
+            for line in file:
+                line_nbr += 1
+                line = line.split('#', 1)[0].strip()
+                if line:
+                    key, value = line.split(self.sep, 1)
+                    self.add(key.strip(), value.strip())
+            file.close()
+        except ValueError, e:
+            raise ModelFileSyntaxError(filename, line_nbr, line)
+        except ModelFileSyntaxErrorReason, e:
+            raise ModelFileSyntaxError(filename, line_nbr, line, e.message)
+        except IOError, e:
+            raise ModelFileIOError(filename)
 
     def _add(self, key, value):
         # Key is unknown, create a list with 'value'
@@ -137,6 +194,9 @@ class ModelFile:
         lst = self.keys.get(key, [''])
         return lst[0]
 
+    def get_keys(self):
+        return self.keys.keys()
+
     def has_key(self, key):
         return self.keys.has_key(key)
 
@@ -162,6 +222,10 @@ class ModelFile:
                 else:
                     result_dict[key] = e
         return result_dict
+
+    #
+    # SubElement handling
+    #
 
     def sub_element(self, key, value, sep = "="):
         return SubElement(self, value, sep)
@@ -252,19 +316,6 @@ class ModelFile:
 
     def _keycmp(self, k1, k2):
         return cmp(k1, k2)
-
-    def save(self, path, header):
-        f = open(path, 'w+')
-        f.write("#" * 72 + "\n")
-        f.write("# %s\n" % header)
-        f.write("# %s\n" % datetime.datetime.now().ctime())
-        f.write("#" * 72 + "\n")
-        keylist = self.keys.keys()
-        keylist.sort(self._keycmp)
-        for k in keylist:
-            for sub_value in self.keys[k]:
-                f.write("%s: %s\n" % (k, sub_value))
-        f.close()
 
 class SubElement(ModelFile):
 

@@ -6,6 +6,7 @@
 
 """Unit test for ModelFile"""
 
+import os
 import sys
 import unittest
 import tempfile
@@ -95,6 +96,65 @@ multiple: value2
         f = self.makeTestFile("wrong syntax line\n")
         self.assertRaises(ModelFileSyntaxError, ModelFile, filename=f.name)
 
+    def testNewAndLoad(self):
+        """test instanciate and load"""
+
+        m = ModelFile()
+        self.failIf(m.filename)
+
+        # Load one file
+        f1 = self.makeTestFile("""
+key: value
+key2: value
+key3: value
+key4:
+key4: again
+key4: re-again
+""")
+        m.load_from_file(f1.name)
+        self.assertEqual(len(m.get_keys()), 4)
+        self.assertEqual(m.get_filename(), f1.name)
+
+	# Load another file now
+        f2 = self.makeTestFile("""
+key: value
+key2: value
+key3: value
+key4:
+key5: again
+key6: re-again
+""")
+        m.load_from_file(f2.name)
+        self.assertEqual(len(m.get_keys()), 6)
+        self.assertEqual(m.get_filename(), f2.name)
+
+    def testAddSave(self):
+        """test to save a model file"""
+        m1 = ModelFile()
+        m1.add('key1', 'value')
+        m1.add('key2', 'value')
+        m1.add('key3', 'value')
+        m1.add('key3', 'value')
+
+        # Get a temporary name for a file
+        fd, filename = tempfile.mkstemp()
+        os.close(fd)
+
+        # First, the ModelFile should not have its name defined
+        self.failIf(m1.get_filename())
+
+        # Save it
+        m1.save_to_file(filename=filename)
+        # Name should be defined
+        self.assertEqual(m1.get_filename(), filename)
+
+        # Now, read the file created, it should be the same
+        m2 = ModelFile(filename=filename)
+        self.assertEqual(m2.get_filename(), filename)
+        self.assertEqual(len(m1.get_keys()), len(m2.get_keys()))
+	
+        # Clean the file
+        os.unlink(filename)
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(ModelFileTest)
