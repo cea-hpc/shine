@@ -193,7 +193,7 @@ class Disk:
 
         # Run debugfs to read mountdata file without having to mount the
         # ldiskfs filesystem.
-        debugfs = task.shell("debugfs -c -R 'dump /%s %s/mountdata' '%s'" % \
+        debugfs = task.shell("export PATH=/usr/lib/lustre/:${PATH}; debugfs -c -R 'dump /%s %s/mountdata' '%s'" % \
                 (MOUNT_DATA_FILE, tmp_dir, self.dev),
                 timeout=Globals().get_default_timeout())
 
