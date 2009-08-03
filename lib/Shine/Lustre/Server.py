@@ -19,11 +19,8 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self
-
 
 import socket
 
@@ -38,14 +35,19 @@ class Server(NodeSet):
         return "%s (%s)" % (NodeSet.__str__(self), self.nid)
 
     def is_local(self):
-        local_hostname = socket.gethostname()
-        local_hostname_short = local_hostname.split('.', 1)[0]
+        """
+        Return true if the node where this code is running matches the server 
+        node_name.
+        This means node_name should either match the machine fully qualified
+        domain name or machine short-name.
+        """
         assert len(self) == 1
+
+        local_hostname = socket.getfqdn()
+        local_hostname_short = local_hostname.split('.', 1)[0]
         hostname = NodeSet.__str__(self)
-        if local_hostname == hostname or local_hostname_short == hostname:
-            return True
-        hostname_short = hostname.split('.', 1)[0]
-        return hostname_short == local_hostname_short
+
+        return local_hostname == hostname or local_hostname_short == hostname
 
     def tune(self, tuning_model, types, fs_name):
         """
