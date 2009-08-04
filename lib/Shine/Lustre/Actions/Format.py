@@ -58,7 +58,7 @@ class Format(Action):
     def launch_format(self):
         self.jformat = False
         
-        command = ["mkfs.lustre", "--reformat", '"--fsname=%s"' % \
+        command = ["export PATH=/usr/lib/lustre:$PATH;", "mkfs.lustre", "--reformat", '"--fsname=%s"' % \
                 self.target.fs.fs_name]
         command.append("--quiet")
 
