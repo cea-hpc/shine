@@ -96,24 +96,14 @@ LDD_MAGIC = 0x1dd00001
 
 
 class DiskException(Exception):
-    def __init__(self, disk):
-        self.disk = disk
+    def __init__(self, disk, message=None):
+        Exception.__init__(self, message)
+        self._disk = disk
 
-class DiskError(DiskException):
-    """
-    Generic disk related error.
-    """
-
-class DiskDeviceError(DiskError):
+class DiskDeviceError(DiskException):
     """
     Associated device error.
     """
-    def __init__(self, disk, message):
-        DiskError.__init__(self, disk)
-        self.message = message
-
-    def __str__(self):
-        return self.message
 
 
 class Disk:
@@ -189,7 +179,7 @@ class Disk:
         provided fsname and service label.
         """
         task = task_self()
-        tmp_dir = tempfile.mkdtemp()
+        tmp_dir = tempfile.mkdtemp(prefix='shine-debugfs-')
 
         # Run debugfs to read mountdata file without having to mount the
         # ldiskfs filesystem.
@@ -210,6 +200,10 @@ class Disk:
         try:
             f = open(tmp_mountdata, "r")
         except IOError, e:
+            try:
+               os.rmdir(tmp_dir)
+            except:
+                pass
             # open() raises IOError which might be also a debugfs read failure.
             raise DiskDeviceError(self, "Failed to open %s file (%s)" % \
                     (MOUNT_DATA_FILE, e.strerror))

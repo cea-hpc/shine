@@ -260,7 +260,7 @@ class Target(Disk):
             self._device_check()
         except DiskDeviceError, e:
             self.state = TARGET_ERROR
-            self.fs._invoke('ev_format_failed', target=self, rc=1, message=e.message)
+            self.fs._invoke('ev_format_failed', target=self, rc=1, message=str(e))
             return
 
         try:
