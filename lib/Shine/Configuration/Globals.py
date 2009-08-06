@@ -80,7 +80,7 @@ class Globals(object):
             'status_dir'                : '/var/cache/shine/status',
             'conf_dir'                  : '/var/cache/shine/conf',
             'lmf_dir'                   : '/etc/shine/models',
-            'tuning_file'               : '/etc/shine/tuning.conf',
+            'tuning_file'               : '',
             'log_file'                  : 'warn',
             'log_level'                 : 'warn',
             'ssh_connect_timeout'       : 0,
