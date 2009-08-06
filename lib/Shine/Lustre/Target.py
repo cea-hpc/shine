@@ -19,6 +19,7 @@
 #
 # $Id$
 
+import glob
 import os 
 import stat
 import struct
@@ -66,11 +67,6 @@ class TargetDeviceError(TargetError):
 
 
 class Target(Disk):
-
-    d_map = { 'mgt' : 'mgs', 'mdt' : 'mds', 'ost' : 'obdfilter' }
-
-    # 2nd mapping for older 1.6 versions
-    d_map2 = { 'mgt' : 'mgt', 'mdt' : 'mdt', 'ost' : 'obdfilter' }
 
     def __init__(self, fs, server, type, index, dev, jdev=None, group=None,
             tag=None, enabled=True):
@@ -170,16 +166,25 @@ class Target(Disk):
 
     def _lustre_check(self):
 
-        d_container = self.d_map[self.type]
-
         self.state = None   # Unknown
 
+        # find pathnames matching wanted lustre procfs
+        mntdev_path = glob.glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
+        assert len(mntdev_path) <= 1
+
+        recov_path = glob.glob('/proc/fs/lustre/*/%s/recovery_status' % self.label)
+        assert len(recov_path) <= 1
+
         # check for label presence in /proc : is this lustre target started?
-        if not os.path.isdir("/proc/fs/lustre/%s/%s" % (d_container, self.label)):
+        if len(mntdev_path) == 0 and len(recov_path) == 0:
             self.state = OFFLINE
+        elif len(mntdev_path) == 0:
+            self.state = TARGET_ERROR
+            raise TargetDeviceError(self, "incoherent state in /proc/fs/lustre for %s" % \
+                    self.label)
         else:
             # get target's real device
-            f = open("/proc/fs/lustre/%s/%s/mntdev" % (d_container, self.label))
+            f = open(mntdev_path[0])
             try:
                 self.mntdev = f.readline().rstrip('\n')
             finally:
@@ -210,18 +215,13 @@ class Target(Disk):
                        self.label)
 
             if self.state == MOUNTED and self.type != 'mgt':
-                # check for MDT or OST recovery
+                # check for MDT or OST recovery (MGS doesn't make any recovery)
                 try:
-                    f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map[self.type],
-                        self.label), 'r')
-                except IOError:
-                    try:
-                        f = open("/proc/fs/lustre/%s/%s/recovery_status" % (self.d_map2[self.type],
-                            self.label), 'r')
-                    except IOError:
-                        self.state = TARGET_ERROR
-                        raise TargetDeviceError(self, "recovery_state file not found for %s" % \
-                                self.label)
+                    f = open(recov_path[0], 'r')
+                except (IOError, IndexError):
+                    self.state = TARGET_ERROR
+                    raise TargetDeviceError(self, "recovery_state file not found for %s" % \
+                            self.label)
 
                 try:
                     recovery_duration = -1
@@ -248,8 +248,6 @@ class Target(Disk):
                         self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
                 finally:
                     f.close()
-
-            print self.status_info
 
     def format(self, **kwargs):
 
