@@ -96,6 +96,8 @@ class ServerLoopbackTest(unittest.TestCase):
         self.assertFalse(d.has_upgrade14_flag())
         # param FALSE
         self.assertFalse(d.has_param_flag())
+        # ldd_param
+        self.assertEqual(d._ldd_params, "sys.timeout=40")
 
     def testMountDataBadLabel(self):
         """test mountdata check with wrong fsname and label"""

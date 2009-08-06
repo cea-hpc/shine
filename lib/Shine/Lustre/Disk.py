@@ -209,9 +209,11 @@ class Disk:
                     (MOUNT_DATA_FILE, e.strerror))
 
         try:
-            # Read the beginning of struct lustre_disk_data.
-            bytes = f.read(160)
-            required_length = struct.calcsize('IIIIIIII64s64s')
+            # Read struct lustre_disk_data, which is:
+            # 12288 bytes == sizeof(struct lustre_disk_data) as of 1.6.7 or 1.8.0
+            bytes = f.read(12288)
+            format = 'IIIIIIII64s64s40s824s3072s4096s4096s'
+            required_length = struct.calcsize(format)
             if len(bytes) < required_length:
                 raise DiskDeviceError(self, \
                         "Unexpected EOF while reading %s" % MOUNT_DATA_FILE)
@@ -219,7 +221,8 @@ class Disk:
             # Unpack first fields of struct lustre_disk_data (in native byte order).
             (ldd_magic, ldd_feat_compat, ldd_feat_rocompat, fdd_feat_incompat,
                     ldd_config_ver, ldd_flags, ldd_svindex, ldd_mount_type,
-                    ldd_fsname, ldd_svname) = struct.unpack('IIIIIIII64s64s', bytes)
+                    ldd_fsname, ldd_svname, ldd_uuid, ldd_userdata, ldd_padding,
+                    ldd_mount_opts, ldd_params) = struct.unpack(format, bytes)
 
             # Light sanity check.
             if ldd_magic != LDD_MAGIC:
@@ -241,6 +244,7 @@ class Disk:
                         (self.ldd_svname, label_check, self.ldd_fsname, self.dev))
 
             self._ldd_flags = ldd_flags
+            self._ldd_params = ldd_params[0:ldd_params.find('\0')].strip()
         finally:
             f.close()
             os.unlink(tmp_mountdata)
