@@ -235,7 +235,9 @@ class Disk:
             self.ldd_fsname = ldd_fsname[0:ldd_fsname.find('\0')]
             self.ldd_svname = ldd_svname[0:ldd_svname.find('\0')]
 
-            if fsname_check and self.ldd_fsname != fsname_check:
+            # Don't check ldd_fsname coherency for MGS as it can serve multiple FS
+            if self.ldd_svname != 'MGS' and \
+                    fsname_check and self.ldd_fsname != fsname_check:
                 raise DiskDeviceError(self, "Found service %s for fs '%s'!='%s' on %s" % \
                         (self.ldd_svname, self.ldd_fsname, fsname_check, self.dev))
 
