@@ -24,10 +24,10 @@ from ClusterShell.NodeSet import NodeSet
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Configuration import Configuration
 
-from ProxyAction import *
+from FSProxyAction import FSProxyAction
 
 
-class FSClientProxyAction(ProxyAction):
+class FSClientProxyAction(FSProxyAction):
     """
     Generic file system client command proxy action class.
     """
@@ -57,25 +57,4 @@ class FSClientProxyAction(ProxyAction):
 
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
-
-    def ev_read(self, worker):
-        node, buf = worker.last_read()
-        try:
-            event, params = self._shine_msg_unpack(buf)
-            self.fs._handle_shine_event(event, node, **params)
-        except ProxyActionUnpackError, e:
-            # ignore any non shine messages
-            pass
-
-    def ev_close(self, worker):
-        for rc, nodelist in worker.iter_retcodes():
-            if rc >= 127:
-                nodes = NodeSet.fromlist(nodelist)
-                buffer = worker.node_buffer(nodes[0])
-                self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
-                        (self.action, buffer))
-
-        self.fs.action_refcnt -= 1
-        if self.fs.action_refcnt == 0:
-            worker.task.abort()
 
