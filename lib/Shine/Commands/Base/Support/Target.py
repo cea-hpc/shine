@@ -19,6 +19,7 @@
 #
 # $Id$
 
+from Shine.Commands.Exceptions import CommandBadParameterError
 
 class Target:
     """
@@ -36,6 +37,9 @@ class Target:
 
     def get_target(self):
         if self.cmd.opt_t:
+            for t in self.cmd.opt_t.split(','):
+                if t not in [ 'mgt', 'mdt', 'ost' ]:
+                    raise CommandBadParameterError(t, "mgt, mdt, ost")
             return self.cmd.opt_t.lower()
         return None
 

@@ -36,7 +36,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
     """
     # Arguments interpretation
     assert indexes is None or isinstance(indexes, RangeSet)
-    
+
     # Create file system instance
     fs = FileSystem(fs_conf.get_fs_name(), event_handler)
 
@@ -107,6 +107,9 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, failover_node=None,
     """
     # Create file system configuration
     fs_conf = Configuration(fs_name)
+
+    if target_types:
+        target_types = target_types.split(',')
 
     fs = instantiate_lustrefs(fs_conf, target_types, nodes, failover_node,
             indexes, groups, event_handler)

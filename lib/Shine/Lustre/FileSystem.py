@@ -212,6 +212,8 @@ class FileSystem:
         Create a new attached target.
         """
         #print "new_target on %s type %s (enabled=%s)" % (server, type, enabled)
+        if type not in [ 'mgt', 'mdt', 'ost' ]:
+            raise FSBadTargetError(type)
 
         if type == 'mgt' and self.mgt and len(self.mgt.get_nids()) > 0:
             raise FSStructureError("A Lustre FS has only one MGT.")
