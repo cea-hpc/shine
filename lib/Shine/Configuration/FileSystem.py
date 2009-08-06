@@ -64,10 +64,13 @@ class FileSystem(Model):
             self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
             Model.__init__(self, self.xmf_path)
 
+        self.fs_name = self.get_one('fs_name')
+        if len(self.fs_name) > 8:
+            raise ConfigException("filesystem name `%s' is invalid (must be 1-8 chars)" % \
+                    self.fs_name)
+
         # Set nodes to nids mapping using the NidMap helper class
         self.nid_map = NidMap.fromlist(self.get('nid_map'))
-
-        self.fs_name = self.get_one('fs_name')
         
         # Initialize the tuning model to None if no special tuning configuration
         # is provided
@@ -158,9 +161,6 @@ class FileSystem(Model):
 
                 if len(target_devices) == 0:
                     raise ConfigDeviceNotFoundError(self)
-
-
-
 
         # Save XMF
         self.save(self.xmf_path, "Shine Lustre file system config file for %s" % \
