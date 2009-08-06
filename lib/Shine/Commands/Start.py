@@ -62,8 +62,8 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
         if self.verbose > 0:
-            print "Starting %d targets on %s" % (fs.target_count,
-                    fs.target_servers)
+            print "Starting %d targets of %s on %s" % (fs.target_count,
+                    fs.fs_name, fs.target_servers)
 
     def handle_post(self, fs):
         if self.verbose > 0:

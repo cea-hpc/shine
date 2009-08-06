@@ -61,8 +61,8 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
         if self.verbose > 0:
-            print "Stopping %d targets on %s" % (fs.target_count,
-                    fs.target_servers)
+            print "Stopping %d targets of %s on %s" % (fs.target_count,
+                    fs.fs_name, fs.target_servers)
 
     def handle_post(self, fs):
         if self.verbose > 0:
