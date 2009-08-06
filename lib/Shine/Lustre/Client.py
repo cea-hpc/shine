@@ -39,19 +39,14 @@ from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR
 
 
 class ClientException(Exception):
-    def __init__(self, client):
+    def __init__(self, client, message=None):
+        Exception.__init__(self, message)
         self.client = client
 
 class ClientError(ClientException):
     """
-    Client error.
+    Client error exception.
     """
-    def __init__(self, client, message):
-        ClientException.__init__(self, client)
-        self.message = message
-
-    def __str__(self):
-        return self.message
 
 
 class Client:
@@ -167,7 +162,7 @@ class Client:
             self._lustre_check()
 
         except ClientError, e:
-            self.fs._invoke('ev_statusclient_failed', client=self, rc=None, message=e.message)
+            self.fs._invoke('ev_statusclient_failed', client=self, rc=None, message=str(e))
 
         self.fs._invoke('ev_statusclient_done', client=self)
 

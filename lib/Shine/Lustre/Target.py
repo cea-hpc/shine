@@ -296,7 +296,7 @@ class Target(Disk):
             self._disk_check(self.fs.fs_name, self.label)
         except DiskDeviceError, e:
             self.state = TARGET_ERROR
-            self.fs._invoke('ev_statustarget_failed', target=self, rc=1, message=e.message)
+            self.fs._invoke('ev_statustarget_failed', target=self, rc=1, message=str(e))
             return
 
         # check for Lustre level status
