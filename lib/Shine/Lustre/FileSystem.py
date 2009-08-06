@@ -295,7 +295,9 @@ class FileSystem:
 
     def install(self, fs_config_file, nodes=None):
         """
-        Install FS config files.
+        Install FS config files, optionally on nodes `nodes'.
+
+        Return the installed nodes (as a NodeSet).
         """
         servers = NodeSet()
 
@@ -310,14 +312,16 @@ class FileSystem:
             if not nodes or client.server in nodes:
                 servers.add(client.server)
 
-        assert len(servers) > 0, "no servers?"
+        if servers:
 
-        try:
-            self._distant_action_by_server(Preinstall, servers)
-            self._distant_action_by_server(Install, servers, config_file=fs_config_file)
-        except ProxyActionError, e:
-            # switch to public exception
-            raise FSRemoteError(e.nodes, e.rc, e.message)
+            try:
+                self._distant_action_by_server(Preinstall, servers)
+                self._distant_action_by_server(Install, servers, config_file=fs_config_file)
+            except ProxyActionError, e:
+                # switch to public exception
+                raise FSRemoteError(e.nodes, e.rc, e.message)
+        
+        return servers
         
     def remove(self):
         """

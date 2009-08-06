@@ -71,28 +71,36 @@ class Install(Command):
             # not be done by the Shine.Lustre.FileSystem object itself, but as
             # all proxy methods are currently handled by it, it is more
             # convenient this way...
-            fs.install(fs_conf.get_cfg_filename(), nodes=install_nodes)
+            actual_nodes = fs.install(fs_conf.get_cfg_filename(), nodes=install_nodes)
 
-            if install_nodes:
-                nodestr = " on %s" %  install_nodes
+            if actual_nodes:
+
+                if install_nodes:
+                    unused_nodes = install_nodes - actual_nodes
+                    if unused_nodes:
+                        print "WARNING: Install not needed on %s." % unused_nodes
+
+                print "Configuration files for file system `%s' have been installed successfully on %s." % \
+                        (fs_conf.get_fs_name(), actual_nodes)
+
+                if not install_nodes:
+                    # Print short file system summary.
+                    print
+                    print "Lustre targets summary:"
+                    print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
+                    print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
+                    print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
+                    print
+
+                    # Give pointer to next user step.
+                    print "Use `shine format -f %s' to initialize the file system." % \
+                            fs_conf.get_fs_name()
             else:
-                nodestr = ""
+                if install_nodes:
+                    print "Installation of file system `%s' is not needed on %s." % \
+                            (fs_conf.get_fs_name(), install_nodes)
 
-            print "Configuration files for file system %s have been installed " \
-                    "successfully%s." % (fs_conf.get_fs_name(), nodestr)
-
-            if not install_nodes:
-                # Print short file system summary.
-                print
-                print "Lustre targets summary:"
-                print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
-                print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
-                print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
-                print
-
-                # Give pointer to next user step.
-                print "Use `shine format -f %s' to initialize the file system." % \
-                        fs_conf.get_fs_name()
+                return RC_FAILURE
 
             return RC_OK
 
