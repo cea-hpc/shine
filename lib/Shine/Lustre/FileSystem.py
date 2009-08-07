@@ -598,9 +598,12 @@ class FileSystem:
                         target.state = RUNTIME_ERROR
 
         for target in launched:
+            # FIXME: in an ideal world, target.state shouldn't be None as the underlying
+            # classes should have detected that case.
             if target.state == None:
-                print target, target.server
-            assert target.state != None
+                print "WARNING: no state report from target %s (%s)" % (target,
+                        target.server)
+                target.state = RUNTIME_ERROR
             targets = rdict.setdefault(target.state, [])
             targets.append(target)
         return rdict
