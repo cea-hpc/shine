@@ -138,13 +138,14 @@ class Umount(FSClientLiveCommand):
             if rc > result:
                 result = rc
 
-            if rc == RC_OK:
-                if vlevel > 0:
+            if not self.remote_call:
+                if rc == RC_OK:
+                    if vlevel > 0:
                         # m_nodes is defined if not self.remote_call and vlevel > 0
-                    print "Unmount successful on %s" % m_nodes
-            elif rc == RC_RUNTIME_ERROR:
-                for nodes, msg in fs.proxy_errors:
-                    print "%s: %s" % (nodes, msg)
+                        print "Unmount successful on %s" % m_nodes
+                elif rc == RC_RUNTIME_ERROR:
+                    for nodes, msg in fs.proxy_errors:
+                        print "%s: %s" % (nodes, msg)
 
         return result
 
