@@ -1,4 +1,5 @@
 2009-08-08  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Release: 0.904
 	* Fix "start 0 targets" message when no target matches on start/stop.
 	Improve status command message too.
 
