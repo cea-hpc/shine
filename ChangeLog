@@ -1,3 +1,6 @@
+2009-08-08  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Fix "start 0 targets" message when no target matches on start/stop.
+	Improve status command message too.
 
 2009-08-08  Jerome Feyrere <jerome.fereyre@bull.net>
 	* Fix bug when trying to format a started filesystem.
