@@ -50,7 +50,7 @@ class Format(Action):
         if self.target.jdev:
             self.jformat = True
             self.mkfsopts = ["-j", "-J", "device=%s" % self.target.jdev]
-            command = "mke2fs -q -F -O journal_dev -b 4096 %s" % self.target.jdev
+            command = "export PATH=/usr/lib/lustre:$PATH; mke2fs -q -F -O journal_dev -b 4096 %s" % self.target.jdev
             self.task.shell(command, handler=self)
         else:
             self.launch_format()
