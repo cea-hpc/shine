@@ -1,4 +1,6 @@
 
+2009-08-08  Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Add a default exception handler for all unknown exception.
 
 2009-08-07  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Fix errors with tuning.conf. (#6)

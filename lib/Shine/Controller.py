@@ -38,6 +38,8 @@ import getopt
 import logging
 import re
 import sys
+import datetime
+import traceback
 
 
 def print_csdebug(task, s):
@@ -86,6 +88,24 @@ class Controller:
         print
         print cmd.get_desc()
 
+    def save_exception(self, error, cmd_args):
+        """
+        Save the provided exception with its traceback in a file
+        for latter analysis or bug report.
+        """
+        now = datetime.datetime.today().replace(microsecond=0)
+
+        filename = '/tmp/shine-error-%s' % (now.isoformat('_'))
+        f = open(filename, 'w')
+        f.write("#\n# Shine error report - %s\n#\n\n" % now)
+        f.write("Command was: 'shine %s'\n\n" % " ".join(cmd_args))
+        traceback.print_exc(file=f)
+        f.write("\n")
+        f.write("Exception: %s\n\n" % error)
+        f.close()
+
+        return filename
+
     def run_command(self, cmd_args):
 
         #self.logger.info("running %s" % cmd_name)
@@ -112,8 +132,17 @@ class Controller:
             self.print_error("%s" % e)
         except RangeSetParseError, e:
             self.print_error("%s" % e)
-        except KeyError:
-            raise
+
+        #
+        # Global catchall for all other errors
+        # except KeyboardInterrupt and SystemExit
+        #
+        except (KeyboardInterrupt, SystemExit), e:
+            raise e
+        except Exception, e:
+            print "Unknown error: %s" % e
+            f = self.save_exception(e, cmd_args)
+            print "(details in %s)" % f
         
         return RC_RUNTIME_ERROR
 
