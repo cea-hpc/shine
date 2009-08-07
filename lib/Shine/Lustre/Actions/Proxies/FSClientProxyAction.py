@@ -33,7 +33,7 @@ class FSClientProxyAction(FSProxyAction):
     """
 
     def __init__(self, fs, action, nodes, debug):
-        ProxyAction.__init__(self)
+        FSProxyAction.__init__(self, fs, action, nodes, debug)
         self.fs = fs
         self.action = action
         assert isinstance(nodes, NodeSet)
