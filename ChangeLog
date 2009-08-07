@@ -1,4 +1,7 @@
 
+2009-08-08  Jerome Feyrere <jerome.fereyre@bull.net>
+	* Fix bug when trying to format a started filesystem.
+
 2009-08-08  Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Add a default exception handler for all unknown exception.
 
