@@ -1,0 +1,24 @@
+
+
+2009-08-07  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Fix errors with tuning.conf. (#6)
+	* Check if filesystem filename is not longer than 8 characters (#5)
+	* Fix 'assert target.state != None' error with status command (#11)
+	* Check target types specified on command line (#20)
+	* Fix issues when specifying a hostname not in configuration. (Fix #4)
+	* Fix /proc/fs/lustre path error with Lustre 2.0 (#21)
+
+2009-08-04  Jerome Feyrere <jerome.fereyre@bull.net>
+	* Workaround mke2fs and debugfs binaries issues in Bull distribution (#12)
+
+2009-07-17  Jerome Feyrere <jerome.fereyre@bull.net>
+	* Fix ClusterDB issues.
+
+2009-05-31  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Fix multiple nid_map definition bug (#1)
+
+2009-05-28  Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Fix FSLIST issues in 'service shine status'.
+
+2009-04-15  Stephane Thiell <stephane.thiell@cea.fr>
+	* LUG 2009 Release: 0.903 
