@@ -158,6 +158,12 @@ class Stop(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
+            if not fs.target_servers:
+                print "No `%s' target to stop on %s" % (fsname,
+                        self.nodes_support.get_nodeset())
+                rc = RC_FAILURE
+                continue
+
             # Will call the handle_pre() method defined by the event handler.
             if hasattr(eh, 'pre'):
                 eh.pre(fs)

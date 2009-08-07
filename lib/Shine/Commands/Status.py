@@ -139,6 +139,11 @@ class Status(FSLiveCommand):
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
 
+            if not fs.target_servers and not fs.get_enabled_client_servers():
+                print "WARNING: Nothing to check on %s" % self.nodes_support.get_nodeset()
+                rc = RC_FAILURE
+                continue
+
             fs.set_debug(self.debug_support.has_debug())
 
             status_flags = STATUS_ANY
