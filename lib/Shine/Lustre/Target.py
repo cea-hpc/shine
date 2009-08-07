@@ -275,7 +275,7 @@ class Target(Disk):
                 action.launch()
             else:
                 # Target state is not DOWN... cannot format device.
-                if self.state > LOADED:
+                if self.state in [MOUNTED, RECOVERING]:
                     reason = "Cannot format: target %s (%s) is started"
                 else:
                     reason = "Cannot format: target %s (%s) is busy"
