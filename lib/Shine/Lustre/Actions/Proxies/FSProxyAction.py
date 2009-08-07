@@ -87,9 +87,16 @@ class FSProxyAction(ProxyAction):
             if rc != 0:
                 # Gather these nodes by buffer
                 for buffer, nodes in worker.iter_buffers(nodes):
+                    ### FIXME #25: temporary SHINE msg filter to avoid pickle data to
+                    ### be dumped on screen. To be fixed as soon as ClusterShell is
+                    ### able to clean MsgTree buffers on demand (CS trac #3).
+                    buf = ""
+                    for line in buffer.splitlines():
+                        if not line.startswith("SHINE:"):
+                            buf += "%s\n" % line 
                     # Handle proxy command error which rc >= 127 and 
                     self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
-                            (self.action, buffer))
+                            (self.action, buf))
 
         self.fs.action_refcnt -= 1
         if self.fs.action_refcnt == 0:
