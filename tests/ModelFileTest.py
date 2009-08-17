@@ -112,7 +112,7 @@ key4: again
 key4: re-again
 """)
         m.load_from_file(f1.name)
-        self.assertEqual(len(m.get_keys()), 4)
+        self.assertEqual(len(m.keys.keys()), 4)
         self.assertEqual(m.get_filename(), f1.name)
 
 	# Load another file now
@@ -125,7 +125,7 @@ key5: again
 key6: re-again
 """)
         m.load_from_file(f2.name)
-        self.assertEqual(len(m.get_keys()), 6)
+        self.assertEqual(len(m.keys.keys()), 6)
         self.assertEqual(m.get_filename(), f2.name)
 
     def testAddSave(self):
@@ -151,10 +151,32 @@ key6: re-again
         # Now, read the file created, it should be the same
         m2 = ModelFile(filename=filename)
         self.assertEqual(m2.get_filename(), filename)
-        self.assertEqual(len(m1.get_keys()), len(m2.get_keys()))
+        self.assertEqual(len(m1.keys.keys()), len(m2.keys.keys()))
 	
         # Clean the file
         os.unlink(filename)
+
+
+    def testDefaults(self):
+        """test correct default value usage"""
+
+        class MyModelFile(ModelFile):
+            syntax   = { 'key1': ['value1','value2'],
+                         'key2': 'string',
+                       }
+            defaults = { 'key1': 'value2',
+                         'key2': [ 'value' ]
+                       } 
+
+        m = MyModelFile()
+        # get()
+        self.assertEqual(m.get('key1'), ['value2'])
+        self.assertNotEqual(m.get('key1'), 'value2')
+        self.assertRaises(KeyError, m.get, 'invalid_key')
+        # get_one()
+        self.assertEqual(m.get_one('key1'), 'value2')
+        self.assertEqual(m.get_one('key2'), 'value')
+
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(ModelFileTest)

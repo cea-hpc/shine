@@ -95,12 +95,6 @@ class Globals(object):
             'use_stormap_for_chk_dev'   : 'yes',
             'set_ioscheds_timeout'      : 0,
             'allow_loop_devices'        : 'yes',
-            'default_fanout'            : 'digit',
-            'check_only_mounted_nodes_on_mnt_status' : ['yes', 'no'],
-            'set_tuning_timeout'        : 'digit',
-            'disable_modules_unloading' : ['yes', 'no'],
-            'disable_mgmt_node_test'    : ['yes', 'no'],
-            'plugin'                    : 'string'
         }
 
 

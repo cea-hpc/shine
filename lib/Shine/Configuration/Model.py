@@ -60,7 +60,6 @@ class Model(ModelFile):
     defaults = {
        'stripe_size'        : 1048576,
        'stripe_count'       : 1,
-       'fstype'             : 'ldiskfs',
        'failover'           : 'no',
        'mgt_mkfs_options'   : "",
        'mgt_mount_options'  : "",
@@ -74,9 +73,6 @@ class Model(ModelFile):
        'ost_mount_options'  : "extents,mballoc",
        'ost_mount_path'     : "/mnt/%(fs_name)s/ost/%(index)s",
        'ost_format_params'  : "",
-       'quota'              : ['yes', 'no'],
-       'quota_options'      : 'string',
-       'description'        : 'string',
        }
 
     def sub_element(self, key, value):

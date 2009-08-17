@@ -188,14 +188,36 @@ class ModelFile:
             del self.keys[key]
 
     def get(self, key):
-        return self.keys[key]
+
+        # Return the corresponding values
+        if key in self.keys:
+            return self.keys[key]
+
+        # If unavailable, use the default one
+        elif key in self.defaults:
+
+            #
+            # To keep behaviour consistant with 'values', we should return a
+            # list here.
+            # To simplify the 'defaults' dict declaration, we transform the
+            # default value into a list if not already the case.
+            #
+            if type(self.defaults[key]) is type([]):
+                return self.defaults[key]
+            else:
+                return [ self.defaults[key] ]
+
+        # To keep existing behaviour, raise a KeyError.
+        # XXX: But later, it should behave like a dict.get() and
+        # simply returns a None value.
+        else:
+            raise KeyError()
 
     def get_one(self, key):
-        lst = self.keys.get(key, [''])
-        return lst[0]
-
-    def get_keys(self):
-        return self.keys.keys()
+        try:
+            return self.get(key)[0]
+        except (KeyError, IndexError), e:
+            return ''
 
     def has_key(self, key):
         return self.keys.has_key(key)
