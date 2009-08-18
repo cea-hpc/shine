@@ -50,6 +50,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
 
         # retrieve config variables
         cf_t_type = cf_target.get_type()
+        cf_t_mode = cf_target.get_mode()
         cf_t_index = cf_target.get_index()
         cf_t_dev = cf_target.get_dev()
         cf_t_jdev = cf_target.get_jdev()
@@ -65,7 +66,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
                 target_action_enabled = False
 
         target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev, cf_t_jdev,
-                cf_t_group, cf_t_tag, target_action_enabled)
+                cf_t_group, cf_t_tag, target_action_enabled, cf_t_mode)
 
         # add failover hosts
         ha_nodes = cf_target.ha_nodes()

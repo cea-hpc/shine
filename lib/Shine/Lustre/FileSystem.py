@@ -207,7 +207,7 @@ class FileSystem:
         self._update_structure()
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
-            tag=None, enabled=True):
+                   tag=None, enabled=True, mode='managed'):
         """
         Create a new attached target.
         """
@@ -221,7 +221,7 @@ class FileSystem:
         # Instantiate matching target class (eg. 'ost' -> OST).
         target = getattr(sys.modules[self.__class__.__module__], type.upper())(fs=self,
                 server=server, index=index, dev=dev, jdev=jdev, group=group, tag=tag,
-                enabled=enabled)
+                enabled=enabled, mode=mode)
         
         return target
 

@@ -40,6 +40,7 @@ RC_FLAG_ERROR         = 0x10
 RC_FLAG_UNHEALTHY     = 0x20
 RC_FLAG_USER_ERROR    = 0x40
 RC_FLAG_RUNTIME_ERROR = 0x80
+RC_FLAG_EXTERNAL      = 0x100
 
 
 # Shine command return codes
@@ -51,6 +52,7 @@ RC_FAILURE          = 1
 RC_ST_ONLINE        = 0
 RC_ST_RECOVERING    = 4
 RC_ST_OFFLINE       = 8
+RC_ST_EXTERNAL      = 16
 
 # Errors
 RC_TARGET_ERROR     = 16

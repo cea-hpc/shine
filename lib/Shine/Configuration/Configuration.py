@@ -69,11 +69,13 @@ class Target:
         return self.dic.get('jsize')
 
     def get_index(self):
-        return int(self.dic.get('index'))
+        return int(self.dic.get('index', 0))
 
     def get_group(self):
         return self.dic.get('group')
     
+    def get_mode(self):
+        return self.dic.get('mode', 'managed')
 
 class Clients:
     def __init__(self, cf_client):

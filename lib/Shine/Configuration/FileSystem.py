@@ -125,7 +125,11 @@ class FileSystem(Model):
                 i = 0
                 for target_model in target_models:
                     result = target_model.match_device(candidates)
-                    if len(result) == 0 and not target == 'mgt' :
+                    if target_model.get('mode')[0] == 'external':
+                        self.add(target, str(target_model))
+                        continue
+
+                    if len(result) == 0:
                         raise ConfigDeviceNotFoundError(target_model)
                     for matching in result:
                         candidates.remove(matching)

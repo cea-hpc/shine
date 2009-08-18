@@ -39,7 +39,9 @@ syn keyword shineFSKey              mdt
 syn keyword shineFSKey              ost
 syn keyword shineFSKey              client
 
-syn match shineTargetTagKey         /\(tag\|node\|dev\|jdev\|index\|ha_node\|group\)=/me=e-1
+syn match shineVariable             /\$\(fs_name\|index\)/
+
+syn match shineTargetTagKey         /\(tag\|node\|dev\|jdev\|index\|ha_node\|mode\|group\)=/me=e-1
 
 syn match  shineComment            " #.*"ms=s+1 contained
 
@@ -61,20 +63,21 @@ if version >= 508 || !exists("did_shine_syntax_inits")
     command -nargs=+ HiLink hi def link <args>
   endif
 
-  HiLink shineComment   Comment
-  HiLink shineFSKey	    Identifier
-  HiLink shineNidKey	    Identifier
-  HiLink shineTargetTagKey Identifier
-  HiLink shineTargetNodeKey Identifier
-  HiLink shineTargetDevKey Identifier
-  HiLink shineTargetJdevKey Identifier
-  HiLink shineTargetSizeKey Identifier
+  HiLink shineComment        Comment
+  HiLink shineFSKey          Identifier
+  HiLink shineNidKey         Identifier
+  HiLink shineTargetTagKey   Identifier
+  HiLink shineTargetNodeKey  Identifier
+  HiLink shineTargetDevKey   Identifier
+  HiLink shineTargetJdevKey  Identifier
+  HiLink shineTargetSizeKey  Identifier
   HiLink shineTargetJsizeKey Identifier
   HiLink shineTargetIndexKey Identifier
 
 "  HiLink shineNidMap        Label
-  HiLink shineHostPattern   Type
-  HiLink shineNidPattern   String
+  HiLink shineHostPattern    Type
+  HiLink shineNidPattern     String
+  HiLink shineVariable       PreProc
 
   delcommand HiLink
 endif

@@ -25,7 +25,7 @@ mount_path: /example
 #
 # ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
 #      [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
-#      [ group=<RegExp> ]
+#      [ group=<RegExp> ] [ mode={external|managed} ]
 #
 # Here, we don't use any backend (no File nor ClusterDB), so we have to
 # fully describe our targets (no RegExp accepted). For this simple

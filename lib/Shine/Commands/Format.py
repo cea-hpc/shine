@@ -182,6 +182,7 @@ class Format(FSLiveCriticalCommand):
 
     target_status_rc_map = { \
             MOUNTED : RC_FAILURE,
+            EXTERNAL : RC_ST_EXTERNAL,
             RECOVERING : RC_FAILURE,
             OFFLINE : RC_OK,
             TARGET_ERROR : RC_TARGET_ERROR,

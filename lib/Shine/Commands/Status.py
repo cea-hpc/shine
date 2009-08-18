@@ -111,6 +111,7 @@ class Status(FSLiveCommand):
     target_status_rc_map = { \
             MOUNTED : RC_ST_ONLINE,
             RECOVERING : RC_ST_RECOVERING,
+            EXTERNAL : RC_ST_EXTERNAL,
             OFFLINE : RC_ST_OFFLINE,
             TARGET_ERROR : RC_TARGET_ERROR,
             CLIENT_ERROR : RC_CLIENT_ERROR,
@@ -211,7 +212,9 @@ class Status(FSLiveCommand):
         for type, (all_targets, enabled_targets) in fs.targets_by_type():
             for target in enabled_targets:
 
-                if target.state == OFFLINE:
+                if target.state == EXTERNAL:
+                    status = "external"
+                elif target.state == OFFLINE:
                     status = "offline"
                 elif target.state == TARGET_ERROR:
                     status = "ERROR"
@@ -257,6 +260,7 @@ class Status(FSLiveCommand):
         # targets
         for type, (a_targets, e_targets) in fs.targets_by_type():
             nodes = NodeSet()
+            t_external = []
             t_offline = []
             t_error = []
             t_recovering = []
@@ -267,7 +271,9 @@ class Status(FSLiveCommand):
                 nodes.add(target.servers[0])
 
                 # check target status
-                if target.state == OFFLINE:
+                if target.state == EXTERNAL:
+                    t_external.append(target)
+                elif target.state == OFFLINE:
                     t_offline.append(target)
                 elif target.state == TARGET_ERROR:
                     t_error.append(target)
@@ -281,6 +287,8 @@ class Status(FSLiveCommand):
                     t_unknown.append(target)
 
             status = []
+            if len(t_external) > 0:
+                status.append("external (%d)" % len(t_external))
             if len(t_offline) > 0:
                 status.append("offline (%d)" % len(t_offline))
             if len(t_error) > 0:
@@ -348,7 +356,9 @@ class Status(FSLiveCommand):
         for type, (all_targets, enabled_targets) in fs.targets_by_type():
             for target in enabled_targets:
 
-                if target.state == OFFLINE:
+                if target.state == EXTERNAL:
+                    status = "external"
+                elif target.state == OFFLINE:
                     status = "offline"
                 elif target.state == RECOVERING:
                     status = "recovering %s" % target.status_info

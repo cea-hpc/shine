@@ -149,6 +149,7 @@ class Start(FSLiveCommand):
     target_status_rc_map = { \
             MOUNTED : RC_OK,
             RECOVERING : RC_OK,
+            EXTERNAL : RC_ST_EXTERNAL,
             OFFLINE : RC_FAILURE,
             TARGET_ERROR : RC_TARGET_ERROR,
             CLIENT_ERROR : RC_CLIENT_ERROR,

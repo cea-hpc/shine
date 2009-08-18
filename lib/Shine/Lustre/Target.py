@@ -63,19 +63,17 @@ class TargetDeviceError(TargetError):
 
 
 # Constants for target/client states
-(MOUNTED, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(7)
+(MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(8)
 
 
 class Target(Disk):
 
     def __init__(self, fs, server, type, index, dev, jdev=None, group=None,
-            tag=None, enabled=True):
+            tag=None, enabled=True, mode='managed'):
         """
         Initialize a Lustre target object.
         """
         Disk.__init__(self, dev, jdev)
-
-        #print "new Target %s %s %d (enabled=%s)" % (type, dev, index, enabled)
 
         ### Not serializable
 
@@ -85,6 +83,9 @@ class Target(Disk):
         ### Serializable
 
         ## Always available variables
+
+        # target mode 
+        self._mode = mode
 
         # target's servers: master server is always self.servers[0]
         self.server = server # temp until HA is fully implemented
@@ -105,8 +106,13 @@ class Target(Disk):
             self.label = "%s-%s%04x" % (self.fs.fs_name, self.type.upper(), self.index)
 
         self.action_enabled = enabled
-
         self.state = None   # Unknown
+
+        # If target mode is external then set target state accordingly
+        if self.is_external():
+            self.state = EXTERNAL
+            self.action_enabled = False
+
         self.status_info = None
 
         self.fs._attach_target(self)
@@ -120,6 +126,9 @@ class Target(Disk):
                 self.dev == other.dev and \
                 self.index == other.index and \
                 str(self.servers[0]) == str(other.servers[0])
+
+    def is_external(self):
+        return self._mode == 'external'
 
     def update(self, other):
         """
@@ -135,7 +144,6 @@ class Target(Disk):
     def __getstate__(self):
         odict = self.__dict__.copy()
         del odict['fs']
-        #print odict
         return odict
 
     def __setstate__(self, dict):

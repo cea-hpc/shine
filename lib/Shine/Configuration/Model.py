@@ -115,8 +115,14 @@ class ModelDevice(SubElement):
       'dev'        : 'string',
       'jdev'       : 'string',
       'index'      : 'digit',
-      'group'      : 'string'
+      'group'      : 'string',
+      'mode'       : 'string'
     }
+
+    defaults = {
+      'mode'       : 'managed'
+    }
+
 
     def match_device(self, candidates):
         matching = []

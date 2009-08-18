@@ -122,6 +122,7 @@ class Stop(FSLiveCommand):
     target_status_rc_map = { \
             MOUNTED : RC_FAILURE,
             RECOVERING : RC_FAILURE,
+            EXTERNAL : RC_ST_EXTERNAL,
             OFFLINE : RC_OK,
             TARGET_ERROR : RC_TARGET_ERROR,
             CLIENT_ERROR : RC_CLIENT_ERROR,
