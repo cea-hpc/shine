@@ -300,20 +300,20 @@ class Configuration:
         """
         return self._fs.get_one('quota') == 'yes'
     
-    def get_quota_options(self):
-        """
-        Return a mapped dictionary of quota options (quota_options parameter)
-        set in the configuration file.
-        """
-        quota_options = self._fs.get_one('quota_options')
-        if len(quota_options) > 0:
-            if quota_options.find(',') == -1:
-                raise ConfigException("Syntax error for quota_options: `%s'" % quota_options)
-            else:
-                return dict([list(x.strip().split('=')) \
-                        for x in quota_options.split(',')])
-        else:
-            return None
+    def get_quota_type(self):
+        return self._fs.get_one('quota_type')
+
+    def get_quota_bunit(self):
+        return self._fs.get_one('quota_bunit')
+
+    def get_quota_iunit(self):
+        return self._fs.get_one('quota_iunit')
+
+    def get_quota_btune(self):
+        return self._fs.get_one('quota_btune')
+
+    def get_quota_itune(self):
+        return self._fs.get_one('quota_itune')
 
     def get_mount_path(self):
         return self._fs.get_one('mount_path')

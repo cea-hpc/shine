@@ -185,52 +185,63 @@ class Tune(FSLiveCommand):
         
         # Is the quota activated in the configuration description ?
         if fs_conf.has_quota():
-            # Yes it is. Now retrieve quota configuration information.
-            quota_options_dict = fs_conf.get_quota_options()
+            quota_iunit_value = fs_conf.get_quota_iunit()
+            quota_bunit_value = fs_conf.get_quota_bunit()
+            quota_itune_value = fs_conf.get_quota_itune()
+            quota_btune_value = fs_conf.get_quota_btune()
 
-            # Walk through the list of quota configuration paramaters to add
-            # each one of them to the tuning model.
-            for (quota_option, option_value) in quota_options_dict.iteritems():
-                if quota_option == 'iunit':
-                    quota_iunit_value = option_value
-                elif quota_option == 'bunit':
-                    quota_bunit_value = option_value
-                elif quota_option == 'itune':
-                    quota_itune_value = option_value
-                elif quota_option == 'btune':
-                    quota_btune_value = option_value
-                # elif quota_option == 'quotaon':
-                #    This option is processed in the mkfs.lustre invocation in
-                #    the Format command.
+            need_convertion = False
 
-            # Convert the values to the right units
-            # The bunit size value must be converted in KBs
-            quota_bunit_value = str( int(quota_bunit_value) * 1048576)
-            quota_itune_value = \
-                    str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
-            quota_btune_value = \
-                    str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
+            if not quota_bunit_value == '':
+                # The bunit size value must be converted in KBs
+                quota_bunit_value = str( int(quota_bunit_value) * 1048576)
 
-            # Create the quota tuning parameters with the right values
-            tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_iunit_oss', quota_iunit_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_bunit_mds', quota_bunit_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_bunit_oss', quota_bunit_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_itune_mds', quota_itune_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_itune_oss', quota_itune_value, \
-                    ['oss'], None)
-            tuning_model.create_parameter('quota_btune_mds', quota_btune_value, \
-                    ['mds'], None)
-            tuning_model.create_parameter('quota_btune_oss', quota_btune_value, \
-                    ['oss'], None)
+                # Create the quota tuning parameters with the right values
+                tuning_model.create_parameter('quota_bunit_mds', quota_bunit_value, \
+                        ['mds'], None)
+                tuning_model.create_parameter('quota_bunit_oss', quota_bunit_value, \
+                        ['oss'], None)
 
-            # Convert the parameter aliases to the real parameter name
-            tuning_model.convert_parameter_aliases()
+                need_convertion = True
+
+            if not quota_btune_value == '' and not quota_bunit_value == '':
+                # Convert the values to the right units
+                quota_btune_value = \
+                        str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
+
+                # Create the quota tuning parameters with the right values
+                tuning_model.create_parameter('quota_btune_mds', quota_btune_value, \
+                        ['mds'], None)
+                tuning_model.create_parameter('quota_btune_oss', quota_btune_value, \
+                        ['oss'], None)
+
+                need_convertion = True
+
+            if not quota_iunit_value == '':
+                # Create the quota tuning parameters with the right values
+                tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
+                        ['mds'], None)
+                tuning_model.create_parameter('quota_iunit_oss', quota_iunit_value, \
+                        ['oss'], None)
+
+                need_convertion = True
+                    
+            if not quota_itune_value == '' and not quota_iunit_value == '':
+                # Convert the values to the right units
+                quota_itune_value = \
+                        str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
+
+                # Create the quota tuning parameters with the right values
+                tuning_model.create_parameter('quota_itune_mds', quota_itune_value, \
+                        ['mds'], None)
+                tuning_model.create_parameter('quota_itune_oss', quota_itune_value, \
+                        ['oss'], None)
+
+                need_convertion = True
+
+            if need_convertion:
+                # Convert the parameter aliases to the real parameter name
+                tuning_model.convert_parameter_aliases()
 
     _add_quota_tuning = classmethod(_add_quota_tuning)
 

@@ -38,7 +38,7 @@ class Format(Action):
         self.format_params = kwargs.get('format_params')
         self.mkfs_options = kwargs.get('mkfs_options')
         self.activate_quota = kwargs.get('quota', False)
-        self.quota_options = kwargs.get('quota_options', "")
+        self.quota_type = kwargs.get('quota_type', "")
         self.mkfsopts = []
         self.jformat = False
 
@@ -85,7 +85,7 @@ class Format(Action):
 
             if self.activate_quota:
                 command.append('"--param=mdt.quota_type=%s"' % \
-                        self.quota_options['quotaon'])
+                        self.quota_type)
 
         elif self.target.type == 'ost':
 
@@ -99,7 +99,7 @@ class Format(Action):
 
             if self.activate_quota:
                 command.append('"--param=ost.quota_type=%s"' % \
-                        self.quota_options['quotaon'])
+                        self.quota_type)
 
         # failnode: NID(s) of failover partner
         target_nids = self.target.get_nids()

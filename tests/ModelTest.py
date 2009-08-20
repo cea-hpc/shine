@@ -45,6 +45,7 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(m.get('stripe_size'), [ 1048576 ])
         self.assertEqual(m.get('stripe_count'), [ 1 ])
         self.assertEqual(m.get('failover'), ['no'])
+        self.assertEqual(m.get('quota_type'), ['ug'])
 
     def testLoadExample(self):
         """Load example.lmf and checks it."""

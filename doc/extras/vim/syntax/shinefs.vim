@@ -31,7 +31,11 @@ syn keyword shineFSKey              ost_mount_options
 syn keyword shineFSKey              ost_mount_path
 syn keyword shineFSKey              ost_format_params
 syn keyword shineFSKey              quota
-syn keyword shineFSKey              quota_options
+syn keyword shineFSKey              quota_type
+syn keyword shineFSKey              quota_iunit
+syn keyword shineFSKey              quota_bunit
+syn keyword shineFSKey              quota_btune
+syn keyword shineFSKey              quota_itune
 syn keyword shineFSKey              stripe_count
 syn keyword shineFSKey              stripe_size
 syn keyword shineFSKey              mgt

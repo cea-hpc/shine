@@ -288,6 +288,14 @@ class ClusterDB(Backend):
         # Build a query environnement for FS registration
         insert_query = FSQuery()
 
+        # Build the list of quota_parameters to use
+        quota_options = 'quota_type=%s,iunit=%s,bunit=%s,itune=%s,btune=%s' \
+                %(  fs.get_one('quota_type'),
+                    fs.get_one('quota_iunit'),
+                    fs.get_one('quota_bunit'),
+                    fs.get_one('quota_itune'),
+                    fs.get_one('quota_btune'))
+
         # Build the insertion query for the file system
         insert_query.buildInsertQuery(insert_parameters = {'fs_name': fs.get_one('fs_name'),
                                                            'lov_name': "lov_%s" %(fs.get_one('fs_name')),
@@ -309,7 +317,7 @@ class ClusterDB(Backend):
                                                            'ost_mount_options' : fs.get_one('ost_mount_options'),
                                                            'description' : fs.get_one('desccription'),
                                                            'quota' : fs.get_one('quota'),
-                                                           'quota_options' : fs.get_one('quota_options')})
+                                                           'quota_options' : quota_options})
 
         try:
             # Execute the registration query

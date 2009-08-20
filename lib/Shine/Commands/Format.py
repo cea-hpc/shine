@@ -248,7 +248,7 @@ class Format(FSLiveCriticalCommand):
                         format_params=format_params,
                         mkfs_options=mkfs_options,
                         quota=fs_conf.has_quota(),
-                        quota_options=fs_conf.get_quota_options())
+                        quota_type=fs_conf.get_quota_type())
 
             rc = self.fs_status_to_rc(status)
             if rc > result:

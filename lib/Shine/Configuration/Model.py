@@ -44,7 +44,11 @@ class Model(ModelFile):
        'ost_mount_path'     : 'string',
        'ost_format_params'  : 'string',
        'quota'              : ['yes', 'no'],
-       'quota_options'      : 'string',
+       'quota_type'         : 'string',
+       'quota_bunit'        : 'digit',
+       'quota_iunit'        : 'digit',
+       'quota_btune'        : 'digit',
+       'quota_itune'        : 'digit',
        'description'        : 'string',
        'mount_options'      : 'string',
        'mount_path'         : 'path',
@@ -73,6 +77,7 @@ class Model(ModelFile):
        'ost_mount_options'  : "extents,mballoc",
        'ost_mount_path'     : "/mnt/%(fs_name)s/ost/%(index)s",
        'ost_format_params'  : "",
+       'quota_type'         : "ug"
        }
 
     def sub_element(self, key, value):

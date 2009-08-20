@@ -96,14 +96,21 @@ ost_mount_options: extents,mballoc
 # This define the default options to mount the filesystem on clients.
 mount_options: acl,user_xattr
 
-# quota:
+#
+# Quota
+#
 # Enable quota support.
 # Possible values are yes or no (default is no).
 quota: no
 
-# quota_options
-# Describe options for quota support, if quota enabled
-#quota_options: quota_type=ug1
+# Quota configuration options
+# Describe options for quota support, if quota enabled.
+#
+# quota_type:     (default is 'ug')
+# quota_iunit:    <number of inodes>
+# quota_bunit:    <size in MB>
+# quota_itune:    <percentage>
+# quota_btune:    <percentage>
 
 # target mount path patterns
 mgt_mount_path: /mnt/$fs_name/mgt
