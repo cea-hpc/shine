@@ -138,14 +138,14 @@ class Tune(FSLiveCommand):
                 # Parse the tuning model
                 tuning.parse()
 
-                # Add the quota tuning parameters to the tuning model.
-                cls._add_quota_tuning(tuning, fs_conf)
-
             except TuningParameterDeclarationException, tpde:
                 # An error has occured during parsing of tuning configuration file
                 print "%s" % str(tpde)
                 # Break the tuning process for the currently processed file system
                 return None
+
+        # Add the quota tuning parameters to the tuning model.
+        cls._add_quota_tuning(tuning, fs_conf)
 
         return tuning
 

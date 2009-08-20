@@ -1,5 +1,6 @@
 2009-08-20  Jerome Feyrere <jerome.fereyre@bull.net>
-	* Quota support is now working again (#31).
+	* Quota tuning is applied even if tuning.conf is disabled (#32).
+	* Quota support is working again (#31).
 
 2009-08-18  Jerome Feyrere <jerome.fereyre@bull.net>
 	* Add external mode target feature (#17).
