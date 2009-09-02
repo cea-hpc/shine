@@ -19,6 +19,7 @@
 #
 # $Id$
 
+from Shine.Commands.Exceptions import CommandBadParameterError
 
 class View:
     """
@@ -35,5 +36,10 @@ class View:
         self.cmd.add_option('V', 'view', attr)
     
     def get_view(self):
-        return self.cmd.opt_V
+        if not self.cmd.opt_V:
+            return None
 
+        value = self.cmd.opt_V.lower()
+        if value not in [ 'fs', 'target', 'disk' ]:
+            raise CommandBadParameterError(value, "fs, target, disk")
+        return value

@@ -1,3 +1,6 @@
+2009-09-02  Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Now checks -V value before doing status on all nodes (#37).
+
 2009-08-20  Jerome Feyrere <jerome.fereyre@bull.net>
 	* Quota tuning is applied even if tuning.conf is disabled (#32).
 	* Quota support is working again (#31).
