@@ -101,7 +101,75 @@ class Show(Command):
 
     def cmd_show_info(self):
         """Show filesystem info"""
-        pass
+        # Walk through the list of file system managed 
+        # by the current node and specified by the user.
+        for fsname in self.fs_support.iter_fsname():
+
+            fslist = []
+            try:
+                # Get the file system configuration structure
+                fs_conf = Configuration(fsname)
+                
+                # Retrieve quota configuration information
+                quota_info_string=''
+
+                if fs_conf.has_quota():
+                    quota_info_string += 'type=%s ' % fs_conf.get_quota_type()
+
+                    qiunit_string = fs_conf.get_quota_iunit()
+                    quota_info_string += 'iunit=%s ' %(qiunit_string or '[lustre_default]')
+
+                    qbunit_string = fs_conf.get_quota_bunit()
+                    quota_info_string += 'bunit=%s ' %(qbunit_string or '[lustre_default]')
+
+                    qitune_string = fs_conf.get_quota_itune()
+                    quota_info_string += 'itune=%s ' %(qitune_string or '[lustre_default]')
+
+                    qbtune_string = fs_conf.get_quota_btune()
+                    quota_info_string += 'btune=%s ' %(qbtune_string or '[lustre_default]')
+                else:
+                    quota_info_string = 'not activated'
+
+                # Get file system stripping configuration information
+                stripping_info_string = 'stripe_size=%s ' % fs_conf.get_stripesize()
+                stripping_info_string += 'stripe_count=%s' % fs_conf.get_stripecount()
+
+                # Get the device path used to mount the file system 
+                # on client node
+                device_path_string = fs_conf.get_nid(fs_conf.get_target_mgt().get_nodename()) \
+                                    + ":/" + fs_conf.get_fs_name()
+
+                # Add configuration parameter to the list of element displayed
+                # in the summary tab.
+                fslist.append(dict([['name', 'name'],
+                                    ['value', fs_conf.get_fs_name()]]))
+                fslist.append(dict([['name', 'mount path'],
+                                    ['value', fs_conf.get_client_mount(None)]]))
+                fslist.append(dict([['name', 'device path'],
+                                    ['value', device_path_string]]))
+                fslist.append(dict([['name', 'mount options'],
+                                    ['value', fs_conf.get_mount_options()]]))
+                fslist.append(dict([['name', 'quotas'],
+                                    ['value', quota_info_string]]))
+                fslist.append(dict([['name', 'stripping'],
+                                    ['value', stripping_info_string]]))
+                fslist.append(dict([['name', 'tuning'],
+                                    ['value', Globals().get_tuning_file()]]))
+                fslist.append(dict([['name', 'description'],
+                                    ['value', fs_conf.get_description()]]))
+
+                # Display the list of collected configuration information
+                layout = AsciiTableLayout()
+                layout.set_show_header(False)
+                layout.set_column("name", 0, AsciiTableLayout.LEFT)
+                layout.set_column("value", 1, AsciiTableLayout.LEFT)
+                AsciiTable().print_from_list_of_dict(fslist, layout)
+
+            except:
+                # We fail to get current file system configuration information.
+                # Display an error message.
+                print "Error with FS ``%s'' configuration files." % fsname
+                raise
 
     def cmd_show_storage(self):
         """Show storage info"""

@@ -1,3 +1,6 @@
+2009-09-29  Jerome Fereyre <jerome.fereyre@bull.net>
+	* Add code to support the shine show info command.
+
 2009-09-02  Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Now checks -V value before doing status on all nodes (#37).
 
