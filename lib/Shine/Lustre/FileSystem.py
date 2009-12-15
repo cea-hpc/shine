@@ -41,7 +41,6 @@ from Actions.Proxies.ProxyAction import *
 from Actions.Install import Install
 from Actions.Proxies.Preinstall import Preinstall
 from Actions.Proxies.FSProxyAction import FSProxyAction
-from Actions.Proxies.FSClientProxyAction import FSClientProxyAction
 
 from EventHandler import *
 from Client import *
@@ -849,7 +848,7 @@ class FileSystem:
             clients_mounting.add(client)
 
         if len(servers_mountall) > 0:
-            action = FSClientProxyAction(self, 'mount', servers_mountall, self.debug)
+            action = FSProxyAction(self, 'mount', servers_mountall, self.debug)
             action.launch()
             self.action_refcnt += 1
 
@@ -890,7 +889,7 @@ class FileSystem:
             clients_umounting.add(client)
 
         if len(servers_umountall) > 0:
-            action = FSClientProxyAction(self, 'umount', servers_umountall, self.debug)
+            action = FSProxyAction(self, 'umount', servers_umountall, self.debug)
             action.launch()
             self.action_refcnt += 1
 
