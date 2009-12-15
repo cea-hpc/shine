@@ -1,3 +1,7 @@
+2009-12-07  Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Add -x exclude flag on command line.
+	* Rewrite nodeset checks. Same code for all commands.
+
 2009-09-29  Jerome Fereyre <jerome.fereyre@bull.net>
 	* Add code to support the shine show info command.
 
