@@ -455,33 +455,11 @@ class FileSystem:
 
         return servers.iteritems()
 
-
-    def _iter_type_idx_for_targets(self, targets):
-        last_target_type = None
-
-        indexes = RangeSet(autostep=3)
-
-        #self.targets.sort()
-
-        for target in targets:
-            if last_target_type and last_target_type != target.type:
-                # type of target changed, commit actions
-                if len(indexes) > 0:
-                    yield last_target_type, indexes
-                    indexes.clear()     # CS 1.1+
-            indexes.add(int(target.index))
-            last_target_type = target.type
-
-        if len(indexes) > 0:
-            yield last_target_type, indexes
-
     def format(self, **kwargs):
 
         # Remember format launched, so we can check their status once
         # all operations are done.
         format_launched = Set()
-
-        servers_formatall = NodeSet()
 
         self.proxy_errors = []
         self.action_refcnt = 0
@@ -497,26 +475,12 @@ class FileSystem:
                 format_launched.update(e_targets)
 
             else:
-                # distant server
-                if len(a_targets) == len(e_targets):
-                    # group in one action if "format all targets on this server"
-                    # is detected
-                    servers_formatall.add(server)
-                else:
-                    # otherwise, format per selected targets on this server
-                    for t_type, t_rangeset in \
-                            self._iter_type_idx_for_targets(e_targets):
-                        action = FSProxyAction(self, 'format',
-                                NodeSet(server), self.debug, t_type, t_rangeset)
-                        action.launch()
-                        self.action_refcnt += 1
-
+                labels = NodeSet.fromlist([ t.label for t in e_targets ])
+                action = FSProxyAction(self, 'format', NodeSet(server),
+                                       self.debug, labels=labels)
+                action.launch()
+                self.action_refcnt += 1
                 format_launched.update(e_targets)
-
-        if len(servers_formatall) > 0:
-            action = FSProxyAction(self, 'format', servers_formatall, self.debug)
-            action.launch()
-            self.action_refcnt += 1
 
         task_self().resume()
 
@@ -535,8 +499,7 @@ class FileSystem:
         Get status of filesystem.
         """
 
-        status_target_launched = Set()
-        status_client_launched = Set()
+        launched = Set()
         servers_statusall = NodeSet()
         self.action_refcnt = 0
         self.proxy_errors = []
@@ -551,21 +514,14 @@ class FileSystem:
                     for target in e_s_targets:
                         target.status()
                         self.action_refcnt += 1
-                    status_target_launched.update(e_s_targets)
+                    launched.update(e_s_targets)
                 else:
-                    # distant server: check if all server targets have been selected
-                    if len(a_s_targets) == len(e_s_targets):
-                        # "status on all targets for this server" detected
-                        servers_statusall.add(server)
-                    else:
-                        # status per selected targets on this server
-                        for t_type, t_rangeset in \
-                                self._iter_type_idx_for_targets(e_s_targets):
-                            action = FSProxyAction(self, 'status',
-                                    NodeSet(server), self.debug, t_type, t_rangeset)
-                            action.launch()
-                            self.action_refcnt += 1
-                    status_target_launched.update(e_s_targets)
+                    labels = NodeSet.fromlist([ t.label for t in e_s_targets ])
+                    action = FSProxyAction(self, 'status', NodeSet(server),
+                                           self.debug, labels=labels)
+                    action.launch()
+                    self.action_refcnt += 1
+                    launched.update(e_s_targets)
 
         # prepare clients status checks
         if flags & STATUS_CLIENTS:
@@ -577,13 +533,13 @@ class FileSystem:
                         self.action_refcnt += 1
                     elif server not in servers_statusall:
                         servers_statusall.add(server)
-                    status_client_launched.add(client)
+                    launched.add(client)
 
-        # launch distant actions
-        if len(servers_statusall) > 0:
-            action = FSProxyAction(self, 'status', servers_statusall, self.debug)
-            action.launch()
-            self.action_refcnt += 1
+            # launch distant actions
+            if len(servers_statusall) > 0:
+                action = FSProxyAction(self, 'status', servers_statusall, self.debug)
+                action.launch()
+                self.action_refcnt += 1
 
         # run loop
         task_self().resume()
@@ -592,7 +548,6 @@ class FileSystem:
         rdict = {}
 
         # all launched targets+clients
-        launched = (status_target_launched | status_client_launched)
         if self.proxy_errors:
             # find targets/clients affected by the runtime error(s)
             for target in launched:
@@ -649,12 +604,6 @@ class FileSystem:
 
         self.targets.sort()
 
-        # servers_startall is used for optimization, it contains nodes
-        # where we have to perform the start operation on all targets
-        # found for this FS. This will limit the number of FSProxyAction
-        # to spawn.
-        servers_startall = NodeSet()
-
         # Remember targets launched, so we can check their status once
         # all operations are done (here, status are checked after all
         # targets of the same type have completed the start operation -
@@ -698,28 +647,15 @@ class FileSystem:
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
-                    # Distant server: for code and requests optimizations,
-                    # we check when all server targets have been selected.
-                    if len(type_e_targets) == len(a_s_targets):
-                        # "start all FS targets on this server" detected
-                        servers_startall.add(server)
-                    else:
-                        # Start per selected targets on this server.
-                        for t_type, t_rangeset in \
-                                self._iter_type_idx_for_targets(type_e_targets):
-                            action = FSProxyAction(self, 'start',
-                                    NodeSet(server), self.debug, t_type, t_rangeset)
-                            action.launch()
-                            self.action_refcnt += 1
+                    # Start per selected targets on this server.
+                    labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
+                    action = FSProxyAction(self, 'start', NodeSet(server),
+                                           self.debug, labels=labels)
+                    action.launch()
+                    self.action_refcnt += 1
 
                 # Remember launched targets of this server for late status check.
                 targets_launched.update(type_e_targets)
-
-            if len(servers_startall) > 0:
-                # Perform the start operations on all targets for these nodes.
-                action = FSProxyAction(self, 'start', servers_startall, self.debug)
-                action.launch()
-                self.action_refcnt += 1
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -738,7 +674,6 @@ class FileSystem:
                         return result
 
             # Some needed cleanup before next target type.
-            servers_startall.clear()
             targets_launched.clear()
 
         return result
@@ -753,10 +688,6 @@ class FileSystem:
         # Stop: reverse order
         self.targets.sort()
         self.targets.reverse()
-
-        # servers_stopall is used for optimization, see the comment in
-        # start() for servers_startall.
-        servers_stopall = NodeSet()
 
         # Remember targets when stop was launched.
         targets_stopping = Set()
@@ -788,28 +719,15 @@ class FileSystem:
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
-                    # Distant server: for code and requests optimizations,
-                    # we check when all server targets have been selected.
-                    if len(type_e_targets) == len(a_s_targets):
-                        # "stop all FS targets on this server" detected
-                        servers_stopall.add(server)
-                    else:
-                        # Stop per selected targets on this server.
-                        for t_type, t_rangeset in \
-                                self._iter_type_idx_for_targets(type_e_targets):
-                            action = FSProxyAction(self, 'stop',
-                                    NodeSet(server), self.debug, t_type, t_rangeset)
-                            action.launch()
-                            self.action_refcnt += 1
+                    # Stop per selected targets on this server.
+                    labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
+                    action = FSProxyAction(self, 'stop', NodeSet(server),
+                                           self.debug, labels=labels)
+                    action.launch()
+                    self.action_refcnt += 1
 
                 # Remember launched stopping targets of this server for late status check.
                 targets_stopping.update(type_e_targets)
-
-            if len(servers_stopall) > 0:
-                # Perform the stop operations on all targets for these nodes.
-                action = FSProxyAction(self, 'stop', servers_stopall, self.debug)
-                action.launch()
-                self.action_refcnt += 1
 
             task_self().resume()
 
@@ -822,7 +740,6 @@ class FileSystem:
                     rc = target.state
 
             # Some needed cleanup before next target type.
-            servers_stopall.clear()
             targets_stopping.clear()
 
         return rc
@@ -947,18 +864,11 @@ class FileSystem:
                 rc = server.tune(tuning_model, types, self.fs_name)
                 result = max(result, rc)
             else:
-                # distant server
-                if len(a_targets) == len(e_targets):
-                    # group in one action
-                    tune_all.add(server)
-                else:
-                    # otherwise, tune per selected targets on this server
-                    for t_type, t_rangeset in \
-                            self._iter_type_idx_for_targets(e_targets):
-                        action = FSProxyAction(self, 'tune',
-                                NodeSet(server), self.debug, t_type, t_rangeset)
-                        action.launch()
-                        self.action_refcnt += 1
+                labels = NodeSet.fromlist([ t.label for t in e_targets ])
+                action = FSProxyAction(self, 'tune', NodeSet(server),
+                                       self.debug, labels=labels)
+                action.launch()
+                self.action_refcnt += 1
 
         if len(tune_all) > 0:
             action = FSProxyAction(self, 'tune', tune_all, self.debug)

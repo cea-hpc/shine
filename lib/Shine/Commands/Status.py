@@ -139,6 +139,7 @@ class Status(FSLiveCommand):
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
+                    labels=self.target_support.get_labels(),
                     event_handler=eh)
 
             # Warn if trying to act on wrong nodes

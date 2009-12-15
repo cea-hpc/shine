@@ -1,3 +1,6 @@
+2009-12-15  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Add label (eg. -l lustre-OST0000) support (credits: AD).
+
 2009-12-07  Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Add -x exclude flag on command line.
 	* Rewrite nodeset checks. Same code for all commands.

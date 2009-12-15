@@ -21,6 +21,9 @@
 
 from Shine.Commands.Exceptions import CommandBadParameterError
 
+from ClusterShell.NodeSet import NodeSet
+
+
 class Target:
     """
     Command support class for "-t <target_type>" command option.
@@ -35,6 +38,11 @@ class Target:
         self.cmd = cmd
         self.cmd.add_option('t', 'target', attr)
 
+        attr = { 'optional' : True,
+                 'hidden' : False,
+                 'doc' : "specify target by label (ie: lustre-OST0000)" }
+        self.cmd.add_option('l', 'label', attr)
+
     def get_target(self):
         if self.cmd.opt_t:
             for t in self.cmd.opt_t.split(','):
@@ -42,4 +50,10 @@ class Target:
                     raise CommandBadParameterError(t, "mgt, mdt, ost")
             return self.cmd.opt_t.lower()
         return None
+
+    def get_labels(self):
+        if self.cmd.opt_l:
+            return NodeSet(self.cmd.opt_l)
+        return None
+
 

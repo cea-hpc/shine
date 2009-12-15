@@ -25,17 +25,19 @@ from Lustre.FileSystem import FileSystem
 from Lustre.Server import *
 from Lustre.Target import *
 
-from ClusterShell.NodeSet import RangeSet
+from ClusterShell.NodeSet import NodeSet, RangeSet
 
 import socket
 
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
-        failover_node=None, indexes=None, groups=None, event_handler=None):
+        failover_node=None, indexes=None, labels=None, groups=None,
+        event_handler=None):
     """
     Instantiate shine Lustre filesystem classes from configuration.
     """
     # Arguments interpretation
     assert indexes is None or isinstance(indexes, RangeSet)
+    assert labels is None or isinstance(labels, NodeSet)
 
     # Create file system instance
     fs = FileSystem(fs_conf.get_fs_name(), event_handler)
@@ -69,6 +71,10 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev, cf_t_jdev,
                 cf_t_group, cf_t_tag, target_action_enabled, cf_t_mode)
 
+        # Now the device is instanciated, we could check label name
+        if (labels is not None and target.label not in labels):
+            target.action_enabled = False
+
         # add failover hosts
         ha_nodes = cf_target.ha_nodes()
         for ha_node in cf_target.ha_nodes():
@@ -81,7 +87,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         # filter on nodes
         client_action_enabled = True
         if (nodes is not None and server not in nodes) or \
-            (excluded is not None and server in excluded):
+            (excluded is not None and server in excluded) or \
+            (labels is not None):
             client_action_enabled = False
 
         client = fs.new_client(server, mount_path, client_action_enabled)
@@ -103,7 +110,8 @@ def create_lustrefs(fs_model_file, event_handler=None):
 
 
 def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
-          failover_node=None, indexes=None, groups=None, event_handler=None):
+          failover_node=None, indexes=None, labels=None, groups=None,
+          event_handler=None):
     """
     Helper function used to build an instantiated Lustre.FileSystem
     from installed shine configuration.
@@ -115,7 +123,8 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
         target_types = target_types.split(',')
 
     fs = instantiate_lustrefs(fs_conf, target_types, nodes, excluded,
-                              failover_node, indexes, groups, event_handler)
+                              failover_node, indexes, labels, groups,
+                              event_handler)
 
     return fs_conf, fs
 
