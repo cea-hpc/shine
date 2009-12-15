@@ -24,7 +24,7 @@ from ClusterShell.NodeSet import NodeSet
 
 class Nodes:
     """
-    Command support class for "-n <nodeset>" command option.
+    Command support class for "-n <nodeset> and -x <nodeset>" command option.
     """
     
     def __init__(self, cmd, optional=True):
@@ -35,6 +35,11 @@ class Nodes:
 
         self.cmd = cmd
         self.cmd.add_option('n', 'nodes', attr)
+
+        attr = { 'optional' : optional,
+                 'hidden' : False,
+                 'doc' : "exclude node, comma-separated list of nodes or nodeset, eg. red[2-10/2]" }
+        self.cmd.add_option('x', 'excludes', attr)
     
     def get_nodeset(self):
         if self.cmd.opt_n:
@@ -42,4 +47,38 @@ class Nodes:
 
         return None
 
+    def get_excludes(self):
+        if self.cmd.opt_x:
+            return NodeSet(self.cmd.opt_x)
 
+        return None
+
+    def check_valid_list(self, fs_name, fs_nodes, action_txt="do"):
+        """
+        This helper method verifies, for the provided filesystem, that the
+        nodesets possibly set on command line, to restrain the node list, did
+        not:
+         - disabled all nodes
+         - specified nodes which are not in filesystem configuration.
+        Return False if nothing was done.
+        """
+
+        selected_nodes = self.get_nodeset()
+        excluded_nodes = self.get_excludes()
+
+        # Is there unknown host?
+        if selected_nodes:
+            if excluded_nodes:
+                selected_nodes = selected_nodes - excluded_nodes
+            if fs_nodes:
+                selected_nodes = selected_nodes - fs_nodes
+            if selected_nodes:
+                print "WARNING: Nothing to %s on %s for `%s'." % \
+                    (action_txt, selected_nodes, fs_name)
+        
+        # All nodes were disabled?
+        if len(fs_nodes) == 0:
+            print "WARNING: Nothing was done for `%s'." % fs_name
+            return False
+
+        return True

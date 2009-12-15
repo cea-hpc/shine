@@ -294,9 +294,10 @@ class FileSystem:
             action.launch()
             task.resume()
 
-    def install(self, fs_config_file, nodes=None):
+    def install(self, fs_config_file, nodes=None, excluded=None):
         """
-        Install FS config files, optionally on nodes `nodes'.
+        Install FS config files, optionally on nodes `nodes', exluding nodes
+        from `excluded'.
 
         Return the installed nodes (as a NodeSet).
         """
@@ -309,9 +310,12 @@ class FileSystem:
                     servers.add(s)
 
         for client in self.clients:
-            # install on failover partners too
             if not nodes or client.server in nodes:
                 servers.add(client.server)
+
+        # Do not install on excluded nodes
+        if excluded:
+           servers.difference_update(excluded)
 
         if servers:
 

@@ -40,6 +40,4 @@ class FSClientLiveCommand(RemoteCommand):
         RemoteCommand.__init__(self)
 
         self.fs_support = FS(self, optional=True)
-        self.nodes_support = Nodes(self)
         self.verbose_support = Verbose(self)
-

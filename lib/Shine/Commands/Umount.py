@@ -113,25 +113,22 @@ class Umount(FSClientLiveCommand):
             eh = self.install_eventhandler(None,
                     GlobalUmountEventHandler(vlevel))
 
-            nodes = self.nodes_support.get_nodeset()
-
             fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=nodes,
+                    nodes=self.nodes_support.get_nodeset(),
+                    excluded=self.nodes_support.get_excludes(),
                     indexes=None,
                     event_handler=eh)
 
-            if nodes and not nodes.issubset(fs_conf.get_client_nodes()):
-                raise CommandException("%s are not client nodes of filesystem '%s'" % \
-                        (nodes - fs_conf.get_client_nodes(), fsname))
-
             fs.set_debug(self.debug_support.has_debug())
 
+            # Warn if trying to act on wrong nodes
+            if not self.nodes_support.check_valid_list(fsname, \
+                    fs.get_enabled_client_servers(), "unmount"):
+                continue
+
             if not self.remote_call and vlevel > 0:
-                if nodes:
-                    m_nodes = nodes.intersection(fs.get_client_servers())
-                else:
-                    m_nodes = fs.get_client_servers()
-                print "Stopping %s clients on %s..." % (fs.fs_name, m_nodes)
+                print "Stopping %s clients on %s..." % \
+                    (fs.fs_name, fs.get_enabled_client_servers())
 
             status = fs.umount()
             rc = self.fs_status_to_rc(status)
@@ -141,11 +138,10 @@ class Umount(FSClientLiveCommand):
             if not self.remote_call:
                 if rc == RC_OK:
                     if vlevel > 0:
-                        # m_nodes is defined if not self.remote_call and vlevel > 0
-                        print "Unmount successful on %s" % m_nodes
+                        print "Unmount successful on %s" % \
+                            fs.get_enabled_client_servers()
                 elif rc == RC_RUNTIME_ERROR:
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)
 
         return result
-

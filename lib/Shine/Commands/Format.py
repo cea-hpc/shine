@@ -215,8 +215,15 @@ class Format(FSLiveCriticalCommand):
             # Open configuration and instantiate a Lustre FS.
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
+                    excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
+
+            # Warn if trying to act on wrong nodes
+            if not self.nodes_support.check_valid_list(fsname, \
+                    fs.target_servers, "format"):
+                result = RC_FAILURE
+                continue
 
             if not self.has_local_flag():
                 # Allow global handler to access fs_conf.

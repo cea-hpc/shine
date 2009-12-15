@@ -92,10 +92,17 @@ class Tune(FSLiveCommand):
 
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
+                    excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
 
             fs.set_debug(self.debug_support.has_debug())
+
+            # Warn if trying to act on wrong nodes
+            all_nodes = fs.target_servers | fs.get_enabled_client_servers()
+            if not self.nodes_support.check_valid_list(fsname, \
+                    all_nodes, "tune"):
+                continue
 
             tuning = self.get_tuning(fs_conf)
             if not tuning:

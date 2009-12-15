@@ -116,6 +116,12 @@ class Remove(RemoteCriticalCommand):
             # Prepare options...
             fs.set_debug(self.debug_support.has_debug())
 
+            # Warn if trying to act on wrong nodes
+            all_nodes = fs.target_servers | fs.get_enabled_client_servers()
+            if not self.nodes_support.check_valid_list(fsname, \
+                    all_nodes, "uninstall"):
+                continue
+
             # Get first the status of any FS components
             statusdict = fs.status(STATUS_ANY)
 

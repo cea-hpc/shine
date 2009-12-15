@@ -137,11 +137,14 @@ class Status(FSLiveCommand):
 
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
+                    excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
 
-            if not fs.target_servers and not fs.get_enabled_client_servers():
-                print "WARNING: Nothing to check on %s" % self.nodes_support.get_nodeset()
+            # Warn if trying to act on wrong nodes
+            all_nodes = fs.target_servers | fs.get_enabled_client_servers()
+            if not self.nodes_support.check_valid_list(fsname, \
+                    all_nodes, "check"):
                 rc = RC_FAILURE
                 continue
 

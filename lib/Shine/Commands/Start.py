@@ -176,6 +176,7 @@ class Start(FSLiveCommand):
             # Open configuration and instantiate a Lustre FS.
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
+                    excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
                     event_handler=eh)
 
@@ -188,9 +189,9 @@ class Start(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
-            if not fs.target_servers:
-                print "WARNING: No `%s' target to start on %s" % (fsname,
-                        self.nodes_support.get_nodeset())
+            # Warn if trying to act on wrong nodes
+            if not self.nodes_support.check_valid_list(fsname, \
+                    fs.target_servers, "start"):
                 rc = RC_FAILURE
                 continue
 

@@ -113,25 +113,24 @@ class Mount(FSClientLiveCommand):
             eh = self.install_eventhandler(None,
                     GlobalMountEventHandler(vlevel))
 
-            nodes = self.nodes_support.get_nodeset()
-
+            # Get filesystem informations
             fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=nodes,
+                    nodes=self.nodes_support.get_nodeset(),
                     indexes=None,
+                    excluded=self.nodes_support.get_excludes(),
                     event_handler=eh)
 
-            if nodes and not nodes.issubset(fs_conf.get_client_nodes()):
-                raise CommandException("%s are not client nodes of filesystem '%s'" % \
-                        (nodes - fs_conf.get_client_nodes(), fsname))
-
+            # Enabled debugging if debug flag was set on CLI.
             fs.set_debug(self.debug_support.has_debug())
 
+            # Warn if trying to act on wrong nodes
+            if not self.nodes_support.check_valid_list(fsname, \
+                    fs.get_enabled_client_servers(), "mount"):
+                continue
+
             if not self.remote_call and vlevel > 0:
-                if nodes:
-                    m_nodes = nodes.intersection(fs.get_client_servers())
-                else:
-                    m_nodes = fs.get_client_servers()
-                print "Starting %s clients on %s..." % (fs.fs_name, m_nodes)
+                print "Starting %s clients on %s..." % \
+                    (fs.fs_name, fs.get_enabled_client_servers())
 
             status = fs.mount(mount_options=fs_conf.get_mount_options())
             rc = self.fs_status_to_rc(status)
@@ -141,11 +140,10 @@ class Mount(FSClientLiveCommand):
             if not self.remote_call:
                 if rc == RC_OK:
                     if vlevel > 0:
-                        # m_nodes is defined if not self.remote_call and vlevel > 0
-                        print "Mount successful on %s" % m_nodes
+                        print "Mount successful on %s" % \
+                            fs.get_enabled_client_servers()
                 elif rc == RC_RUNTIME_ERROR:
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)
 
         return result
-

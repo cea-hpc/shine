@@ -29,7 +29,7 @@ from ClusterShell.NodeSet import RangeSet
 
 import socket
 
-def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
+def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         failover_node=None, indexes=None, groups=None, event_handler=None):
     """
     Instantiate shine Lustre filesystem classes from configuration.
@@ -62,7 +62,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
         if (target_types is not None and cf_t_type not in target_types) or \
             (indexes is not None and cf_t_index not in indexes) or \
             (groups is not None and (cf_t_group is None or cf_t_group not in groups)) or \
-            (nodes is not None and server not in nodes):
+            (nodes is not None and server not in nodes) or \
+            (excluded is not None and server in excluded):
                 target_action_enabled = False
 
         target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev, cf_t_jdev,
@@ -79,7 +80,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None,
 
         # filter on nodes
         client_action_enabled = True
-        if nodes is not None and server not in nodes:
+        if (nodes is not None and server not in nodes) or \
+            (excluded is not None and server in excluded):
             client_action_enabled = False
 
         client = fs.new_client(server, mount_path, client_action_enabled)
@@ -100,8 +102,8 @@ def create_lustrefs(fs_model_file, event_handler=None):
     return fs_conf, fs
 
 
-def open_lustrefs(fs_name, target_types=None, nodes=None, failover_node=None,
-        indexes=None, groups=None, event_handler=None):
+def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
+          failover_node=None, indexes=None, groups=None, event_handler=None):
     """
     Helper function used to build an instantiated Lustre.FileSystem
     from installed shine configuration.
@@ -112,8 +114,8 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, failover_node=None,
     if target_types:
         target_types = target_types.split(',')
 
-    fs = instantiate_lustrefs(fs_conf, target_types, nodes, failover_node,
-            indexes, groups, event_handler)
+    fs = instantiate_lustrefs(fs_conf, target_types, nodes, excluded,
+                              failover_node, indexes, groups, event_handler)
 
     return fs_conf, fs
 

@@ -66,41 +66,35 @@ class Install(Command):
                     event_handler=self)
 
             install_nodes = self.nodes_support.get_nodeset()
+            excluded_nodes = self.nodes_support.get_excludes()
 
             # Install file system configuration files; normally, this should
             # not be done by the Shine.Lustre.FileSystem object itself, but as
             # all proxy methods are currently handled by it, it is more
             # convenient this way...
-            actual_nodes = fs.install(fs_conf.get_cfg_filename(), nodes=install_nodes)
+            actual_nodes = fs.install(fs_conf.get_cfg_filename(), 
+                                      nodes=install_nodes, 
+                                      excluded=excluded_nodes)
 
-            if actual_nodes:
-
-                if install_nodes:
-                    unused_nodes = install_nodes - actual_nodes
-                    if unused_nodes:
-                        print "WARNING: Install not needed on %s." % unused_nodes
-
-                print "Configuration files for file system `%s' have been installed successfully on %s." % \
-                        (fs_conf.get_fs_name(), actual_nodes)
-
-                if not install_nodes:
-                    # Print short file system summary.
-                    print
-                    print "Lustre targets summary:"
-                    print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
-                    print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
-                    print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
-                    print
-
-                    # Give pointer to next user step.
-                    print "Use `shine format -f %s' to initialize the file system." % \
-                            fs_conf.get_fs_name()
-            else:
-                if install_nodes:
-                    print "Installation of file system `%s' is not needed on %s." % \
-                            (fs_conf.get_fs_name(), install_nodes)
-
+            # Helper message.
+            # If user specified nodes which were not used, warn him about it.
+            if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
+                    actual_nodes, "install"):
                 return RC_FAILURE
 
-            return RC_OK
+            # FIXME: Display a summary of what have been installed, even if
+            # install_nodes was specified.
+            if not install_nodes and not excluded_nodes:
+                # Print short file system summary.
+                print
+                print "Lustre targets summary:"
+                print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
+                print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
+                print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
+                print
 
+                # Give pointer to next user step.
+                print "Use `shine format -f %s' to initialize the file system." % \
+                        fs_conf.get_fs_name()
+
+            return RC_OK
