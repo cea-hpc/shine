@@ -102,7 +102,3 @@ class FSProxyAction(ProxyAction):
                     self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
                             (self.action, buf))
 
-        self.fs.action_refcnt -= 1
-        if self.fs.action_refcnt == 0:
-            worker.task.abort()
-

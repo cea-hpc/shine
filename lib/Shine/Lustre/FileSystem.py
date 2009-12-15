@@ -290,8 +290,7 @@ class FileSystem:
 
         # perform action on distant servers
         if len(distant_servers) > 0:
-            action = action_class(nodes=distant_servers, fs=self, **kwargs)
-            action.launch()
+            action_class(nodes=distant_servers, fs=self, **kwargs).launch()
             task.resume()
 
     def install(self, fs_config_file, nodes=None, excluded=None):
@@ -337,7 +336,6 @@ class FileSystem:
 
         servers = NodeSet()
 
-        self.action_refcnt = 0
         self.proxy_errors = []
 
         # iterate over lustre servers
@@ -356,9 +354,7 @@ class FileSystem:
 
         if len(servers) > 0:
             # Perform the remove operations on all targets for these nodes.
-            action = FSProxyAction(self, 'remove', servers, self.debug)
-            action.launch()
-            self.action_refcnt += 1
+            FSProxyAction(self, 'remove', servers, self.debug).launch()
 
         task_self().resume()
 
@@ -462,7 +458,6 @@ class FileSystem:
         format_launched = Set()
 
         self.proxy_errors = []
-        self.action_refcnt = 0
 
         for server, (a_targets, e_targets) in self._iter_targets_by_server():
 
@@ -470,16 +465,13 @@ class FileSystem:
                 # local server
                 for target in e_targets:
                     target.format(**kwargs)
-                    self.action_refcnt += 1
 
                 format_launched.update(e_targets)
 
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
-                action = FSProxyAction(self, 'format', NodeSet(server),
-                                       self.debug, labels=labels)
-                action.launch()
-                self.action_refcnt += 1
+                FSProxyAction(self, 'format', NodeSet(server), self.debug,
+                              labels=labels).launch()
                 format_launched.update(e_targets)
 
         task_self().resume()
@@ -501,7 +493,6 @@ class FileSystem:
 
         launched = Set()
         servers_statusall = NodeSet()
-        self.action_refcnt = 0
         self.proxy_errors = []
 
         # prepare servers status checks
@@ -513,14 +504,11 @@ class FileSystem:
                 if server.is_local():
                     for target in e_s_targets:
                         target.status()
-                        self.action_refcnt += 1
                     launched.update(e_s_targets)
                 else:
                     labels = NodeSet.fromlist([ t.label for t in e_s_targets ])
-                    action = FSProxyAction(self, 'status', NodeSet(server),
-                                           self.debug, labels=labels)
-                    action.launch()
-                    self.action_refcnt += 1
+                    FSProxyAction(self, 'status', NodeSet(server), self.debug,
+                                  labels=labels).launch()
                     launched.update(e_s_targets)
 
         # prepare clients status checks
@@ -530,16 +518,14 @@ class FileSystem:
                     server = client.server
                     if server.is_local():
                         client.status()
-                        self.action_refcnt += 1
                     elif server not in servers_statusall:
                         servers_statusall.add(server)
                     launched.add(client)
 
             # launch distant actions
             if len(servers_statusall) > 0:
-                action = FSProxyAction(self, 'status', servers_statusall, self.debug)
-                action.launch()
-                self.action_refcnt += 1
+                FSProxyAction(self, 'status', servers_statusall,
+                              self.debug).launch()
 
         # run loop
         task_self().resume()
@@ -580,11 +566,9 @@ class FileSystem:
             # Target is local
             target.status()
         else:
-            action = FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                    target.type, RangeSet(str(target.index)))
-            action.launch()
+            FSProxyAction(self, 'status', NodeSet(server), self.debug,
+                          target.type, RangeSet(str(target.index))).launch()
 
-        self.action_refcnt = 1
         task_self().resume()
 
     def start(self, **kwargs):
@@ -609,10 +593,6 @@ class FileSystem:
         # targets of the same type have completed the start operation -
         # with possible failure).
         targets_launched = Set()
-
-        # Keep number of actions in order to abort task correctly in
-        # action's ev_close.
-        self.action_refcnt = 0
 
         result = 0
 
@@ -642,17 +622,14 @@ class FileSystem:
                         # it will perform necessary non-blocking actions and
                         # (when needed) will start local ClusterShell workers.
                         target.start(**kwargs)
-                        self.action_refcnt += 1
                 else:
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
                     # Start per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
-                    action = FSProxyAction(self, 'start', NodeSet(server),
-                                           self.debug, labels=labels)
-                    action.launch()
-                    self.action_refcnt += 1
+                    FSProxyAction(self, 'start', NodeSet(server), self.debug,
+                                  labels=labels).launch()
 
                 # Remember launched targets of this server for late status check.
                 targets_launched.update(type_e_targets)
@@ -692,7 +669,6 @@ class FileSystem:
         # Remember targets when stop was launched.
         targets_stopping = Set()
 
-        self.action_refcnt = 0
         self.proxy_errors = []
 
         # We use a similar logic than start(): see start() for comments.
@@ -714,17 +690,14 @@ class FileSystem:
                     # Stop targets if we are on the good server.
                     for target in type_e_targets:
                         target.stop(**kwargs)
-                        self.action_refcnt += 1
                 else:
                     assert a_s_targets.issuperset(type_e_targets)
                     assert len(type_e_targets) > 0
 
                     # Stop per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
-                    action = FSProxyAction(self, 'stop', NodeSet(server),
-                                           self.debug, labels=labels)
-                    action.launch()
-                    self.action_refcnt += 1
+                    FSProxyAction(self, 'stop', NodeSet(server), self.debug,
+                                  labels=labels).launch()
 
                 # Remember launched stopping targets of this server for late status check.
                 targets_stopping.update(type_e_targets)
@@ -750,7 +723,6 @@ class FileSystem:
         """
         servers_mountall = NodeSet()
         clients_mounting = Set()
-        self.action_refcnt = 0
         self.proxy_errors = []
 
         for client in self.clients:
@@ -761,7 +733,6 @@ class FileSystem:
             if client.server.is_local():
                 # local client
                 client.start(**kwargs)
-                self.action_refcnt += 1
             else:
                 # distant client
                 servers_mountall.add(client.server)
@@ -769,9 +740,7 @@ class FileSystem:
             clients_mounting.add(client)
 
         if len(servers_mountall) > 0:
-            action = FSProxyAction(self, 'mount', servers_mountall, self.debug)
-            action.launch()
-            self.action_refcnt += 1
+            FSProxyAction(self, 'mount', servers_mountall, self.debug).launch()
 
         task_self().resume()
 
@@ -791,7 +760,6 @@ class FileSystem:
         """
         servers_umountall = NodeSet()
         clients_umounting = Set()
-        self.action_refcnt = 0
         self.proxy_errors = []
 
         for client in self.clients:
@@ -802,7 +770,6 @@ class FileSystem:
             if client.server.is_local():
                 # local client
                 client.stop(**kwargs)
-                self.action_refcnt += 1
             else:
                 # distant client
                 servers_umountall.add(client.server)
@@ -810,9 +777,7 @@ class FileSystem:
             clients_umounting.add(client)
 
         if len(servers_umountall) > 0:
-            action = FSProxyAction(self, 'umount', servers_umountall, self.debug)
-            action.launch()
-            self.action_refcnt += 1
+            FSProxyAction(self, 'umount', servers_umountall, self.debug).launch()
 
         task_self().resume()
 
@@ -836,7 +801,6 @@ class FileSystem:
         task = task_self()
         tune_all = NodeSet()
         type_map = { 'mgt': 'mgs', 'mdt': 'mds', 'ost' : 'oss' }
-        self.action_refcnt = 0
         self.proxy_errors = []
         result = 0
 
@@ -847,12 +811,10 @@ class FileSystem:
                     tune_all.add(server)
             if len(tune_all) > 0:
                 self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
-                self.action_refcnt += 1
                 task.resume()
                 tune_all.clear()
 
         # Apply tunings
-        self.action_refcnt = 0
         for server, (a_targets, e_targets) in self._iter_targets_by_server():
             if not e_targets:
                 continue
@@ -865,15 +827,11 @@ class FileSystem:
                 result = max(result, rc)
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
-                action = FSProxyAction(self, 'tune', NodeSet(server),
-                                       self.debug, labels=labels)
-                action.launch()
-                self.action_refcnt += 1
+                FSProxyAction(self, 'tune', NodeSet(server), self.debug,
+                              labels=labels).launch()
 
         if len(tune_all) > 0:
-            action = FSProxyAction(self, 'tune', tune_all, self.debug)
-            action.launch()
-            self.action_refcnt += 1
+            FSProxyAction(self, 'tune', tune_all, self.debug).launch()
 
         task.resume()
 
