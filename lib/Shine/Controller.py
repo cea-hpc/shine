@@ -61,9 +61,13 @@ class Controller:
         #self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
 
-        #task_self().set_info("debug", True)
+        task = task_self()
 
-        task_self().set_info("print_debug", print_csdebug)
+        #task.set_info("debug", True)
+        task.set_info("print_debug", print_csdebug)
+        fanout = Globals().get_ssh_fanout()
+        if fanout > 0:
+            task.set_info("fanout", fanout)
 
     def usage(self):
         cmd_maxlen = 0

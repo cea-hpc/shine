@@ -55,6 +55,7 @@ class Globals(object):
             'log_file'                  : 'path',
             'log_level'                 : [ 'debug', 'info', 'warn', 'error' ],
             'ssh_connect_timeout'       : 'digit',
+            'ssh_fanout'                : 'digit',
             'default_timeout'           : 'digit',
             'start_timeout'             : 'digit',
             'mount_timeout'             : 'digit',
@@ -66,7 +67,6 @@ class Globals(object):
             'use_stormap_for_chk_dev'   : ['yes', 'no'],
             'set_ioscheds_timeout'      : 'digit',
             'allow_loop_devices'        : ['yes', 'no'],
-            'default_fanout'            : 'digit',
             'check_only_mounted_nodes_on_mnt_status' : ['yes', 'no'],
             'set_tuning_timeout'        : 'digit',
             'disable_modules_unloading' : ['yes', 'no'],
@@ -84,6 +84,7 @@ class Globals(object):
             'log_file'                  : 'warn',
             'log_level'                 : 'warn',
             'ssh_connect_timeout'       : 0,
+            'ssh_fanout'                : 0,
             'default_timeout'           : 30,
             'start_timeout'             : 0,
             'mount_timeout'             : 0,
@@ -135,5 +136,8 @@ class Globals(object):
 
         def get_status_timeout(self):
             return float(self.get_one('status_timeout'))
+
+        def get_ssh_fanout(self):
+            return int(self.get_one('ssh_fanout'))
 
         # ...

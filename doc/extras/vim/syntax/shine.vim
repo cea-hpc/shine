@@ -23,6 +23,7 @@ syn keyword shineConfKey    log_file
 syn keyword shineConfKey    log_level
 
 syn keyword shineConfKey    ssh_connect_timeout
+syn keyword shineConfKey    ssh_fanout
 syn keyword shineConfKey    default_timeout
 syn keyword shineConfKey    start_timeout
 syn keyword shineConfKey    stop_timeout

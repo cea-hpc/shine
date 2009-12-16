@@ -1,6 +1,7 @@
 2009-12-16  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Add tuning support for clients. Add automatic tuning after
-	* successful mounts.
+	successful mounts.
+	* Add ssh_fanout option to shine.conf.
 
 2009-12-15  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Add label (eg. -l lustre-OST0000) support (credits: AD).
