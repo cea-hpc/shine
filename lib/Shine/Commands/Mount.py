@@ -42,6 +42,7 @@ from Exceptions import CommandException
 
 # Command helper
 from Shine.FSUtils import open_lustrefs
+from Shine.Commands.Tune import Tune
 
 # Lustre events
 import Shine.Lustre.EventHandler
@@ -142,8 +143,26 @@ class Mount(FSClientLiveCommand):
                     if vlevel > 0:
                         print "Mount successful on %s" % \
                             fs.get_enabled_client_servers()
-                elif rc == RC_RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
+
+                    # Apply tuning after successful mount(s)
+                    tuning = Tune.get_tuning(fs_conf)
+                    status = fs.tune(tuning)
+                    if status == MOUNTED:
+                        print "Filesystem tuning applied on %s" % \
+                            fs.get_enabled_client_servers()
+                    elif status == RUNTIME_ERROR:
+                        rc = RC_RUNTIME_ERROR
+                        for nodes, msg in fs.proxy_errors:
+                            print "%s: %s" % (nodes, msg)
+                else:
+                    # Display a failure message in case of previous failed
+                    # mounts. For now, if one mount fail, the tuning is
+                    # skipped. Use `shine tune' to manually tune the FS.
+                    # Trac ticket #46 aims to improve this.
+                    if vlevel > 0:
+                        print "Tuning skipped!"
+                    if rc == RC_RUNTIME_ERROR:
+                        for nodes, msg in fs.proxy_errors:
+                            print "%s: %s" % (nodes, msg)
 
         return result

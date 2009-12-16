@@ -215,6 +215,8 @@ class Start(FSLiveCommand):
                 if status == RUNTIME_ERROR:
                     rc = RC_RUNTIME_ERROR
                 # XXX improve tuning on start error handling
+            elif vlevel > 0:
+                print "Tuning skipped."
 
             if rc == RC_RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:

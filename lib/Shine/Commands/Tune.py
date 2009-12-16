@@ -82,6 +82,7 @@ class Tune(FSLiveCommand):
 
         # Get verbose level.
         vlevel = self.verbose_support.get_verbose_level()
+        debug = self.debug_support.has_debug()
 
         target = self.target_support.get_target()
         for fsname in self.fs_support.iter_fsname():
@@ -97,7 +98,7 @@ class Tune(FSLiveCommand):
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
 
-            fs.set_debug(self.debug_support.has_debug())
+            fs.set_debug(debug)
 
             # Warn if trying to act on wrong nodes
             all_nodes = fs.target_servers | fs.get_enabled_client_servers()
@@ -113,6 +114,9 @@ class Tune(FSLiveCommand):
             if hasattr(eh, 'pre'):
                 eh.pre(fs)
                 
+            if not self.remote_call and (vlevel > 1 or debug):
+                print tuning
+
             status = fs.tune(tuning)
             if status == RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:

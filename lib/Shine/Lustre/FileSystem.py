@@ -809,6 +809,10 @@ class FileSystem:
             for server, (a_targets, e_targets) in self._iter_targets_by_server():
                 if e_targets and not server.is_local():
                     tune_all.add(server)
+            # Add servers of enabled and distant clients
+            tune_all.add(NodeSet.fromlist([ client.server for client in self.clients if \
+                client.action_enabled and not client.server.is_local() ]))
+
             if len(tune_all) > 0:
                 self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
                 task.resume()
@@ -829,6 +833,15 @@ class FileSystem:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'tune', NodeSet(server), self.debug,
                               labels=labels).launch()
+
+        for client in self.clients:
+            if client.action_enabled:
+                server = client.server
+                if server.is_local():
+                    rc = server.tune(tuning_model, ['client'], self.fs_name)
+                    result = max(result, rc)
+                elif server not in tune_all:
+                    tune_all.add(server)
 
         if len(tune_all) > 0:
             FSProxyAction(self, 'tune', tune_all, self.debug).launch()

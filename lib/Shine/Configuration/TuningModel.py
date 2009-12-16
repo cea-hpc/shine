@@ -288,7 +288,7 @@ class TuningParameter:
         # Walk through the list of pathes and create a command for each one
         # of them
         for path in file_pathes:
-            command_list.append("echo \"%s\" > %s" % \
+            command_list.append("echo %s > %s" % \
                     (self._parameter_value, path))
 
         # Return the newly created commands to the caller
@@ -478,7 +478,7 @@ class TuningModel:
         
         # Build the patterns to retrieve alias and parameter declaration
         alias_pattern="^\s*alias *"
-        parameter_pattern='^\s*"*[A-Za-z0-9_-]+"*\s+[A-Za-z0-9_-]+\s+[A-Za-z]+'
+        parameter_pattern='^\s*"*[A-Za-z0-9_\-\+]+"*\s+[A-Za-z0-9_-]+\s+[A-Za-z]+'
         
         # Build regexp objects for pattern matching
         alias_regexp = re.compile(alias_pattern)
