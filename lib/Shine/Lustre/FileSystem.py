@@ -749,10 +749,11 @@ class FileSystem:
 
         # Ok, workers have completed, perform late status check...
         for client in clients_mounting:
-            if client.state != MOUNTED:
-                return client.state
+            if client.state is None:
+                print "Unknown client.state after fs.mount() for %s" % client.server
+                return RUNTIME_ERROR
 
-        return MOUNTED
+        return client.state
 
     def umount(self, **kwargs):
         """
