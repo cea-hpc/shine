@@ -410,7 +410,7 @@ class FileSystem:
         if len(targets) > 0:
             yield last_target_type, targets, servers
 
-    def targets_by_type(self, reverse=False):
+    def targets_by_type(self, reverse=False, enable_external=False):
         """
         Per type of target iterator : returns the following tuple:
         (type, (list of all targets of this type, list of enabled targets))
@@ -429,7 +429,7 @@ class FileSystem:
                     e_targets.clear()
 
             a_targets.add(target)
-            if target.action_enabled:
+            if target.action_enabled or (enable_external and target.is_external()):
                 e_targets.add(target)
             last_target_type = target.type
 

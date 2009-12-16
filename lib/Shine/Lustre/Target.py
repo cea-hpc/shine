@@ -64,7 +64,14 @@ class TargetDeviceError(TargetError):
 
 # Constants for target/client states
 (MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(8)
-
+# See text_status() for its used.
+state_text_map = { 
+    MOUNTED:       "online", 
+    EXTERNAL:      "external", 
+    RECOVERING:    "recovering", 
+    OFFLINE:       "offline", 
+    TARGET_ERROR:  "ERROR", 
+    RUNTIME_ERROR: "CHECK FAILURE" }
 
 class Target(Disk):
 
@@ -171,6 +178,15 @@ class Target(Disk):
         Return an ordered list of target's NIDs.
         """
         return [s.nid for s in self.servers]
+
+    def text_status(self):
+        """
+        Return a human text form for the target state.
+        """
+        if self.state == RECOVERING:
+            return "%s for %s" % (state_text_map.get(RECOVERING), self.status_info)
+        else:
+            return state_text_map.get(self.state, "BUG STATE %d" % self.state)
 
     def _lustre_check(self):
 

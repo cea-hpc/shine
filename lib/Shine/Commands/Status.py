@@ -205,38 +205,20 @@ class Status(FSLiveCommand):
         """
         View: lustre targets
         """
-        print "FILESYSTEM TARGETS (%s)" % fs.fs_name
-
-        # override dict to allow target sorting by index
-        class target_dict(dict):
-            def __lt__(self, other):
-                return self["index"] < other["index"]
 
         ldic = []
-        for type, (all_targets, enabled_targets) in fs.targets_by_type():
+        for type, (all_targets, enabled_targets) in fs.targets_by_type(enable_external=True):
             for target in enabled_targets:
-
-                if target.state == EXTERNAL:
-                    status = "external"
-                elif target.state == OFFLINE:
-                    status = "offline"
-                elif target.state == TARGET_ERROR:
-                    status = "ERROR"
-                elif target.state == RECOVERING:
-                    status = "recovering %s" % target.status_info
-                elif target.state == MOUNTED:
-                    status = "online"
-                else:
-                    status = "UNKNOWN"
-
-                ldic.append(target_dict([["target", target.get_id()],
+                ldic.append(dict([["target", target.get_id()],
                     ["type", target.type.upper()],
                     ["nodes", NodeSet.fromlist(target.servers)],
                     ["device", target.dev],
                     ["index", target.index],
-                    ["status", status]]))
+                    ["status", target.text_status()]]))
 
-        ldic.sort()
+        # Sort by index
+        ldic.sort(lambda a,b: cmp(a['index'], b['index']))
+
         layout = AsciiTableLayout()
         layout.set_show_header(True)
         layout.set_column("target", 0, AsciiTableLayout.LEFT, "target id",
@@ -252,6 +234,7 @@ class Status(FSLiveCommand):
         layout.set_column("status", 5, AsciiTableLayout.LEFT, "status",
                 AsciiTableLayout.CENTER)
 
+        print "FILESYSTEM TARGETS (%s)" % fs.fs_name
         AsciiTable().print_from_list_of_dict(ldic, layout)
 
 
@@ -259,76 +242,39 @@ class Status(FSLiveCommand):
         """
         View: lustre FS summary
         """
+
         ldic = []
+        order = []
+        states = {}
 
-        # targets
-        for type, (a_targets, e_targets) in fs.targets_by_type():
-            nodes = NodeSet()
-            t_external = []
-            t_offline = []
-            t_error = []
-            t_recovering = []
-            t_online = []
-            t_runtime = []
-            t_unknown = []
-            for target in a_targets:
-                nodes.add(target.servers[0])
+        # Iterate over enabled TARGETS, grouped by Type
+        for type, (a_targets, e_targets) in fs.targets_by_type(enable_external=True):
+            for target in e_targets:
+                # Convert target.state to a human readable form. Recovering has a special text.
+                status = target.text_status()
+                # Add to state mapping and remember in which order we found them.
+                states.setdefault((type, status), NodeSet()).update(target.servers[0])
+                if (type, status) not in order:
+                    order.append((type, status))
 
-                # check target status
-                if target.state == EXTERNAL:
-                    t_external.append(target)
-                elif target.state == OFFLINE:
-                    t_offline.append(target)
-                elif target.state == TARGET_ERROR:
-                    t_error.append(target)
-                elif target.state == RECOVERING:
-                    t_recovering.append(target)
-                elif target.state == MOUNTED:
-                    t_online.append(target)
-                elif target.state == RUNTIME_ERROR:
-                    t_runtime.append(target)
-                else:
-                    t_unknown.append(target)
-
-            status = []
-            if len(t_external) > 0:
-                status.append("external (%d)" % len(t_external))
-            if len(t_offline) > 0:
-                status.append("offline (%d)" % len(t_offline))
-            if len(t_error) > 0:
-                status.append("ERROR (%d)" % len(t_error))
-            if len(t_recovering) > 0:
-                status.append("recovering (%d) for %s" % (len(t_recovering),
-                    t_recovering[0].status_info))
-            if len(t_online) > 0:
-                status.append("online (%d)" % len(t_online))
-            if len(t_runtime) > 0:
-                status.append("CHECK FAILURE (%d)" % len(t_runtime))
-            if len(t_unknown) > 0:
-                status.append("not checked (%d)" % len(t_unknown))
-
-            if len(t_unknown) < len(a_targets):
-                ldic.append(dict([["type", "%s" % type.upper()],
-                    ["count", len(a_targets)], ["nodes", nodes],
-                    ["status", ', '.join(status)]]))
-
-        # clients
+        # If we want CLIENTS, iterate over enabled ones
         if show_clients:
-            (c_ign, c_offline, c_error, c_runtime, c_mounted) = fs.get_client_statecounters()
-            status = []
-            if c_ign > 0:
-                status.append("not checked (%d)" % c_ign)
-            if c_offline > 0:
-                status.append("offline (%d)" % c_offline)
-            if c_error > 0:
-                status.append("ERROR (%d)" % c_error)
-            if c_runtime > 0:
-                status.append("CHECK FAILURE (%d)" % c_runtime)
-            if c_mounted > 0:
-                status.append("mounted (%d)" % c_mounted)
+            for client in fs.clients:
+                if client.action_enabled:
+                    # Convert target.state to a human readable form.
+                    status = client.text_status()
+                    # Add to state mapping
+                    states.setdefault(("cli", status), NodeSet()).update(client.server)
+                    if ("cli", status) not in order:
+                        order.append(("cli", status))
 
-            ldic.append(dict([["type", "CLI"], ["count", len(fs.clients)],
-                ["nodes", "%s" % fs.get_client_servers()], ["status", ', '.join(status)]]))
+        # Read the state mapping we just build, using the recorded order.
+        for (type, state) in order:
+            ldic.append(dict([
+                ["type", str(type.upper())],
+                ["count", len(states[(type, state)])],
+                ["nodes", states[(type, state)]], 
+                ["status", state]]))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)
@@ -348,32 +294,11 @@ class Status(FSLiveCommand):
         View: lustre disks
         """
 
-        print "FILESYSTEM DISKS (%s)" % fs.fs_name
-
-        # override dict to allow target sorting by index
-        class target_dict(dict):
-            def __lt__(self, other):
-                return self["index"] < other["index"] 
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False
-        for type, (all_targets, enabled_targets) in fs.targets_by_type():
+        for type, (all_targets, enabled_targets) in fs.targets_by_type(enable_external=True):
             for target in enabled_targets:
-
-                if target.state == EXTERNAL:
-                    status = "external"
-                elif target.state == OFFLINE:
-                    status = "offline"
-                elif target.state == RECOVERING:
-                    status = "recovering %s" % target.status_info
-                elif target.state == MOUNTED:
-                    status = "online"
-                elif target.state == TARGET_ERROR:
-                    status = "ERROR"
-                elif target.state == RUNTIME_ERROR:
-                    status = "CHECK FAILURE"
-                else:
-                    status = "UNKNOWN"
 
                 if target.dev_size >= TERA:
                     dev_size = "%.1fT" % (target.dev_size/TERA)
@@ -414,7 +339,7 @@ class Status(FSLiveCommand):
                 if target.has_param_flag():
                     flags.append("conf_param")
 
-                ldic.append(target_dict([\
+                ldic.append(dict([\
                     ["nodes", NodeSet.fromlist(target.servers)],
                     ["dev", target.dev],
                     ["size", dev_size],
@@ -425,9 +350,11 @@ class Status(FSLiveCommand):
                     ["label", target.label],
                     ["flags", ' '.join(flags)],
                     ["fsname", target.fs.fs_name],
-                    ["status", status]]))
+                    ["status", target.text_status()]]))
 
-        ldic.sort()
+        # Sort by index
+        ldic.sort(lambda a,b: cmp(a['index'], b['index']))
+
         layout = AsciiTableLayout()
         layout.set_show_header(True)
         i = 0
@@ -466,5 +393,6 @@ class Status(FSLiveCommand):
         layout.set_column("status", i, AsciiTableLayout.LEFT, "status",
                 AsciiTableLayout.CENTER)
 
+        print "FILESYSTEM DISKS (%s)" % fs.fs_name
         AsciiTable().print_from_list_of_dict(ldic, layout)
 

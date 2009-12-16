@@ -90,6 +90,9 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
             (excluded is not None and server in excluded) or \
             (labels is not None):
             client_action_enabled = False
+        # if a target is specified, no client enabled
+        if target_types is not None:
+            client_action_enabled = False
 
         client = fs.new_client(server, mount_path, client_action_enabled)
 

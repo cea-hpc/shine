@@ -35,8 +35,19 @@ from Actions.StartClient import StartClient
 from Actions.StopClient import StopClient
 
 from Server import Server
-from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR
+from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR, RUNTIME_ERROR
 
+#
+# Text form for different client states. 
+#
+# Could be nearly merged with Target state_text_map if MOUNTED value
+# becomes the same.
+state_text_map = { 
+    OFFLINE: "offline", 
+    CLIENT_ERROR: "ERROR", 
+    MOUNTED: "mounted", 
+    RUNTIME_ERROR: "CHECK FAILURE" 
+}
 
 class ClientException(Exception):
     def __init__(self, client, message=None):
@@ -91,6 +102,12 @@ class Client:
     def __setstate__(self, dict):
         self.__dict__.update(dict)
         self.fs = None
+
+    def text_status(self):
+        """
+        Return a human text form for the client state.
+        """
+        return state_text_map.get(self.state, "BUG STATE %d" % self.state)
 
     def _lustre_check(self):
         """
