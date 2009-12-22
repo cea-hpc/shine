@@ -118,7 +118,6 @@ class Target(Disk):
         # If target mode is external then set target state accordingly
         if self.is_external():
             self.state = EXTERNAL
-            self.action_enabled = False
 
         self.status_info = None
 
@@ -186,7 +185,7 @@ class Target(Disk):
         if self.state == RECOVERING:
             return "%s for %s" % (state_text_map.get(RECOVERING), self.status_info)
         else:
-            return state_text_map.get(self.state, "BUG STATE %d" % self.state)
+            return state_text_map.get(self.state, "BUG STATE %s" % str(self.state))
 
     def _lustre_check(self):
 
@@ -417,6 +416,7 @@ class Target(Disk):
 class MGT(Target):
 
     target_order = 1
+    display_order = 1
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='mgt', **kwargs)
@@ -425,6 +425,7 @@ class MGT(Target):
 class MDT(Target):
 
     target_order = 4    # changed to 2 in writeconf mode
+    display_order = 2
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='mdt', **kwargs)
@@ -433,6 +434,7 @@ class MDT(Target):
 class OST(Target):
 
     target_order = 3
+    display_order = 3
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='ost', **kwargs)

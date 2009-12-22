@@ -28,6 +28,7 @@ import Shine.Lustre.EventHandler
 from Shine.Lustre.FileSystem import INPROGRESS
 
 from ClusterShell.Task import task_self
+from ClusterShell.NodeSet import NodeSet
 
 import datetime
 
@@ -54,17 +55,18 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         """
         Repeating timer callback for in-progress operations.
         """
-        targets = list(self.fs.targets_by_state(INPROGRESS))
+
+        filter_key = lambda t: t.state == INPROGRESS
+        targets = list(self.fs.managed_targets(filter_key=filter_key))
+        target_servers = NodeSet.fromlist([t.server for t in targets])
         target_count = len(targets)
 
         if target_count > 0:
-            #print target_count, self.last_target_count
             if self.status_changed:
                 self.status_changed = False
                 d = datetime.datetime.now()
                 print "[%s] In progress for %d target(s) on %s ..." % \
-                        (d.strftime("%H:%M"), target_count,
-                                self.fs.target_servers_by_state(INPROGRESS))
+                        (d.strftime("%H:%M"), target_count, target_servers)
 
     def update(self):
         self.status_changed = True

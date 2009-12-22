@@ -207,7 +207,8 @@ class Status(FSLiveCommand):
         """
 
         ldic = []
-        for type, (all_targets, enabled_targets) in fs.targets_by_type(enable_external=True):
+        group_key = lambda t: (t.display_order, t.index)
+        for (order, index), enabled_targets in fs.enabled_targets(group_key=group_key):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
                     ["type", target.type.upper()],
@@ -215,9 +216,6 @@ class Status(FSLiveCommand):
                     ["device", target.dev],
                     ["index", target.index],
                     ["status", target.text_status()]]))
-
-        # Sort by index
-        ldic.sort(lambda a,b: cmp(a['index'], b['index']))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)
@@ -248,25 +246,24 @@ class Status(FSLiveCommand):
         states = {}
 
         # Iterate over enabled TARGETS, grouped by Type
-        for type, (a_targets, e_targets) in fs.targets_by_type(enable_external=True):
+        for type, e_targets in fs.enabled_targets(group_attr="display_order"):
             for target in e_targets:
                 # Convert target.state to a human readable form. Recovering has a special text.
                 status = target.text_status()
                 # Add to state mapping and remember in which order we found them.
-                states.setdefault((type, status), NodeSet()).update(target.servers[0])
-                if (type, status) not in order:
-                    order.append((type, status))
+                states.setdefault((target.type, status), NodeSet()).update(target.servers[0])
+                if (target.type, status) not in order:
+                    order.append((target.type, status))
 
         # If we want CLIENTS, iterate over enabled ones
         if show_clients:
-            for client in fs.clients:
-                if client.action_enabled:
-                    # Convert target.state to a human readable form.
-                    status = client.text_status()
-                    # Add to state mapping
-                    states.setdefault(("cli", status), NodeSet()).update(client.server)
-                    if ("cli", status) not in order:
-                        order.append(("cli", status))
+            for client in fs.enabled_clients():
+                # Convert target.state to a human readable form.
+                status = client.text_status()
+                # Add to state mapping
+                states.setdefault(("cli", status), NodeSet()).update(client.server)
+                if ("cli", status) not in order:
+                    order.append(("cli", status))
 
         # Read the state mapping we just build, using the recorded order.
         for (type, state) in order:
@@ -297,8 +294,8 @@ class Status(FSLiveCommand):
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False
-        for type, (all_targets, enabled_targets) in fs.targets_by_type(enable_external=True):
-            for target in enabled_targets:
+        for type, e_targets in fs.managed_targets(group_attr="display_order"):
+            for target in e_targets:
 
                 if target.dev_size >= TERA:
                     dev_size = "%.1fT" % (target.dev_size/TERA)
@@ -351,9 +348,6 @@ class Status(FSLiveCommand):
                     ["flags", ' '.join(flags)],
                     ["fsname", target.fs.fs_name],
                     ["status", target.text_status()]]))
-
-        # Sort by index
-        ldic.sort(lambda a,b: cmp(a['index'], b['index']))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)

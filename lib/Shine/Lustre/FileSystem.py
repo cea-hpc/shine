@@ -29,6 +29,9 @@ import copy
 from sets import Set
 import socket
 
+from itertools import ifilter, imap, groupby
+from operator import attrgetter
+
 from ClusterShell.NodeSet import NodeSet, RangeSet
 
 from Shine.Configuration.Globals import Globals
@@ -232,17 +235,80 @@ class FileSystem:
 
         return client
 
+    #
+    # Iterators over filesystem components
+    #
+
+    def enabled_clients(self):
+        """Iterator over all enabled clients"""
+        # Optimized version of:
+        #   for client in self.clients:
+        #     if client.action_enabled:
+        #       yield client
+
+        # FIXME: Add filtering and grouping support like enabled_targets()
+        return ifilter(attrgetter("action_enabled"), self.clients)
+
+    def enabled_targets(self, group_attr=None, group_key=None, filter_key=None, reverse=False):
+        """This function returns an iterator over enabled targets with 3 
+        additionnal possibilities:
+        - Filter targets more precisely (using filter_key)
+        - Group results by attributes or key (using group_attr or group_key)
+        - Reverse results (using reverse)
+        All can be combined.
+
+        Example #1: Iterate over enabled OSTs only:
+         self.enabled_targets(filter_key=lambda t: t.type == "ost")
+
+        Example #2: Group target by server
+         self.enabled_targets(group_attr="server")
+
+        Example #3: Group using 2 criterias, first type and then server
+         key = lambda t: (t.type, t.server)
+         self.enabled_targets(group_key=key)
+        """
+
+        # Try to construct a grouping key.
+        # If a groupping attribute is provided, use this name to build
+        # the group_key. If a group_key is provided, ignore group_attr.
+        #
+        # See: Python documentation about itertools.groupby and sorted()
+        if not group_key:
+            if group_attr:
+                group_key = attrgetter(group_attr)
+
+        if group_key:
+            # A grouping is needed, sort the target using this key,
+            # and then group results using the same key.
+            sortlist = sorted(self.enabled_targets(filter_key=filter_key), \
+                              key=group_key, reverse=reverse)
+            return groupby(sortlist, group_key)
+        else:
+            # As we do not group and sort, reverse has no meaning here
+            assert reverse == False
+
+            if not filter_key:
+                key = attrgetter("action_enabled")
+            else:
+                key = lambda x: filter_key(x) and attrgetter("action_enabled")(x)
+            return ifilter(key, self.targets)
+
+    def managed_targets(self, group_attr=None, group_key=None, filter_key=None, reverse=False):
+        """Same method as enabled_targets() but filters also ExternalTarget."""
+        if not filter_key:
+            key = lambda x: not x.is_external()
+        else:
+            key = lambda x: filter_key(x) and not x.is_external()
+        return self.enabled_targets(group_attr, group_key, key, reverse)
+
     def get_mgs_nids(self):
         return self.mgt.get_nids()
     
-    def get_client_servers(self):
-        return NodeSet.fromlist([c.server for c in self.clients])
-
     def get_enabled_client_servers(self):
-        return NodeSet.fromlist([c.server for c in self.clients if c.action_enabled])
+        return NodeSet.fromlist(imap(attrgetter("server"), self.enabled_clients()))
 
     def get_enabled_target_servers(self):
-        return NodeSet.fromlist([t.server for t in self.targets if t.action_enabled])
+        return NodeSet.fromlist(imap(attrgetter("server"), self.enabled_targets()))
 
     def get_client_statecounters(self):
         """
@@ -262,19 +328,6 @@ class FileSystem:
                 states.get(CLIENT_ERROR, 0),
                 states.get(RUNTIME_ERROR, 0),
                 states.get(MOUNTED, 0))
-
-    def targets_by_state(self, state):
-        for target in self.targets:
-            #print target, target.state
-            if target.action_enabled and target.state == state:
-                yield target
-
-    def target_servers_by_state(self, state):
-        servers = NodeSet()
-        for target in self.targets_by_state(state):
-            #print "OK %s" % target
-            servers.add(target.servers[0])
-        return servers
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
@@ -339,10 +392,7 @@ class FileSystem:
         self.proxy_errors = []
 
         # iterate over lustre servers
-        for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-            if not e_s_targets:
-                continue
-
+        for server, iter_targets in self.managed_targets(group_attr="server"):
             if server.is_local():
                 # remove local fs configuration file
                 conf_dir_path = Globals().get_conf_dir()
@@ -410,47 +460,6 @@ class FileSystem:
         if len(targets) > 0:
             yield last_target_type, targets, servers
 
-    def targets_by_type(self, reverse=False, enable_external=False):
-        """
-        Per type of target iterator : returns the following tuple:
-        (type, (list of all targets of this type, list of enabled targets))
-        per target type.
-        """
-        last_target_type = None
-        a_targets = Set()
-        e_targets = Set()
-
-        for target in self.targets:
-            if last_target_type and last_target_type != target.type:
-                # type of target changed, commit actions
-                if len(a_targets) > 0:
-                    yield last_target_type, (a_targets, e_targets)
-                    a_targets.clear()
-                    e_targets.clear()
-
-            a_targets.add(target)
-            if target.action_enabled or (enable_external and target.is_external()):
-                e_targets.add(target)
-            last_target_type = target.type
-
-        if len(a_targets) > 0:
-            yield last_target_type, (a_targets, e_targets)
-
-    def _iter_targets_by_server(self):
-        """
-        Per server of target iterator : returns the following tuple:
-        (server, (list of all server targets, list of enabled targets))
-        per target server.
-        """
-        servers = {}
-        for target in self.targets:
-            a_targets, e_targets = servers.setdefault(target.get_selected_server(), (Set(), Set()))
-            a_targets.add(target)
-            if target.action_enabled:
-                e_targets.add(target)
-
-        return servers.iteritems()
-
     def format(self, **kwargs):
 
         # Remember format launched, so we can check their status once
@@ -459,20 +468,20 @@ class FileSystem:
 
         self.proxy_errors = []
 
-        for server, (a_targets, e_targets) in self._iter_targets_by_server():
+        for server, iter_targets in self.managed_targets(group_attr="server"):
+            e_targets = list(iter_targets)
 
             if server.is_local():
                 # local server
                 for target in e_targets:
                     target.format(**kwargs)
 
-                format_launched.update(e_targets)
-
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'format', NodeSet(server), self.debug,
                               labels=labels).launch()
-                format_launched.update(e_targets)
+
+            format_launched.update(e_targets)
 
         task_self().resume()
 
@@ -497,30 +506,26 @@ class FileSystem:
 
         # prepare servers status checks
         if flags & STATUS_SERVERS:
-            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-                if len(e_s_targets) == 0:
-                    continue
-
+            for server, iter_targets in self.managed_targets(group_attr="server"):
+                e_s_targets = list(iter_targets)
                 if server.is_local():
                     for target in e_s_targets:
                         target.status()
-                    launched.update(e_s_targets)
                 else:
                     labels = NodeSet.fromlist([ t.label for t in e_s_targets ])
                     FSProxyAction(self, 'status', NodeSet(server), self.debug,
                                   labels=labels).launch()
-                    launched.update(e_s_targets)
+
+                launched.update(e_s_targets)
 
         # prepare clients status checks
         if flags & STATUS_CLIENTS:
-            for client in self.clients:
-                if client.action_enabled:
-                    server = client.server
-                    if server.is_local():
-                        client.status()
-                    elif server not in servers_statusall:
-                        servers_statusall.add(server)
-                    launched.add(client)
+            for client in self.enabled_clients():
+                if client.server.is_local():
+                    client.status()
+                elif server not in servers_statusall:
+                    servers_statusall.add(client.server)
+                launched.add(client)
 
             # launch distant actions
             if len(servers_statusall) > 0:
@@ -586,53 +591,27 @@ class FileSystem:
                     # first_time or writeconf flag found, start MDT before OSTs
                     MDT.target_order = 2 # change MDT class variable order
 
-        self.targets.sort()
-
-        # Remember targets launched, so we can check their status once
-        # all operations are done (here, status are checked after all
-        # targets of the same type have completed the start operation -
-        # with possible failure).
-        targets_launched = Set()
-
         result = 0
 
-        # iterate over targets by type
-        for type, (a_targets, e_targets) in self.targets_by_type():
-            
-            if not e_targets:
-                # no target of this type is enabled
-                continue
+        # Iterate over targets, grouping them by target_order and server.
+        for order, iter_targets in self.managed_targets(group_attr="target_order"):
 
-            # iterate over lustre servers
-            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-
-                # To summary, we keep targets that are:
-                # 1. enabled
-                # 2. of according type
-                # 3. on this server
-                type_e_targets = e_targets.intersection(e_s_targets)
-                if len(type_e_targets) == 0:
-                    # skip as no target of this type is enabled on this server
-                    continue
+            targets = sorted(iter_targets, key=attrgetter("server"))
+            for server, iter_targets in groupby(targets, key=attrgetter("server")):
+                targets = list(iter_targets)
 
                 if server.is_local():
                     # Start targets if we are on the good server.
-                    for target in type_e_targets:
+                    for target in targets:
                         # Note that target.start() should never block here:
                         # it will perform necessary non-blocking actions and
                         # (when needed) will start local ClusterShell workers.
                         target.start(**kwargs)
                 else:
-                    assert a_s_targets.issuperset(type_e_targets)
-                    assert len(type_e_targets) > 0
-
                     # Start per selected targets on this server.
-                    labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
+                    labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'start', NodeSet(server), self.debug,
                                   labels=labels).launch()
-
-                # Remember launched targets of this server for late status check.
-                targets_launched.update(type_e_targets)
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -642,16 +621,13 @@ class FileSystem:
                 return RUNTIME_ERROR
 
             # Ok, workers have completed, perform late status check...
-            for target in targets_launched:
+            for target in targets:
                 if target.state > result:
                     result = target.state
                     if result > RECOVERING:
                         # Avoid broken cascading starts, so we break now if
                         # a target of the previous type failed to start.
                         return result
-
-            # Some needed cleanup before next target type.
-            targets_launched.clear()
 
         return result
 
@@ -662,45 +638,26 @@ class FileSystem:
         """
         rc = MOUNTED
 
-        # Stop: reverse order
-        self.targets.sort()
-        self.targets.reverse()
-
-        # Remember targets when stop was launched.
-        targets_stopping = Set()
-
         self.proxy_errors = []
 
         # We use a similar logic than start(): see start() for comments.
-        # iterate over targets by type
-        for type, (a_targets, e_targets) in self.targets_by_type():
+        # iterate over targets by target_order and server
+        for order, iter_targets in self.managed_targets(group_attr="target_order", reverse=True):
 
-            if not e_targets:
-                # no target of this type is enabled
-                continue
+            targets = sorted(iter_targets, key=attrgetter("server"))
+            for server, iter_targets in groupby(targets, key=attrgetter("server")):
+                targets = list(iter_targets)
 
-            # iterate over lustre servers
-            for server, (a_s_targets, e_s_targets) in self._iter_targets_by_server():
-                type_e_targets = e_targets.intersection(e_s_targets)
-                if len(type_e_targets) == 0:
-                    # skip as no target of this type is enabled on this server
-                    continue
-
+                # iterate over lustre servers
                 if server.is_local():
                     # Stop targets if we are on the good server.
-                    for target in type_e_targets:
+                    for target in targets:
                         target.stop(**kwargs)
                 else:
-                    assert a_s_targets.issuperset(type_e_targets)
-                    assert len(type_e_targets) > 0
-
                     # Stop per selected targets on this server.
-                    labels = NodeSet.fromlist([ t.label for t in type_e_targets ])
+                    labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'stop', NodeSet(server), self.debug,
                                   labels=labels).launch()
-
-                # Remember launched stopping targets of this server for late status check.
-                targets_stopping.update(type_e_targets)
 
             task_self().resume()
 
@@ -708,12 +665,9 @@ class FileSystem:
                 return RUNTIME_ERROR
 
             # Ok, workers have completed, perform late status check...
-            for target in targets_stopping:
+            for target in targets:
                 if target.state > rc:
                     rc = target.state
-
-            # Some needed cleanup before next target type.
-            targets_stopping.clear()
 
         return rc
 
@@ -722,22 +676,15 @@ class FileSystem:
         Mount FS clients.
         """
         servers_mountall = NodeSet()
-        clients_mounting = Set()
         self.proxy_errors = []
 
-        for client in self.clients:
-
-            if not client.action_enabled:
-                continue
-
+        for client in self.enabled_clients():
             if client.server.is_local():
                 # local client
                 client.start(**kwargs)
             else:
                 # distant client
                 servers_mountall.add(client.server)
-
-            clients_mounting.add(client)
 
         if len(servers_mountall) > 0:
             FSProxyAction(self, 'mount', servers_mountall, self.debug).launch()
@@ -748,7 +695,7 @@ class FileSystem:
             return RUNTIME_ERROR
 
         # Ok, workers have completed, perform late status check...
-        for client in clients_mounting:
+        for client in self.enabled_clients():
             if client.state is None:
                 print "Unknown client.state after fs.mount() for %s" % client.server
                 return RUNTIME_ERROR
@@ -760,22 +707,15 @@ class FileSystem:
         Unmount FS clients.
         """
         servers_umountall = NodeSet()
-        clients_umounting = Set()
         self.proxy_errors = []
 
-        for client in self.clients:
-
-            if not client.action_enabled:
-                continue
-
+        for client in self.enabled_clients():
             if client.server.is_local():
                 # local client
                 client.stop(**kwargs)
             else:
                 # distant client
                 servers_umountall.add(client.server)
-
-            clients_umounting.add(client)
 
         if len(servers_umountall) > 0:
             FSProxyAction(self, 'umount', servers_umountall, self.debug).launch()
@@ -786,7 +726,7 @@ class FileSystem:
             return RUNTIME_ERROR
 
         # Ok, workers have completed, perform late status check...
-        for client in clients_umounting:
+        for client in self.enabled_clients():
             if client.state != OFFLINE:
                 return client.state
 
@@ -807,12 +747,12 @@ class FileSystem:
 
         if Globals().get_tuning_file():
             # Install tuning.conf on enabled distant servers
-            for server, (a_targets, e_targets) in self._iter_targets_by_server():
-                if e_targets and not server.is_local():
+            for server, iter_targets in self.managed_targets(group_attr="server"):
+                if not server.is_local():
                     tune_all.add(server)
             # Add servers of enabled and distant clients
-            tune_all.add(NodeSet.fromlist([ client.server for client in self.clients if \
-                client.action_enabled and not client.server.is_local() ]))
+            tune_all.add(NodeSet.fromlist([ client.server for client in self.enabled_clients() if \
+                not client.server.is_local() ]))
 
             if len(tune_all) > 0:
                 self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
@@ -820,9 +760,8 @@ class FileSystem:
                 tune_all.clear()
 
         # Apply tunings
-        for server, (a_targets, e_targets) in self._iter_targets_by_server():
-            if not e_targets:
-                continue
+        for server, iter_targets in self.managed_targets(group_attr="server"):
+            e_targets = list(iter_targets)
             if server.is_local():
                 types = Set()
                 for t in e_targets:
@@ -835,14 +774,13 @@ class FileSystem:
                 FSProxyAction(self, 'tune', NodeSet(server), self.debug,
                               labels=labels).launch()
 
-        for client in self.clients:
-            if client.action_enabled:
-                server = client.server
-                if server.is_local():
-                    rc = server.tune(tuning_model, ['client'], self.fs_name)
-                    result = max(result, rc)
-                elif server not in tune_all:
-                    tune_all.add(server)
+        for client in self.enabled_clients():
+            server = client.server
+            if server.is_local():
+                rc = server.tune(tuning_model, ['client'], self.fs_name)
+                result = max(result, rc)
+            elif server not in tune_all:
+                tune_all.add(server)
 
         if len(tune_all) > 0:
             FSProxyAction(self, 'tune', tune_all, self.debug).launch()
