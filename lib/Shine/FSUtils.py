@@ -99,12 +99,13 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     return fs
 
 
-def create_lustrefs(fs_model_file, event_handler=None):
+def create_lustrefs(fs_model_file, event_handler=None, nodes=None, excluded=None):
     """
     """
     fs_conf = Configuration(fs_model=fs_model_file)
     
-    fs = instantiate_lustrefs(fs_conf, event_handler=event_handler)
+    fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \
+                              nodes=nodes, excluded=excluded)
 
     # Register file system configuration to the backend
     fs_conf.register_fs()

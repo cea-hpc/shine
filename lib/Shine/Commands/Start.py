@@ -62,8 +62,10 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
         if self.verbose > 0:
-            print "Starting %d targets of %s on %s" % (fs.target_count,
-                    fs.fs_name, fs.target_servers)
+            count = len(list(fs.managed_targets()))
+            servers = fs.managed_target_servers()
+            print "Starting %d targets of %s on %s" % (count,
+                    fs.fs_name, servers)
 
     def handle_post(self, fs):
         if self.verbose > 0:
@@ -192,7 +194,7 @@ class Start(FSLiveCommand):
 
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.target_servers, "start"):
+                    fs.managed_target_servers(), "start"):
                 rc = RC_FAILURE
                 continue
 

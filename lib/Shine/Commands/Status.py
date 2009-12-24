@@ -143,7 +143,7 @@ class Status(FSLiveCommand):
                     event_handler=eh)
 
             # Warn if trying to act on wrong nodes
-            all_nodes = fs.target_servers | fs.get_enabled_client_servers()
+            all_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
             if not self.nodes_support.check_valid_list(fsname, \
                     all_nodes, "check"):
                 rc = RC_FAILURE

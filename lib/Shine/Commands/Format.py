@@ -61,8 +61,9 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
     def handle_pre(self, fs):
         # attach fs to this handler
         if self.verbose > 0:
-            print "Starting format of %d targets on %s" % (fs.target_count,
-                    fs.target_servers)
+            count = len(list(fs.managed_targets()))
+            servers = fs.managed_target_servers()
+            print "Starting format of %d targets on %s" % (count, servers)
 
     def handle_post(self, fs):
         if self.verbose > 0:
@@ -222,7 +223,7 @@ class Format(FSLiveCriticalCommand):
 
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.target_servers, "format"):
+                    fs.managed_target_servers(), "format"):
                 result = RC_FAILURE
                 continue
 
@@ -234,7 +235,7 @@ class Format(FSLiveCriticalCommand):
             fs.set_debug(self.debug_support.has_debug())
 
             if not self.ask_confirm("Format %s on %s: are you sure?" % (fsname,
-                    fs.get_enabled_target_servers())):
+                    fs.managed_target_servers())):
                 result = RC_FAILURE
                 continue
 

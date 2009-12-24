@@ -23,8 +23,6 @@ from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
 
-from Shine.FSUtils import create_lustrefs
-
 from Base.RemoteCommand import RemoteCommand
 from Base.CommandRCDefs import *
 from Base.Support.FS import FS

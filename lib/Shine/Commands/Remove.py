@@ -107,6 +107,7 @@ class Remove(RemoteCriticalCommand):
                 # Open configuration and instantiate a Lustre FS.
                 fs_conf, fs = open_lustrefs(fsname, None,
                         nodes=self.nodes_support.get_nodeset(),
+                        excluded=self.nodes_support.get_excludes(),
                         indexes=None,
                         event_handler=eh)
             except:
@@ -117,7 +118,7 @@ class Remove(RemoteCriticalCommand):
             fs.set_debug(self.debug_support.has_debug())
 
             # Warn if trying to act on wrong nodes
-            all_nodes = fs.target_servers | fs.get_enabled_client_servers()
+            all_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
             if not self.nodes_support.check_valid_list(fsname, \
                     all_nodes, "uninstall"):
                 continue

@@ -31,6 +31,8 @@ from Base.Support.Nodes import Nodes
 
 from Exceptions import *
 
+from ClusterShell.NodeSet import NodeSet
+
 class Install(Command):
     """
     shine install -m /path/to/model.lmf
@@ -62,37 +64,49 @@ class Install(Command):
                         "please use filename or full LMF path.\n" \
                         "Your default model files directory (lmf_dir) " \
                         "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
-            fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
-                    event_handler=self)
 
             install_nodes = self.nodes_support.get_nodeset()
             excluded_nodes = self.nodes_support.get_excludes()
+
+            fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
+                    event_handler=self, nodes=install_nodes, 
+                    excluded=excluded_nodes)
 
             # Install file system configuration files; normally, this should
             # not be done by the Shine.Lustre.FileSystem object itself, but as
             # all proxy methods are currently handled by it, it is more
             # convenient this way...
-            actual_nodes = fs.install(fs_conf.get_cfg_filename(), 
-                                      nodes=install_nodes, 
-                                      excluded=excluded_nodes)
+            fs.install(fs_conf.get_cfg_filename()) 
 
             # Helper message.
             # If user specified nodes which were not used, warn him about it.
+            actual_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
             if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
                     actual_nodes, "install"):
                 return RC_FAILURE
 
-            # FIXME: Display a summary of what have been installed, even if
-            # install_nodes was specified.
-            if not install_nodes and not excluded_nodes:
-                # Print short file system summary.
-                print
-                print "Lustre targets summary:"
-                print "\t%d MGT on %s" % (fs.mgt_count, fs.mgt_servers)
-                print "\t%d MDT on %s" % (fs.mdt_count, fs.mdt_servers)
-                print "\t%d OST on %s" % (fs.ost_count, fs.ost_servers)
-                print
 
+            # Print short file system summary.
+            print
+            print "Install summary:"
+
+            # Display enabled targets by display order (MGT, MDT, OST)
+            for order, iter_targets in fs.managed_targets(group_attr="display_order"):
+                target_list = list(iter_targets)
+                # Get the target type in uppercase
+                type = target_list[0].type.upper()
+                # List of all servers for these targets
+                servers = NodeSet.fromlist([ t.server for t in target_list ])
+                print "\t%3d %3s on %s" % (len(target_list), type, servers)
+
+            # Display enabled clients
+            client_servers = fs.get_enabled_client_servers()
+            if client_servers:
+                print "\t%3d %3s on %s" % (len(client_servers), 'CLI', client_servers)
+
+            print
+
+            if not install_nodes and not excluded_nodes:
                 # Give pointer to next user step.
                 print "Use `shine format -f %s' to initialize the file system." % \
                         fs_conf.get_fs_name()

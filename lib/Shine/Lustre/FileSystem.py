@@ -121,19 +121,6 @@ class FileSystem:
         # All FS clients
         self.clients = []
 
-        # filled after successful install
-        self.mgt_servers = NodeSet()
-        self.mgt_count = 0
-
-        self.mdt_servers = NodeSet()
-        self.mdt_count = 0
-
-        self.ost_servers = NodeSet()
-        self.ost_count = 0
-
-        self.target_count = 0
-        self.target_servers = NodeSet()
-
     def set_debug(self, debug):
         self.debug = debug
 
@@ -202,11 +189,9 @@ class FileSystem:
         self.targets.append(target)
         if target.type == 'mgt':
             self.mgt = target
-        self._update_structure()
 
     def _attach_client(self, client):
         self.clients.append(client)
-        self._update_structure()
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
                    tag=None, enabled=True, mode='managed'):
@@ -310,24 +295,8 @@ class FileSystem:
     def get_enabled_target_servers(self):
         return NodeSet.fromlist(imap(attrgetter("server"), self.enabled_targets()))
 
-    def get_client_statecounters(self):
-        """
-        Get (ignored, offline, error, runtime_error, mounted) client state counters tuple.
-        """
-        ignored = 0
-        states = {}
-        for client in self.clients:
-            if client.action_enabled:
-                state = states.setdefault(client.state, 0)
-                states[client.state] = state + 1
-            else:
-                ignored += 1
-        
-        return (ignored,
-                states.get(OFFLINE, 0),
-                states.get(CLIENT_ERROR, 0),
-                states.get(RUNTIME_ERROR, 0),
-                states.get(MOUNTED, 0))
+    def managed_target_servers(self):
+        return NodeSet.fromlist(imap(attrgetter("server"), self.managed_targets()))
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
@@ -346,39 +315,20 @@ class FileSystem:
             action_class(nodes=distant_servers, fs=self, **kwargs).launch()
             task.resume()
 
-    def install(self, fs_config_file, nodes=None, excluded=None):
+    def install(self, fs_config_file):
         """
-        Install FS config files, optionally on nodes `nodes', exluding nodes
-        from `excluded'.
-
-        Return the installed nodes (as a NodeSet).
+        Install filesystem configuration file on its servers. 
+        Server list is built from enabled targets and enabled clients only.
         """
-        servers = NodeSet()
 
-        for target in self.targets:
-            # install on failover partners too
-            for s in target.servers:
-                if not nodes or s in nodes:
-                    servers.add(s)
+        servers = self.managed_target_servers() | self.get_enabled_client_servers()
 
-        for client in self.clients:
-            if not nodes or client.server in nodes:
-                servers.add(client.server)
-
-        # Do not install on excluded nodes
-        if excluded:
-           servers.difference_update(excluded)
-
-        if servers:
-
-            try:
-                self._distant_action_by_server(Preinstall, servers)
-                self._distant_action_by_server(Install, servers, config_file=fs_config_file)
-            except ProxyActionError, e:
-                # switch to public exception
-                raise FSRemoteError(e.nodes, e.rc, e.message)
-        
-        return servers
+        try:
+            self._distant_action_by_server(Preinstall, servers)
+            self._distant_action_by_server(Install, servers, config_file=fs_config_file)
+        except ProxyActionError, e:
+            # switch to public exception
+            raise FSRemoteError(e.nodes, e.rc, e.message)
         
     def remove(self):
         """
@@ -412,53 +362,6 @@ class FileSystem:
             return RUNTIME_ERROR
         
         return result
-
-    def _update_structure(self):
-        # convenience
-        for type, targets, servers in self._iter_targets_servers_by_type():
-            if type == 'ost':
-                self.ost_count = len(targets)
-                self.ost_servers = NodeSet(servers)
-            elif type == 'mdt':
-                self.mdt_count = len(targets)
-                self.mdt_servers = NodeSet(servers)
-            elif type == 'mgt':
-                self.mgt_count = len(targets)
-                self.mgt_servers = NodeSet(servers)
-
-        self.target_count = self.mgt_count + self.mdt_count + self.ost_count
-        self.target_servers = self.mgt_servers | self.mdt_servers | self.ost_servers
-
-    def _iter_targets_servers_by_type(self, reverse=False):
-        """
-        Per type of target iterator : returns a tuple (list of targets,
-        list of servers) per target type.
-        """
-        last_target_type = None
-        servers = NodeSet()
-        targets = Set()
-
-        #self.targets.sort()
-
-        if reverse:
-            self.targets.reverse()
-
-        for target in self.targets:
-            if last_target_type and last_target_type != target.type:
-                # type of target changed, commit actions
-                if len(targets) > 0:
-                    yield last_target_type, targets, servers
-                    servers.clear()     # ClusterShell 1.1+ needed (sorry)
-                    targets.clear()
-
-            if target.action_enabled:
-                targets.add(target)
-                # select server: change master_server for -F node
-                servers.add(target.get_selected_server())
-            last_target_type = target.type
-
-        if len(targets) > 0:
-            yield last_target_type, targets, servers
 
     def format(self, **kwargs):
 
@@ -523,7 +426,7 @@ class FileSystem:
             for client in self.enabled_clients():
                 if client.server.is_local():
                     client.status()
-                elif server not in servers_statusall:
+                elif client.server not in servers_statusall:
                     servers_statusall.add(client.server)
                 launched.add(client)
 
