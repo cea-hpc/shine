@@ -124,25 +124,24 @@ class Remove(RemoteCriticalCommand):
                 continue
 
             # Get first the status of any FS components
-            statusdict = fs.status(STATUS_ANY)
+            fs.status(STATUS_ANY)
 
             if not self.has_local_flag():
 
-                status_info = None
-                if MOUNTED in statusdict or RECOVERING in statusdict:
+                for state, targets in fs.managed_targets(group_attr="state"):
+
                     # mounted filesystem!
-                    status_info = "WARNING: Filesystem %s is started!" % fs.fs_name
+                    if state in [MOUNTED, RECOVERING]:
+                        labels = NodeSet.fromlist([t.server for t in targets])
+                        print "WARNING: Some targets are started: %s" % labels
 
-                if RUNTIME_ERROR in statusdict:
                     # wont be able to remove on these nodes
-                    status_info = "WARNING: Removing %s might failed on some nodes (see above)!" % fs.fs_name
-                    for nodes, msg in fs.proxy_errors:
-                        print nodes
-                        print '-' * 15
-                        print msg
-
-                if status_info:
-                    print status_info
+                    if state == RUNTIME_ERROR:
+                        for nodes, msg in fs.proxy_errors:
+                            print nodes
+                            print '-' * 15
+                            print msg
+                        print "WARNING: Removing %s might failed on some nodes (see above)!" % fs.fs_name
 
                 if self.ask_confirm("Please confirm the removal of filesystem ``%s''" % fs.fs_name):
                     print "Removing filesystem %s..." % fs.fs_name

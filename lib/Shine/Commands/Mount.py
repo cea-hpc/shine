@@ -127,6 +127,7 @@ class Mount(FSClientLiveCommand):
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
                     fs.get_enabled_client_servers(), "mount"):
+                result = RC_FAILURE
                 continue
 
             if not self.remote_call and vlevel > 0:

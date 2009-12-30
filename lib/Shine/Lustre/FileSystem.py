@@ -298,6 +298,61 @@ class FileSystem:
     def managed_target_servers(self):
         return NodeSet.fromlist(imap(attrgetter("server"), self.managed_targets()))
 
+    #
+    # Task management.
+    #
+
+    def _run_actions(self):
+        """
+        Start actions run-loop.
+
+        It clears all previous proxy errors and starts task run-loop. This
+        launches all FSProxyAction prepared before by example.
+        """
+        self.proxy_errors = []
+        task_self().resume()
+
+    def _check_errors(self, expected_states, components=None):
+        """
+        This verifies that executed tasks were successfull.
+
+        It checks no proxy error have been reported.
+        It verifies all provided components (Target, Clients, ...) have
+        expected state. If not, it returns the most incoherent state.
+
+        If there is no error, it returns the expected state.
+        """
+        assert type(expected_states) is list
+
+        # Proxy commands should not have return errors
+        if self.proxy_errors:
+
+            # Find targets/clients affected by the runtime error(s)
+            if components:
+                error_nodes = NodeSet.fromlist([ n for n, e in self.proxy_errors])
+                for comp in components:
+                    # This target/client has no defined state and is on an
+                    # error node, so we consider there was an error
+                    if comp.server in error_nodes and comp.state is None:
+                        comp.state = RUNTIME_ERROR
+
+        # If a component list is provided, check that all components from it
+        # have expected state.
+        result = 0
+        if components:
+            for comp in components:
+
+                # Workaround bug when state is None (Trac ticket #11)
+                # Bug is now closed, maybe this could be removed?
+                if comp.state is None:
+                    print "WARNING: no state report from node %s" % comp.server
+                    comp.state = RUNTIME_ERROR
+
+                if comp.state not in expected_states:
+                    result = max(result, comp.state)
+
+        return max(expected_states[0], result)
+
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
         task = task_self()
@@ -336,10 +391,7 @@ class FileSystem:
         """
 
         result = 0
-
         servers = NodeSet()
-
-        self.proxy_errors = []
 
         # iterate over lustre servers
         for server, iter_targets in self.managed_targets(group_attr="server"):
@@ -356,7 +408,8 @@ class FileSystem:
             # Perform the remove operations on all targets for these nodes.
             FSProxyAction(self, 'remove', servers, self.debug).launch()
 
-        task_self().resume()
+        # Run local actions and FSProxyAction
+        self._run_actions()
 
         if self.proxy_errors:
             return RUNTIME_ERROR
@@ -368,8 +421,6 @@ class FileSystem:
         # Remember format launched, so we can check their status once
         # all operations are done.
         format_launched = Set()
-
-        self.proxy_errors = []
 
         for server, iter_targets in self.managed_targets(group_attr="server"):
             e_targets = list(iter_targets)
@@ -386,17 +437,11 @@ class FileSystem:
 
             format_launched.update(e_targets)
 
-        task_self().resume()
+        # Run local actions and FSProxyAction
+        self._run_actions()
 
-        if self.proxy_errors:
-            return RUNTIME_ERROR
-
-        # Ok, workers have completed, perform late status check.
-        for target in format_launched:
-            if target.state != OFFLINE:
-                return target.state
-
-        return OFFLINE
+        # Check for errors and return OFFLINE or error code
+        return self._check_errors([OFFLINE], format_launched)
 
     def status(self, flags=STATUS_ANY):
         """
@@ -405,7 +450,6 @@ class FileSystem:
 
         launched = Set()
         servers_statusall = NodeSet()
-        self.proxy_errors = []
 
         # prepare servers status checks
         if flags & STATUS_SERVERS:
@@ -435,30 +479,11 @@ class FileSystem:
                 FSProxyAction(self, 'status', servers_statusall,
                               self.debug).launch()
 
-        # run loop
-        task_self().resume()
+        # Run local actions and FSProxyAction
+        self._run_actions()
         
-        # return a dict of {state : target list}
-        rdict = {}
-
-        # all launched targets+clients
-        if self.proxy_errors:
-            # find targets/clients affected by the runtime error(s)
-            for target in launched:
-                for nodes, msg in self.proxy_errors:
-                    if target.server in nodes:
-                        target.state = RUNTIME_ERROR
-
-        for target in launched:
-            # FIXME: in an ideal world, target.state shouldn't be None as the underlying
-            # classes should have detected that case.
-            if target.state == None:
-                print "WARNING: no state report from target %s (%s)" % (target,
-                        target.server)
-                target.state = RUNTIME_ERROR
-            targets = rdict.setdefault(target.state, [])
-            targets.append(target)
-        return rdict
+        # Here we check MOUNTED but in fact, any status is OK.
+        return self._check_errors([MOUNTED], launched)
 
     def status_target(self, target):
         """
@@ -479,11 +504,12 @@ class FileSystem:
 
         task_self().resume()
 
+        # XXX: No error check?
+
     def start(self, **kwargs):
         """
         Start Lustre file system servers.
         """
-        self.proxy_errors = []
 
         # What starting order to use?
         for target in self.targets:
@@ -493,8 +519,6 @@ class FileSystem:
                 if target.has_first_time_flag() or target.has_writeconf_flag():
                     # first_time or writeconf flag found, start MDT before OSTs
                     MDT.target_order = 2 # change MDT class variable order
-
-        result = 0
 
         # Iterate over targets, grouping them by target_order and server.
         for order, iter_targets in self.managed_targets(group_attr="target_order"):
@@ -518,30 +542,21 @@ class FileSystem:
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
-            task_self().resume()
+            self._run_actions()
 
-            if self.proxy_errors:
-                return RUNTIME_ERROR
+            # Avoid broken cascading starts, so we break now if
+            # a target of the previous type failed to start.
+            result = self._check_errors([MOUNTED, RECOVERING], targets)
+            if result not in [MOUNTED, RECOVERING]:
+                return result
 
-            # Ok, workers have completed, perform late status check...
-            for target in targets:
-                if target.state > result:
-                    result = target.state
-                    if result > RECOVERING:
-                        # Avoid broken cascading starts, so we break now if
-                        # a target of the previous type failed to start.
-                        return result
-
-        return result
+        return MOUNTED
 
 
     def stop(self, **kwargs):
         """
         Stop file system.
         """
-        rc = MOUNTED
-
-        self.proxy_errors = []
 
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by target_order and server
@@ -562,24 +577,20 @@ class FileSystem:
                     FSProxyAction(self, 'stop', NodeSet(server), self.debug,
                                   labels=labels).launch()
 
-            task_self().resume()
+            # Run local actions and FSProxyAction
+            self._run_actions()
+        
+            result = self._check_errors([OFFLINE], targets)
+            if result != OFFLINE:
+                return result
 
-            if self.proxy_errors:
-                return RUNTIME_ERROR
-
-            # Ok, workers have completed, perform late status check...
-            for target in targets:
-                if target.state > rc:
-                    rc = target.state
-
-        return rc
+        return OFFLINE
 
     def mount(self, **kwargs):
         """
         Mount FS clients.
         """
         servers_mountall = NodeSet()
-        self.proxy_errors = []
 
         for client in self.enabled_clients():
             if client.server.is_local():
@@ -592,25 +603,17 @@ class FileSystem:
         if len(servers_mountall) > 0:
             FSProxyAction(self, 'mount', servers_mountall, self.debug).launch()
 
-        task_self().resume()
-
-        if self.proxy_errors:
-            return RUNTIME_ERROR
+        # Run local actions and FSProxyAction
+        self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        for client in self.enabled_clients():
-            if client.state is None:
-                print "Unknown client.state after fs.mount() for %s" % client.server
-                return RUNTIME_ERROR
-
-        return client.state
+        return self._check_errors([MOUNTED], self.enabled_clients())
 
     def umount(self, **kwargs):
         """
         Unmount FS clients.
         """
         servers_umountall = NodeSet()
-        self.proxy_errors = []
 
         for client in self.enabled_clients():
             if client.server.is_local():
@@ -623,17 +626,11 @@ class FileSystem:
         if len(servers_umountall) > 0:
             FSProxyAction(self, 'umount', servers_umountall, self.debug).launch()
 
-        task_self().resume()
-
-        if self.proxy_errors:
-            return RUNTIME_ERROR
+        # Run local actions and FSProxyAction
+        self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        for client in self.enabled_clients():
-            if client.state != OFFLINE:
-                return client.state
-
-        return OFFLINE
+        return self._check_errors([OFFLINE], self.enabled_clients())
 
     def info(self):
         pass
@@ -645,7 +642,6 @@ class FileSystem:
         task = task_self()
         tune_all = NodeSet()
         type_map = { 'mgt': 'mgs', 'mdt': 'mds', 'ost' : 'oss' }
-        self.proxy_errors = []
         result = 0
 
         if Globals().get_tuning_file():
@@ -688,10 +684,8 @@ class FileSystem:
         if len(tune_all) > 0:
             FSProxyAction(self, 'tune', tune_all, self.debug).launch()
 
-        task.resume()
+        # Run local actions and FSProxyAction
+        self._run_actions()
 
-        if self.proxy_errors:
-            return RUNTIME_ERROR
-
-        return result
-
+        # Check for proxy errors, and return 'result' if no proxy errors
+        return self._check_errors([result])

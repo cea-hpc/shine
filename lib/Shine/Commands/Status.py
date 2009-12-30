@@ -146,7 +146,7 @@ class Status(FSLiveCommand):
             all_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
             if not self.nodes_support.check_valid_list(fsname, \
                     all_nodes, "check"):
-                rc = RC_FAILURE
+                result = max(RC_FAILURE, result)
                 continue
 
             fs.set_debug(self.debug_support.has_debug())
@@ -167,26 +167,16 @@ class Status(FSLiveCommand):
             if view.startswith("client"):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
 
-            statusdict = fs.status(status_flags)
-            if not statusdict:
-                continue
+            fs_result = fs.status(status_flags)
 
-            if RUNTIME_ERROR in statusdict:
-                # get targets that couldn't be checked
-                defect_targets = statusdict[RUNTIME_ERROR]
-
+            if fs_result == RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
                     print nodes
                     print '-' * 15
                     print msg
                 print
 
-            else:
-                defect_targets = []
-
-            rc = self.fs_status_to_rc(max(statusdict.keys()))
-            if rc > result:
-                result = rc
+            result = max(self.fs_status_to_rc(fs_result), result)
 
             if not self.remote_call and vlevel > 0:
                 if view == "fs":

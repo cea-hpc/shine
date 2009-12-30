@@ -166,7 +166,7 @@ class Stop(FSLiveCommand):
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
                     fs.managed_target_servers(), "stop"):
-                rc = RC_FAILURE
+                result = RC_FAILURE
                 continue
 
             # Will call the handle_pre() method defined by the event handler.
