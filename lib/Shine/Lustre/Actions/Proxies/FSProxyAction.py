@@ -19,10 +19,7 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-from Shine.Configuration.Configuration import Configuration
-
-from ProxyAction import *
+from ProxyAction import ProxyAction, ProxyActionUnpackError
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -89,8 +86,16 @@ class FSProxyAction(ProxyAction):
             # rc 126 = found but not executable
             # rc 1 = python failure...
             if rc != 0:
+
+                # Built the list of nodes without output
+                nobuffer_nodes = nodes
+
                 # Gather these nodes by buffer
                 for buffer, nodes in worker.iter_buffers(nodes):
+
+                    # Ok, those nodes have output, forget them
+                    nobuffer_nodes.difference_update(nodes)
+
                     ### FIXME #25: temporary SHINE msg filter to avoid pickle data to
                     ### be dumped on screen. To be fixed as soon as ClusterShell is
                     ### able to clean MsgTree buffers on demand (CS trac #3).
@@ -98,7 +103,12 @@ class FSProxyAction(ProxyAction):
                     for line in buffer.splitlines():
                         if not line.startswith("SHINE:"):
                             buf += "%s\n" % line 
+
                     # Handle proxy command error which rc >= 127 and 
                     self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
                             (self.action, buf))
 
+                # Raise an error for nodes without outputs
+                if len(nobuffer_nodes) > 0:
+                    self.fs._handle_shine_proxy_error(nobuffer_nodes, \
+                        "Remote action %s failed: No response" % (self.action))
