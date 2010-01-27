@@ -83,6 +83,8 @@ class Model(ModelFile):
     def sub_element(self, key, value):
         if key == 'nid_map':
             return ModelNidMap(self, value)
+        elif key == 'client':
+            return self.sub_element_expand(ModelClient, key, value)
         else:
             # targets
             return self.sub_element_expand(ModelDevice, key, value)
@@ -112,6 +114,10 @@ class Model(ModelFile):
             return cmp(k1, k2)
     
 class ModelDevice(SubElement):
+    """
+    SubElement representing a target (mgt, mdt, ost) configuration
+    line.
+    """
 
     syntax = {
       'tag'        : 'string',
@@ -150,6 +156,7 @@ class ModelDevice(SubElement):
 
     
 class ModelNidMap(SubElement):
+    """SubElement representing a nid_map configuration line."""
 
     syntax = {
       'nodes'       : 'string',
@@ -168,4 +175,13 @@ class ModelNidMap(SubElement):
         for k in keys:
             elems.append("%s%s%s" % (k, self.sep, self.get_one(k)))
         return ' '.join(elems)
+
+
+class ModelClient(SubElement):
+    """SubElement representing a client configuration line."""
+    
+    syntax = {
+      'node'       : 'string',
+      'mount_path' : 'string'
+    }
 

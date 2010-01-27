@@ -49,6 +49,7 @@ ost: node=nova6 dev=/dev/sde
 # client
 # FS clients
 client: node=nova[8-32]
+client: node=nova[33-34] mount_path=/my/private.stuff/mount_path
 
 
 ### Section 3 - Additionnal directives

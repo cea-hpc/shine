@@ -84,8 +84,8 @@ class Clients:
     def get_nodes(self):
         return self.dic.get('node')
 
-    def get_path(self):
-        return self.dic.get('path')
+    def get_mount_path(self):
+        return self.dic.get('mount_path')
         
 
 class Configuration:
@@ -202,7 +202,7 @@ class Configuration:
                 concern_nodes.intersection_update(remain_nodes)
                 remain_nodes.difference_update(concern_nodes)
             if len(concern_nodes) > 0:
-                path = clients.get_path()
+                path = clients.get_mount_path()
                 if not path:
                     path = default_path
                 if mounts.has_key(path):
