@@ -1,0 +1,34 @@
+#
+# Shine Example Tuning File
+#
+
+# Alias line
+# ----------
+#
+#   alias <name>=<path>
+#
+# <name>: Alias name which will be used in tuning declarations.
+#
+# <path>: Path it refers to, which should be tuned.
+#
+#
+# Tuning line
+# -----------
+#
+#   <value>  <alias>  <targets>
+#
+# <value>: Content to set in the provided alias. Could be quoted with
+# double-quotes.
+#
+# <alias>: Alias previously defined where value will be echoed.
+#
+# <targets>: Could be a mix of node type: MGS, MDS, OSS or CLT and node names,
+#            separated by ';' ie:  MDS;OSS;foo[1-5]
+
+# Alias declarations
+alias debug=/proc/sys/lnet/debug
+alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
+
+# Tuning parameters
+"1"    panic_on_lbug      CLT;MDS;OSS
+"0"    debug              CLT;MDS;OSS

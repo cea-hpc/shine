@@ -89,27 +89,8 @@ class TuningParameterAlias:
         """
         Function used to create a string representation of the alias object
         """
-        return "alias_name : %s - full_name = %s" %(self.get_alias_name(), \
-                self.get_full_name())
+        return "%s = %s" % (self.get_alias_name(), self.get_full_name())
     
-    def parse_alias_string( alias_string):
-        """
-        Function used to parse the alias string declaration retrieved from
-        the tuning.conf file
-        """
-        
-        # Parse the alias declaration line
-        (alias, alias_name, full_name) = alias_string.replace("=", " ").split()
-        
-        # Create the alias object with the retrieved values
-        new_alias =  TuningParameterAlias(alias_name, full_name)
-        
-        # Return the newly created alias object
-        return new_alias
-        
-    parse_alias_string = staticmethod(parse_alias_string)
-
-
 class TuningParameter:
     """
     Tuning parameter class
@@ -149,13 +130,13 @@ class TuningParameter:
         Function used to change the node type list for this tuning
         parameter
         """
-        self._node_type_list = []
+        self._node_type_list = NodeSet()
         
         for type in node_type_list:
             if type.lower() == "clt":
-                self._node_type_list.append('client')
+                self._node_type_list.update('client')
             else:
-                self._node_type_list.append(type)
+                self._node_type_list.update(type)
             
     def set_node_name_list(self, node_name_list=NodeSet()):
         """
@@ -206,61 +187,22 @@ class TuningParameter:
         function is a NodeSet object.
         """
         return self._node_name_list
-        
+    
+    def __eq__(self, other):
+        return other._parameter_name == self._parameter_name and   \
+               other._parameter_value == self._parameter_value and \
+           len(other._node_name_list.symmetric_difference(self._node_name_list)) == 0 and \
+           len(other._node_type_list.symmetric_difference(self._node_type_list)) == 0
+
     def __str__(self):
         """
         Function used to create a string representation of the
         parameter object
         """
-        return "value : %s - name : %s - nodes/types: %s" % (self._parameter_value, \
-                self._parameter_name, str(self._node_type_list))
+        return "%s=%s types=%s nodes=%s" % \
+                (self._parameter_name, self._parameter_value, \
+                 self._node_type_list, self._node_name_list)
         
-    def parse_parameter_string(parameter_string):
-        """
-        Function used to parse the parameter string declaration
-        retrieved from the tuning.conf file
-        """
-        # Parse the parameter string to retrieve the value, name, node type list
-        # string associated to this tuning parameter
-        (value, name, type_name_list_string) = parameter_string.split()
-        
-        # Split the node type string list and create the associated list object
-        type_name_list = type_name_list_string.split(";")
-        
-        # Create the node name list associated to the current tuning parameter
-        node_name_list=NodeSet()
-        
-        # Create an empty node type list 
-        type_list=[]
-        
-        # Walk through the list of type and node name to extract the node names
-        # and store them in a separated list
-        for type_name_entry in type_name_list:
-            
-            # Convert the type_name to lower case for string comparison
-            lower_entry = type_name_entry.lower()
-            
-            # If the type_name string is not a valid node type then
-            # it must be a node name
-            if not lower_entry in ( "clt", "oss", "mds", "mgs"):
-                
-                # Add the entry to the node_name list
-                node_name_list.add(lower_entry)
-
-            else:
-                # Add the element to the node type list
-                type_list.append(lower_entry.lower())
-        
-        # Create the parameter object according to retrieved values
-        new_parameter =  TuningParameter(parameter_name = name, \
-                parameter_value = value, \
-                node_type_list = type_list, \
-                node_name_list = node_name_list)
-                
-        return new_parameter
-        
-    parse_parameter_string = staticmethod(parse_parameter_string)
-    
     def build_tuning_command(self, fs_name):
         """
         This function aims to apply the tuning parameter to the
@@ -405,17 +347,17 @@ class TuningModel:
                         "Failed to open the tuning configuration file : %s"  \
                         % str(e))
                
-        # Build the regular expression used to find comment line
-        regexp = re.compile("^ *#|^\s*$")
-        
         # Walk through lines of file to remove comment lines
         for line  in tuning_file.readlines():
             
-            # Is the current line a comment line?
-            if regexp.search(line) == None:
+            # Remove comments and blanks
+            line = line.split('#', 1)[0].strip()
+
+            # Is the current line not empty
+            if line:
                 # Store the line in the line cache and remove the end of
                 # line character
-                self._file_cache.append(line.replace("\n", ""))
+                self._file_cache.append(line)
             
         # Close the tuning configuration file
         tuning_file.close()
@@ -448,26 +390,6 @@ class TuningModel:
             raise TuningParameterDeclarationException( \
                     "Parameters %s are not declared" %(invalid_parameter_name_list))
         
-    def _parse_alias_line(self, line):
-        """
-        Function used to parse an alias creation line
-        """
-        # Parse the alias
-        new_alias = TuningParameterAlias.parse_alias_string(line)
-        
-        # Add the alias to the alias dictionary
-        self._alias_dict[new_alias.get_alias_name()] = new_alias
-        
-    def _parse_parameter_line(self, line):
-        """
-        Function used to parse a parameter declaration line and register
-        the parameter in the tuning configuration model.
-        """
-        # Parse the new parmater declaration
-        new_parameter = TuningParameter.parse_parameter_string(line)
-        
-        self._add_parameter(new_parameter)
-        
     def parse(self):
         """
         Function called to parse the content of the tuning configuratio file
@@ -477,8 +399,8 @@ class TuningModel:
         self._load_file()
         
         # Build the patterns to retrieve alias and parameter declaration
-        alias_pattern="^\s*alias *"
-        parameter_pattern='^\s*"*[A-Za-z0-9_\-\+]+"*\s+[A-Za-z0-9_-]+\s+[A-Za-z]+'
+        alias_pattern="alias\s+(\S+)\s*=\s*(\S+)$"
+        parameter_pattern='("[^"]+"|\S+)\s+(\S+)\s+(\S+)$'
         
         # Build regexp objects for pattern matching
         alias_regexp = re.compile(alias_pattern)
@@ -487,13 +409,25 @@ class TuningModel:
         # Walk through file cache to build alias and parameter objects
         for line in self._file_cache:
             
-            if alias_regexp.match(line):
+            m_alias = alias_regexp.match(line)
+            m_param = parameter_regexp.match(line)
+
+            if m_alias:
                 # This line is an alias creation
-                self._parse_alias_line(line)
+                self.create_parameter_alias(m_alias.group(1), m_alias.group(2))
                 
-            elif parameter_regexp.match(line):
+            elif m_param:
                 # This line is a parameter instanciation
-                self._parse_parameter_line(line)
+                nodes = NodeSet.fromlist(m_param.group(3).lower().split(';'))
+                types = nodes.intersection(NodeSet("mgs,mds,oss,clt"))
+                nodes.difference_update(types)
+                self.create_parameter(m_param.group(2), m_param.group(1), types, nodes)
+
+            else:
+                # This line is not recognized
+                raise TuningParameterDeclarationException( \
+                        "Wrong tuning syntax '%s'" % line)
+    
 
         # Check that all tuning parameter are fully declared in the loaded
         # configuration
@@ -525,13 +459,13 @@ class TuningModel:
         msg = ""
         
         # Walk through the list of aliases and display each one of them
-        for (alias, alias_obj) in self._alias_dict.items():
-            msg  += "%s - %s\n" %(alias, str(alias_obj))
+        for alias_obj in self._alias_dict.values():
+            msg += "tuning_alias: %s\n" % alias_obj
             
         # Walk through the list of parameters and display each one of them
-        for (keys, parameter_list) in self._parameter_dict.items():
-            for parameter in parameter_list:
-                msg += str(parameter) + "\n"
+        for parameter_list in self._parameter_dict.values():
+            msg += "\n".join(["tuning_param: %s" % param for param in parameter_list])
+            msg += "\n"
             
         return msg
     

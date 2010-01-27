@@ -130,6 +130,7 @@ class Tune(FSLiveCommand):
             else:
                 if hasattr(eh, 'post_ko'):
                     eh.post_ko(fs, status)
+                return RC_RUNTIME_ERROR
 
             return RC_OK
 
@@ -141,6 +142,12 @@ class Tune(FSLiveCommand):
         # Is the tuning configuration file name specified ?
         if not Globals().get_tuning_file():
             # No.  Create an empty tuning model.
+
+            # XXX: If no tuning.conf is defined in configuration
+            # we still create a tuning model which will be used for quota.
+            # Be carefull that this could be very confusing for users, who
+            # can think tuning will be applied but is not.
+
             tuning = TuningModel()
         else:
             # Yes.

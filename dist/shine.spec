@@ -27,7 +27,7 @@ python setup.py build
 %install
 python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
-cp conf/*.conf $RPM_BUILD_ROOT/%{_sysconfdir}/shine
+cp conf/*.conf* $RPM_BUILD_ROOT/%{_sysconfdir}/shine
 cp conf/models/* $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
 
 %clean
@@ -38,4 +38,5 @@ rm -rf $RPM_BUILD_ROOT
 
 %doc LICENSE README ChangeLog
 %config %{_sysconfdir}/shine/*.conf
+%config %{_sysconfdir}/shine/*.conf.example
 %config %{_sysconfdir}/shine/models/*.lmf

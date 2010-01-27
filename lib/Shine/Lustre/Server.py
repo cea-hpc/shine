@@ -70,8 +70,3 @@ class Server(NodeSet):
             # and create a shell for each one of them.
             for command in command_list:
                 task.shell(command)
-
-        task.resume()
-
-        return task.max_retcode()
-

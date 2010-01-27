@@ -37,6 +37,6 @@ if __name__ == '__main__':
             sys.exit(0)
 
     loader = unittest.TestLoader()
-    suite = loader.loadTestsFromNames([ "ModelFileTest", "ModelTest", "ServerTest", "DiskTest" ])
+    suite = loader.loadTestsFromNames([ "ModelFileTest", "ModelTest", "TuningModelTest", "ServerTest", "DiskTest" ])
 
     unittest.TextTestRunner(verbosity=verb).run(suite)

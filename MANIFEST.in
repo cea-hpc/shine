@@ -4,6 +4,7 @@ include ChangeLog
 include conf/models/example.lmf
 include conf/shine.conf
 include conf/storage.conf
+include conf/tuning.conf.example
 include conf/cache/README
 include scripts/shine
 include scripts/shine.init.redhat

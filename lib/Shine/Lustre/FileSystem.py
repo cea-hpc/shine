@@ -645,7 +645,6 @@ class FileSystem:
         task = task_self()
         tune_all = NodeSet()
         type_map = { 'mgt': 'mgs', 'mdt': 'mds', 'ost' : 'oss' }
-        result = 0
 
         if Globals().get_tuning_file():
             # Install tuning.conf on enabled distant servers
@@ -669,8 +668,7 @@ class FileSystem:
                 for t in e_targets:
                     types.add(type_map[t.type])
 
-                rc = server.tune(tuning_model, types, self.fs_name)
-                result = max(result, rc)
+                server.tune(tuning_model, types, self.fs_name)
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'tune', NodeSet(server), self.debug,
@@ -679,8 +677,7 @@ class FileSystem:
         for client in self.enabled_clients():
             server = client.server
             if server.is_local():
-                rc = server.tune(tuning_model, ['client'], self.fs_name)
-                result = max(result, rc)
+                server.tune(tuning_model, ['client'], self.fs_name)
             elif server not in tune_all:
                 tune_all.add(server)
 
@@ -691,4 +688,5 @@ class FileSystem:
         self._run_actions()
 
         # Check for proxy errors, and return 'result' if no proxy errors
+        result = task_self().max_retcode()
         return self._check_errors([result])
