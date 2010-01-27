@@ -1,3 +1,6 @@
+2010-01-27  Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Fix wrong target count in 'status' command.
+
 2009-12-16  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Add tuning support for clients. Add automatic tuning after
 	successful mounts.

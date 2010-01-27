@@ -232,21 +232,24 @@ class Status(FSLiveCommand):
         """
 
         ldic = []
-        order = []
-        states = {}
 
-        # Iterate over enabled TARGETS, grouped by Type
-        for type, e_targets in fs.enabled_targets(group_attr="display_order"):
-            for target in e_targets:
-                # Convert target.state to a human readable form. Recovering has a special text.
-                status = target.text_status()
-                # Add to state mapping and remember in which order we found them.
-                states.setdefault((target.type, status), NodeSet()).update(target.servers[0])
-                if (target.type, status) not in order:
-                    order.append((target.type, status))
+        # Iterate over enabled TARGETS, grouped by display order and status
+        key = lambda t: (t.display_order, t.text_status())
+        for (disp, status), e_targets in fs.enabled_targets(group_key=key):
+            targets = list(e_targets)
+            ldic.append(dict([
+                ["type", targets[0].type.upper()],
+                ["count", len(targets)],
+                ["nodes", NodeSet.fromlist([t.server for t in targets])],
+                ["status", status]]))
 
         # If we want CLIENTS, iterate over enabled ones
         if show_clients:
+
+            # XXX: As soon as Shine.Lustre.FileSystem supports grouping for Clients,
+            # This could be simplified the same it is done for Targets.
+            order = []
+            states = {}
             for client in fs.enabled_clients():
                 # Convert target.state to a human readable form.
                 status = client.text_status()
@@ -255,13 +258,13 @@ class Status(FSLiveCommand):
                 if ("cli", status) not in order:
                     order.append(("cli", status))
 
-        # Read the state mapping we just build, using the recorded order.
-        for (type, state) in order:
-            ldic.append(dict([
-                ["type", str(type.upper())],
-                ["count", len(states[(type, state)])],
-                ["nodes", states[(type, state)]], 
-                ["status", state]]))
+            # Read the state mapping we just build, using the recorded order.
+            for (type, state) in order:
+                ldic.append(dict([
+                    ["type", str(type.upper())],
+                    ["count", len(states[(type, state)])],
+                    ["nodes", states[(type, state)]], 
+                    ["status", state]]))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)
