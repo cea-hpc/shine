@@ -11,7 +11,7 @@ Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-buildroot
 Prefix: %{_prefix}
 BuildArchitectures: noarch
-Requires: clustershell > 1.1
+Requires: clustershell >= 1.1
 Vendor: Stephane Thiell <stephane.thiell@cea.fr>
 Url: http://lustre-shine.sourceforge.net/
 
