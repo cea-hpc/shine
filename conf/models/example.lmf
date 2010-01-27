@@ -47,9 +47,14 @@ ost: node=nova6 dev=/dev/sdd
 ost: node=nova6 dev=/dev/sde
 
 # client
-# FS clients
+# FS clients definition. Like targets, use multiple lines if you want.
 client: node=nova[8-32]
-client: node=nova[33-34] mount_path=/my/private.stuff/mount_path
+client: node=nova[33-34]
+
+# Sometimes it is needed for some nodes to mount this FS on a different
+# mount point (not the default mount_path). In that case, use the
+# optional client parameter mount_path.
+client: node=nova[35-39] mount_path=/my/specific/example
 
 
 ### Section 3 - Additionnal directives
