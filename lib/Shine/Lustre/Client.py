@@ -43,6 +43,7 @@ from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR, RUNTIME_ERROR
 # Could be nearly merged with Target state_text_map if MOUNTED value
 # becomes the same.
 state_text_map = { 
+    None: "unknown",
     OFFLINE: "offline", 
     CLIENT_ERROR: "ERROR", 
     MOUNTED: "mounted", 

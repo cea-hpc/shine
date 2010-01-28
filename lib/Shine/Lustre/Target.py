@@ -66,6 +66,7 @@ class TargetDeviceError(TargetError):
 (MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(8)
 # See text_status() for its used.
 state_text_map = { 
+    None:          "unknown",
     MOUNTED:       "online", 
     EXTERNAL:      "external", 
     RECOVERING:    "recovering", 
