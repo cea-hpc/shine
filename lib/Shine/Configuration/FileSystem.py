@@ -245,7 +245,7 @@ class FileSystem(Model):
         to UNKNOWN
         """
         if self._start_backend():
-            self.backend.set_status_target(self.fs_name, node, 
+            self.backend.set_status_target(self.fs_name, target, 
                 self.backend.TARGET_UNKNOWN, options)
 
     def set_status_target_ko(self, target, options):
