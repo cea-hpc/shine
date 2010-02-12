@@ -54,10 +54,13 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
         self.verbose = verbose
 
     def ev_startclient_start(self, node, client):
+
         if self.verbose > 1:
             print "%s: Mounting %s on %s ..." % (node, client.fs.fs_name, client.mount_path)
 
     def ev_startclient_done(self, node, client):
+        self.update_client_status(node, "succeeded")
+
         if self.verbose > 1:
             if client.status_info:
                 print "%s: Mount %s: %s" % (node, client.fs.fs_name, client.status_info)
@@ -66,6 +69,8 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                         client.fs.fs_name, client.mount_path)
 
     def ev_startclient_failed(self, node, client, rc, message):
+        self.update_client_status(node, "failed")
+
         if rc:
             strerr = os.strerror(rc)
         else:
@@ -75,6 +80,15 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
         if rc:
             print message
 
+    def set_fs_config(self, fs_conf):
+        self.fs_conf = fs_conf
+
+    def update_client_status(self, client_name, status):
+        # Change the status of client 
+        if status == "succeeded":
+            self.fs_conf.set_status_clients_mount_complete([client_name], None)
+        elif status == "failed":
+            self.fs_conf.set_status_clients_mount_failed([client_name], None)
 
 class Mount(FSClientLiveCommand):
     """
@@ -121,6 +135,10 @@ class Mount(FSClientLiveCommand):
                     excluded=self.nodes_support.get_excludes(),
                     event_handler=eh)
 
+            if not self.has_local_flag():
+                # Allow global handler to access fs_conf.
+                eh.set_fs_config(fs_conf)
+
             # Enabled debugging if debug flag was set on CLI.
             fs.set_debug(self.debug_support.has_debug())
 
@@ -141,6 +159,9 @@ class Mount(FSClientLiveCommand):
 
             if not self.remote_call:
                 if rc == RC_OK:
+                    # Notify backend of file system status mofication
+                    fs_conf.set_status_fs_mounted()
+
                     if vlevel > 0:
                         print "Mount successful on %s" % \
                             fs.get_enabled_client_servers()
@@ -153,6 +174,10 @@ class Mount(FSClientLiveCommand):
                             fs.get_enabled_client_servers()
                     elif status == RUNTIME_ERROR:
                         rc = RC_RUNTIME_ERROR
+
+                        # Notify backend of file system status mofication
+                        fs_conf.set_status_fs_warning()
+
                         for nodes, msg in fs.proxy_errors:
                             print "%s: %s" % (nodes, msg)
                 else:

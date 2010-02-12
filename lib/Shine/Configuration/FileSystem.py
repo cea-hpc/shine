@@ -30,6 +30,8 @@ from ClusterShell.NodeSet import NodeSet
 from NidMap import NidMap
 from TargetDevice import TargetDevice
 
+from Backend.Backend import Backend
+
 import copy
 import os
 import sys
@@ -91,7 +93,6 @@ class FileSystem(Model):
         if not self.backend:
 
             from Backend.BackendRegistry import BackendRegistry
-            from Backend.Backend import Backend
 
             # Start the selected config backend system.
             self.backend = BackendRegistry().get_selected()
@@ -205,149 +206,156 @@ class FileSystem(Model):
         if self._start_backend():
             self.backend.unregister_client(self.fs_name, node)
     
-    def set_status_client_mount_complete(self, node, options):
+    def _set_status_client(self, node, status, options):
+        """
+        This function is used to change specified client status.
+        """
         if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                    self.backend.MOUNT_COMPLETE, options)
+            self.backend.set_status_client(self.fs_name, node, status, options)
+
+    def set_status_client_mount_complete(self, node, options):
+        """
+        This function is used to set the specified client status
+        to MOUNT_COMPLETE
+        """
+        self._set_status_client(node, Backend.MOUNT_COMPLETE, options)
 
     def set_status_client_mount_failed(self, node, options):
-        if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                self.backend.MOUNT_FAILED, options)
+        """
+        This function is used to set the specified client status
+        to MOUNT_FAILED
+        """
+        self._set_status_client(node, Backend.MOUNT_FAILED, options)
 
     def set_status_client_mount_warning(self, node, options):
-        if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                self.backend.MOUNT_WARNING, options)
+        """
+        This function is used to set the specified client status
+        to MOUNT_WARNING
+        """
+        self._set_status_client(node, Backend.MOUNT_WARNING, options)
 
     def set_status_client_umount_complete(self, node, options):
-        if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                self.backend.UMOUNT_COMPLETE, options)
+        """
+        This function is used to set the specified client status
+        to UMOUNT_COMPLETE
+        """
+        self._set_status_client(node, Backend.UMOUNT_COMPLETE, options)
 
     def set_status_client_umount_failed(self, node, options):
-        if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                self.backend.UMOUNT_FAILED, options)
+        """
+        This function is used to set the specified client status
+        to UMOUNT_FAILED
+        """
+        self._set_status_client(node, Backend.UMOUNT_FAILED, options)
 
     def set_status_client_umount_warning(self, node, options):
-        if self._start_backend():
-            self.backend.set_status_client(self.fs_name, node,
-                self.backend.UMOUNT_WARNING, options)
+        """
+        This function is used to set the specified client status
+        to UMOUNT_WARNING
+        """
+        self._set_status_client(node, Backend.UMOUNT_WARNING, options)
 
     def get_status_clients(self):
+        """
+        This function returns the status of each clients
+        involved in the current file system.
+        """
         if self._start_backend():
             return self.backend.get_status_clients(self.fs_name)
+
+    def _set_status_target(self, target, status, options):
+        """
+        This function is used to change the specified target status.
+        """
+        if self._start_backend():
+            self.backend.set_status_target(self.fs_name, target, 
+                status, options)
 
     def set_status_target_unknown(self, target, options):
         """
         This function is used to set the specified target status
         to UNKNOWN
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_UNKNOWN, options)
+        self._set_status_target(target, Backend.TARGET_UNKNOWN, options)
 
     def set_status_target_ko(self, target, options):
         """
         This function is used to set the specified target status
         to KO
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                backend.TARGET_KO, options)
+        self._set_status_target(target, Backend.TARGET_KO, options)
 
     def set_status_target_available(self, target, options):
         """
         This function is used to set the specified target status
         to AVAILABLE
         """
-        if self._start_backend():
-            # Set the fs_name to Free since these targets are availble
-            # which means not used by any file system.
-            self.backend.set_status_target(None, target,
-                self.backend.TARGET_AVAILABLE, options)
+        # Set the fs_name to Free since these targets are availble
+        # which means not used by any file system.
+        self._set_status_target(target, Backend.TARGET_AVAILABLE, options)
 
     def set_status_target_formating(self, target, options):
         """
         This function is used to set the specified target status
         to FORMATING
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_FORMATING, options)
+        self._set_status_target(target, Backend.TARGET_FORMATING, options)
 
     def set_status_target_format_failed(self, target, options):
         """
         This function is used to set the specified target status
         to FORMAT_FAILED
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_FORMAT_FAILED, options)
+        self._set_status_target(target, Backend.TARGET_FORMAT_FAILED, options)
 
     def set_status_target_formated(self, target, options):
         """
         This function is used to set the specified target status
         to FORMATED
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_FORMATED, options)
+        self._set_status_target(target, Backend.TARGET_FORMATED, options)
 
     def set_status_target_offline(self, target, options):
         """
         This function is used to set the specified target status
         to OFFLINE
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_OFFLINE, options)
+        self._set_status_target(target, Backend.TARGET_OFFLINE, options)
 
     def set_status_target_starting(self, target, options):
         """
         This function is used to set the specified target status
         to STARTING
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_STARTING, options)
+        self._set_status_target(target, Backend.TARGET_STARTING, options)
 
     def set_status_target_online(self, target, options):
         """
         This function is used to set the specified target status
         to ONLINE
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_ONLINE, options)
+        self._set_status_target(target, Backend.TARGET_ONLINE, options)
 
     def set_status_target_critical(self, target, options):
         """
         This function is used to set the specified target status
         to CRITICAL
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_CRITICAL, options)
+        self._set_status_target(target, Backend.TARGET_CRITICAL, options)
 
     def set_status_target_stopping(self, target, options):
         """
         This function is used to set the specified target status
         to STOPPING
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_STOPPING, options)
+        self._set_status_target(target, Backend.TARGET_STOPPING, options)
 
     def set_status_target_unreachable(self, target, options):
         """
         This function is used to set the specified target status
         to UNREACHABLE
         """
-        if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
-                self.backend.TARGET_UNREACHABLE, options)
+        self._set_status_target(target, Backend.TARGET_UNREACHABLE, options)
 
     def get_status_targets(self):
         """
@@ -378,3 +386,115 @@ class FileSystem(Model):
             os.unlink(self.xmf_path)
 
         return result
+
+    def _set_status(self, status, options):
+        """
+        This function is used to change the specified filesystem status.
+        """
+        if self._start_backend():
+            self.backend.set_status_fs(self.fs_name, status, options)
+
+    def set_status_installed(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to INSTALLED
+        """
+        self._set_status(Backend.FS_INSTALLED, options)
+
+    def set_status_formating(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to FORMATING
+        """
+        self._set_status(Backend.FS_FORMATING, options)
+
+    def set_status_formated(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to FORMATED
+        """
+        self._set_status(Backend.FS_FORMATED, options)
+
+    def set_status_starting(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to STARTING
+        """
+        self._set_status(Backend.FS_STARTING, options)
+
+    def set_status_online(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to ONLINE
+        """
+        self._set_status(Backend.FS_ONLINE, options)
+
+    def set_status_mounted(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to MOUNTED
+        """
+        self._set_status(Backend.FS_MOUNTED, options)
+
+    def set_status_stopping(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to STOPPING
+        """
+        self._set_status(Backend.FS_STOPPING, options)
+
+    def set_status_offline(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to OFFLINE
+        """
+        self._set_status(Backend.FS_OFFLINE, options)
+
+    def set_status_checking(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to CHECKING
+        """
+        self._set_status(Backend.FS_CHECKING, options)
+
+    def set_status_unknown(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to UNKNOWN
+        """
+        self._set_status(Backend.FS_UNKNOWN, options)
+
+    def set_status_warning(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to WARNING
+        """
+        self._set_status(Backend.FS_WARNING, options)
+
+    def set_status_critical(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to CRITICAL
+        """
+        self._set_status(Backend.FS_CRITICAL, options)
+
+    def set_status_online_failed(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to ONLINE_FAILED
+        """
+        self._set_status(Backend.FS_ONLINE_FAILED, options)
+
+    def set_status_offline_failed(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to OFFLINE_FAILED
+        """
+        self._set_status(Backend.FS_OFFLINE_FAILED, options)
+
+    def get_status(self):
+        """
+        This function returns the status of the current file system.
+        """
+        return self.backend.get_status_fs(self.fs_name)
+

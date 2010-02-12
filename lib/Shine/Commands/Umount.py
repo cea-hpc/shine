@@ -56,6 +56,8 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
             print "%s: Unmounting %s on %s ..." % (node, client.fs.fs_name, client.mount_path)
 
     def ev_stopclient_done(self, node, client):
+        self.update_client_status(node, "succeeded")
+
         if self.verbose > 1:
             if client.status_info:
                 print "%s: Umount %s: %s" % (node, client.fs.fs_name, client.status_info)
@@ -64,6 +66,8 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                         client.fs.fs_name, client.mount_path)
 
     def ev_stopclient_failed(self, node, client, rc, message):
+        self.update_client_status(node, "failed")
+
         if rc:
             strerr = os.strerror(rc)
         else:
@@ -72,6 +76,16 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                 (node, client.fs.fs_name, client.mount_path, strerr)
         if rc:
             print message
+
+    def set_fs_config(self, fs_conf):
+        self.fs_conf = fs_conf
+
+    def update_client_status(self, client_name, status):
+        # Change the status of client 
+        if status == "succeeded":
+            self.fs_conf.set_status_clients_umount_complete([client_name], None)
+        elif status == "failed":
+            self.fs_conf.set_status_clients_umount_failed([client_name], None)
 
 
 class Umount(FSClientLiveCommand):
@@ -119,6 +133,10 @@ class Umount(FSClientLiveCommand):
                     indexes=None,
                     event_handler=eh)
 
+            if not self.has_local_flag():
+                # Allow global handler to access fs_conf.
+                eh.set_fs_config(fs_conf)
+
             fs.set_debug(self.debug_support.has_debug())
 
             # Warn if trying to act on wrong nodes
@@ -138,6 +156,14 @@ class Umount(FSClientLiveCommand):
 
             if not self.remote_call:
                 if rc == RC_OK:
+                    
+                    # Is there mounted clients ?
+                    client_status_dict = fs_conf.get_status_clients()
+                    nb_mounted_clients = len([ node_name for node_name in client_status_dict if client_status_dict[node_name]['status'] == 'm_complete'])
+                    if nb_mounted_clients == 0:
+                        # No
+                        # all client nodes have been umounted successfuly
+                        fs_conf.set_status_fs_online()
                     if vlevel > 0:
                         print "Unmount successful on %s" % \
                             fs.get_enabled_client_servers()

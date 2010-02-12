@@ -107,9 +107,6 @@ def create_lustrefs(fs_model_file, event_handler=None, nodes=None, excluded=None
     fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \
                               nodes=nodes, excluded=excluded)
 
-    # Register file system configuration to the backend
-    fs_conf.register_fs()
-
     return fs_conf, fs
 
 

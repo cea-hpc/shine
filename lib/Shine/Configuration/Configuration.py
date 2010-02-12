@@ -378,27 +378,27 @@ class Configuration:
         for node in nodes:
             self._fs.unregister_client(node)
 
-    def set_status_clients_mount_complete(self, nodes, options):
+    def set_status_clients_mount_complete(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_mount_complete(node, options)
 
-    def set_status_clients_mount_failed(self, nodes, options):
+    def set_status_clients_mount_failed(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_mount_failed(node, options)
 
-    def set_status_clients_mount_warning(self, nodes, options):
+    def set_status_clients_mount_warning(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_mount_warning(node, options)
 
-    def set_status_clients_umount_complete(self, nodes, options):
+    def set_status_clients_umount_complete(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_umount_complete(node, options)
 
-    def set_status_clients_umount_failed(self, nodes, options):
+    def set_status_clients_umount_failed(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_umount_failed(node, options)
 
-    def set_status_clients_umount_warning(self, nodes, options):
+    def set_status_clients_umount_warning(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_umount_warning(node, options)
 
@@ -408,7 +408,7 @@ class Configuration:
     def get_status_clients(self):
         return self._fs.get_status_clients()
 
-    def set_status_targets_unknown(self, targets, options):
+    def set_status_targets_unknown(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to UNKNOWN
@@ -416,7 +416,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_unknown(target, options)
             
-    def set_status_target_ko(self, targets, options):
+    def set_status_target_ko(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to KO
@@ -424,7 +424,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_ko(target, options)
          
-    def set_status_targets_available(self, targets, options):
+    def set_status_targets_available(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to AVAILABLE
@@ -432,7 +432,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_available(target, options)
 
-    def set_status_targets_formating(self, targets, options):
+    def set_status_targets_formating(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to FORMATING
@@ -440,7 +440,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_formating(target, options)
 
-    def set_status_targets_format_failed(self, targets, options):
+    def set_status_targets_format_failed(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to FORMAT_FAILED
@@ -448,7 +448,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_format_failed(target, options)
 
-    def set_status_targets_formated(self, targets, options):
+    def set_status_targets_formated(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to FORMATED
@@ -456,7 +456,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_formated(target, options)
 
-    def set_status_targets_offline(self, targets, options):
+    def set_status_targets_offline(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to OFFLINE
@@ -464,7 +464,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_offline(target, options)
 
-    def set_status_targets_starting(self, targets, options):
+    def set_status_targets_starting(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to STARTING
@@ -472,7 +472,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_starting(target, options)
 
-    def set_status_targets_online(self, targets, options):
+    def set_status_targets_online(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to ONLINE
@@ -480,7 +480,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_online(target, options)
 
-    def set_status_targets_critical(self, targets, options):
+    def set_status_targets_critical(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to CRITICAL
@@ -488,7 +488,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_critical(target, options)
 
-    def set_status_targets_stopping(self, targets, options):
+    def set_status_targets_stopping(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to STOPPING
@@ -496,7 +496,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_stopping(target, options)
 
-    def set_status_targets_unreachable(self, targets, options):
+    def set_status_targets_unreachable(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to UNREACHABLE
@@ -506,7 +506,7 @@ class Configuration:
             
     def get_status_clients(self):
         """
-        This function returns the status of each client
+        This function returns the status of each clients
         using the current file system.
         """
         return self._fs.get_status_clients()
@@ -525,5 +525,107 @@ class Configuration:
         """
         self._fs.unregister()
 
+    def set_status_fs_installed(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to INSTALLED
+        """
+        self._fs.set_status_installed(options)
 
+    def set_status_fs_formating(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to FORMATING
+        """
+        self._fs.set_status_formating(options)
+
+    def set_status_fs_formated(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to FORMATED
+        """
+        self._fs.set_status_formated(options)
+
+    def set_status_fs_starting(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to STARTING
+        """
+        self._fs.set_status_starting(options)
+
+    def set_status_fs_online(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to ONLINE
+        """
+        self._fs.set_status_online(options)
+
+    def set_status_fs_mounted(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to MOUNTED
+        """
+        self._fs.set_status_mounted(options)
+
+    def set_status_fs_stopping(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to STOPPING
+        """
+        self._fs.set_status_stopping(options)
+
+    def set_status_fs_offline(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to OFFLINE
+        """
+        self._fs.set_status_offline(options)
+
+    def set_status_fs_checking(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to CHECKING
+        """
+        self._fs.set_status_checking(options)
+
+    def set_status_fs_unknown(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to UNKNOWN
+        """
+        self._fs.set_status_unknown(options)
+
+    def set_status_fs_warning(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to WARNING
+        """
+        self._fs.set_status_warning(options)
+
+    def set_status_fs_critical(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to CRITICAL
+        """
+        self._fs.set_status_critical(options)
+
+    def set_status_fs_online_failed(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to ONLINE_FAILED
+        """
+        self._fs.set_status_online_failed(options)
+
+    def set_status_fs_offline_failed(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to OFFLINE_FAILED
+        """
+        self._fs.set_status_offline_failed(options)
+
+    def get_status_fs(self):
+        """
+        This function returns the status of current file system.
+        """
+        return self._fs.get_status()
 

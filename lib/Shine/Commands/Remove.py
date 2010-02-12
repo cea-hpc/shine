@@ -167,19 +167,13 @@ class Remove(RemoteCriticalCommand):
         return result
 
     def unregister_fs(self, fs_conf):
-        # Retrieve the list of file system client
-        client_status_dict = fs_conf.get_status_clients()
-
-        # If there is some client for this file system we have to
-        # unregister each of them from the backend
-        if not client_status_dict == None:
-            nodes = NodeSet()
+        nodes = NodeSet()
+        
+        for node, path in fs_conf.iter_clients():
+            nodes.add(node)
             
-            for node in client_status_dict.keys():
-                nodes.add(node)
-                
-            # Unregister all the file system client
-            fs_conf.unregister_clients(nodes)
+        # Unregister all the file system client
+        fs_conf.unregister_clients(nodes)
 
         # Unregister file system configuration from the backend
         fs_conf.unregister_fs()

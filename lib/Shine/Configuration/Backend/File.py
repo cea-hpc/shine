@@ -138,6 +138,19 @@ class File(Backend):
         """
         pass
 
+    def set_status_fs(self, fs_name, status, options):
+        """
+        Set status of file system.
+        """
+        pass
+
+    def get_status_fs(self, fs_name):
+        """
+        Get all target status of the form { fs : { 'status' : status,
+        'date' : datetime, 'options' : None } }
+        """
+        pass
+
     def register_client(self, fs, node):
         """
         This function is used to register a filesystem client to the backend

@@ -29,6 +29,9 @@ from Base.CommandRCDefs import *
 from Base.Support.LMF import LMF
 from Base.Support.Nodes import Nodes
 
+
+from ClusterShell.NodeSet import NodeSet
+
 from Exceptions import *
 
 from ClusterShell.NodeSet import NodeSet
@@ -72,6 +75,14 @@ class Install(Command):
                     event_handler=self, nodes=install_nodes, 
                     excluded=excluded_nodes)
 
+            print "Registering FS %s to backend..." % fs.fs_name
+            rc = self.register_fs(fs_conf)
+
+            if rc:
+                print "Error: failed to register FS to backend (rc=%d)" % rc
+            else:
+                print "Filesystem %s registered." % fs.fs_name
+
             # Install file system configuration files; normally, this should
             # not be done by the Shine.Lustre.FileSystem object itself, but as
             # all proxy methods are currently handled by it, it is more
@@ -111,4 +122,19 @@ class Install(Command):
                 print "Use `shine format -f %s' to initialize the file system." % \
                         fs_conf.get_fs_name()
 
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_installed()
+
             return RC_OK
+
+    def register_fs(self, fs_conf):
+        # register file system configuration to the backend
+        fs_conf.register_fs()
+
+        nodes = NodeSet()
+        
+        for node, path in fs_conf.iter_clients():
+            nodes.add(node)
+            
+        # register all the file system client
+        fs_conf.register_clients(nodes)

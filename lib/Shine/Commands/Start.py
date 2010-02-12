@@ -72,6 +72,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             Status.status_view_fs(fs, show_clients=False)
 
     def ev_starttarget_start(self, node, target):
+        self.update_config_status(target, "starting")
         # start/restart timer if needed (we might be running a new runloop)
         if self.verbose > 1:
             print "%s: Starting %s %s (%s)..." % (node, \
@@ -79,6 +80,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
         self.update()
 
     def ev_starttarget_done(self, node, target):
+        self.update_config_status(target, "succeeded")
         self.status_changed = True
         if self.verbose > 1:
             if target.status_info:
@@ -91,6 +93,8 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
         self.update()
 
     def ev_starttarget_failed(self, node, target, rc, message):
+        self.update_config_status(target, "failed")
+
         self.status_changed = True
         if rc:
             strerr = os.strerror(rc)
@@ -103,6 +107,21 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             print message
         self.update()
 
+    def set_fs_config(self, fs_conf):
+        self.fs_conf = fs_conf
+
+    def update_config_status(self, target, status):
+        # Retrieve the right target from the configuration
+        target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
+            target.type.upper())]
+
+        # Change the status of targets to register their running state
+        if status == "succeeded":
+            self.fs_conf.set_status_targets_online(target_list, None)
+        elif status == "failed":
+            self.fs_conf.set_status_targets_offline(target_list, None)
+        else:
+            self.fs_conf.set_status_targets_starting(target_list, None)
 
 class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
@@ -183,6 +202,10 @@ class Start(FSLiveCommand):
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
 
+            if not self.has_local_flag():
+                # Allow global handler to access fs_conf.
+                eh.set_fs_config(fs_conf)
+
             # Prepare options...
             mount_options = {}
             mount_paths = {}
@@ -202,6 +225,9 @@ class Start(FSLiveCommand):
             if hasattr(eh, 'pre'):
                 eh.pre(fs)
                 
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_starting()
+
             status = fs.start(mount_options=mount_options,
                               mount_paths=mount_paths)
 
@@ -210,6 +236,9 @@ class Start(FSLiveCommand):
                 result = rc
 
             if rc == RC_OK:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_online()
+
                 if vlevel > 0:
                     print "Start successful."
                 tuning = Tune.get_tuning(fs_conf)
@@ -221,6 +250,9 @@ class Start(FSLiveCommand):
                 print "Tuning skipped."
 
             if rc == RC_RUNTIME_ERROR:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_online_failed()
+
                 for nodes, msg in fs.proxy_errors:
                     print "%s: %s" % (nodes, msg)
 

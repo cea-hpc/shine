@@ -251,6 +251,9 @@ class Format(FSLiveCriticalCommand):
             if hasattr(eh, 'pre'):
                 eh.pre(fs)
             
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_formating()
+
             # Format really.
             status = fs.format(stripecount=fs_conf.get_stripecount(),
                         stripesize=fs_conf.get_stripesize(),
@@ -264,9 +267,15 @@ class Format(FSLiveCriticalCommand):
                 result = rc
 
             if rc == RC_OK:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_formated()
+
                 if vlevel > 0:
                     print "Format successful."
             else:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_format_failed()
+
                 if rc == RC_RUNTIME_ERROR:
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)

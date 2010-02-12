@@ -71,12 +71,14 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
             Status.status_view_fs(fs, show_clients=False)
 
     def ev_stoptarget_start(self, node, target):
+        self.update_config_status(target, "stopping")
         if self.verbose > 1:
             print "%s: Stopping %s %s (%s)..." % (node, \
                     target.type.upper(), target.get_id(), target.dev)
         self.update()
 
     def ev_stoptarget_done(self, node, target):
+        self.update_config_status(target, "succeeded")
         self.status_changed = True
         if self.verbose > 1:
             if target.status_info:
@@ -89,6 +91,7 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         self.update()
 
     def ev_stoptarget_failed(self, node, target, rc, message):
+        self.update_config_status(target, "failed")
         self.status_changed = True
         if rc:
             strerr = os.strerror(rc)
@@ -100,6 +103,22 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         if rc:
             print message
         self.update()
+
+    def set_fs_config(self, fs_conf):
+        self.fs_conf = fs_conf
+
+    def update_config_status(self, target, status):
+        # Retrieve the right target from the configuration
+        target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
+            target.type.upper())]
+
+        # Change the status of targets to register their running state
+        if status == "succeeded":
+            self.fs_conf.set_status_targets_offline(target_list, None)
+        elif status == "failed":
+            self.fs_conf.set_status_targets_unreachable(target_list, None)
+        else:
+            self.fs_conf.set_status_targets_stopping(target_list, None)
 
 class LocalStopEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
@@ -155,6 +174,10 @@ class Stop(FSLiveCommand):
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
 
+            if not self.has_local_flag():
+                # Allow global handler to access fs_conf.
+                eh.set_fs_config(fs_conf)
+
             mount_options = {}
             mount_paths = {}
             for target_type in [ 'mgt', 'mdt', 'ost' ]:
@@ -173,15 +196,24 @@ class Stop(FSLiveCommand):
             if hasattr(eh, 'pre'):
                 eh.pre(fs)
                 
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_stopping()
+
             status = fs.stop()
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc
 
             if rc == RC_OK:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_offline()
+
                 if vlevel > 0:
                     print "Stop successful."
             elif rc == RC_RUNTIME_ERROR:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_offline_failed()
+
                 for nodes, msg in fs.proxy_errors:
                     print "%s: %s" % (nodes, msg)
 
