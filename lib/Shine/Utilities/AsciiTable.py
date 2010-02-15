@@ -19,17 +19,22 @@
 #
 # $Id$
 
+"""
+AsciiTable module
 
-# Use an AsciiTable object when you want to print nice ascii-table from
-# data. The following class accepts several input data formats.
+Use an AsciiTable object when you want to print nice ascii-table from
+data. The following class accepts several input data formats.
+"""
 
+import copy
 import os
 import sys
 
 
 class AsciiTableLayout:
     """
-    AsciiTable layout options class
+    AsciiTable layout options class. This class is used to configure
+    custom column layout for AsciiTable objects.
     """
 
     LEFT = 0
@@ -44,9 +49,11 @@ class AsciiTableLayout:
     # Setters
     #
     def set_show_header(self, show_header):
+        """If show_header is set to True, show title header row."""
         self._show_header = show_header
 
     def set_column(self, head_key, pos, align, title=None, title_align=None):
+        """Configure a new column layout."""
         self._pos[pos] = (head_key, title or head_key)
         title_align = title_align or align
         if head_key not in self._layout:
@@ -59,13 +66,12 @@ class AsciiTableLayout:
     # Getters
     #
     def show_header(self):
+        """Return True if the title header row is enabled."""
         return self._show_header
 
     def keys(self):
-        lst = []
-        for c in self:
-            lst.append(c)
-        return lst
+        """Get layout keys."""
+        return list(self)
             
     def __iter__(self):
         "Iterate over available columns."
@@ -74,23 +80,26 @@ class AsciiTableLayout:
 
     # Format
     #
-    def _format_string(self, align, length, str):
+    def _format_string(self, align, length, in_str):
         if align == AsciiTableLayout.CENTER:
-            return str.center(length)
+            return in_str.center(length)
         elif align == AsciiTableLayout.LEFT:
-            return str.ljust(length)
+            return in_str.ljust(length)
         else:
-            return str.rjust(length)
+            return in_str.rjust(length)
 
-    def format_string(self, head_key, length, str):
+    def format_string(self, head_key, length, in_str):
         align = self._layout[head_key]['align']
-        return self._format_string(align, length, str)
+        return self._format_string(align, length, in_str[:length])
 
-    def format_title_string(self, head_key, length, str):
+    def format_title_string(self, head_key, length, in_str):
         align = self._layout[head_key]['title_align']
-        return self._format_string(align, length, str)
+        return self._format_string(align, length, in_str[:length])
 
 class AsciiTable:
+    """
+    Main class used to display ascii-based table.
+    """
     
     columns = 800
 
@@ -101,42 +110,39 @@ class AsciiTable:
 # termios: 0.00143790245056
 # curses:  0.00277400016785
 
-    def get_term_cols_from_curses(cls):
+    def get_term_cols_from_curses(self):
         import curses
         curses.setupterm()
-        cls.columns = curses.tigetnum("cols")
-        return cls.columns
-    get_term_cols_from_curses = classmethod(get_term_cols_from_curses)
+        self.columns = curses.tigetnum("cols")
+        return self.columns
 
-    def get_term_cols_from_environ(cls):
-        cls.columns = int(os.environ['COLUMNS'])
-        return cls.columns
-    get_term_cols_from_environ = classmethod(get_term_cols_from_environ)
+    def get_term_cols_from_environ(self):
+        self.columns = int(os.environ['COLUMNS'])
+        return self.columns
 
-    def get_term_cols_from_termios(cls):
+    def get_term_cols_from_termios(self):
         global fcntl, struct, termios
         import fcntl, struct, termios
         s = struct.pack('HHHH', 0, 0, 0, 0)
         x = fcntl.ioctl(self.out.fileno(), termios.TIOCGWINSZ, s)
-        cls.columns = struct.unpack('HHHH', x)[1]
-        return cls.columns
-    get_term_cols_from_termios = classmethod(get_term_cols_from_termios)
+        self.columns = struct.unpack('HHHH', x)[1]
+        return self.columns
 
-    def get_term_cols(cls):
+    def get_term_cols(self):
+        """Method to get the number of columns in a  terminal. Several
+        methods are tried (termios, curses, environ)."""
         try:
-            return cls.get_term_cols_from_termios()
+            return self.get_term_cols_from_termios()
         except:
             pass
         try:
-            return cls.get_term_cols_from_curses()
+            return self.get_term_cols_from_curses()
         except:
             pass
         try:
-            return cls.get_term_cols_from_environ()
+            return self.get_term_cols_from_environ()
         except:
-            return cls.columns
-    get_term_cols = classmethod(get_term_cols)
-
+            return AsciiTable.columns
 
     def print_from_list_of_dict(self, rows, layout=None):
         """
@@ -144,7 +150,7 @@ class AsciiTable:
         """
 
         # Get the number of columns for the current terminal (screen width)
-        ncols = AsciiTable.get_term_cols()
+        ncols = self.get_term_cols()
 
         # Get the column's keys in correct order according to defined layout
         keys = layout.keys()
@@ -167,7 +173,8 @@ class AsciiTable:
                 max_col[k] = max(max_col[k], len(line))
                 appended += 1
             while appended < lines:
-                # if multilines, be carefull to fill the "virtual cells" with empty strings
+                # if multilines, be carefull to fill the "virtual
+                # cells" with empty strings
                 headers[t].append("")
                 appended += 1
 
@@ -179,78 +186,113 @@ class AsciiTable:
                 if max_col[k] < sz:
                     max_col[k] = sz
 
-        # Handle multi lines
-        key_lst = [[ keys[0] ]]
-        block=0
-
-        # The following code will adjust the max length for each column if necessary
-        csize = max_col[keys[0][0]] + 3
-        for k, t in keys[1:]:
-            # Check if the table fits or not
-            if csize + max_col[k] + 2 >= ncols and len(key_lst[block][0]) > 2:
-                # Build other block table, with duplicated item 0
-                key_lst.append([keys[0]])
-                block += 1
-                csize = max_col[keys[0][0]] + 3
-            key_lst[block].append((k, t))
-            max_col[k] = min(ncols - csize - 2, max_col[k])
-            if max_col[k] <= 0:
-                max_col[k] = 1
+        # The following code will adjust the max length for each column
+        # if necessary
+        csize = 0
+        for k, t in keys:
             csize += max_col[k] + 2
+        if csize > ncols:
+            # table size do not fit screen, so we reduce size of columns
+            # reference column size
+            fixedsz = len(keys) * 2
+            refcolsz = int((ncols - fixedsz) / len(keys))
+            # redistribute chars not used by small columns
+            gain, gaincnt = 0, 0
+            for k, t in keys:
+                if max_col[k] < refcolsz:
+                    # remember chars gained in small cols
+                    gain += refcolsz - max_col[k]
+                    gaincnt += 1
+            # recalc new reference column size for other columns
+            refcolsz = refcolsz + gain/(len(keys) - gaincnt)
+            for k, t in keys:
+                if max_col[k] > refcolsz:
+                    # this one is too big, reduce col size to
+                    # reference size
+                    max_col[k] = refcolsz
+            # last adjustment to fit exactly to screen
+            total = fixedsz
+            for k, t in keys:
+                total += max_col[k]
+            # increase largest column(s) by 1
+            for k, t in sorted(keys, cmp=lambda x, y: cmp(max_col[y[0]],
+                                                          max_col[x[0]])):
+                if total < ncols - 1:
+                    max_col[k] += 1
+                    total += 1
+
+        tab = keys
 
         #
         # Print headers
         #
-        for tab in key_lst:
-            sep_line = "+"
-            for k, t in tab:
-                sep_line += (max_col[k] + 1) * "-" + "+"
+        sep_line = "+"
+        for k, t in tab:
+            sep_line += (max_col[k] + 1) * "-" + "+"
+        self.out.write(sep_line + "\n")
 
-            self.out.write(sep_line + "\n")
-
-            if layout.show_header():
-                for l in range(0, lines):
-                    self.out.write("|")
-                    for k, t in tab:
-                        self.out.write( layout.format_title_string(k,
-                            max_col[k], str(headers[t][l])) + " |" )
-                    self.out.write("\n")
-                self.out.write("%.*s\n" % (ncols, sep_line))
-
-            #
-            # Print data rows
-            #
-            for row in rows:
-                s = "|"
-                line_sup = s
+        if layout.show_header():
+            for l in range(0, lines):
+                self.out.write("|")
                 for k, t in tab:
-                    target = str(row[k])
-                    offset = 0
-                    splt = []
-                    while offset + max_col[k] < len(target):
-                        w = target[offset:offset+max_col[k]]
-                        offset += max_col[k]
-                        splt.append(w)
+                    self.out.write( layout.format_title_string(k,
+                        max_col[k], str(headers[t][l])) + " |" )
+                self.out.write("\n")
+            self.out.write("%.*s\n" % (ncols, sep_line))
+
+        spltbuf_ref = dict.fromkeys([it[0] for it in keys])
+        for k in spltbuf_ref:
+            spltbuf_ref[k] = []
+
+        #
+        # Print data rows
+        #
+        for row in rows:
+            spltbuf = copy.deepcopy(spltbuf_ref)
+            to_print = "|"
+            for k, t in tab:
+                target = str(row[k])
+                offset = 0
+                splt = []
+                while offset + max_col[k] < len(target):
+                    w = target[offset:offset+max_col[k]]
+                    offset += max_col[k]
+                    splt.append(w)
+                else:
+                    w = target[offset:]
+                    splt.append(w)
+
+                if len(splt) > 1:
+                    to_print += layout.format_string(k, max_col[k], splt[0]) \
+                                    + " |"
+                    for i in range(1, len(splt)):
+                        spltbuf[k].append(splt[i])
+                else:
+                    to_print += layout.format_string(k, max_col[k], target) \
+                                    + " |"
+                
+            self.out.write(to_print + "\n")
+
+            # multi-line support: print additional lines
+            max_lb = 0
+            for k, lb in spltbuf.iteritems():
+                max_lb = max(max_lb, len(lb))
+
+            for ik in range(0, max_lb):
+                for k, t in tab:
+                    if ik < len(spltbuf[k]):
+                        self.out.write("|+" + layout.format_string(k,
+                                                max_col[k], spltbuf[k][ik]))
                     else:
-                        w = target[offset:]
-                        splt.append(w)
+                        self.out.write("|" + layout.format_string(k,
+                                                max_col[k] + 1, ''))
+                self.out.write("|\n")
 
-                    if len(splt) > 1:
-                        to_print = s + layout.format_string(k, max_col[k], splt[0]) + " |"
-                        for w in splt[1:]:
-                            to_print += line_sup + "+" + layout.format_string(k, max_col[k], w) + " |\n"
-                        to_print = to_print[:-1]
-                        break
-                    else:
-                        s += layout.format_string(k, max_col[k], target) + " |"
-                        line_sup += (max_col[k] + 1) * " "
-                        to_print = s
-                    
-                self.out.write(to_print + "\n")
-            self.out.write(sep_line + "\n")
+        self.out.write(sep_line + "\n")
 
 
-    def print_from_simple_dict(self, dictionary, head_key="Param", head_val="Value"):
+    def print_from_simple_dict(self, dictionary, head_key="Param",
+                               head_val="Value"):
         """
         Print from a simple dictionary data (key, simple value).
         Example: ascii_table.print_from_simple_dict(dict, "Param", "Value")

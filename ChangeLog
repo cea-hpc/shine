@@ -1,3 +1,6 @@
+2010-02-15  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Fix AsciiTable columns adjustment issue.
+
 2010-01-27  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Fix mount_path optional parameter in client configuration line.
 
