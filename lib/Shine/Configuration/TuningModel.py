@@ -46,7 +46,7 @@ class TuningParameterAlias:
         """
         
         # Initialize the alias name
-        if alias_name == None:
+        if not alias_name:
             # If the alias name is not specified set it to None
             self._alias_name = None
         else:
@@ -54,7 +54,7 @@ class TuningParameterAlias:
             self.set_alias_name(alias_name)
             
         # Initialize the full name of the tuning parameter
-        if full_name == None:
+        if not full_name:
             # If the full name is not specified set it to None
             self._full_name = full_name
         else:
@@ -114,13 +114,13 @@ class TuningParameter:
         self.set_parameter_value(parameter_value)
 
         # Initialize the node type list
-        if node_type_list == None:
+        if not node_type_list:
             self.set_node_type_list()
         else:
             self.set_node_type_list(node_type_list)
             
         # Initialize the node name list
-        if node_name_list == None:
+        if not node_name_list:
             self.set_node_name_list()
         else:
             self.set_node_name_list(node_name_list)
@@ -283,7 +283,7 @@ class TuningModel:
         """
     
         # Name of the file to process to retrieve Tuning parameters
-        if not filename == None and filename.strip() == "":
+        if not filename or not filename.strip():
             raise TuningFileAccessException( \
                     "Tuning configuration file name is not set")
         else:
@@ -310,7 +310,7 @@ class TuningModel:
         tuning options.
         """
         # Name of the file to process to retrieve Tuning parameters
-        if filename.strip() == "":
+        if not filename or not filename.strip():
             raise TuningFileAccessException( \
                     "Tuning configuration file name is not set")
         else:
@@ -334,7 +334,7 @@ class TuningModel:
         """
 
         # Is the tuning configuration file specified?
-        if self._filename == None:
+        if not self._filename:
             raise TuningFileNotSpecified( \
                     "No tuning configuration file specified")
         
