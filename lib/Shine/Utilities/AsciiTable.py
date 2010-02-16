@@ -194,7 +194,7 @@ class AsciiTable:
         if csize > ncols:
             # table size do not fit screen, so we reduce size of columns
             # reference column size
-            fixedsz = len(keys) * 2
+            fixedsz = len(keys) * 2 + 1
             refcolsz = int((ncols - fixedsz) / len(keys))
             # redistribute chars not used by small columns
             gain, gaincnt = 0, 0
