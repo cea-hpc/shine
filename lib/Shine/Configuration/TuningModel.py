@@ -283,7 +283,7 @@ class TuningModel:
         """
     
         # Name of the file to process to retrieve Tuning parameters
-        if not filename or not filename.strip():
+        if filename and not filename.strip():
             raise TuningFileAccessException( \
                     "Tuning configuration file name is not set")
         else:
