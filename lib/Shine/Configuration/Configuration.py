@@ -405,9 +405,6 @@ class Configuration:
     def set_debug(self, debug):
         self.debug = debug
 
-    def get_status_clients(self):
-        return self._fs.get_status_clients()
-
     def set_status_targets_unknown(self, targets, options=None):
         """
         This function is used to set the status of specified targets
@@ -531,6 +528,13 @@ class Configuration:
         to INSTALLED
         """
         self._fs.set_status_installed(options)
+
+    def set_status_fs_format_failed(self, options=None):
+        """
+        This function is used to set the status of current file system
+        to FORMAT_FAILED
+        """
+        self._fs.set_status_format_failed(options)
 
     def set_status_fs_formating(self, options=None):
         """

@@ -415,6 +415,13 @@ class FileSystem(Model):
         """
         self._set_status(Backend.FS_FORMATED, options)
 
+    def set_status_format_failed(self, options):
+        """
+        This function is used to set the specified filesystem status
+        to FORMAT_FAILED
+        """
+        self._set_status(Backend.FS_FORMAT_FAILED, options)
+
     def set_status_starting(self, options):
         """
         This function is used to set the specified filesystem status

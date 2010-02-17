@@ -61,6 +61,7 @@ class Backend:
     FS_CRITICAL = 12
     FS_ONLINE_FAILED = 13
     FS_OFFLINE_FAILED = 14
+    FS_FORMAT_FAILED = 15
 
     def __init__(self):
         "Initializer."
