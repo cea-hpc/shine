@@ -262,6 +262,9 @@ class FileSystem(Model):
         """
         if self._start_backend():
             return self.backend.get_status_clients(self.fs_name)
+        else:
+            # XXX: If no backend, sure we want an empty list?
+            return []
 
     def _set_status_target(self, target, status, options):
         """
@@ -364,6 +367,9 @@ class FileSystem(Model):
         """
         if self._start_backend():
             return self.backend.get_status_targets(self.fs_name)
+        else:
+            # XXX: If no backend, sure we want an empty list?
+            return []
 
     def register(self):
         """
