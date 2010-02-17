@@ -33,8 +33,6 @@ import sys
 import warnings
 warnings.simplefilter('ignore', DeprecationWarning)
 
-sys.path.append("../lib")
-
 from Shine import public_version, __version__ as __libversion__
 from Shine.Controller import Controller
 
