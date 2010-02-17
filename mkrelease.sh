@@ -8,12 +8,13 @@ VERSIONFILE="lib/Shine/__init__.py"
 
 
 # check usage
-if [ -z $1 ]; then
-    echo "$0 <version>"
+if [ -z $2 ]; then
+    echo "$0 <version> <el5|fc11>"
     exit 1
 fi
 
 version=$1
+DIST=".$2"
 
 # check version
 if [ `grep -c "^public_version = \"$version\"" $VERSIONFILE` -eq 0 ]; then
@@ -46,6 +47,7 @@ fi
 mv -v dist/shine-$SHINEVERSION.tar.gz $TOPDIR/SOURCES/
 
 rpmbuild -ba \
+    --define "dist $DIST" \
     --define "_topdir $TOPDIR" \
     --define "version $SHINEVERSION" \
     --define "_rpmdir $PWD/dist" \

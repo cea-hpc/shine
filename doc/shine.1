@@ -1,0 +1,333 @@
+.\" Man page generated from reStructeredText.
+.TH shine 1 "2010-02-17" "1.0" "Shine User Manual"
+.SH NAME
+shine \- lustre command line administration tool
+
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level magin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+
+.SH SYNOPSIS
+General syntax overview:
+
+.INDENT 0.0
+.INDENT 3.5
+\fBshine\fP \fIcommand\fP [ OPTIONS ]
+
+.UNINDENT
+.UNINDENT
+
+.SH DESCRIPTION
+\fBshine\fP is a command line tool designed to setup and manage the Lustre
+filesystem on a cluster. It aims at centralize and simplify Lustre filesystem
+management task with:
+
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+
+.IP \(bu 2
+one human\-readable configuration file to describe your filesystem
+
+
+.IP \(bu 2
+start, stop, format (and more) your filesystem from an unique machine, thanks to a simple command line interface.
+
+.UNINDENT
+.UNINDENT
+.UNINDENT
+It is still in beta stage (feedbacks are welcomed).
+
+
+.SH INVOCATION
+Here is the description of the supported commands:
+
+.INDENT 0.0
+
+.TP
+.B \fIshow\fP <keyword> [ OPTIONS ]
+Show configuration parameters. Supported \fIshow\fP keywords are detailed below:
+
+.INDENT 7.0
+.INDENT 3.5
+.INDENT 0.0
+
+.IP \(bu 2
+\fIconf\fP: List loaded \fIshine.conf\fP(5) configuration parameters.
+
+
+.IP \(bu 2
+\fIfs\fP [\-v]: Show installed filesystems (with optional description)
+
+
+.IP \(bu 2
+\fIinfo\fP [\-f <fsname>]: Show installed filesystem information.
+
+
+.IP \(bu 2
+\fIstorage\fP: Show File backend storage configuration.
+
+
+.IP \(bu 2
+\fItuning\fP: Show defined tuning configuration.
+
+.UNINDENT
+.UNINDENT
+.UNINDENT
+
+.TP
+.B \fIinstall\fP
+Install  a  filesystem  from a model file. The model file may describe
+the entire Lustre filesystem or only target patterns  that  will  match
+Shine backend entries.  By installing, we mean that shine will generate
+a filesystem configuration  and  will spread it to the concerned nodes
+(MGS, MDS, OSS and clients).
+
+
+.TP
+.B \fIremove\fP
+Remove an installed file system. This command removes the filesystem
+description but nothing is done on the various targets involved  in
+the considered  filesystem (no reformatting of freed target is done).
+
+
+.TP
+.B \fIformat\fP
+Format an installed filesystem.
+
+
+.TP
+.B \fIstatus\fP
+Get filesystem current status. See \-V option below to specify a status view.
+
+
+.TP
+.B \fIstart\fP
+Start filesystem servers.
+
+
+.TP
+.B \fIstop\fP
+Stop filesystem servers.
+
+
+.TP
+.B \fImount\fP
+Mount filesystem clients.
+
+
+.TP
+.B \fIumount\fP
+Un\-mount filesystem clients.
+
+
+.TP
+.B \fItune\fP
+Apply tuning parameters to an existing file system. This command  is
+automatically launched on server nodes at the end of the start operation
+and on the client nodes at the end of the mount phase.
+
+.UNINDENT
+
+.SH OPTIONS
+.INDENT 0.0
+
+.TP
+.BI \-f\  <FSNAME>
+Name of the installed filesystem that will be processed by the command.
+
+
+.TP
+.BI \-i\  <INDEXES>
+Select specified Lustre target numeric index(es). Ranges like \fI4\-8,10\fP
+are allowed here.
+
+
+.TP
+.BI \-l\  <LABELS>
+Select specified Lustre target by label(s).
+
+
+.TP
+.BI \-n\  <NODES>
+Select specified nodes that will be processed (comma\-separated list of
+nodes or nodeset, eg. cluster[2\-10/2]).
+
+
+.TP
+.BI \-m\  <LMF_FILE_PATH>
+Path to the Lustre model  file  (LMF)  that  describes  the  new filesystem
+that will be installed. If only the name of the LMF file is provided, the
+\fBshine\fP command assumes that the file is located in the
+\fI/etc/shine/models\fP directory.
+
+
+.TP
+.B \-q
+Quiet mode.
+
+
+.TP
+.BI \-t\  <TARGETS>
+Process only specified target list (comma\-separated). Valid targets are:
+
+.INDENT 7.0
+.INDENT 3.5
+.INDENT 0.0
+
+.IP \(bu 2
+mgt
+
+
+.IP \(bu 2
+mdt
+
+
+.IP \(bu 2
+ost
+
+.UNINDENT
+.UNINDENT
+.UNINDENT
+
+.TP
+.B \-v
+Enable verbose mode.
+
+.UNINDENT
+.INDENT 0.0
+
+.TP
+.B \-V {disk|fs|target}
+Option used to specify the type of information that will be displayed.
+Current available views are:
+
+.INDENT 7.0
+.INDENT 3.5
+.INDENT 0.0
+
+.IP \(bu 2
+\fIdisk\fP: information related to physical storage device status
+
+
+.IP \(bu 2
+\fIfs\fP: information related to filesystem status
+
+
+.IP \(bu 2
+\fItarget\fP: information related to target status
+
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+
+.TP
+.BI \-x\  <NODES>
+Exclude specified nodes (comma\-separated list of nodes or nodeset).
+
+
+.TP
+.B \-y
+Answer \fIYes\fP to confirmation prompt (for example, on format).
+
+.UNINDENT
+
+.SH EXIT STATUS
+An exit status of zero indicates success of the \fBshine\fP command.
+
+
+.SH EXAMPLES
+.INDENT 0.0
+
+.TP
+.B # shine install \-m /etc/shine/models/lustre1.lmf
+Install shine configuration files on remote nodes for this filesystem.
+
+
+.TP
+.B # shine format \-f lustre1
+Format filesystem \fIlustre1\fP.
+
+
+.TP
+.B # shine start \-f lustre1
+Start \fIlustre1\fP servers.
+
+
+.TP
+.B # shine mount \-f lustre1 \-n cluster[5\-6]
+Mount \fIlustre1\fP filesystem on node cluster5 and cluster6.
+
+.UNINDENT
+
+.SH FILES
+.INDENT 0.0
+
+.TP
+.B \fI/etc/shine/shine.conf\fP
+System\-wide \fBshine\fP configuration file. See dedicated man page
+\fIshine.conf\fP(5)
+
+
+.TP
+.B \fI/etc/shine/models/*.lmf\fP
+Default location for LMF (Lustre Model File) files.
+
+
+.TP
+.B \fI/etc/shine/storage.conf\fP
+Storage configuration file.
+
+
+.TP
+.B \fI/etc/shine/tuning.conf\fP
+Tuning configuration file.
+
+.UNINDENT
+
+.SH SEE ALSO
+\fBshine.conf\fP(5)
+
+
+.SH BUG REPORTS
+.INDENT 0.0
+
+.TP
+.B Use the following URL to submit a bug report or feedback:
+\fI\%http://sourceforge.net/apps/trac/lustre\-shine/report\fP
+
+.UNINDENT
+
+.SH AUTHOR
+A Degremont (CEA), J Fereyre (Bull), S Thiell (CEA)
+
+.SH COPYRIGHT
+GPL
+
+.\" Generated by docutils manpage writer on 2010-02-17 15:41.
+.\" 

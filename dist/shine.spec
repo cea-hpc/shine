@@ -1,5 +1,5 @@
 %define name shine
-%define release 1.el5
+%define release 1%{?dist}
 
 Summary: Lustre shine administration utility
 Name: %{name}
@@ -29,6 +29,10 @@ python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
 cp conf/*.conf* $RPM_BUILD_ROOT/%{_sysconfdir}/shine
 cp conf/models/* $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
+# man pages
+mkdir -p $RPM_BUILD_ROOT/%{_mandir}/{man1,man5}
+gzip -c doc/shine.1 >$RPM_BUILD_ROOT/%{_mandir}/man1/shine.1.gz
+gzip -c doc/shine.conf.5 >$RPM_BUILD_ROOT/%{_mandir}/man5/shine.conf.5.gz
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -36,7 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
 
-%doc LICENSE README ChangeLog
 %config %{_sysconfdir}/shine/*.conf
 %config %{_sysconfdir}/shine/*.conf.example
 %config %{_sysconfdir}/shine/models/*.lmf
+%doc LICENSE README ChangeLog
+%doc %{_mandir}/man1/shine.1.gz
+%doc %{_mandir}/man5/shine.conf.5.gz

@@ -8,5 +8,7 @@ include conf/tuning.conf.example
 include conf/cache/README
 include scripts/shine
 include scripts/shine.init.redhat
+include doc/shine.1
+include doc/shine.conf.5
 include doc/extras/vim/syntax/shine*.vim
 include doc/extras/vim/ftdetect/shine.vim

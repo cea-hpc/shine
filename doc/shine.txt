@@ -1,0 +1,191 @@
+=========
+ shine
+=========
+
+---------------------------------------
+lustre command line administration tool
+---------------------------------------
+
+:Author: A Degremont (CEA), J Fereyre (Bull), S Thiell (CEA)
+:Date:   2010-02-17
+:Copyright: GPL
+:Version: 1.0
+:Manual section: 1
+:Manual group: Shine User Manual
+
+
+SYNOPSIS
+========
+General syntax overview:
+
+    ``shine`` *command* [ OPTIONS ]
+
+
+DESCRIPTION
+===========
+``shine`` is a command line tool designed to setup and manage the Lustre
+filesystem on a cluster. It aims at centralize and simplify Lustre filesystem
+management task with:
+
+    * one human-readable configuration file to describe your filesystem
+
+    * start, stop, format (and more) your filesystem from an unique machine, thanks to a simple command line interface.
+
+It is still in beta stage (feedbacks are welcomed).
+
+
+
+INVOCATION
+==========
+
+Here is the description of the supported commands:
+
+`show` <keyword> [ OPTIONS ]
+    Show configuration parameters. Supported `show` keywords are detailed below:
+
+        * `conf`: List loaded *shine.conf*\(5) configuration parameters.
+
+        * `fs` [-v]: Show installed filesystems (with optional description)
+
+        * `info` [-f <fsname>]: Show installed filesystem information.
+
+        * `storage`: Show File backend storage configuration.
+
+        * `tuning`: Show defined tuning configuration.
+
+`install`
+    Install  a  filesystem  from a model file. The model file may describe
+    the entire Lustre filesystem or only target patterns  that  will  match
+    Shine backend entries.  By installing, we mean that shine will generate
+    a filesystem configuration  and  will spread it to the concerned nodes
+    (MGS, MDS, OSS and clients).
+
+`remove`
+    Remove an installed file system. This command removes the filesystem
+    description but nothing is done on the various targets involved  in
+    the considered  filesystem (no reformatting of freed target is done).
+
+`format`
+    Format an installed filesystem.
+
+`status`
+    Get filesystem current status. See -V option below to specify a status view.
+
+`start`
+    Start filesystem servers.
+
+`stop`
+    Stop filesystem servers.
+
+`mount`
+    Mount filesystem clients.
+
+`umount`
+    Un-mount filesystem clients.
+
+`tune`
+     Apply tuning parameters to an existing file system. This command  is
+     automatically launched on server nodes at the end of the start operation
+     and on the client nodes at the end of the mount phase.
+
+
+OPTIONS
+=======
+
+-f <FSNAME>
+    Name of the installed filesystem that will be processed by the command.
+
+-i <INDEXES>
+    Select specified Lustre target numeric index(es). Ranges like `4-8,10`
+    are allowed here.
+
+-l <LABELS>
+    Select specified Lustre target by label(s).
+
+-n <NODES>
+    Select specified nodes that will be processed (comma-separated list of
+    nodes or nodeset, eg. cluster[2-10/2]).
+
+-m <LMF_FILE_PATH>
+    Path to the Lustre model  file  (LMF)  that  describes  the  new filesystem
+    that will be installed. If only the name of the LMF file is provided, the
+    ``shine`` command assumes that the file is located in the
+    `/etc/shine/models` directory.
+
+-q
+    Quiet mode.
+
+-t <TARGETS>
+    Process only specified target list (comma-separated). Valid targets are:
+
+        * mgt
+        * mdt
+        * ost
+
+-v
+    Enable verbose mode.
+
+-V {disk|fs|target}
+    Option used to specify the type of information that will be displayed.
+    Current available views are:
+        
+        * `disk`: information related to physical storage device status
+        * `fs`: information related to filesystem status
+        * `target`: information related to target status
+
+-x <NODES>
+    Exclude specified nodes (comma-separated list of nodes or nodeset).
+-y
+    Answer *Yes* to confirmation prompt (for example, on format).
+
+
+EXIT STATUS
+===========
+
+An exit status of zero indicates success of the ``shine`` command.
+
+
+EXAMPLES
+===========
+
+:# shine install -m /etc/shine/models/lustre1.lmf:
+    Install shine configuration files on remote nodes for this filesystem.
+
+:# shine format -f lustre1:
+    Format filesystem `lustre1`.
+
+:# shine start -f lustre1:
+    Start `lustre1` servers.
+
+:# shine mount -f lustre1 -n cluster[5-6]:
+    Mount `lustre1` filesystem on node cluster5 and cluster6.
+
+
+FILES
+=====
+
+*/etc/shine/shine.conf*
+  System-wide ``shine`` configuration file. See dedicated man page
+  *shine.conf*\(5)
+  
+*/etc/shine/models/\*.lmf*
+  Default location for LMF (Lustre Model File) files.
+
+*/etc/shine/storage.conf*
+  Storage configuration file.
+
+*/etc/shine/tuning.conf*
+  Tuning configuration file.
+
+
+SEE ALSO
+========
+
+``shine.conf``\(5)
+
+BUG REPORTS
+===========
+
+Use the following URL to submit a bug report or feedback:
+  http://sourceforge.net/apps/trac/lustre-shine/report
+

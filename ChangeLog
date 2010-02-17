@@ -1,3 +1,6 @@
+2010-02-17  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Added man page for shine(1).
+
 2010-02-15  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Fix AsciiTable columns adjustment issue.
 
