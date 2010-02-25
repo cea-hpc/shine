@@ -54,11 +54,11 @@ class StopTarget(Action):
         """
         if worker.did_timeout():
             # action timed out
-            self.target._stop_timeout()
+            self.target._action_timeout("stoptarget")
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._stop_done()
+            self.target._action_done("stoptarget")
         else:
             # action failure
-            self.target._stop_failed(worker.retcode(), worker.read())
+            self.target._action_failed("stoptarget", worker.retcode(), worker.read())
 

@@ -395,21 +395,6 @@ class Target(Disk):
         except TargetDeviceError, e:
             self.fs._invoke('ev_stoptarget_failed', target=self, rc=None, message=str(e))
 
-    def _stop_done(self):
-        """Called by Actions.StopTarget when done"""
-        self._lustre_check()
-        self.fs._invoke('ev_stoptarget_done', target=self)
-
-    def _stop_timeout(self):
-        """Called by Actions.StopTarget on timeout"""
-        self._lustre_check()
-        self.fs._invoke('ev_stoptarget_timeout', target=self)
-
-    def _stop_failed(self, rc, message):
-        """Called by Actions.StopTarget on failure"""
-        self._lustre_check()
-        self.fs._invoke('ev_stoptarget_failed', target=self, rc=rc, message=message)
-
     def fcsk(self):
         pass
 
