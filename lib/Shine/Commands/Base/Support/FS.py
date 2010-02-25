@@ -19,11 +19,9 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
 import os
+
+from Shine.Configuration.Globals import Globals 
 
 class FS:
     

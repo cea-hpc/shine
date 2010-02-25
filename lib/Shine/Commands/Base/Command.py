@@ -19,13 +19,7 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
 from Support.Debug import Debug
-
-from CommandRCDefs import *
 
 import getopt
 
