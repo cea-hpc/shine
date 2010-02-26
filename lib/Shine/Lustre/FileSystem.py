@@ -128,23 +128,16 @@ class FileSystem:
     # file system event handling
     #
 
-    def _invoke_event(self, event, **kwargs):
-        if 'target' in kwargs or 'client' in kwargs:
-            kwargs.setdefault('node', None)
-        getattr(self.event_handler, event)(**kwargs)
-
-    def _invoke_dummy(self, event, **kwargs):
-        pass
+    def _invoke(self, event, **kwargs):
+        if self.event_handler:
+            if 'target' in kwargs or 'client' in kwargs:
+                kwargs.setdefault('node', None)
+            getattr(self.event_handler, event)(**kwargs)
 
     def set_eventhandler(self, event_handler):
         self.event_handler = event_handler
-        if self.event_handler is None:
-            self._invoke = self._invoke_dummy
-        else:
-            self._invoke = self._invoke_event
 
     def _handle_shine_event(self, event, node, **params):
-        #print "_handle_shine_event %s %s" % (event, params)
         target = params.get('target')
         if target:
             found = False

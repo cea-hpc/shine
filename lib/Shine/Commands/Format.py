@@ -84,7 +84,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
                 (node, target.type.upper(), target.get_id(), target.jdev, rc)
         print message
 
-    def ev_format_start(self, node, target, **kwargs):
+    def ev_formattarget_start(self, node, target, **kwargs):
         self.update_config_status(target, "formatting")
 
         if self.verbose > 1:
@@ -93,7 +93,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def ev_format_done(self, node, target):
+    def ev_formattarget_done(self, node, target):
         self.update_config_status(target, "succeeded")
 
         if self.verbose > 1:
@@ -102,7 +102,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def ev_format_failed(self, node, target, rc, message):
+    def ev_formattarget_failed(self, node, target, rc, message):
         self.update_config_status(target, "failed")
 
         print "%s: Format of %s %s (%s) failed with error %d" % \
@@ -150,17 +150,17 @@ class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
                 (target.type.upper(), target.get_id(), target.jdev, rc)
         print message
 
-    def ev_format_start(self, node, target):
+    def ev_formattarget_start(self, node, target):
         print "Starting format of %s %s (%s)" % (target.type.upper(), \
                 target.get_id(), target.dev)
         sys.stdout.flush()
 
-    def ev_format_done(self, node, target):
+    def ev_formattarget_done(self, node, target):
         self.success += 1
         print "Format of %s %s (%s) succeeded" % \
                 (target.type.upper(), target.get_id(), target.dev)
 
-    def ev_format_failed(self, node, target, rc, message):
+    def ev_formattarget_failed(self, node, target, rc, message):
         self.failures += 1
         print "Format of %s %s (%s) failed with error %d" % \
                 (target.type.upper(), target.get_id(), target.dev, rc)

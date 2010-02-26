@@ -53,13 +53,13 @@ class RemoteCallEventHandler(EventHandler):
     def ev_formatjournal_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
-    def ev_format_start(self, node, target):
+    def ev_formattarget_start(self, node, target):
         self._shine_pickle(target=target)
 
-    def ev_format_done(self, node, target):
+    def ev_formattarget_done(self, node, target):
         self._shine_pickle(target=target)
 
-    def ev_format_failed(self, node, target, rc, message):
+    def ev_formattarget_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
     def ev_statustarget_start(self, node, target):

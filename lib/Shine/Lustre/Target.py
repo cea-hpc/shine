@@ -276,13 +276,13 @@ class Target(Disk):
     def format(self, **kwargs):
 
         self.state = INPROGRESS
-        self.fs._invoke('ev_format_start', target=self)
+        self.fs._invoke('ev_formattarget_start', target=self)
 
         try:
             self._device_check()
         except DiskDeviceError, e:
             self.state = TARGET_ERROR
-            self.fs._invoke('ev_format_failed', target=self, rc=1, message=str(e))
+            self.fs._invoke('ev_formattarget_failed', target=self, rc=1, message=str(e))
             return
 
         try:
@@ -307,7 +307,7 @@ class Target(Disk):
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetDeviceError, e:
-            self.fs._invoke('ev_format_failed', target=self, rc=-1, message=str(e))
+            self.fs._invoke('ev_formattarget_failed', target=self, rc=-1, message=str(e))
 
     def status(self):
         """

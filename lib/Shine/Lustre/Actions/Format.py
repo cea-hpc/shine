@@ -136,7 +136,7 @@ class Format(Action):
         if self.jformat:
             act = "formatjournal"
         else:
-            act = "format"
+            act = "formattarget"
 
         if worker.did_timeout():
             # action timed out
