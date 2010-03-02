@@ -154,74 +154,71 @@ class Client:
                 raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
                         self.fs.fs_name)
 
+    def _action_start(self, act):
+        """Called by Actions.* when starting"""
+        self.fs._invoke('ev_%s%s_start' % (act, 'client'), client=self)
+
     def _action_done(self, act):
         """Called by Actions.* when done"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_done' % act, client=self)
+        self.fs._invoke('ev_%s%s_done' % (act, 'client'), client=self)
 
     def _action_timeout(self, act):
         """Called by Actions.* on timeout"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_timeout' % act, client=self)
+        self.fs._invoke('ev_%s_timeout' % (act, 'client'), client=self)
 
     def _action_failed(self, act, rc, message):
         """Called by Actions.* on failure"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_failed' % act, client=self, rc=rc, message=message)
+        self.fs._invoke('ev_%s%s_failed' % (act, 'client'), client=self, rc=rc, message=message)
 
 
     def status(self):
         """
         Check client status.
         """
-        self.fs._invoke('ev_statusclient_start', client=self)
+        self._action_start('status')
 
         try:
             self._lustre_check()
-
         except ClientError, e:
-            self.fs._invoke('ev_statusclient_failed', client=self, rc=None, message=str(e))
+            self._action_failed('status', rc=None, message=str(e))
 
-        self.fs._invoke('ev_statusclient_done', client=self)
+        self._action_done('status')
 
     def start(self, **kwargs):
         """
         Start Lustre client.
         """
 
-        self.fs._invoke('ev_startclient_start', client=self)
+        self._action_start('start')
 
         try:
             self._lustre_check()
-
             if self.state == MOUNTED:
                 self.status_info = "%s is already mounted on %s" % (self.fs.fs_name, self.status_info)
-                self.fs._invoke('ev_startclient_done', client=self)
+                self._action_done('start')
             else:
                 action = StartClient(self, **kwargs)
                 action.launch()
 
         except ClientError, e:
-            self.fs._invoke('ev_startclient_failed', client=self, rc=None, message=str(e))
+            self._action_failed('start', rc=None, message=str(e))
 
     def stop(self, **kwargs):
         """
         Stop Lustre client.
         """
 
-        self.fs._invoke('ev_stopclient_start', client=self)
+        self._action_start('stop')
 
         try:
             self._lustre_check()
-
             if self.state == OFFLINE:
                 self.status_info = "%s is not mounted" % (self.fs.fs_name)
-                self.fs._invoke('ev_stopclient_done', client=self)
+                self._action_done('stop')
             else:
                 action = StopClient(self, **kwargs)
                 action.launch()
 
         except ClientError, e:
-            self.fs._invoke('ev_stopclient_failed', client=self, rc=None, message=str(e))
-
+            self._action_failed('stop', rc=None, message=str(e))
 

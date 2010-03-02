@@ -51,13 +51,15 @@ class StopClient(Action):
         """
         Check process termination status and generate appropriate events.
         """
+        self.client._lustre_check()
+
         if worker.did_timeout():
             # action timed out
-            self.client._action_timeout("stopclient")
+            self.client._action_timeout("stop")
         elif worker.retcode() == 0:
             # action succeeded
-            self.client._action_done("stopclient")
+            self.client._action_done("stop")
         else:
             # action failure
-            self.client._action_failed("stopclient", worker.retcode(), worker.read())
+            self.client._action_failed("stop", worker.retcode(), worker.read())
 

@@ -120,13 +120,15 @@ class StartTarget(Action):
         """
         Check process termination status and generate appropriate events.
         """
+        self.target._lustre_check()
+
         if worker.did_timeout():
             # action timed out
-            self.target._action_timeout("starttarget")
+            self.target._action_timeout("start")
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._action_done("starttarget")
+            self.target._action_done("start")
         else:
             # action failure
-            self.target._action_failed("starttarget", worker.retcode(), worker.read())
+            self.target._action_failed("start", worker.retcode(), worker.read())
 

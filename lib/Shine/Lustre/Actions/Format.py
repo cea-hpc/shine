@@ -130,24 +130,24 @@ class Format(Action):
 
     def ev_start(self, worker):
         if self.jformat:
-            self.target.fs._invoke('ev_formatjournal_start', target=self.target)
+            self.target._action_start('format', comp='journal')
 
     def ev_close(self, worker):
         if self.jformat:
-            act = "formatjournal"
+            comp = 'journal'
         else:
-            act = "formattarget"
+            comp = 'target'
+            self.target._lustre_check()
 
         if worker.did_timeout():
             # action timed out
-            self.target._action_timeout(act)
+            self.target._action_timeout('format', comp=comp)
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._action_done(act)
+            self.target._action_done('format', comp=comp)
             if self.jformat:
                 # Journal is done, go to next step...
                 self.launch_format()
         else:
             # action failure
-            self.target._action_failed(act, worker.retcode(), worker.read())
-
+            self.target._action_failed('format', worker.retcode(), worker.read(), comp=comp)

@@ -276,13 +276,13 @@ class Target(Disk):
     def format(self, **kwargs):
 
         self.state = INPROGRESS
-        self.fs._invoke('ev_formattarget_start', target=self)
+        self._action_start('format')
 
         try:
             self._device_check()
         except DiskDeviceError, e:
             self.state = TARGET_ERROR
-            self.fs._invoke('ev_formattarget_failed', target=self, rc=1, message=str(e))
+            self._action_failed('format', rc=1, message=str(e))
             return
 
         try:
@@ -307,31 +307,31 @@ class Target(Disk):
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetDeviceError, e:
-            self.fs._invoke('ev_formattarget_failed', target=self, rc=-1, message=str(e))
+            self._action_failed('format', rc=-1, message=str(e))
 
     def status(self):
         """
         Check target status.
         """
-        self.fs._invoke('ev_statustarget_start', target=self)
+        self._action_start('status')
 
         try:
             # check for disk level status
             self._disk_check(self.fs.fs_name, self.label)
         except DiskDeviceError, e:
             self.state = TARGET_ERROR
-            self.fs._invoke('ev_statustarget_failed', target=self, rc=1, message=str(e))
+            self._action_failed('status', rc=1, message=str(e))
             return
 
         # check for Lustre level status
         self._lustre_check()
 
-        self.fs._invoke('ev_statustarget_done', target=self)
+        self._action_done('status')
 
     def start(self, **kwargs):
 
         self.state = INPROGRESS
-        self.fs._invoke('ev_starttarget_start', target=self)
+        self._action_start('start')
 
         try:
             self._device_check()
@@ -341,7 +341,7 @@ class Target(Disk):
                 # already mounted ?
                 if  self.state == RECOVERING or self.state == MOUNTED:
                     self.status_info = "%s is already started" % self.label
-                    self.fs._invoke('ev_starttarget_done', target=self)
+                    self._action_done('start')
                     return
                 raise TargetDeviceError(self, "bad state `%s' for %s" % \
                         (self.state, self.label))
@@ -354,27 +354,28 @@ class Target(Disk):
             action.launch()
 
         except TargetDeviceError, e:
-            self.fs._invoke('ev_starttarget_failed', target=self, rc=None, message=str(e))
+            self._action_failed('start', rc=None, message=str(e))
 
-    def _action_done(self, act):
+    def _action_start(self, act, comp='target'):
+        """Called by Actions.* when starting"""
+        self.fs._invoke('ev_%s%s_start' % (act, comp), target=self)
+
+    def _action_done(self, act, comp='target'):
         """Called by Actions.* when done"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_done' % act, target=self)
+        self.fs._invoke('ev_%s%s_done' % (act, comp), target=self)
 
-    def _action_timeout(self, act):
+    def _action_timeout(self, act, comp='target'):
         """Called by Actions.* on timeout"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_timeout' % act, target=self)
+        self.fs._invoke('ev_%s%s_timeout' % (act, comp), target=self)
 
-    def _action_failed(self, act, rc, message):
+    def _action_failed(self, act, rc, message, comp='target'):
         """Called by Actions.* on failure"""
-        self._lustre_check()
-        self.fs._invoke('ev_%s_failed' % act, target=self, rc=rc, message=message)
+        self.fs._invoke('ev_%s%s_failed' % (act, comp), target=self, rc=rc, message=message)
 
     def stop(self, **kwargs):
 
         self.state = INPROGRESS
-        self.fs._invoke('ev_stoptarget_start', target=self)
+        self._action_start('stop')
 
         try:
             self._disk_check()
@@ -382,7 +383,7 @@ class Target(Disk):
 
             if self.state == OFFLINE:
                 self.status_info = "%s is already stopped" % self.label
-                self.fs._invoke('ev_stoptarget_done', target=self)
+                self._action_done('stop')
                 return
 
             # LBUG #18624
@@ -393,10 +394,7 @@ class Target(Disk):
             action.launch()
 
         except TargetDeviceError, e:
-            self.fs._invoke('ev_stoptarget_failed', target=self, rc=None, message=str(e))
-
-    def fcsk(self):
-        pass
+            self._action_failed('stop', rc=None, message=str(e))
 
 
 class MGT(Target):

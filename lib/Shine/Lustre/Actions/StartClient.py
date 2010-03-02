@@ -19,8 +19,6 @@
 #
 # $Id$
 
-import re
-
 from Action import Action
 
 class StartClient(Action):
@@ -61,13 +59,15 @@ class StartClient(Action):
         """
         Check process termination status and generate appropriate events.
         """
+        self.client._lustre_check()
+
         if worker.did_timeout():
             # action timed out
-            self.client._action_timeout("startclient")
+            self.client._action_timeout("start")
         elif worker.retcode() == 0:
             # action succeeded
-            self.client._action_done("startclient")
+            self.client._action_done("start")
         else:
             # action failure
-            self.client._action_failed("startclient", worker.retcode(), worker.read())
+            self.client._action_failed("start", worker.retcode(), worker.read())
 

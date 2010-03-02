@@ -52,13 +52,15 @@ class StopTarget(Action):
         """
         Check process termination status and generate appropriate events.
         """
+        self.target._lustre_check()
+
         if worker.did_timeout():
             # action timed out
-            self.target._action_timeout("stoptarget")
+            self.target._action_timeout("stop")
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._action_done("stoptarget")
+            self.target._action_done("stop")
         else:
             # action failure
-            self.target._action_failed("stoptarget", worker.retcode(), worker.read())
+            self.target._action_failed("stop", worker.retcode(), worker.read())
 
