@@ -150,12 +150,13 @@ class Remove(RemoteCriticalCommand):
                         print "Error: failed to remove all filesystem %s configuration files" % fs.fs_name
                         result = RC_FAILURE
 
-                    print "Unregistering FS %s from backend..." % fs.fs_name
-                    rc = self.unregister_fs(fs_conf)
-                    if rc:
-                        print "Error: failed to unregister FS from backend (rc=%d)" % rc
-                    else:
-                        print "Filesystem %s removed." % fs.fs_name
+                    if not self.nodes_support.get_nodeset() and not self.nodes_support.get_excludes():
+                        print "Unregistering FS %s from backend..." % fs.fs_name
+                        rc = self.unregister_fs(fs_conf)
+                        if rc:
+                            print "Error: failed to unregister FS from backend (rc=%d)" % rc
+                        else:
+                            print "Filesystem %s removed." % fs.fs_name
                 else:
                     result = RC_FAILURE
 

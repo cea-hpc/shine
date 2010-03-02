@@ -390,7 +390,9 @@ class FileSystem:
         servers = NodeSet()
 
         # iterate over lustre servers
-        for server, iter_targets in self.managed_targets(group_attr="server"):
+        all_servers = [ server for server, targets in self.managed_targets(group_attr="server") ]
+        all_servers += [ client.server for client in self.enabled_clients() ]
+        for server in all_servers:
             if server.is_local():
                 # remove local fs configuration file
                 conf_dir_path = Globals().get_conf_dir()

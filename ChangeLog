@@ -1,3 +1,6 @@
+2010-03-02  Aurelien Degremont  <aurelien.degremont@cea.fr>
+    * 'shine remove' now clean configuration on client nodes also (ticket #51).
+
 2010-02-17  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Added man page for shine(1).
 
