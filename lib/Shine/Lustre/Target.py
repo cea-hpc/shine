@@ -20,22 +20,15 @@
 # $Id$
 
 import glob
-import os 
-import stat
-import struct
-import sys
 
-from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import *
+from ClusterShell.Task import task_self
 
-from Shine.Configuration.Globals import Globals
+from Shine.Lustre.Actions.Format import Format
+from Shine.Lustre.Actions.StartTarget import StartTarget
+from Shine.Lustre.Actions.StopTarget import StopTarget
 
-from Actions.Format import Format
-from Actions.StartTarget import StartTarget
-from Actions.StopTarget import StopTarget
-
-from Disk import *
-from Server import Server
+from Shine.Lustre.Disk import Disk, DiskDeviceError
+from Shine.Lustre.Server import Server
 
 
 class TargetOpInProgressException(Exception):

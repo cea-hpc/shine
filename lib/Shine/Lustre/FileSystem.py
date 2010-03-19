@@ -25,30 +25,27 @@ Lustre FileSystem class.
 Represents a Lustre FS.
 """
 
-import copy
 from sets import Set
 import socket
+import os
+import sys
 
 from itertools import ifilter, imap, groupby
 from operator import attrgetter
 
 from ClusterShell.NodeSet import NodeSet, RangeSet
+from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
-from Shine.Configuration.Configuration import Configuration
 
-# Action exceptions
-from Actions.Action import ActionErrorException
-from Actions.Proxies.ProxyAction import *
+from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyActionError
+from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
+from Shine.Lustre.Actions.Install import Install
+from Shine.Lustre.Actions.Proxies.Preinstall import Preinstall
 
-from Actions.Install import Install
-from Actions.Proxies.Preinstall import Preinstall
-from Actions.Proxies.FSProxyAction import FSProxyAction
-
-from EventHandler import *
-from Client import *
-from Server import *
-from Target import *
+from Shine.Lustre.Client import Client
+# FileSystem class needs to re-export all Target status, they are used in Shine.Commands.*
+from Shine.Lustre.Target import MGT, MDT, OST, INPROGRESS, EXTERNAL, MOUNTED, RECOVERING, OFFLINE, RUNTIME_ERROR, CLIENT_ERROR, TARGET_ERROR
 
 
 class FSException(Exception):

@@ -19,14 +19,9 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-
-from ProxyAction import ProxyAction, ProxyActionError
+from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionError
 
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Event import EventHandler
-from ClusterShell.Task import *
-
 
 class Preinstall(ProxyAction):
     """

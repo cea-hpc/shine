@@ -19,23 +19,9 @@
 #
 # $Id$
 
-#from Shine.Configuration.Globals import Globals
-#from Shine.Configuration.Configuration import Configuration
-#
-from Action import Action
-#
-#from Shine.Commands.CommandRegistry import CommandRegistry
-#
-#from ClusterShell.NodeSet import NodeSet
-#from ClusterShell.Event import EventHandler
-#from ClusterShell.Task import Task
-#from ClusterShell.Worker import Worker
-#from Shine.Utilities.AsciiTable import AsciiTable
-#
-#import os
-#import sys
-
 import re
+
+from Shine.Lustre.Actions.Action import Action
 
 class StartTarget(Action):
     """

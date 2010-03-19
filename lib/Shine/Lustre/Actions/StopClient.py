@@ -19,8 +19,7 @@
 #
 # $Id$
 
-
-from Action import Action
+from Shine.Lustre.Actions.Action import Action
 
 class StopClient(Action):
     """

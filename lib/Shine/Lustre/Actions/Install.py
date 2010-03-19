@@ -19,17 +19,9 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-from Shine.Configuration.Configuration import Configuration
-
-from Action import Action, ActionFailedError
-
-from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Event import EventHandler
-from ClusterShell.Task import Task
-from ClusterShell.Worker import Worker
-
 import os
+
+from Shine.Lustre.Actions.Action import Action, ActionFailedError
 
 class Install(Action):
     """

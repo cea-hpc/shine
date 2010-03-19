@@ -19,10 +19,7 @@
 #
 # $Id$
 
-from Shine.Configuration.Globals import Globals
-
-from Action import Action
-
+from Shine.Lustre.Actions.Action import Action
 
 class Format(Action):
     """

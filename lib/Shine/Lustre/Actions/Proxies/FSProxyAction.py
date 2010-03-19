@@ -19,7 +19,7 @@
 #
 # $Id$
 
-from ProxyAction import ProxyAction, ProxyActionUnpackError
+from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionUnpackError
 
 from ClusterShell.NodeSet import NodeSet
 

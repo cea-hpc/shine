@@ -21,21 +21,12 @@
 
 import glob
 import os 
-import stat
-import struct
-import sys
 
-from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import *
+from Shine.Lustre.Actions.StartClient import StartClient
+from Shine.Lustre.Actions.StopClient import StopClient
 
-from Shine.Configuration.Globals import Globals
-
-from Actions.Format import Format
-from Actions.StartClient import StartClient
-from Actions.StopClient import StopClient
-
-from Server import Server
-from Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR, RUNTIME_ERROR
+from Shine.Lustre.Server import Server
+from Shine.Lustre.Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR, RUNTIME_ERROR
 
 #
 # Text form for different client states. 
