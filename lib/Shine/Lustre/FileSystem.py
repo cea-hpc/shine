@@ -44,8 +44,9 @@ from Shine.Lustre.Actions.Install import Install
 from Shine.Lustre.Actions.Proxies.Preinstall import Preinstall
 
 from Shine.Lustre.Client import Client
+from Shine.Lustre.Target import MGT, MDT, OST
 # FileSystem class needs to re-export all Target status, they are used in Shine.Commands.*
-from Shine.Lustre.Target import MGT, MDT, OST, INPROGRESS, EXTERNAL, MOUNTED, RECOVERING, OFFLINE, RUNTIME_ERROR, CLIENT_ERROR, TARGET_ERROR
+from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, RECOVERING, OFFLINE, RUNTIME_ERROR, CLIENT_ERROR, TARGET_ERROR
 
 
 class FSException(Exception):
@@ -513,10 +514,10 @@ class FileSystem:
                 self.status_target(target)
                 if target.has_first_time_flag() or target.has_writeconf_flag():
                     # first_time or writeconf flag found, start MDT before OSTs
-                    MDT.target_order = 2 # change MDT class variable order
+                    MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
 
-        # Iterate over targets, grouping them by target_order and server.
-        for order, iter_targets in self.managed_targets(group_attr="target_order"):
+        # Iterate over targets, grouping them by start order and server.
+        for order, iter_targets in self.managed_targets(group_attr="START_ORDER"):
 
             targets = sorted(iter_targets, key=attrgetter("server"))
             for server, iter_targets in groupby(targets, key=attrgetter("server")):
@@ -554,8 +555,8 @@ class FileSystem:
         """
 
         # We use a similar logic than start(): see start() for comments.
-        # iterate over targets by target_order and server
-        for order, iter_targets in self.managed_targets(group_attr="target_order", reverse=True):
+        # iterate over targets by start order and server
+        for order, iter_targets in self.managed_targets(group_attr="START_ORDER", reverse=True):
 
             targets = sorted(iter_targets, key=attrgetter("server"))
             for server, iter_targets in groupby(targets, key=attrgetter("server")):

@@ -95,15 +95,13 @@ LDD_MAGIC = 0x1dd00001
 # };
 
 
-class DiskException(Exception):
-    def __init__(self, disk, message=None):
-        Exception.__init__(self, message)
-        self._disk = disk
-
-class DiskDeviceError(DiskException):
+class DiskDeviceError(Exception):
     """
     Associated device error.
     """
+    def __init__(self, disk, message=None):
+        Exception.__init__(self, message)
+        self._disk = disk
 
 
 class Disk:

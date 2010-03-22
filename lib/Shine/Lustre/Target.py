@@ -28,70 +28,52 @@ from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 
 from Shine.Lustre.Disk import Disk, DiskDeviceError
+from Shine.Lustre.Component import Component, MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
 from Shine.Lustre.Server import Server
 
 
-class TargetOpInProgressException(Exception):
-    pass
-
-class TargetException(Exception):
-    def __init__(self, target):
-        self.target = target
-
-class TargetError(TargetException):
-    """
-    Generic target related error.
-    """
-
-class TargetDeviceError(TargetError):
+class TargetDeviceError(Exception):
     """
     Target's underlying device error.
     """
     def __init__(self, target, message):
-        TargetError.__init__(self, target)
+        self.target = target
         self.message = message
 
     def __str__(self):
         return self.message
 
 
-# Constants for target/client states
-(MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, CLIENT_ERROR, TARGET_ERROR, RUNTIME_ERROR) = range(8)
-# See text_status() for its used.
-state_text_map = { 
-    None:          "unknown",
-    MOUNTED:       "online", 
-    EXTERNAL:      "external", 
-    RECOVERING:    "recovering", 
-    OFFLINE:       "offline", 
-    TARGET_ERROR:  "ERROR", 
-    RUNTIME_ERROR: "CHECK FAILURE" }
+class Target(Component, Disk):
 
-class Target(Disk):
+    #
+    # Text form for different client states. 
+    #
+    # Could be nearly merged with Target state_text_map if MOUNTED value
+    # becomes the same.
+    STATE_TEXT_MAP = { 
+        None:          "unknown",
+        EXTERNAL:      "external", 
+        RECOVERING:    "recovering", 
+        OFFLINE:       "offline", 
+        TARGET_ERROR:  "ERROR", 
+        MOUNTED:       "online", 
+        RUNTIME_ERROR: "CHECK FAILURE" 
+    }
 
     def __init__(self, fs, server, type, index, dev, jdev=None, group=None,
             tag=None, enabled=True, mode='managed'):
         """
         Initialize a Lustre target object.
         """
+        Component.__init__(self, fs, server, enabled)
         Disk.__init__(self, dev, jdev)
-
-        ### Not serializable
-
-        # attached file system
-        self.fs = fs
-
-        ### Serializable
-
-        ## Always available variables
 
         # target mode 
         self._mode = mode
 
         # target's servers: master server is always self.servers[0]
-        self.server = server # temp until HA is fully implemented
         self.servers = [ server ]
-
         # selected server
         self.selected_server = 0
 
@@ -106,20 +88,15 @@ class Target(Disk):
         else:
             self.label = "%s-%s%04x" % (self.fs.fs_name, self.type.upper(), self.index)
 
-        self.action_enabled = enabled
-        self.state = None   # Unknown
-
         # If target mode is external then set target state accordingly
         if self.is_external():
             self.state = EXTERNAL
-
-        self.status_info = None
 
         self.fs._attach_target(self)
 
 
     def __lt__(self, other):
-        return self.target_order < other.target_order
+        return self.START_ORDER < other.START_ORDER
 
     def match(self, other):
         return self.type == other.type and \
@@ -135,20 +112,8 @@ class Target(Disk):
         Update my serializable fields from other/distant object.
         """
         Disk.update(self, other)
-        self.dev_isblk = other.dev_isblk
-        self.dev_size = other.dev_size
+        Component.update(self, other)
         self.label = other.label
-        self.state = other.state
-        self.status_info = other.status_info
-
-    def __getstate__(self):
-        odict = self.__dict__.copy()
-        del odict['fs']
-        return odict
-
-    def __setstate__(self, dict):
-        self.__dict__.update(dict)
-        self.fs = None
 
     def add_server(self, server):
         assert isinstance(server, Server)
@@ -177,9 +142,9 @@ class Target(Disk):
         Return a human text form for the target state.
         """
         if self.state == RECOVERING:
-            return "%s for %s" % (state_text_map.get(RECOVERING), self.status_info)
+            return "%s for %s" % (self.STATE_TEXT_MAP.get(RECOVERING), self.status_info)
         else:
-            return state_text_map.get(self.state, "BUG STATE %s" % str(self.state))
+            return Component.text_status(self)
 
     def _lustre_check(self):
 
@@ -392,8 +357,8 @@ class Target(Disk):
 
 class MGT(Target):
 
-    target_order = 1
-    display_order = 1
+    START_ORDER = 1
+    DISPLAY_ORDER = 1
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='mgt', **kwargs)
@@ -401,8 +366,9 @@ class MGT(Target):
 
 class MDT(Target):
 
-    target_order = 4    # changed to 2 in writeconf mode
-    display_order = 2
+    # START_ORDER needs to have OST class declared.
+    # See value below.
+    DISPLAY_ORDER = MGT.DISPLAY_ORDER + 1
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='mdt', **kwargs)
@@ -410,10 +376,10 @@ class MDT(Target):
 
 class OST(Target):
 
-    target_order = 3
-    display_order = 3
+    START_ORDER = MGT.START_ORDER + 1
+    DISPLAY_ORDER = MDT.DISPLAY_ORDER + 1
 
     def __init__(self, **kwargs):
         Target.__init__(self, type='ost', **kwargs)
 
-
+MDT.START_ORDER = OST.START_ORDER + 1

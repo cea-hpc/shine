@@ -102,7 +102,7 @@ class Install(Command):
             print "Install summary:"
 
             # Display enabled targets by display order (MGT, MDT, OST)
-            for order, iter_targets in fs.managed_targets(group_attr="display_order"):
+            for order, iter_targets in fs.managed_targets(group_attr="DISPLAY_ORDER"):
                 target_list = list(iter_targets)
                 # Get the target type in uppercase
                 type = target_list[0].type.upper()

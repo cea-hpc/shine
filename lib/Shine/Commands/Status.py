@@ -197,7 +197,7 @@ class Status(FSLiveCommand):
         """
 
         ldic = []
-        group_key = lambda t: (t.display_order, t.index)
+        group_key = lambda t: (t.DISPLAY_ORDER, t.index)
         for (order, index), enabled_targets in fs.enabled_targets(group_key=group_key):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
@@ -234,7 +234,7 @@ class Status(FSLiveCommand):
         ldic = []
 
         # Iterate over enabled TARGETS, grouped by display order and status
-        key = lambda t: (t.display_order, t.text_status())
+        key = lambda t: (t.DISPLAY_ORDER, t.text_status())
         for (disp, status), e_targets in fs.enabled_targets(group_key=key):
             targets = list(e_targets)
             ldic.append(dict([
@@ -287,7 +287,7 @@ class Status(FSLiveCommand):
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False
-        for type, e_targets in fs.managed_targets(group_attr="display_order"):
+        for type, e_targets in fs.managed_targets(group_attr="DISPLAY_ORDER"):
             for target in e_targets:
 
                 if target.dev_size >= TERA:

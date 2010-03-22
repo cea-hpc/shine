@@ -22,58 +22,48 @@
 import glob
 import os 
 
+from Shine.Lustre.Component import Component, MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
+
 from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
-from Shine.Lustre.Server import Server
-from Shine.Lustre.Target import MOUNTED, OFFLINE, INPROGRESS, CLIENT_ERROR, RUNTIME_ERROR
 
-#
-# Text form for different client states. 
-#
-# Could be nearly merged with Target state_text_map if MOUNTED value
-# becomes the same.
-state_text_map = { 
-    None: "unknown",
-    OFFLINE: "offline", 
-    CLIENT_ERROR: "ERROR", 
-    MOUNTED: "mounted", 
-    RUNTIME_ERROR: "CHECK FAILURE" 
-}
-
-class ClientException(Exception):
+class ClientError(Exception):
+    """
+    Client error exception.
+    """
     def __init__(self, client, message=None):
         Exception.__init__(self, message)
         self.client = client
 
-class ClientError(ClientException):
-    """
-    Client error exception.
-    """
 
+class Client(Component):
 
-class Client:
+    #
+    # Text form for different client states. 
+    #
+    # Could be nearly merged with Target state_text_map if MOUNTED value
+    # becomes the same.
+    STATE_TEXT_MAP = { 
+        None: "unknown",
+        OFFLINE: "offline", 
+        CLIENT_ERROR: "ERROR", 
+        MOUNTED: "mounted", 
+        RUNTIME_ERROR: "CHECK FAILURE" 
+    }
+
 
     def __init__(self, fs, server, mount_path, enabled=True):
         """
         Initialize a Lustre client object.
         """
+        Component.__init__(self, fs, server, enabled)
 
-        ### Not serializable
-
-        # attached file system
-        self.fs = fs
-
-        ### Serializable
-        assert isinstance(server, Server)
-        self.server = server
         self.mount_path = mount_path
-        self.action_enabled = enabled
-
-        self.state = None   # Unknown
-        self.status_info = None
+        self.lnetdev = None
 
         self.fs._attach_client(self)
+
 
     def match(self, other):
         return self.server in other.server
@@ -82,24 +72,8 @@ class Client:
         """
         Update my serializable fields from other/distant object.
         """
+        Component.update(self, other)
         self.mount_path = other.mount_path
-        self.state = other.state
-        self.status_info = other.status_info
-
-    def __getstate__(self):
-        odict = self.__dict__.copy()
-        del odict['fs']
-        return odict
-
-    def __setstate__(self, dict):
-        self.__dict__.update(dict)
-        self.fs = None
-
-    def text_status(self):
-        """
-        Return a human text form for the client state.
-        """
-        return state_text_map.get(self.state, "BUG STATE %d" % self.state)
 
     def _lustre_check(self):
         """
@@ -108,7 +82,8 @@ class Client:
 
         self.state = None   # Undefined
 
-        proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % self.fs.fs_name)
+        proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % \
+                                   self.fs.fs_name)
 
         if len(proc_lov_match) == 0:
             self.state = OFFLINE
@@ -145,6 +120,10 @@ class Client:
                 raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
                         self.fs.fs_name)
 
+    # 
+    # Event handling wrappers
+    #
+
     def _action_start(self, act):
         """Called by Actions.* when starting"""
         self.fs._invoke('ev_%s%s_start' % (act, 'client'), client=self)
@@ -159,8 +138,12 @@ class Client:
 
     def _action_failed(self, act, rc, message):
         """Called by Actions.* on failure"""
-        self.fs._invoke('ev_%s%s_failed' % (act, 'client'), client=self, rc=rc, message=message)
+        self.fs._invoke('ev_%s%s_failed' % (act, 'client'), client=self, 
+                        rc=rc, message=message)
 
+    #
+    # Client actions
+    #
 
     def status(self):
         """
@@ -185,7 +168,8 @@ class Client:
         try:
             self._lustre_check()
             if self.state == MOUNTED:
-                self.status_info = "%s is already mounted on %s" % (self.fs.fs_name, self.status_info)
+                self.status_info = "%s is already mounted on %s" % \
+                                   (self.fs.fs_name, self.status_info)
                 self._action_done('start')
             else:
                 action = StartClient(self, **kwargs)
@@ -212,4 +196,3 @@ class Client:
 
         except ClientError, e:
             self._action_failed('stop', rc=None, message=str(e))
-
