@@ -119,32 +119,32 @@ class EventHandler(object):
         A client status request has failed.
         """
 
-    def ev_startclient_start(self, node, client):
+    def ev_mountclient_start(self, node, client):
         """
         A Lustre FS client is being started.
         """
 
-    def ev_startclient_failed(self, node, client, rc, message):
+    def ev_mountclient_failed(self, node, client, rc, message):
         """
         A Lustre FS client has failed to start/mount.
         """
 
-    def ev_startclient_done(self, node, client):
+    def ev_mountclient_done(self, node, client):
         """
         A Lustre FS client has started successfully.
         """
 
-    def ev_stopclient_start(self, node, client):
+    def ev_umountclient_start(self, node, client):
         """
         A Lustre FS client is being stopped.
         """
 
-    def ev_stopclient_failed(self, node, client, rc, message):
+    def ev_umountclient_failed(self, node, client, rc, message):
         """
         A Lustre FS client has failed to stop.
         """
 
-    def ev_stopclient_done(self, node, client):
+    def ev_umountclient_done(self, node, client):
         """
         A Lustre FS client has been stopped successfully.
         """
