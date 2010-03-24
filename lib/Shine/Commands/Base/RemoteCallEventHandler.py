@@ -98,21 +98,21 @@ class RemoteCallEventHandler(EventHandler):
     def ev_statusclient_failed(self, node, client, rc, message):
         self._shine_pickle(client=client, rc=rc, message=message)
 
-    def ev_startclient_start(self, node, client):
+    def ev_mountclient_start(self, node, client):
         self._shine_pickle(client=client)
 
-    def ev_startclient_done(self, node, client):
+    def ev_mountclient_done(self, node, client):
         self._shine_pickle(client=client)
 
-    def ev_startclient_failed(self, node, client, rc, message):
+    def ev_mountclient_failed(self, node, client, rc, message):
         self._shine_pickle(client=client, rc=rc, message=message)
 
-    def ev_stopclient_start(self, node, client):
+    def ev_umountclient_start(self, node, client):
         self._shine_pickle(client=client)
 
-    def ev_stopclient_done(self, node, client):
+    def ev_umountclient_done(self, node, client):
         self._shine_pickle(client=client)
 
-    def ev_stopclient_failed(self, node, client, rc, message):
+    def ev_umountclient_failed(self, node, client, rc, message):
         self._shine_pickle(client=client, rc=rc, message=message)
 

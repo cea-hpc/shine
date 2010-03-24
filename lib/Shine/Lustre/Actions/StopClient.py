@@ -54,11 +54,11 @@ class StopClient(Action):
 
         if worker.did_timeout():
             # action timed out
-            self.client._action_timeout("stop")
+            self.client._action_timeout("umount")
         elif worker.retcode() == 0:
             # action succeeded
-            self.client._action_done("stop")
+            self.client._action_done("umount")
         else:
             # action failure
-            self.client._action_failed("stop", worker.retcode(), worker.read())
+            self.client._action_failed("umount", worker.retcode(), worker.read())
 

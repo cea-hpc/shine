@@ -134,7 +134,7 @@ class Client(Component):
 
     def _action_timeout(self, act):
         """Called by Actions.* on timeout"""
-        self.fs._invoke('ev_%s_timeout' % (act, 'client'), client=self)
+        self.fs._invoke('ev_%s%s_timeout' % (act, 'client'), client=self)
 
     def _action_failed(self, act, rc, message):
         """Called by Actions.* on failure"""
@@ -158,41 +158,39 @@ class Client(Component):
 
         self._action_done('status')
 
-    def start(self, **kwargs):
+    def mount(self, **kwargs):
         """
-        Start Lustre client.
+        Mount a Lustre client.
         """
-
-        self._action_start('start')
+        self._action_start('mount')
 
         try:
             self._lustre_check()
             if self.state == MOUNTED:
                 self.status_info = "%s is already mounted on %s" % \
                                    (self.fs.fs_name, self.status_info)
-                self._action_done('start')
+                self._action_done('mount')
             else:
                 action = StartClient(self, **kwargs)
                 action.launch()
 
         except ClientError, e:
-            self._action_failed('start', rc=None, message=str(e))
+            self._action_failed('mount', rc=None, message=str(e))
 
-    def stop(self, **kwargs):
+    def umount(self, **kwargs):
         """
-        Stop Lustre client.
+        Umount a Lustre client.
         """
-
-        self._action_start('stop')
+        self._action_start('umount')
 
         try:
             self._lustre_check()
             if self.state == OFFLINE:
                 self.status_info = "%s is not mounted" % (self.fs.fs_name)
-                self._action_done('stop')
+                self._action_done('umount')
             else:
                 action = StopClient(self, **kwargs)
                 action.launch()
 
         except ClientError, e:
-            self._action_failed('stop', rc=None, message=str(e))
+            self._action_failed('umount', rc=None, message=str(e))

@@ -63,11 +63,11 @@ class StartClient(Action):
 
         if worker.did_timeout():
             # action timed out
-            self.client._action_timeout("start")
+            self.client._action_timeout("mount")
         elif worker.retcode() == 0:
             # action succeeded
-            self.client._action_done("start")
+            self.client._action_done("mount")
         else:
             # action failure
-            self.client._action_failed("start", worker.retcode(), worker.read())
+            self.client._action_failed("mount", worker.retcode(), worker.read())
 

@@ -51,11 +51,11 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def __init__(self, verbose=1):
         self.verbose = verbose
 
-    def ev_stopclient_start(self, node, client):
+    def ev_umountclient_start(self, node, client):
         if self.verbose > 1:
             print "%s: Unmounting %s on %s ..." % (node, client.fs.fs_name, client.mount_path)
 
-    def ev_stopclient_done(self, node, client):
+    def ev_umountclient_done(self, node, client):
         self.update_client_status(node, "succeeded")
 
         if self.verbose > 1:
@@ -65,7 +65,7 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                 print "%s: FS %s succesfully unmounted from %s" % (node,
                         client.fs.fs_name, client.mount_path)
 
-    def ev_stopclient_failed(self, node, client, rc, message):
+    def ev_umountclient_failed(self, node, client, rc, message):
         self.update_client_status(node, "failed")
 
         if rc:

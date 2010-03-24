@@ -57,7 +57,7 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         """
 
         filter_key = lambda t: t.state == INPROGRESS
-        targets = list(self.fs.managed_targets(filter_key=filter_key))
+        targets = list(self.fs.managed_components(filter_key=filter_key))
         target_servers = NodeSet.fromlist([t.server for t in targets])
         target_count = len(targets)
 
