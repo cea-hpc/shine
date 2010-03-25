@@ -82,16 +82,16 @@ class Target(Component, Disk):
         self.group = group
         self.tag = tag
 
-        if self.TYPE == 'mgt':
-            self.label = "MGS"
-        else:
-            self.label = "%s-%s%04x" % (self.fs.fs_name, self.TYPE.upper(), self.index)
-
         # If target mode is external then set target state accordingly
         if self.is_external():
             self.state = EXTERNAL
 
         self.fs._attach_target(self)
+
+    @property
+    def label(self):
+        """Return the target label which match the Lustre target name."""
+        return "%s-%s%04x" % (self.fs.fs_name, self.TYPE.upper(), self.index)
 
 
     def __lt__(self, other):
@@ -112,7 +112,7 @@ class Target(Component, Disk):
         """
         Disk.update(self, other)
         Component.update(self, other)
-        self.label = other.label
+        self.index = other.index
 
     def add_server(self, server):
         assert isinstance(server, Server)
@@ -360,6 +360,10 @@ class MGT(Target):
     START_ORDER = 1
     DISPLAY_ORDER = 1
 
+    @property
+    def label(self):
+        """Always returns the MGS label which is 'MGS'."""
+        return 'MGS'
 
 class MDT(Target):
 

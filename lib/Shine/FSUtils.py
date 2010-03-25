@@ -87,14 +87,17 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         # filter on nodes
         client_action_enabled = True
         if (nodes is not None and server not in nodes) or \
-            (excluded is not None and server in excluded) or \
-            (labels is not None):
+            (excluded is not None and server in excluded):
             client_action_enabled = False
         # if a target is specified, no client enabled
         if target_types is not None:
             client_action_enabled = False
 
         client = fs.new_client(server, mount_path, client_action_enabled)
+
+        # Now the device is instanciated, we could check label name
+        if (labels is not None and client.label not in labels):
+            client.action_enabled = False
 
     return fs
 

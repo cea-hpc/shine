@@ -39,6 +39,8 @@ class ClientError(Exception):
 
 class Client(Component):
 
+    TYPE = 'client'
+
     #
     # Text form for different client states. 
     #

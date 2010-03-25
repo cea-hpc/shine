@@ -66,6 +66,14 @@ class Component(object):
         # Enabled or not
         self.action_enabled = enabled
 
+    @property
+    def label(self):
+        """
+        Return the component label. 
+        It contains the filesystem name and component type.
+        """
+        return "%s-%s" % (self.fs.fs_name, self.TYPE)
+
     #
     # Serializing methods.
     # Pickle representation do not include filesystem pointer.
