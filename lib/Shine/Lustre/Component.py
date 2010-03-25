@@ -35,6 +35,9 @@ class Component(object):
     components.
     """
 
+    # Text name for this component
+    TYPE = "(should be overridden)"
+
     # Each component knows which component it depends on.
     # Its start order should be this component start order + 1.
     # This value will be use to sort the components when starting.
@@ -83,6 +86,9 @@ class Component(object):
         self.__dict__.update(dict)
         self.fs = None
 
+    # 
+    # Component printing methods.
+    #
 
     def text_status(self):
         """

@@ -65,7 +65,7 @@ class StartTarget(Action):
 
         mount_path = None
         if self.mount_paths:
-            mount_path = self.mount_paths.get(self.target.type)
+            mount_path = self.mount_paths.get(self.target.TYPE)
 
 
             var_map = { 'fs_name' : self.target.fs.fs_name,
@@ -80,7 +80,7 @@ class StartTarget(Action):
         if not mount_path:
             # fallback to defaut
             mount_path = "/mnt/%s/%s/%d" % (self.target.fs.fs_name,
-                    self.target.type, self.target.index)
+                    self.target.TYPE, self.target.index)
 
         command = ["mkdir", "-p", "\"%s\"" % mount_path]
         command += ["&&", "/sbin/modprobe", "lustre"]
@@ -92,7 +92,7 @@ class StartTarget(Action):
 
         # Other custom mount options
         if self.mount_options:
-            mnt_opts = self.mount_options.get(self.target.type)
+            mnt_opts = self.mount_options.get(self.target.TYPE)
             if mnt_opts:
                 command.append("-o")
                 command.append(mnt_opts)

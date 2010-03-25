@@ -71,25 +71,25 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 
     def ev_formatjournal_start(self, node, target):
         if self.verbose > 1:
-            print "%s: Starting format of %s %s journal (%s)" % (node, \
-                    target.type.upper(), target.get_id(), target.jdev)
+            print "%s: Starting format of %s journal (%s)" % (node, \
+                    target.get_id(), target.jdev)
 
     def ev_formatjournal_done(self, node, target):
         if self.verbose > 1:
-            print "%s: Format of %s %s journal (%s) succeeded" % \
-                    (node, target.type.upper(), target.get_id(), target.jdev)
+            print "%s: Format of %s journal (%s) succeeded" % \
+                    (node, target.get_id(), target.jdev)
 
     def ev_formatjournal_failed(self, node, target, rc, message):
-        print "%s: Format of %s %s journal (%s) failed with error %d" % \
-                (node, target.type.upper(), target.get_id(), target.jdev, rc)
+        print "%s: Format of %s journal (%s) failed with error %d" % \
+                (node, target.get_id(), target.jdev, rc)
         print message
 
     def ev_formattarget_start(self, node, target, **kwargs):
         self.update_config_status(target, "formatting")
 
         if self.verbose > 1:
-            print "%s: Starting format of %s %s (%s)" % (node, target.type.upper(), \
-                    target.get_id(), target.dev)
+            print "%s: Starting format of %s (%s)" % (node, target.get_id(), \
+                                                      target.dev)
 
         self.update()
 
@@ -97,8 +97,8 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
         self.update_config_status(target, "succeeded")
 
         if self.verbose > 1:
-            print "%s: Format of %s %s (%s) succeeded" % \
-                    (node, target.type.upper(), target.get_id(), target.dev)
+            print "%s: Format of %s (%s) succeeded" % \
+                    (node, target.get_id(), target.dev)
 
         self.update()
 
@@ -106,7 +106,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
         self.update_config_status(target, "failed")
 
         print "%s: Format of %s %s (%s) failed with error %d" % \
-                (node, target.type.upper(), target.get_id(), target.dev, rc)
+                (node, target.get_id(), target.dev, rc)
         print message
 
         self.update()
@@ -117,7 +117,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
-            target.type.upper())]
+            target.TYPE.upper())]
 
         # Change the status of targets to avoid their use
         # in an other file system
@@ -137,33 +137,33 @@ class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
         self.success = 0
 
     def ev_formatjournal_start(self, node, target):
-        print "Starting format of %s %s journal (%s)" % (target.type.upper(), \
-                target.get_id(), target.jdev)
+        print "Starting format of %s journal (%s)" % \
+               (target.get_id(), target.jdev)
 
     def ev_formatjournal_done(self, node, target):
         print "Format of %s %s journal (%s) succeeded" % \
-                (target.type.upper(), target.get_id(), target.jdev)
+               (target.get_id(), target.jdev)
 
     def ev_formatjournal_failed(self, node, target, rc, message):
         self.failures += 1
-        print "Format of %s %s journal (%s) failed with error %d" % \
-                (target.type.upper(), target.get_id(), target.jdev, rc)
+        print "Format of %s journal (%s) failed with error %d" % \
+               (target.get_id(), target.jdev, rc)
         print message
 
     def ev_formattarget_start(self, node, target):
-        print "Starting format of %s %s (%s)" % (target.type.upper(), \
-                target.get_id(), target.dev)
+        print "Starting format of %s (%s)" % \
+               (target.get_id(), target.dev)
         sys.stdout.flush()
 
     def ev_formattarget_done(self, node, target):
         self.success += 1
-        print "Format of %s %s (%s) succeeded" % \
-                (target.type.upper(), target.get_id(), target.dev)
+        print "Format of %s (%s) succeeded" % \
+               (target.get_id(), target.dev)
 
     def ev_formattarget_failed(self, node, target, rc, message):
         self.failures += 1
-        print "Format of %s %s (%s) failed with error %d" % \
-                (target.type.upper(), target.get_id(), target.dev, rc)
+        print "Format of %s (%s) failed with error %d" % \
+               (target.get_id(), target.dev, rc)
         print message
 
 

@@ -61,7 +61,7 @@ class Target(Component, Disk):
         RUNTIME_ERROR: "CHECK FAILURE" 
     }
 
-    def __init__(self, fs, server, type, index, dev, jdev=None, group=None,
+    def __init__(self, fs, server, index, dev, jdev=None, group=None,
             tag=None, enabled=True, mode='managed'):
         """
         Initialize a Lustre target object.
@@ -77,16 +77,15 @@ class Target(Component, Disk):
         # selected server
         self.selected_server = 0
 
-        self.type = type            # 'mgt', 'mdt', 'ost', or 'client'
         assert index is not None
         self.index = int(index)
         self.group = group
         self.tag = tag
 
-        if self.type == 'mgt':
+        if self.TYPE == 'mgt':
             self.label = "MGS"
         else:
-            self.label = "%s-%s%04x" % (self.fs.fs_name, self.type.upper(), self.index)
+            self.label = "%s-%s%04x" % (self.fs.fs_name, self.TYPE.upper(), self.index)
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -99,7 +98,7 @@ class Target(Component, Disk):
         return self.START_ORDER < other.START_ORDER
 
     def match(self, other):
-        return self.type == other.type and \
+        return self.TYPE == other.TYPE and \
                 self.dev == other.dev and \
                 self.index == other.index and \
                 str(self.servers[0]) == str(other.servers[0])
@@ -196,7 +195,7 @@ class Target(Component, Disk):
                 raise TargetDeviceError(self, "incoherent state for %s (started but not mounted?)" % \
                        self.label)
 
-            if self.state == MOUNTED and self.type != 'mgt':
+            if self.state == MOUNTED and self.TYPE != 'mgt':
                 # check for MDT or OST recovery (MGS doesn't make any recovery)
                 try:
                     f = open(recov_path[0], 'r')
@@ -357,29 +356,25 @@ class Target(Component, Disk):
 
 class MGT(Target):
 
+    TYPE = 'mgt'
     START_ORDER = 1
     DISPLAY_ORDER = 1
-
-    def __init__(self, **kwargs):
-        Target.__init__(self, type='mgt', **kwargs)
 
 
 class MDT(Target):
 
+    TYPE = 'mdt'
     # START_ORDER needs to have OST class declared.
     # See value below.
     DISPLAY_ORDER = MGT.DISPLAY_ORDER + 1
 
-    def __init__(self, **kwargs):
-        Target.__init__(self, type='mdt', **kwargs)
-
 
 class OST(Target):
 
+    TYPE = 'ost'
     START_ORDER = MGT.START_ORDER + 1
     DISPLAY_ORDER = MDT.DISPLAY_ORDER + 1
 
-    def __init__(self, **kwargs):
-        Target.__init__(self, type='ost', **kwargs)
-
+# This is declared here due to cycling-dependencies.
+# See MDT class.
 MDT.START_ORDER = OST.START_ORDER + 1

@@ -61,11 +61,11 @@ class Format(Action):
 
         mgs_nids = self.target.fs.get_mgs_nids()
 
-        if self.target.type == 'mgt':
+        if self.target.TYPE == 'mgt':
 
             command.append("--mgs")     # '--mgs' and not '--mgt'
 
-        elif self.target.type == 'mdt':
+        elif self.target.TYPE == 'mdt':
 
             command.append("--mdt")
 
@@ -84,7 +84,7 @@ class Format(Action):
                 command.append('"--param=mdt.quota_type=%s"' % \
                         self.quota_type)
 
-        elif self.target.type == 'ost':
+        elif self.target.TYPE == 'ost':
 
             command.append("--ost")
 
@@ -105,7 +105,7 @@ class Format(Action):
                 command.append('"--failnode=%s"' % nid)
 
         if self.mkfs_options:
-            opts = self.mkfs_options.get(self.target.type)
+            opts = self.mkfs_options.get(self.target.TYPE)
             if opts:
                 self.mkfsopts.append(opts)
 
@@ -113,7 +113,7 @@ class Format(Action):
             command.append('"--mkfsoptions=%s"' % ' '.join(self.mkfsopts))
 
         if self.format_params:
-            param = self.format_params.get(self.target.type)
+            param = self.format_params.get(self.target.TYPE)
             if param:
                 command.append('"--param=%s"' % param)
 

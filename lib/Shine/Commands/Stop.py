@@ -73,8 +73,8 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
     def ev_stoptarget_start(self, node, target):
         self.update_config_status(target, "stopping")
         if self.verbose > 1:
-            print "%s: Stopping %s %s (%s)..." % (node, \
-                    target.type.upper(), target.get_id(), target.dev)
+            print "%s: Stopping %s (%s)..." % (node, \
+                    target.get_id(), target.dev)
         self.update()
 
     def ev_stoptarget_done(self, node, target):
@@ -82,12 +82,12 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         self.status_changed = True
         if self.verbose > 1:
             if target.status_info:
-                print "%s: Stop of %s %s (%s): %s" % \
-                        (node, target.type.upper(), target.get_id(), target.dev,
+                print "%s: Stop of %s (%s): %s" % \
+                        (node, target.get_id(), target.dev,
                                 target.status_info)
             else:
-                print "%s: Stop of %s %s (%s) succeeded" % \
-                        (node, target.type.upper(), target.get_id(), target.dev)
+                print "%s: Stop of %s (%s) succeeded" % \
+                        (node, target.get_id(), target.dev)
         self.update()
 
     def ev_stoptarget_failed(self, node, target, rc, message):
@@ -97,8 +97,8 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
             strerr = os.strerror(rc)
         else:
             strerr = message
-        print "%s: Failed to stop %s %s (%s): %s" % \
-                (node, target.type.upper(), target.get_id(), target.dev,
+        print "%s: Failed to stop %s (%s): %s" % \
+                (node, target.get_id(), target.dev,
                         strerr)
         if rc:
             print message
@@ -110,7 +110,7 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
-            target.type.upper())]
+            target.TYPE.upper())]
 
         # Change the status of targets to register their running state
         if status == "succeeded":

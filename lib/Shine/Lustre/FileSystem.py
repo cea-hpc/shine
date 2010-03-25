@@ -178,7 +178,7 @@ class FileSystem:
 
     def _attach_target(self, target):
         self.targets.append(target)
-        if target.type == 'mgt':
+        if target.TYPE == 'mgt':
             self.mgt = target
 
     def _attach_client(self, client):
@@ -234,13 +234,13 @@ class FileSystem:
         All can be combined.
 
         Example #1: Iterate over enabled OSTs only:
-         self.enabled_targets(filter_key=lambda t: t.type == "ost")
+         self.enabled_targets(filter_key=lambda t: t.TYPE == "ost")
 
         Example #2: Group target by server
          self.enabled_targets(group_attr="server")
 
         Example #3: Group using 2 criterias, first type and then server
-         key = lambda t: (t.type, t.server)
+         key = lambda t: (t.TYPE, t.server)
          self.enabled_targets(group_key=key)
         """
 
@@ -496,7 +496,7 @@ class FileSystem:
             target.status()
         else:
             FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                          target.type, RangeSet(str(target.index))).launch()
+                          target.TYPE, RangeSet(str(target.index))).launch()
 
         task_self().resume()
 
@@ -659,7 +659,7 @@ class FileSystem:
             if server.is_local():
                 types = Set()
                 for t in e_targets:
-                    types.add(type_map[t.type])
+                    types.add(type_map[t.TYPE])
 
                 server.tune(tuning_model, types, self.fs_name)
             else:

@@ -75,8 +75,8 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
         self.update_config_status(target, "starting")
         # start/restart timer if needed (we might be running a new runloop)
         if self.verbose > 1:
-            print "%s: Starting %s %s (%s)..." % (node, \
-                    target.type.upper(), target.get_id(), target.dev)
+            print "%s: Starting %s (%s)..." % (node, \
+                    target.get_id(), target.dev)
         self.update()
 
     def ev_starttarget_done(self, node, target):
@@ -84,12 +84,11 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
         self.status_changed = True
         if self.verbose > 1:
             if target.status_info:
-                print "%s: Start of %s %s (%s): %s" % \
-                        (node, target.type.upper(), target.get_id(), target.dev,
-                                target.status_info)
+                print "%s: Start of %s (%s): %s" % \
+                       (node, target.get_id(), target.dev, target.status_info)
             else:
-                print "%s: Start of %s %s (%s) succeeded" % \
-                        (node, target.type.upper(), target.get_id(), target.dev)
+                print "%s: Start of %s (%s) succeeded" % \
+                       (node, target.get_id(), target.dev)
         self.update()
 
     def ev_starttarget_failed(self, node, target, rc, message):
@@ -100,9 +99,8 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             strerr = os.strerror(rc)
         else:
             strerr = message
-        print "%s: Failed to start %s %s (%s): %s" % \
-                (node, target.type.upper(), target.get_id(), target.dev,
-                        strerr)
+        print "%s: Failed to start %s (%s): %s" % \
+               (node, target.get_id(), target.dev, strerr)
         if rc:
             print message
         self.update()
@@ -113,7 +111,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
-            target.type.upper())]
+            target.TYPE.upper())]
 
         # Change the status of targets to register their running state
         if status == "succeeded":
@@ -130,25 +128,25 @@ class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def ev_starttarget_start(self, node, target):
         if self.verbose > 1:
-            print "Starting %s %s (%s)..." % (target.type.upper(),
-                    target.get_id(), target.dev)
+            print "Starting %s (%s)..." % \
+                   (target.get_id(), target.dev)
 
     def ev_starttarget_done(self, node, target):
         if self.verbose > 1:
             if target.status_info:
-                print "Start of %s %s (%s): %s" % (target.type.upper(),
-                        target.get_id(), target.dev, target.status_info)
+                print "Start of %s (%s): %s" % \
+                       (target.get_id(), target.dev, target.status_info)
             else:
-                print "Start of %s %s (%s) succeeded" % (target.type.upper(),
-                        target.get_id(), target.dev)
+                print "Start of %s (%s) succeeded" % \
+                       (target.get_id(), target.dev)
 
     def ev_starttarget_failed(self, node, target, rc, message):
         if rc:
             strerr = os.strerror(rc)
         else:
             strerr = message
-        print "Failed to start %s %s (%s): %s" % (target.type.upper(),
-                target.get_id(), target.dev, strerr)
+        print "Failed to start %s (%s): %s" % \
+               (target.get_id(), target.dev, strerr)
         if rc:
             print message
 

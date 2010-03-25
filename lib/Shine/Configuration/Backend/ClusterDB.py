@@ -211,19 +211,19 @@ class ClusterDB(Backend):
         Set status of file system target.
         """
         
-        if target.type == "OST" :
+        if target.TYPE == "OST" :
             # The target is an OST
 
             # Build a query environnement for OST targets
             update_query = OSTQuery()
 
-        elif target.type == "MDT" :
+        elif target.TYPE == "MDT" :
             # The target is an MDT
 
             # Build a query environnement for MDT targets
             update_query = MDTQuery()
 
-        elif target.type == "MGT" :
+        elif target.TYPE == "MGT" :
             # The target is an MGT
 
             # Build a query environnement for MGT targets
@@ -232,7 +232,7 @@ class ClusterDB(Backend):
             update_query = MDTQuery()
 
         else:
-            raise LustreAdminException("Target of type %s is not supported" %(target.type),
+            raise LustreAdminException("Target of type %s is not supported" %(target.TYPE),
                                        chain=None)
     
         # Intialize the name of the status field to update to blank.

@@ -105,7 +105,7 @@ class Install(Command):
             for order, iter_targets in fs.managed_targets(group_attr="DISPLAY_ORDER"):
                 target_list = list(iter_targets)
                 # Get the target type in uppercase
-                type = target_list[0].type.upper()
+                type = target_list[0].TYPE.upper()
                 # List of all servers for these targets
                 servers = NodeSet.fromlist([ t.server for t in target_list ])
                 print "\t%3d %3s on %s" % (len(target_list), type, servers)

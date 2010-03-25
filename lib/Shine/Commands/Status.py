@@ -77,7 +77,7 @@ class GlobalStatusEventHandler(Shine.Lustre.EventHandler.EventHandler):
         pass
 
     def ev_statustarget_failed(self, node, target, rc, message):
-        print "%s: Failed to status %s %s (%s)" % (node, target.type.upper(), \
+        print "%s: Failed to status %s (%s)" % (node, \
                 target.get_id(), target.dev)
         print ">> %s" % message
 
@@ -201,7 +201,7 @@ class Status(FSLiveCommand):
         for (order, index), enabled_targets in fs.enabled_targets(group_key=group_key):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
-                    ["type", target.type.upper()],
+                    ["type", target.TYPE.upper()],
                     ["nodes", NodeSet.fromlist(target.servers)],
                     ["device", target.dev],
                     ["index", target.index],
@@ -238,7 +238,7 @@ class Status(FSLiveCommand):
         for (disp, status), e_targets in fs.enabled_targets(group_key=key):
             targets = list(e_targets)
             ldic.append(dict([
-                ["type", targets[0].type.upper()],
+                ["type", targets[0].TYPE.upper()],
                 ["count", len(targets)],
                 ["nodes", NodeSet.fromlist([t.server for t in targets])],
                 ["status", status]]))
@@ -334,7 +334,7 @@ class Status(FSLiveCommand):
                     ["dev", target.dev],
                     ["size", dev_size],
                     ["jdev", jdev],
-                    ["type", target.type.upper()],
+                    ["type", target.TYPE.upper()],
                     ["index", target.index],
                     ["tag", tag],
                     ["label", target.label],
