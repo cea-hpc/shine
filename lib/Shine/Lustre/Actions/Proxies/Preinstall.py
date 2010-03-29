@@ -19,6 +19,7 @@
 #
 # $Id$
 
+from Shine.Configuration.Globals import Globals
 from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionError
 
 from ClusterShell.NodeSet import NodeSet
@@ -40,7 +41,8 @@ class Preinstall(ProxyAction):
         command = "%s preinstall -f %s -R" % (self.progpath, self.fs.fs_name)
 
         # Schedule command for execution
-        self.worker = self.task.shell(command, nodes=self.nodes, handler=self, timeout=2)
+        timeout = Globals().get_default_timeout()
+        self.worker = self.task.shell(command, nodes=self.nodes, handler=self, timeout=timeout)
 
     def ev_close(self, worker):
         """

@@ -285,6 +285,8 @@ class FileSystem:
         launches all FSProxyAction prepared before by example.
         """
         self.proxy_errors = []
+        # XXX: Warning, also update _distant_action_by_server()
+        task_self().set_info('connect_timeout', Globals().get_ssh_connect_timeout())
         task_self().resume()
 
     def _check_errors(self, expected_states, components=None):
@@ -333,8 +335,6 @@ class FileSystem:
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
-        task = task_self()
-
         # filter local server
         if self.local_hostname in servers:
             distant_servers = servers.difference(self.local_hostname)
@@ -346,7 +346,9 @@ class FileSystem:
         # perform action on distant servers
         if len(distant_servers) > 0:
             action_class(nodes=distant_servers, fs=self, **kwargs).launch()
-            task.resume()
+            # XXX: merge with _run_actions()
+            task_self().set_info('connect_timeout', Globals().get_ssh_connect_timeout())
+            task_self().resume()
 
     def install(self, fs_config_file):
         """

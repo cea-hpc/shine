@@ -83,7 +83,7 @@ class Globals(object):
             'tuning_file'               : '',
             'log_file'                  : 'warn',
             'log_level'                 : 'warn',
-            'ssh_connect_timeout'       : 0,
+            'ssh_connect_timeout'       : 10,
             'ssh_fanout'                : 0,
             'default_timeout'           : 30,
             'start_timeout'             : 0,
@@ -130,6 +130,9 @@ class Globals(object):
                        'error' : logging.ERROR }
 
             return levels[self.get_one('log_level')]
+
+        def get_ssh_connect_timeout(self):
+            return float(self.get_one('ssh_connect_timeout'))
 
         def get_default_timeout(self):
             return float(self.get_one('default_timeout'))
