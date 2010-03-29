@@ -91,7 +91,7 @@ class Install(Command):
 
             # Helper message.
             # If user specified nodes which were not used, warn him about it.
-            actual_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
+            actual_nodes = fs.managed_component_servers()
             if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
                     actual_nodes, "install"):
                 return RC_FAILURE
@@ -101,19 +101,14 @@ class Install(Command):
             print
             print "Install summary:"
 
-            # Display enabled targets by display order (MGT, MDT, OST)
-            for order, iter_targets in fs.managed_targets(group_attr="DISPLAY_ORDER"):
+            # Display enabled components by display order
+            for order, iter_targets in fs.managed_components(group_attr="DISPLAY_ORDER"):
                 target_list = list(iter_targets)
                 # Get the target type in uppercase
-                type = target_list[0].TYPE.upper()
+                type = target_list[0].TYPE.upper()[0:3]
                 # List of all servers for these targets
                 servers = NodeSet.fromlist([ t.server for t in target_list ])
                 print "\t%3d %3s on %s" % (len(target_list), type, servers)
-
-            # Display enabled clients
-            client_servers = fs.get_enabled_client_servers()
-            if client_servers:
-                print "\t%3d %3s on %s" % (len(client_servers), 'CLI', client_servers)
 
             print
 

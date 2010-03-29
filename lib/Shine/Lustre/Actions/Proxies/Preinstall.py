@@ -60,5 +60,4 @@ class Preinstall(ProxyAction):
             timeout_nodes = NodeSet.fromlist(worker.iter_keys_timeout())
             message = "Cannot create file system configuration directories (preinstall)"
             message += "\nHint: Timed out node(s)"
-            raise ProxyActionError(message, timeout_nodes)
-
+            raise ProxyActionError(timeout_nodes, message)

@@ -141,13 +141,13 @@ class Umount(FSClientLiveCommand):
 
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.get_enabled_client_servers(), "unmount"):
+                    fs.managed_component_servers('umount'), "unmount"):
                 result = RC_FAILURE
                 continue
 
             if not self.remote_call and vlevel > 0:
                 print "Stopping %s clients on %s..." % \
-                    (fs.fs_name, fs.get_enabled_client_servers())
+                    (fs.fs_name, fs.managed_component_servers('umount'))
 
             status = fs.umount()
             rc = self.fs_status_to_rc(status)
@@ -165,8 +165,9 @@ class Umount(FSClientLiveCommand):
                         # all client nodes have been umounted successfuly
                         fs_conf.set_status_fs_online()
                     if vlevel > 0:
+                        key = lambda c: c.state == OFFLINE
                         print "Unmount successful on %s" % \
-                            fs.get_enabled_client_servers()
+                            fs.managed_component_servers('umount', filter_key=key)
                 elif rc == RC_RUNTIME_ERROR:
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)

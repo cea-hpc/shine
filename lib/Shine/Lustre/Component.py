@@ -49,7 +49,7 @@ class Component(object):
     # Text mapping for each possible states
     STATE_TEXT_MAP = {}
 
-    def __init__(self, fs, server, enabled = True):
+    def __init__(self, fs, server, enabled = True, mode = 'managed'):
 
         # File system
         self.fs = fs
@@ -66,6 +66,11 @@ class Component(object):
         # Enabled or not
         self.action_enabled = enabled
 
+        # Component behaviour change depending on its mode.
+        self._mode = mode
+
+        self.fs._attach_component(self)
+
     @property
     def label(self):
         """
@@ -78,6 +83,13 @@ class Component(object):
     # Serializing methods.
     # Pickle representation do not include filesystem pointer.
     #
+    def match(self, other):
+        """
+        Return whether this component and other describe the same thing.
+        """
+        return self.TYPE == other.TYPE and \
+               self.server == other.server
+
     def update(self, other):
         """
         Update my serializable fields from other/distant object.
@@ -94,6 +106,19 @@ class Component(object):
         self.__dict__.update(dict)
         self.fs = None
 
+    #
+    # Component behaviour
+    #
+  
+    def capable(self, action):
+        # Do I implement this method?
+        #XXX: Presently, the check do not check this is callable.
+        # This is used for testing 'label' by example.
+        return hasattr(self, action) 
+
+    def is_external(self):
+        return self._mode == 'external'
+ 
     # 
     # Component printing methods.
     #
@@ -102,5 +127,5 @@ class Component(object):
         """
         Return a human text form for the component state.
         """
-        return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %d" % self.state)
+        return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %s" % self.state)
 

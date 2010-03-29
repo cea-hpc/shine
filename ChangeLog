@@ -1,3 +1,6 @@
+2010-03-29  Aurelien Degremont  <aurelien.degremont@cea.fr>
+    * Component code improvement fixes ticket #52.
+
 2010-03-02  Aurelien Degremont  <aurelien.degremont@cea.fr>
     * 'shine remove' now clean configuration on client nodes also (ticket #51).
 

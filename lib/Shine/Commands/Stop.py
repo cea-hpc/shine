@@ -61,8 +61,8 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
         if self.verbose > 0:
-            count = len(list(fs.managed_targets()))
-            servers = fs.managed_target_servers()
+            count = len(list(fs.managed_components(supports='stop')))
+            servers = fs.managed_component_servers(supports='stop')
             print "Stopping %d targets of %s on %s" % (count,
                     fs.fs_name, servers)
 
@@ -186,9 +186,12 @@ class Stop(FSLiveCommand):
 
             fs.set_debug(self.debug_support.has_debug())
 
+            # Ignore all clients for this command
+            fs.disable_clients()
+
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_target_servers(), "stop"):
+                    fs.managed_component_servers(supports='stop'), "stop"):
                 result = RC_FAILURE
                 continue
 

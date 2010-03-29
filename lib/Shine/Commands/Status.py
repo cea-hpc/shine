@@ -143,7 +143,7 @@ class Status(FSLiveCommand):
                     event_handler=eh)
 
             # Warn if trying to act on wrong nodes
-            all_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
+            all_nodes = fs.managed_component_servers()
             if not self.nodes_support.check_valid_list(fsname, \
                     all_nodes, "check"):
                 result = max(RC_FAILURE, result)
@@ -163,6 +163,7 @@ class Status(FSLiveCommand):
             # disable client checks when not requested
             if view.startswith("disk") or view.startswith("target"):
                 status_flags &= ~STATUS_CLIENTS
+                fs.disable_clients()
             # disable servers checks when not requested
             if view.startswith("client"):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
@@ -198,7 +199,7 @@ class Status(FSLiveCommand):
 
         ldic = []
         group_key = lambda t: (t.DISPLAY_ORDER, t.index)
-        for (order, index), enabled_targets in fs.enabled_targets(group_key=group_key):
+        for (order, index), enabled_targets in fs.enabled_components(group_key=group_key, supports='index'):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
                     ["type", target.TYPE.upper()],
@@ -235,36 +236,16 @@ class Status(FSLiveCommand):
 
         # Iterate over enabled TARGETS, grouped by display order and status
         key = lambda t: (t.DISPLAY_ORDER, t.text_status())
-        for (disp, status), e_targets in fs.enabled_targets(group_key=key):
-            targets = list(e_targets)
+        for (disp, status), e_comps in fs.enabled_components(group_key=key):
+            comps = list(e_comps)
+            # XXX: Do something better...
+            if comps[0].TYPE == 'client' and not show_clients:
+                continue
             ldic.append(dict([
-                ["type", targets[0].TYPE.upper()],
-                ["count", len(targets)],
-                ["nodes", NodeSet.fromlist([t.server for t in targets])],
+                ["type", comps[0].TYPE.upper()[0:3]],
+                ["count", len(comps)],
+                ["nodes", NodeSet.fromlist([c.server for c in comps])],
                 ["status", status]]))
-
-        # If we want CLIENTS, iterate over enabled ones
-        if show_clients:
-
-            # XXX: As soon as Shine.Lustre.FileSystem supports grouping for Clients,
-            # This could be simplified the same it is done for Targets.
-            order = []
-            states = {}
-            for client in fs.enabled_clients():
-                # Convert target.state to a human readable form.
-                status = client.text_status()
-                # Add to state mapping
-                states.setdefault(("cli", status), NodeSet()).update(client.server)
-                if ("cli", status) not in order:
-                    order.append(("cli", status))
-
-            # Read the state mapping we just build, using the recorded order.
-            for (type, state) in order:
-                ldic.append(dict([
-                    ["type", str(type.upper())],
-                    ["count", len(states[(type, state)])],
-                    ["nodes", states[(type, state)]], 
-                    ["status", state]]))
 
         layout = AsciiTableLayout()
         layout.set_show_header(True)
@@ -287,7 +268,7 @@ class Status(FSLiveCommand):
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False
-        for type, e_targets in fs.managed_targets(group_attr="DISPLAY_ORDER"):
+        for type, e_targets in fs.managed_components(group_attr="DISPLAY_ORDER", supports='dev'):
             for target in e_targets:
 
                 if target.dev_size >= TERA:

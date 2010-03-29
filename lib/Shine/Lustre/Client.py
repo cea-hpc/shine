@@ -27,6 +27,7 @@ from Shine.Lustre.Component import Component, MOUNTED, OFFLINE, CLIENT_ERROR, RU
 from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
+from Shine.Lustre.Target import MDT, OST
 
 class ClientError(Exception):
     """
@@ -40,6 +41,7 @@ class ClientError(Exception):
 class Client(Component):
 
     TYPE = 'client'
+    DISPLAY_ORDER = max(MDT.DISPLAY_ORDER, OST.DISPLAY_ORDER) + 1 
 
     #
     # Text form for different client states. 
@@ -64,11 +66,9 @@ class Client(Component):
         self.mount_path = mount_path
         self.lnetdev = None
 
-        self.fs._attach_client(self)
-
-
     def match(self, other):
-        return self.server in other.server
+        return Component.match(self, other) and \
+               self.mount_path == other.mount_path
 
     def update(self, other):
         """

@@ -61,8 +61,8 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
     def handle_pre(self, fs):
         # attach fs to this handler
         if self.verbose > 0:
-            count = len(list(fs.managed_targets()))
-            servers = fs.managed_target_servers()
+            count = len(list(fs.managed_components(supports='format')))
+            servers = fs.managed_component_servers(supports='format')
             print "Starting format of %d targets on %s" % (count, servers)
 
     def handle_post(self, fs):
@@ -105,7 +105,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
     def ev_formattarget_failed(self, node, target, rc, message):
         self.update_config_status(target, "failed")
 
-        print "%s: Format of %s %s (%s) failed with error %d" % \
+        print "%s: Format of %s (%s) failed with error %d" % \
                 (node, target.get_id(), target.dev, rc)
         print message
 
@@ -141,7 +141,7 @@ class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
                (target.get_id(), target.jdev)
 
     def ev_formatjournal_done(self, node, target):
-        print "Format of %s %s journal (%s) succeeded" % \
+        print "Format of %s journal (%s) succeeded" % \
                (target.get_id(), target.jdev)
 
     def ev_formatjournal_failed(self, node, target, rc, message):
@@ -223,7 +223,7 @@ class Format(FSLiveCriticalCommand):
 
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_target_servers(), "format"):
+                    fs.managed_component_servers(supports='format'), "format"):
                 result = RC_FAILURE
                 continue
 
@@ -234,8 +234,11 @@ class Format(FSLiveCriticalCommand):
             # Prepare options...
             fs.set_debug(self.debug_support.has_debug())
 
+            # Ignore all clients for this command
+            fs.disable_clients()
+
             if not self.ask_confirm("Format %s on %s: are you sure?" % (fsname,
-                    fs.managed_target_servers())):
+                    fs.managed_component_servers(supports='format'))):
                 result = RC_FAILURE
                 continue
 

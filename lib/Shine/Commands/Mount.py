@@ -144,13 +144,13 @@ class Mount(FSClientLiveCommand):
 
             # Warn if trying to act on wrong nodes
             if not self.nodes_support.check_valid_list(fsname, \
-                    fs.get_enabled_client_servers(), "mount"):
+                    fs.managed_component_servers(supports='mount'), "mount"):
                 result = RC_FAILURE
                 continue
 
             if not self.remote_call and vlevel > 0:
                 print "Starting %s clients on %s..." % \
-                    (fs.fs_name, fs.get_enabled_client_servers())
+                    (fs.fs_name, fs.managed_component_servers(supports='mount'))
 
             status = fs.mount(mount_options=fs_conf.get_mount_options())
             rc = self.fs_status_to_rc(status)
@@ -163,15 +163,16 @@ class Mount(FSClientLiveCommand):
                     fs_conf.set_status_fs_mounted()
 
                     if vlevel > 0:
+                        key = lambda c: c.state == MOUNTED
                         print "Mount successful on %s" % \
-                            fs.get_enabled_client_servers()
+                            fs.managed_component_servers(supports='mount',filter_key=key)
 
                     # Apply tuning after successful mount(s)
                     tuning = Tune.get_tuning(fs_conf)
                     status = fs.tune(tuning)
                     if status == MOUNTED:
                         print "Filesystem tuning applied on %s" % \
-                            fs.get_enabled_client_servers()
+                            fs.managed_component_servers(supports='mount')
                     elif status == RUNTIME_ERROR:
                         rc = RC_RUNTIME_ERROR
 

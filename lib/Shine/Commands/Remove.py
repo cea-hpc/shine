@@ -118,7 +118,7 @@ class Remove(RemoteCriticalCommand):
             fs.set_debug(self.debug_support.has_debug())
 
             # Warn if trying to act on wrong nodes
-            all_nodes = fs.managed_target_servers() | fs.get_enabled_client_servers()
+            all_nodes = fs.managed_component_servers()
             if not self.nodes_support.check_valid_list(fsname, \
                     all_nodes, "uninstall"):
                 continue
@@ -128,7 +128,7 @@ class Remove(RemoteCriticalCommand):
 
             if not self.has_local_flag():
 
-                for state, targets in fs.managed_targets(group_attr="state"):
+                for state, targets in fs.managed_components(group_attr="state"):
 
                     # mounted filesystem!
                     if state in [MOUNTED, RECOVERING]:

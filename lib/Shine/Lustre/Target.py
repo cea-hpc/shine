@@ -66,11 +66,8 @@ class Target(Component, Disk):
         """
         Initialize a Lustre target object.
         """
-        Component.__init__(self, fs, server, enabled)
+        Component.__init__(self, fs, server, enabled, mode)
         Disk.__init__(self, dev, jdev)
-
-        # target mode 
-        self._mode = mode
 
         # target's servers: master server is always self.servers[0]
         self.servers = [ server ]
@@ -86,8 +83,6 @@ class Target(Component, Disk):
         if self.is_external():
             self.state = EXTERNAL
 
-        self.fs._attach_target(self)
-
     @property
     def label(self):
         """Return the target label which match the Lustre target name."""
@@ -98,13 +93,10 @@ class Target(Component, Disk):
         return self.START_ORDER < other.START_ORDER
 
     def match(self, other):
-        return self.TYPE == other.TYPE and \
+        return  Component.match(self, other) and \
                 self.dev == other.dev and \
                 self.index == other.index and \
                 str(self.servers[0]) == str(other.servers[0])
-
-    def is_external(self):
-        return self._mode == 'external'
 
     def update(self, other):
         """
