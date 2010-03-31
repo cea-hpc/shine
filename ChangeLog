@@ -1,14 +1,15 @@
 2010-03-31  Aurelien Degremont  <aurelien.degremont@cea.fr>
-    * Fix regression for shine return code (ticket #59).
+	* Fix regression for shine return code (ticket #59).
 
 2010-03-29  Aurelien Degremont  <aurelien.degremont@cea.fr>
-    * Component code improvement fixes ticket #52.
-    * Fix timeout issues when installing (ticket #47).
+	* Component code improvement fixes ticket #52.
+	* Fix timeout issues when installing (ticket #47).
 
 2010-03-02  Aurelien Degremont  <aurelien.degremont@cea.fr>
-    * 'shine remove' now clean configuration on client nodes also (ticket #51).
+	* 'shine remove' now clean configuration on client nodes also (ticket #51).
 
 2010-02-17  Stephane Thiell  <stephane.thiell@cea.fr>
+	* Release: 0.905
 	* Added man page for shine(1).
 
 2010-02-15  Stephane Thiell  <stephane.thiell@cea.fr>
