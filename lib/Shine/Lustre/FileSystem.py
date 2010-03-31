@@ -301,13 +301,20 @@ class FileSystem:
         """
         assert type(expected_states) is list
 
+        # As we read 2 times components, we have to transform the iterator to
+        # a list.
+        if components:
+            complist = list(components)
+        else:
+            complist = None
+
         # Proxy commands should not have return errors
         if self.proxy_errors:
 
             # Find targets/clients affected by the runtime error(s)
-            if components:
+            if complist:
                 error_nodes = NodeSet.fromlist([ n for n, e in self.proxy_errors])
-                for comp in components:
+                for comp in complist:
                     # This target/client has no defined state and is on an
                     # error node, so we consider there was an error
                     if comp.server in error_nodes and comp.state is None:
@@ -316,8 +323,8 @@ class FileSystem:
         # If a component list is provided, check that all components from it
         # have expected state.
         result = 0
-        if components:
-            for comp in components:
+        if complist:
+            for comp in complist:
 
                 # Workaround bug when state is None (Trac ticket #11)
                 # Bug is now closed, maybe this could be removed?

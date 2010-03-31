@@ -1,3 +1,6 @@
+2010-03-31  Aurelien Degremont  <aurelien.degremont@cea.fr>
+    * Fix regression for shine return code (ticket #59).
+
 2010-03-29  Aurelien Degremont  <aurelien.degremont@cea.fr>
     * Component code improvement fixes ticket #52.
     * Fix timeout issues when installing (ticket #47).
