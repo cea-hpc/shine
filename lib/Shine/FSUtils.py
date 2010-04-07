@@ -99,6 +99,23 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         if (labels is not None and client.label not in labels):
             client.action_enabled = False
 
+    # Create attached file system routers...
+    for router_node in fs_conf.iter_routers():
+        server = servers.setdefault(router_node, Server(router_node, fs_conf.get_nid(router_node)))
+
+        # filter on target types and nodes
+        router_action_enabled = True
+        if (target_types is not None and 'router' not in target_types) or \
+            (nodes is not None and server not in nodes) or \
+            (excluded is not None and server in excluded):
+            router_action_enabled = False
+
+        router = fs.new_router(server, router_action_enabled)
+
+        # Now the device is instanciated, we could check label name
+        if (labels is not None and router.label not in labels):
+            router.action_enabled = False
+
     return fs
 
 

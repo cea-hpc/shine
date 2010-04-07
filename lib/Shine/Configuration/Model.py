@@ -58,7 +58,8 @@ class Model(ModelFile):
        'mgt'                : 'subelem',
        'mdt'                : 'subelem',
        'ost'                : 'subelem',
-       'client'             : 'subelem'
+       'client'             : 'subelem',
+       'router'             : 'subelem'
        }
 
     defaults = {
@@ -185,3 +186,9 @@ class ModelClient(SubElement):
       'mount_path' : 'string'
     }
 
+class ModelRouteur(SubElement):
+    """SubElement representing a routeur configuration line."""
+
+    syntax = {
+      'node'       : 'string',
+    }

@@ -116,3 +116,29 @@ class RemoteCallEventHandler(EventHandler):
     def ev_umountclient_failed(self, node, client, rc, message):
         self._shine_pickle(client=client, rc=rc, message=message)
 
+    def ev_statusrouter_start(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_statusrouter_done(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_statusrouter_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
+
+    def ev_startrouter_start(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_startrouter_done(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_startrouter_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
+
+    def ev_stoprouter_start(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_stoprouter_done(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_stoprouter_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)

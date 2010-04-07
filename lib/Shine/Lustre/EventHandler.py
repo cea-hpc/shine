@@ -149,3 +149,47 @@ class EventHandler(object):
         A Lustre FS client has been stopped successfully.
         """
 
+    def ev_statusrouter_start(self, node, comp):
+        """
+        A Lustre FS router status is starting
+        """
+
+    def ev_statusrouter_failed(self, node, comp, rc, message):
+        """
+        A Lustre FS router status has failed
+        """
+
+    def ev_statusrouter_done(self, node, comp):
+        """
+        A Lustre FS router status is completed successfully.
+        """
+
+    def ev_startrouter_start(self, node, comp):
+        """
+        A Lustre FS router is starting
+        """
+
+    def ev_startrouter_failed(self, node, comp, rc, message):
+        """
+        A Lustre FS router has failed to start
+        """
+
+    def ev_startrouter_done(self, node, comp):
+        """
+        A Lustre FS router has started successfully.
+        """
+
+    def ev_stoprouter_start(self, node, comp):
+        """
+        A Lustre FS router is stopping
+        """
+
+    def ev_stoprouter_failed(self, node, comp, rc, message):
+        """
+        A Lustre FS router has failed to stop
+        """
+
+    def ev_stoprouter_done(self, node, comp):
+        """
+        A Lustre FS router has stopped successfully.
+        """

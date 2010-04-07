@@ -45,6 +45,7 @@ from Shine.Lustre.Actions.Install import Install
 from Shine.Lustre.Actions.Proxies.Preinstall import Preinstall
 
 from Shine.Lustre.Client import Client
+from Shine.Lustre.Router import Router
 from Shine.Lustre.Target import MGT, MDT, OST
 # FileSystem class needs to re-export all Target status, they are used in Shine.Commands.*
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, RECOVERING, OFFLINE, RUNTIME_ERROR, CLIENT_ERROR, TARGET_ERROR
@@ -129,7 +130,7 @@ class FileSystem:
 
     def _invoke(self, event, **kwargs):
         if self.event_handler:
-            if 'target' in kwargs or 'client' in kwargs:
+            if 'target' in kwargs or 'client' in kwargs or 'comp' in kwargs:
                 kwargs.setdefault('node', None)
             getattr(self.event_handler, event)(**kwargs)
 
@@ -139,8 +140,11 @@ class FileSystem:
     def _handle_shine_event(self, event, node, **params):
         
         # We should have a target or a client, not both
-        comp = params.get('target')
-        name = 'target'
+        comp = params.get('comp')
+        name = 'comp'
+        if not comp:
+            comp = params.get('target')
+            name = 'target'
         if not comp:
             comp = params.get('client')
             name = 'client'
@@ -196,6 +200,12 @@ class FileSystem:
         Create a new attached client.
         """
         return Client(self, server, mount_path, enabled)
+
+    def new_router(self, server, enabled=True):
+        """
+        Create a new attached router.
+        """
+        return Router(self, server, enabled)
 
     #
     # Iterators over filesystem components
@@ -441,7 +451,8 @@ class FileSystem:
         launched = Set()
 
         # Filter components depending on flags
-        key = lambda c: ((flags & STATUS_SERVERS) and hasattr(c, 'index')) or \
+        # XXX: Ugly test, implement something cleaner.
+        key = lambda c: ((flags & STATUS_SERVERS) and (hasattr(c, 'index') or c.TYPE == Router.TYPE)) or \
                         ((flags & STATUS_CLIENTS) and c.TYPE == Client.TYPE)
 
         for server, iter_comps in self.managed_components(group_attr="server", supports='status', filter_key=key):
@@ -630,7 +641,11 @@ class FileSystem:
         """
         task = task_self()
         tune_all = NodeSet()
-        type_map = { 'mgt': 'mgs', 'mdt': 'mds', 'ost' : 'oss', 'client': 'client' }
+        type_map = { 'mgt': 'mgs', 
+                     'mdt': 'mds', 
+                     'ost': 'oss', 
+                     'client': 'client', 
+                     'router': 'router' }
 
         if Globals().get_tuning_file():
             # Install tuning.conf on enabled distant servers

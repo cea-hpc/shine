@@ -64,7 +64,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             count = len(list(fs.managed_components(supports='start')))
             servers = fs.managed_component_servers(supports='start')
-            print "Starting %d targets of %s on %s" % (count,
+            print "Starting %d component(s) of %s on %s" % (count,
                     fs.fs_name, servers)
 
     def handle_post(self, fs):
@@ -101,6 +101,33 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             strerr = message
         print "%s: Failed to start %s (%s): %s" % \
                (node, target.get_id(), target.dev, strerr)
+        if rc:
+            print message
+        self.update()
+
+    def ev_startrouter_start(self, node, comp):
+        if self.verbose > 1:
+            print "%s: Starting router..." % node
+        self.update()
+
+    def ev_startrouter_done(self, node, comp):
+        self.status_changed = True
+        if self.verbose > 1:
+            if comp.status_info:
+                print "%s: Start of router: %s" % \
+                       (node, comp.status_info)
+            else:
+                print "%s: Start of router succeeded" % node
+        self.update()
+
+    def ev_startrouter_failed(self, node, comp, rc, message):
+        self.status_changed = True
+        if rc:
+            strerr = os.strerror(rc)
+        else:
+            strerr = message
+        print "%s: Failed to start router: %s" % \
+               (node, strerr)
         if rc:
             print message
         self.update()
@@ -147,6 +174,26 @@ class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
             strerr = message
         print "Failed to start %s (%s): %s" % \
                (target.get_id(), target.dev, strerr)
+        if rc:
+            print message
+
+    def ev_startrouter_start(self, node, comp):
+        if self.verbose > 1:
+            print "Starting router..."
+
+    def ev_startrouter_done(self, node, comp):
+        if self.verbose > 1:
+            if comp.status_info:
+                print "Start of router: %s" % comp.status_info
+            else:
+                print "Start of router succeeded"
+
+    def ev_startrouter_failed(self, node, comp, rc, message):
+        if rc:
+            strerr = os.strerror(rc)
+        else:
+            strerr = message
+        print "Failed to start router: %s" % strerr
         if rc:
             print message
 

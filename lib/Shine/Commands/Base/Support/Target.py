@@ -26,28 +26,29 @@ from ClusterShell.NodeSet import NodeSet
 
 class Target:
     """
-    Command support class for "-t <target_type>" command option.
+    Command support class for "-t <component_type>" command option.
     """
 
     def __init__(self, cmd):
 
         attr = { 'optional' : True,
                  'hidden' : False,
-                 'doc' : "specify target (mgt, mdt, ost)" }
+                 'doc' : "specify component (mgt, mdt, ost, router)" }
 
         self.cmd = cmd
         self.cmd.add_option('t', 'target', attr)
 
         attr = { 'optional' : True,
                  'hidden' : False,
-                 'doc' : "specify target by label (ie: lustre-OST0000)" }
+                 'doc' : "specify component by label (ie: lustre-OST0000)" }
         self.cmd.add_option('l', 'label', attr)
 
     def get_target(self):
+        supported = [ 'mgt', 'mdt', 'ost', 'router' ]
         if self.cmd.opt_t:
             for t in self.cmd.opt_t.split(','):
-                if t not in [ 'mgt', 'mdt', 'ost' ]:
-                    raise CommandBadParameterError(t, "mgt, mdt, ost")
+                if t not in supported:
+                    raise CommandBadParameterError(t, ", ".join(supported))
             return self.cmd.opt_t.lower()
         return None
 
@@ -55,5 +56,3 @@ class Target:
         if self.cmd.opt_l:
             return NodeSet(self.cmd.opt_l)
         return None
-
-

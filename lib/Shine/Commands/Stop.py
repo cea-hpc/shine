@@ -63,7 +63,7 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             count = len(list(fs.managed_components(supports='stop')))
             servers = fs.managed_component_servers(supports='stop')
-            print "Stopping %d targets of %s on %s" % (count,
+            print "Stopping %d component(s) of %s on %s" % (count,
                     fs.fs_name, servers)
 
     def handle_post(self, fs):
@@ -100,6 +100,31 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         print "%s: Failed to stop %s (%s): %s" % \
                 (node, target.get_id(), target.dev,
                         strerr)
+        if rc:
+            print message
+        self.update()
+
+    def ev_stoprouter_start(self, node, comp):
+        if self.verbose > 1:
+            print "%s: Stopping router..." % node
+        self.update()
+
+    def ev_stoprouter_done(self, node, comp):
+        self.status_changed = True
+        if self.verbose > 1:
+            if comp.status_info:
+                print "%s: Stop of router: %s" % (node, comp.status_info)
+            else:
+                print "%s: Stop of router succeeded" % node
+        self.update()
+
+    def ev_stoprouter_failed(self, node, comp, rc, message):
+        self.status_changed = True
+        if rc:
+            strerr = os.strerror(rc)
+        else:
+            strerr = message
+        print "%s: Failed to stop router: %s" % (node, strerr)
         if rc:
             print message
         self.update()

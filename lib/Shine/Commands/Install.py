@@ -102,7 +102,8 @@ class Install(Command):
             print "Install summary:"
 
             # Display enabled components by display order
-            for order, iter_targets in fs.managed_components(group_attr="DISPLAY_ORDER"):
+            key = lambda t: (t.DISPLAY_ORDER, t.TYPE)
+            for order, iter_targets in fs.managed_components(group_key=key):
                 target_list = list(iter_targets)
                 # Get the target type in uppercase
                 type = target_list[0].TYPE.upper()[0:3]

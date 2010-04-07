@@ -88,6 +88,13 @@ class Clients:
         return self.dic.get('mount_path')
         
 
+class Routers:
+    def __init__(self, cf_router):
+        self.dic = cf_router.get_dict()
+
+    def get_nodes(self):
+        return self.dic.get('node')
+
 class Configuration:
     def __init__(self, fs_name=None, fs_model=None):
         """FS configuration initializer."""
@@ -240,6 +247,15 @@ class Configuration:
         for path, nodes in mounts.iteritems():
             for node in nodes:
                 yield node, path
+
+    def iter_routers(self):
+        """
+        Iterate over (node)
+        """
+        if self._fs.has_key('router'):
+            for elem in self._fs.get('router'):
+                rtr = Routers(elem)
+                yield rtr.get_nodes()
 
     def get_localnode_type(self):
         """

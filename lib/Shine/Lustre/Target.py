@@ -349,8 +349,8 @@ class Target(Component, Disk):
 class MGT(Target):
 
     TYPE = 'mgt'
-    START_ORDER = 1
-    DISPLAY_ORDER = 1
+    START_ORDER = 2
+    DISPLAY_ORDER = 2
 
     @property
     def label(self):
