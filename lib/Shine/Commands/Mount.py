@@ -152,7 +152,9 @@ class Mount(FSClientLiveCommand):
                 print "Starting %s clients on %s..." % \
                     (fs.fs_name, fs.managed_component_servers(supports='mount'))
 
-            status = fs.mount(mount_options=fs_conf.get_mount_options())
+            status = fs.mount(mount_options=fs_conf.get_mount_options(), 
+                              addopts=self.addopts.get_options())
+
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc

@@ -149,7 +149,7 @@ class Umount(FSClientLiveCommand):
                 print "Stopping %s clients on %s..." % \
                     (fs.fs_name, fs.managed_component_servers('umount'))
 
-            status = fs.umount()
+            status = fs.umount(addopts=self.addopts.get_options())
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc

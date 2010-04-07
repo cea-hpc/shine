@@ -31,11 +31,12 @@ from Support.FS import FS
 from Support.Target import Target
 from Support.Verbose import Verbose
 from Support.Yes import Yes
+from Support.AdditionalOptions import AdditionalOptions
 
 
 class FSLiveCommand(RemoteCommand):
     """
-    shine <cmd> [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-dqv]
+    shine <cmd> [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-o <additional_options>] [-dqv]
     """
     
     def __init__(self):
@@ -45,6 +46,7 @@ class FSLiveCommand(RemoteCommand):
         self.target_support = Target(self)
         self.indexes_support = Indexes(self)
         self.verbose_support = Verbose(self)
+        self.addopts = AdditionalOptions(self)
 
 class FSLiveCriticalCommand(FSLiveCommand):
 

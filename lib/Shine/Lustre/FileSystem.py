@@ -409,6 +409,9 @@ class FileSystem:
         # all operations are done.
         format_launched = Set()
 
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+
         for server, iter_targets in self.managed_components(group_attr="server", supports='format'):
             e_targets = list(iter_targets)
 
@@ -420,7 +423,7 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'format', NodeSet(server), self.debug,
-                              labels=labels).launch()
+                              labels=labels, addopts=addopts).launch()
 
             format_launched.update(e_targets)
 
@@ -430,7 +433,7 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], format_launched)
 
-    def status(self, flags=STATUS_ANY):
+    def status(self, flags=STATUS_ANY, addopts=None):
         """
         Get status of filesystem.
         """
@@ -449,7 +452,7 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ c.label for c in e_s_comps ])
                 FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                              labels=labels).launch()
+                              labels=labels, addopts=addopts).launch()
 
             launched.update(e_s_comps)
 
@@ -459,7 +462,7 @@ class FileSystem:
         # Here we check MOUNTED but in fact, any status is OK.
         return self._check_errors([MOUNTED], launched)
 
-    def status_target(self, target):
+    def status_target(self, target, addopts=None):
         """
         Launch a status request for a specific local or remote target.
         """
@@ -474,7 +477,7 @@ class FileSystem:
             target.status()
         else:
             FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                          target.TYPE, RangeSet(str(target.index))).launch()
+                          target.TYPE, RangeSet(str(target.index)), addopts=addopts).launch()
 
         task_self().resume()
 
@@ -484,6 +487,9 @@ class FileSystem:
         """
         Start Lustre file system servers.
         """
+
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
 
         # What starting order to use?
         key = lambda t: t.TYPE == MDT.TYPE
@@ -512,7 +518,7 @@ class FileSystem:
                     # Start per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'start', NodeSet(server), self.debug,
-                                  labels=labels).launch()
+                                  labels=labels, addopts=addopts).launch()
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -532,6 +538,9 @@ class FileSystem:
         Stop file system.
         """
 
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
         for order, iter_targets in self.managed_components(group_attr="START_ORDER", supports='stop', reverse=True):
@@ -549,7 +558,7 @@ class FileSystem:
                     # Stop per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'stop', NodeSet(server), self.debug,
-                                  labels=labels).launch()
+                                  labels=labels, addopts=addopts).launch()
 
             # Run local actions and FSProxyAction
             self._run_actions()
@@ -564,6 +573,9 @@ class FileSystem:
         """
         Mount FS clients.
         """
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+
         servers_mountall = NodeSet()
 
         for client in self.managed_components(supports='mount'):
@@ -575,7 +587,7 @@ class FileSystem:
                 servers_mountall.add(client.server)
 
         if len(servers_mountall) > 0:
-            FSProxyAction(self, 'mount', servers_mountall, self.debug).launch()
+            FSProxyAction(self, 'mount', servers_mountall, self.debug, addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -587,6 +599,9 @@ class FileSystem:
         """
         Unmount FS clients.
         """
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+
         servers_umountall = NodeSet()
 
         for client in self.managed_components(supports='umount'):
@@ -598,7 +613,7 @@ class FileSystem:
                 servers_umountall.add(client.server)
 
         if len(servers_umountall) > 0:
-            FSProxyAction(self, 'umount', servers_umountall, self.debug).launch()
+            FSProxyAction(self, 'umount', servers_umountall, self.debug, addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -609,7 +624,7 @@ class FileSystem:
     def info(self):
         pass
 
-    def tune(self, tuning_model):
+    def tune(self, tuning_model, addopts=None):
         """
         Tune server.
         """
@@ -641,7 +656,7 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_comps ])
                 FSProxyAction(self, 'tune', NodeSet(server), self.debug,
-                              labels=labels).launch()
+                              labels=labels, addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()

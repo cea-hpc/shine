@@ -202,7 +202,7 @@ class Stop(FSLiveCommand):
             # Notify backend of file system status mofication
             fs_conf.set_status_fs_stopping()
 
-            status = fs.stop()
+            status = fs.stop(addopts=self.addopts.get_options())
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc

@@ -230,7 +230,8 @@ class Start(FSLiveCommand):
             fs_conf.set_status_fs_starting()
 
             status = fs.start(mount_options=mount_options,
-                              mount_paths=mount_paths)
+                              mount_paths=mount_paths,
+                              addopts=self.addopts.get_options())
 
             rc = self.fs_status_to_rc(status)
             if rc > result:

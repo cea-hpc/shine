@@ -117,7 +117,7 @@ class Tune(FSLiveCommand):
             if not self.remote_call and (vlevel > 1 or debug):
                 print tuning
 
-            status = fs.tune(tuning)
+            status = fs.tune(tuning, addopts=self.addopts.get_options())
             if status == RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
                     print nodes

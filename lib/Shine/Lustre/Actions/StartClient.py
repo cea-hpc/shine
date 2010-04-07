@@ -31,6 +31,7 @@ class StartClient(Action):
         self.client = client
         assert self.client != None
         self.mount_options = kwargs.get('mount_options')
+        self.addopts = kwargs.get('addopts')
         self.abort_recovery = kwargs.get('abort_recovery')
 
     def launch(self):
@@ -44,7 +45,15 @@ class StartClient(Action):
         # Other custom mount options
         if self.mount_options:
             command.append("-o")
-            command.append(self.mount_options)
+            if self.addopts:
+                # Concatenate addtional mount option provide through
+                # Shine command line
+                command.append("%s,%s" %(self.mount_options, self.addopts))
+            else:
+                command.append(self.mount_options)
+        elif self.addopts:
+            command.append("-o")
+            command.append(self.addopts)
 
         # MGS NIDs
 

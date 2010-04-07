@@ -31,6 +31,7 @@ class StopTarget(Action):
     def __init__(self, target, **kwargs):
         Action.__init__(self)
         self.target = target
+        self.addopts = kwargs.get('addopts')
         assert self.target != None
 
     def launch(self):
@@ -44,6 +45,10 @@ class StopTarget(Action):
         if not self.target.dev_isblk:
             command.append("-d")
 
+        # Process additional umount options
+        if self.addopts:
+            command.append(self.addopts)
+            
         command.append(self.target.mntdev)
 
         self.task.shell(' '.join(command), handler=self)

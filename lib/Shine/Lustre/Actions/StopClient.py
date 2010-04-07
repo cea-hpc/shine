@@ -31,6 +31,7 @@ class StopClient(Action):
         self.client = client
         assert self.client != None
         self.failout = kwargs.get('failout')
+        self.addopts = kwargs.get('addopts')
 
     def launch(self):
         """
@@ -41,6 +42,10 @@ class StopClient(Action):
         # Failout option
         if self.failout:
             command.append("-f")
+
+        # Process additional option for umount command
+        if self.addopts:
+            command.append(self.addopts)
 
         command.append(self.client.mount_path)
 

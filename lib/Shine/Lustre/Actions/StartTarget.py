@@ -35,6 +35,7 @@ class StartTarget(Action):
         self.target = target
         assert self.target != None
         self.mount_options = kwargs.get('mount_options')
+        self.addopts = kwargs.get('addopts')
         self.mount_paths = kwargs.get('mount_paths')
         self.abort_recovery = kwargs.get('abort_recovery')
 
@@ -95,7 +96,14 @@ class StartTarget(Action):
             mnt_opts = self.mount_options.get(self.target.TYPE)
             if mnt_opts:
                 command.append("-o")
-                command.append(mnt_opts)
+                if self.addopts:
+                    command.append("%s,%s" %(mnt_opts, self.addopts))
+                else:
+                    command.append(mnt_opts)
+
+        elif self.addopts:
+            command.append("-o")
+            command.append(self.addopts)
 
         command.append(self.target.dev)
         command.append(mount_path)

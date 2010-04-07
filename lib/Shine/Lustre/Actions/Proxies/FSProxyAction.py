@@ -29,7 +29,7 @@ class FSProxyAction(ProxyAction):
     Generic file system command proxy action class.
     """
 
-    def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None, labels=None):
+    def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None, labels=None, addopts=None):
         ProxyAction.__init__(self)
         self.fs = fs
         self.action = action
@@ -39,6 +39,7 @@ class FSProxyAction(ProxyAction):
         self.targets_type = targets_type
         self.targets_indexes = targets_indexes
         self.labels = labels
+        self.addopts = addopts
 
         if self.fs.debug:
             print "FSProxyAction %s on %s" % (action, nodes)
@@ -62,6 +63,9 @@ class FSProxyAction(ProxyAction):
 
         if self.labels:
             command.append("-l %s" % self.labels);
+
+        if self.addopts:
+            command.append("-o '%s'" % self.addopts)
 
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
