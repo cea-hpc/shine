@@ -429,7 +429,7 @@ class Configuration:
         for target in targets:
             self._fs.set_status_target_unknown(target, options)
             
-    def set_status_target_ko(self, targets, options=None):
+    def set_status_targets_ko(self, targets, options=None):
         """
         This function is used to set the status of specified targets
         to KO
@@ -516,6 +516,14 @@ class Configuration:
         """
         for target in targets:
             self._fs.set_status_target_unreachable(target, options)
+            
+    def set_status_targets_checking(self, targets, options=None):
+        """
+        This function is used to set the status of specified targets
+        to CHECKING
+        """
+        for target in targets:
+            self._fs.set_status_target_checking(target, options)
             
     def get_status_clients(self):
         """

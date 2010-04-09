@@ -50,6 +50,7 @@ for cmd in [ "Show",
              "Status",
              "Start",
              "Stop",
+             "Fsck",
              "Mount",
              "Umount",
              "Tune"]:

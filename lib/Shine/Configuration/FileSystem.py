@@ -360,6 +360,13 @@ class FileSystem(Model):
         """
         self._set_status_target(target, Backend.TARGET_UNREACHABLE, options)
 
+    def set_status_target_checking(self, target, options):
+        """
+        This function is used to set the specified target status
+        to CHECKING
+        """
+        self._set_status_target(target, Backend.TARGET_CHECKING, options)
+
     def get_status_targets(self):
         """
         This function returns the status of each targets

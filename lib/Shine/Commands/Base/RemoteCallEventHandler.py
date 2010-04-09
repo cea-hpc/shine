@@ -62,6 +62,15 @@ class RemoteCallEventHandler(EventHandler):
     def ev_formattarget_failed(self, node, target, rc, message):
         self._shine_pickle(target=target, rc=rc, message=message)
 
+    def ev_fscktarget_start(self, node, target):
+        self._shine_pickle(target=target)
+
+    def ev_fscktarget_done(self, node, target):
+        self._shine_pickle(target=target)
+
+    def ev_fscktarget_failed(self, node, target, rc, message):
+        self._shine_pickle(target=target, rc=rc, message=message)
+
     def ev_statustarget_start(self, node, target):
         self._shine_pickle(target=target)
 

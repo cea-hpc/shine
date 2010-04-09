@@ -45,6 +45,7 @@ class Backend:
     TARGET_CRITICAL=10
     TARGET_STOPPING=11
     TARGET_UNREACHABLE=12
+    TARGET_CHECKING=13
 
     # Integers which represents the different fs status
     FS_INSTALLED = 1

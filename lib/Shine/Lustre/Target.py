@@ -26,6 +26,7 @@ from ClusterShell.Task import task_self
 from Shine.Lustre.Actions.Format import Format
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
+from Shine.Lustre.Actions.Fsck import Fsck
 
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
@@ -257,6 +258,37 @@ class Target(Component, Disk):
 
         except TargetDeviceError, e:
             self._action_failed('format', rc=-1, message=str(e))
+
+    def fsck(self, **kwargs):
+
+        self.state = INPROGRESS
+        self._action_start('fsck')
+
+        try:
+            self._device_check()
+        except DiskDeviceError, e:
+            self.state = TARGET_ERROR
+            self._action_failed('fsck', rc=1, message=str(e))
+            return
+
+        try:
+            self._lustre_check()
+
+            if self.state == OFFLINE:
+                self.state = INPROGRESS
+                action = Fsck(self, **kwargs)
+                action.launch()
+            else:
+                # Target state is not DOWN... cannot fsck device.
+                if self.state in [MOUNTED, RECOVERING]:
+                    reason = "Cannot fsck: target %s (%s) is started"
+                else:
+                    reason = "Cannot fsck: target %s (%s) is busy"
+                self.state = TARGET_ERROR
+                raise TargetDeviceError(self, reason % (self.label, self.dev))
+
+        except TargetDeviceError, e:
+            self._action_failed('fsck', rc=-1, message=str(e))
 
     def status(self):
         """

@@ -443,6 +443,35 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], format_launched)
 
+    def fsck(self, **kwargs):
+        # Remember fsck launched, so we can check their status once
+        # all operations are done.
+        fsck_launched = Set()
+
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+        
+        for server, iter_targets in self.managed_components(group_attr="server", supports="fsck"):
+            e_targets = list(iter_targets)
+
+            if server.is_local():
+                # local server
+                for target in e_targets:
+                    target.fsck(**kwargs)
+
+            else:
+                labels = NodeSet.fromlist([ t.label for t in e_targets ])
+                FSProxyAction(self, 'fsck', NodeSet(server), self.debug,
+                              labels=labels, addopts=addopts).launch()
+
+            fsck_launched.update(e_targets)
+
+        # Run local actions and FSProxyAction
+        self._run_actions()
+
+        # Check for errors and return OFFLINE or error code
+        return self._check_errors([OFFLINE], fsck_launched)
+
     def status(self, flags=STATUS_ANY, addopts=None):
         """
         Get status of filesystem.
