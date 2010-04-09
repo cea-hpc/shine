@@ -202,7 +202,7 @@ class Fsck(FSLiveCriticalCommand):
             fs.set_debug(self.debug_support.has_debug())
 
             if not self.ask_confirm("Fsck %s on %s: are you sure?" % (fsname,
-                    fs.managed_component_servers())):
+                    fs.managed_component_servers(supports='fsck'))):
                 result = RC_FAILURE
                 continue
 
