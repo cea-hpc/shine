@@ -9,7 +9,7 @@ VERSIONFILE="lib/Shine/__init__.py"
 
 # check usage
 if [ -z $2 ]; then
-    echo "$0 <version> <el5|fc11>"
+    echo "$0 <version> <el5|fc11|fc12>"
     exit 1
 fi
 

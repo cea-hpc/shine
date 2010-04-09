@@ -1,3 +1,3 @@
 # $Id$
-public_version = "0.905"
+public_version = "0.906"
 __version__ = "$Revision$"
