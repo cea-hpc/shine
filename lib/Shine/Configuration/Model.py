@@ -68,15 +68,15 @@ class Model(ModelFile):
        'failover'           : 'no',
        'mgt_mkfs_options'   : "",
        'mgt_mount_options'  : "",
-       'mgt_mount_path'     : "/mnt/%(fs_name)s/mgt",
+       'mgt_mount_path'     : "/mnt/$fs_name/mgt",
        'mgt_format_params'  : "",
        'mdt_mkfs_options'   : "",
        'mdt_mount_options'  : "",
-       'mdt_mount_path'     : "/mnt/%(fs_name)s/mdt/%(index)s",
+       'mdt_mount_path'     : "/mnt/$fs_name/mdt/$index",
        'mdt_format_params'  : "",
        'ost_mkfs_options'   : "-b 4096",
        'ost_mount_options'  : "extents,mballoc",
-       'ost_mount_path'     : "/mnt/%(fs_name)s/ost/%(index)s",
+       'ost_mount_path'     : "/mnt/$fs_name/ost/$index",
        'ost_format_params'  : "",
        'quota_type'         : "ug"
        }
