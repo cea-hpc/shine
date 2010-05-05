@@ -137,6 +137,8 @@ class Configuration:
         Return a generator over all FS targets.
         """
         for target_type in [ 'mgt', 'mdt', 'ost' ]:
+            if target_type not in self._fs.get_dict():
+                continue 
             tgt_cf_list = self._fs.get(target_type)
             for t in tgt_cf_list:
                 yield Target(target_type, t)

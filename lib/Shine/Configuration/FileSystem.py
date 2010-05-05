@@ -25,8 +25,6 @@ from Model import Model
 from Exceptions import *
 from TuningModel import TuningModel
 
-from ClusterShell.NodeSet import NodeSet
-
 from NidMap import NidMap
 from TargetDevice import TargetDevice
 
@@ -34,7 +32,6 @@ from Backend.Backend import Backend
 
 import copy
 import os
-import sys
 
 
 class FileSystem(Model):
@@ -106,7 +103,13 @@ class FileSystem(Model):
         """
         self._start_backend()
 
+        # We have to setup the possible targets, which are: MGT, MDT and OST.
         for target in [ 'mgt', 'mdt', 'ost' ]:
+
+            # So, first, look for which ones are defined in model
+            if target not in self.get_dict():
+                continue
+
 
             if self.backend:
 
@@ -167,10 +170,24 @@ class FileSystem(Model):
                 if len(target_devices) == 0:
                     raise ConfigDeviceNotFoundError(self)
 
+        self._check_coherency()
+
         # Save XMF
         self.save(self.xmf_path, "Shine Lustre file system config file for %s" % \
                 self.get_one('fs_name'))
-            
+    
+    def _check_coherency(self):
+        """Verify that the declared components make a coherent filesystem."""
+        
+        # If we have a target or a client, we need a MGT
+        if ((self.has_key('client') or self.has_key('mdt') or self.has_key('ost')) \
+            and not (self.has_key('mgt'))):
+            raise ConfigInvalidFileSystem(self, "A MGS must be declared.")
+
+        # We should have both MDT and OST or neither
+        if bool(self.has_key('mdt')) ^ bool(self.has_key('ost')):
+            raise ConfigInvalidFileSystem(self, "You must declare both MDT and OST or neither.")
+
     def get_nid(self, node):
         try:
             return self.nid_map[node]

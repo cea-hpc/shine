@@ -47,3 +47,8 @@ class ConfigBadNidMapError(ConfigException):
         self.nids = nids
         self.message = "Erroneous NID map : %s -> %s" % (self.nodes, self.nids)
 
+class ConfigInvalidFileSystem(ConfigException):
+    """Error indicating the filesystem configuration is not correct."""
+    def __init__(self, fs, message):
+        ConfigException.__init__(self, message)
+        self._fs = fs
