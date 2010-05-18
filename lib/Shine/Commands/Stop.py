@@ -195,6 +195,7 @@ class Stop(FSLiveCommand):
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
+                    failover=self.target_support.get_failover(),
                     indexes=self.indexes_support.get_rangeset(),
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
@@ -227,7 +228,8 @@ class Stop(FSLiveCommand):
             # Notify backend of file system status mofication
             fs_conf.set_status_fs_stopping()
 
-            status = fs.stop(addopts=self.addopts.get_options())
+            status = fs.stop(addopts=self.addopts.get_options(),
+                             failover=self.target_support.get_failover())
             rc = self.fs_status_to_rc(status)
             if rc > result:
                 result = rc

@@ -140,6 +140,7 @@ class Status(FSLiveCommand):
                     excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
                     labels=self.target_support.get_labels(),
+                    failover=self.target_support.get_failover(),
                     event_handler=eh)
 
             # Warn if trying to act on wrong nodes
@@ -168,7 +169,7 @@ class Status(FSLiveCommand):
             if view.startswith("client"):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
 
-            fs_result = fs.status(status_flags)
+            fs_result = fs.status(status_flags, failover=self.target_support.get_failover())
 
             if fs_result == RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
@@ -203,7 +204,7 @@ class Status(FSLiveCommand):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
                     ["type", target.TYPE.upper()],
-                    ["nodes", NodeSet.fromlist(target.servers)],
+                    ["nodes", NodeSet.fromlist(target.allservers())],
                     ["device", target.dev],
                     ["index", target.index],
                     ["status", target.text_status()]]))
@@ -311,7 +312,7 @@ class Status(FSLiveCommand):
                     flags.append("conf_param")
 
                 ldic.append(dict([\
-                    ["nodes", NodeSet.fromlist(target.servers)],
+                    ["nodes", NodeSet.fromlist(target.allservers())],
                     ["dev", target.dev],
                     ["size", dev_size],
                     ["jdev", jdev],

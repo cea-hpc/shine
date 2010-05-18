@@ -421,6 +421,7 @@ class FileSystem:
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
+        failover = kwargs.get('failover', None)
 
         for server, iter_targets in self.managed_components(group_attr="server", supports='format'):
             e_targets = list(iter_targets)
@@ -433,7 +434,8 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'format', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts).launch()
+                              labels=labels, addopts=addopts,
+                              failover=failover).launch()
 
             format_launched.update(e_targets)
 
@@ -450,6 +452,7 @@ class FileSystem:
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
+        failover = kwargs.get('failover', None)
         
         for server, iter_targets in self.managed_components(group_attr="server", supports="fsck"):
             e_targets = list(iter_targets)
@@ -462,7 +465,8 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'fsck', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts).launch()
+                              labels=labels, addopts=addopts,
+                              failover=failover).launch()
 
             fsck_launched.update(e_targets)
 
@@ -472,7 +476,7 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], fsck_launched)
 
-    def status(self, flags=STATUS_ANY, addopts=None):
+    def status(self, flags=STATUS_ANY, addopts=None, failover=None):
         """
         Get status of filesystem.
         """
@@ -492,7 +496,8 @@ class FileSystem:
             else:
                 labels = NodeSet.fromlist([ c.label for c in e_s_comps ])
                 FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts).launch()
+                              labels=labels, addopts=addopts, 
+                              failover=failover).launch()
 
             launched.update(e_s_comps)
 
@@ -510,7 +515,7 @@ class FileSystem:
         # Don't call me if the target itself is not enabled.
         assert target.action_enabled
 
-        server = target.get_selected_server()
+        server = target.server
 
         if server.is_local():
             # Target is local
@@ -530,6 +535,7 @@ class FileSystem:
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
+        failover = kwargs.get('failover', None)
 
         # What starting order to use?
         key = lambda t: t.TYPE == MDT.TYPE
@@ -558,7 +564,8 @@ class FileSystem:
                     # Start per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'start', NodeSet(server), self.debug,
-                                  labels=labels, addopts=addopts).launch()
+                                  labels=labels, addopts=addopts, 
+                                  failover=failover).launch()
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -580,6 +587,7 @@ class FileSystem:
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
+        failover = kwargs.get('failover', None)
 
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
@@ -598,7 +606,8 @@ class FileSystem:
                     # Stop per selected targets on this server.
                     labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'stop', NodeSet(server), self.debug,
-                                  labels=labels, addopts=addopts).launch()
+                                  labels=labels, addopts=addopts,
+                                  failover=failover).launch()
 
             # Run local actions and FSProxyAction
             self._run_actions()

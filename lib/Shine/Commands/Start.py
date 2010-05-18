@@ -243,6 +243,7 @@ class Start(FSLiveCommand):
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
+                    failover=self.target_support.get_failover(),
                     indexes=self.indexes_support.get_rangeset(),
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
@@ -278,7 +279,8 @@ class Start(FSLiveCommand):
 
             status = fs.start(mount_options=mount_options,
                               mount_paths=mount_paths,
-                              addopts=self.addopts.get_options())
+                              addopts=self.addopts.get_options(),
+                              failover=self.target_support.get_failover())
 
             rc = self.fs_status_to_rc(status)
             if rc > result:

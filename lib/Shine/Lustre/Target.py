@@ -22,6 +22,7 @@
 import glob
 
 from ClusterShell.Task import task_self
+from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.Actions.Format import Format
 from Shine.Lustre.Actions.StartTarget import StartTarget
@@ -33,9 +34,9 @@ from Shine.Lustre.Component import Component, MOUNTED, EXTERNAL, RECOVERING, OFF
 from Shine.Lustre.Server import Server
 
 
-class TargetDeviceError(Exception):
+class TargetError(Exception):
     """
-    Target's underlying device error.
+    Target related error occured.
     """
     def __init__(self, target, message):
         self.target = target
@@ -44,6 +45,11 @@ class TargetDeviceError(Exception):
     def __str__(self):
         return self.message
 
+class TargetDeviceError(TargetError):
+    """
+    Target's underlying device error.
+    """
+    
 
 class Target(Component, Disk):
 
@@ -70,10 +76,8 @@ class Target(Component, Disk):
         Component.__init__(self, fs, server, enabled, mode)
         Disk.__init__(self, dev, jdev)
 
-        # target's servers: master server is always self.servers[0]
-        self.servers = [ server ]
-        # selected server
-        self.selected_server = 0
+        self.defaultserver = server   # Default server the target runs on
+        self.failservers = [ ]        # All failover servers
 
         assert index is not None
         self.index = int(index)
@@ -94,10 +98,10 @@ class Target(Component, Disk):
         return self.START_ORDER < other.START_ORDER
 
     def match(self, other):
-        return  Component.match(self, other) and \
-                self.dev == other.dev and \
-                self.index == other.index and \
-                str(self.servers[0]) == str(other.servers[0])
+        return Component.match(self, other) and \
+               self.dev == other.dev and \
+               self.index == other.index and \
+               str(self.defaultserver) == str(other.defaultserver)
 
     def update(self, other):
         """
@@ -109,10 +113,43 @@ class Target(Component, Disk):
 
     def add_server(self, server):
         assert isinstance(server, Server)
-        self.servers.append(server)
+        self.failservers.append(server)
 
-    def get_selected_server(self):
-        return self.servers[self.selected_server]
+    def allservers(self):
+        """
+        Return all servers this target can run on.
+        The default server is the first element, then all possible failover servers.
+        """
+        #XXX: This method could be possibly dropped if the code in Status
+        #     command is optimized.
+        return [self.defaultserver] + self.failservers
+
+    def failover(self, candidates):
+        """
+        Helper method to change Target current server based on a candidate list.
+
+        It checks if only one server from the candidate list matches 
+        one of the failover server of this target. If more than one matches, it
+        raises an exception. If no server matches if retun False. If it has
+        changes the current server, it returns true.
+        """
+        intersec = candidates.intersection(NodeSet.fromlist(self.failservers))
+
+        # If we have more than one possible failover nodes, it is ambiguous
+        if len(intersec) > 1:
+            raise TargetError(self, "More than one failover server matches.")
+
+        if len(intersec) == 1:
+            # XXX: We need to find intersec[0] in failservers.. we can do
+            # something better here...
+            for srv in self.failservers:
+                 if intersec[0].__eq__(srv):
+                    self.server = srv
+                    break
+            return True
+
+        return False
+
 
     def get_id(self):
         """
@@ -127,7 +164,7 @@ class Target(Component, Disk):
         """
         Return an ordered list of target's NIDs.
         """
-        return [s.nid for s in self.servers]
+        return [s.nid for s in self.allservers()]
 
     def text_status(self):
         """

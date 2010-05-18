@@ -184,6 +184,7 @@ class Fsck(FSLiveCriticalCommand):
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
+                    failover=self.target_support.get_failover(),
                     indexes=self.indexes_support.get_rangeset(),
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
@@ -214,7 +215,8 @@ class Fsck(FSLiveCriticalCommand):
             fs_conf.set_status_fs_checking()
 
             # Fsck really.
-            status = fs.fsck(addopts = self.addopts.get_options())
+            status = fs.fsck(addopts = self.addopts.get_options(),
+                             failover=self.target_support.get_failover())
 
             rc = self.fs_status_to_rc(status)
             if rc > result:

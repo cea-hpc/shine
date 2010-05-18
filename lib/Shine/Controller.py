@@ -30,6 +30,7 @@ from Commands.Exceptions import *
 from Commands.Base.CommandRCDefs import *
 
 from Lustre.FileSystem import FSRemoteError
+from Shine.Lustre.Target import TargetError
 
 from ClusterShell.Task import *
 from ClusterShell.NodeSet import *
@@ -132,6 +133,8 @@ class Controller:
         except FSRemoteError, e:
             self.print_error(e)
             return e.rc
+        except TargetError, e:
+            self.print_error("%s" % e)
         except NodeSetParseError, e:
             self.print_error("%s" % e)
         except RangeSetParseError, e:

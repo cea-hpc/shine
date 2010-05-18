@@ -43,6 +43,13 @@ class Target:
                  'doc' : "specify component by label (ie: lustre-OST0000)" }
         self.cmd.add_option('l', 'label', attr)
 
+        attr = { 'optional' : True,
+                 'hidden' : False,
+                 'doc' : "Nodes to use to fail over" }
+        self.cmd.add_option('F', 'fail server', attr)
+
+
+
     def get_target(self):
         supported = [ 'mgt', 'mdt', 'ost', 'router' ]
         if self.cmd.opt_t:
@@ -55,4 +62,9 @@ class Target:
     def get_labels(self):
         if self.cmd.opt_l:
             return NodeSet(self.cmd.opt_l)
+        return None
+
+    def get_failover(self):
+        if self.cmd.opt_F:
+            return NodeSet(self.cmd.opt_F)
         return None

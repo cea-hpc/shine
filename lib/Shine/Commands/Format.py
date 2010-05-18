@@ -217,6 +217,7 @@ class Format(FSLiveCriticalCommand):
             fs_conf, fs = open_lustrefs(fsname, target,
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
+                    failover=self.target_support.get_failover(),
                     indexes=self.indexes_support.get_rangeset(),
                     labels=self.target_support.get_labels(),
                     event_handler=eh)
@@ -264,7 +265,8 @@ class Format(FSLiveCriticalCommand):
                         mkfs_options=mkfs_options,
                         quota=fs_conf.has_quota(),
                         quota_type=fs_conf.get_quota_type(),
-                        addopts = self.addopts.get_options())
+                        addopts = self.addopts.get_options(),
+                        failover=self.target_support.get_failover())
 
             rc = self.fs_status_to_rc(status)
             if rc > result:

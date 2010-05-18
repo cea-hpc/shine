@@ -1,3 +1,6 @@
+2010-05-18  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Primary version of failover support (ticket #18).
+
 2010-05-05  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Allow filesystem with no MDT and OST (ticket #39).
 
