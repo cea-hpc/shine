@@ -32,15 +32,6 @@ class EventHandler(object):
     def __init__(self):
         pass
 
-    def ev_preinstall_start(self, node):
-        pass
-
-    def ev_preinstall_done(self, node):
-        pass
-    
-    def ev_preinstall_failed(self, node, rc, message):
-        pass
-    
     def ev_formatjournal_start(self, node, target):
         pass
 

@@ -19,22 +19,20 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
+from ClusterShell.NodeSet import NodeSet
+
 from Shine.Configuration.Globals import Globals 
 
 from Shine.FSUtils import create_lustrefs
+from Shine.Lustre.FileSystem import FSRemoteError
 
-from Base.Command import Command
-from Base.CommandRCDefs import *
-from Base.Support.LMF import LMF
-from Base.Support.Nodes import Nodes
+from Shine.Commands.Base.Command import Command
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
+from Shine.Commands.Base.Support.LMF import LMF
+from Shine.Commands.Base.Support.Nodes import Nodes
+from Shine.Commands.Exceptions import CommandHelpException
 
 
-from ClusterShell.NodeSet import NodeSet
-
-from Exceptions import *
-
-from ClusterShell.NodeSet import NodeSet
 
 class Install(Command):
     """
@@ -54,50 +52,58 @@ class Install(Command):
         return "Install a new file system."
 
     def execute(self):
+
+        rc = RC_OK
+
         if not self.opt_m:
             raise CommandHelpException("Lustre model file path (-m <model_file>) " \
                     "argument required.", self)
+
+        # Use this Shine.FSUtils convenience function.
+        lmf = self.lmf_support.get_lmf_path()
+        if lmf:
+            print "Using Lustre model file %s" % lmf
         else:
-            # Use this Shine.FSUtils convenience function.
-            lmf = self.lmf_support.get_lmf_path()
-            if lmf:
-                print "Using Lustre model file %s" % lmf
-            else:
-                raise CommandHelpException("Lustre model file for ``%s'' not found: " \
-                        "please use filename or full LMF path.\n" \
-                        "Your default model files directory (lmf_dir) " \
-                        "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
+            raise CommandHelpException("Lustre model file for ``%s'' not found: " \
+                    "please use filename or full LMF path.\n" \
+                    "Your default model files directory (lmf_dir) " \
+                    "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
 
-            install_nodes = self.nodes_support.get_nodeset()
-            excluded_nodes = self.nodes_support.get_excludes()
+        install_nodes = self.nodes_support.get_nodeset()
+        excluded_nodes = self.nodes_support.get_excludes()
 
-            fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
-                    event_handler=self, nodes=install_nodes, 
-                    excluded=excluded_nodes)
+        fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
+                event_handler=self, nodes=install_nodes, 
+                excluded=excluded_nodes)
 
-            print "Registering FS %s to backend..." % fs.fs_name
-            rc = self.register_fs(fs_conf)
+        # Register the filesystem in backend
+        print "Registering FS %s to backend..." % fs.fs_name
+        rc = self.register_fs(fs_conf)
+        if rc:
+            print "Error: failed to register FS to backend (rc=%d)" % rc
+        else:
+            print "Filesystem %s registered." % fs.fs_name
 
-            if rc:
-                print "Error: failed to register FS to backend (rc=%d)" % rc
-            else:
-                print "Filesystem %s registered." % fs.fs_name
+        # Helper message.
+        # If user specified nodes which were not used, warn him about it.
+        actual_nodes = fs.managed_component_servers()
+        if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
+                actual_nodes, "install"):
+            return RC_FAILURE
 
-            # Install file system configuration files; normally, this should
-            # not be done by the Shine.Lustre.FileSystem object itself, but as
-            # all proxy methods are currently handled by it, it is more
-            # convenient this way...
+        # Install file system configuration files; normally, this should
+        # not be done by the Shine.Lustre.FileSystem object itself, but as
+        # all proxy methods are currently handled by it, it is more
+        # convenient this way...
+        try:
             fs.install(fs_conf.get_cfg_filename()) 
+        except FSRemoteError, error:
+            print "WARNING: Due to error, installation skipped on %s" \
+                   % error.nodes
+            rc = RC_FAILURE
 
-            # Helper message.
-            # If user specified nodes which were not used, warn him about it.
-            actual_nodes = fs.managed_component_servers()
-            if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
-                    actual_nodes, "install"):
-                return RC_FAILURE
-
-
-            # Print short file system summary.
+        # Print short file system summary.
+        if rc == RC_OK:
             print
             print "Install summary:"
 
@@ -113,15 +119,15 @@ class Install(Command):
 
             print
 
-            if not install_nodes and not excluded_nodes:
-                # Give pointer to next user step.
-                print "Use `shine format -f %s' to initialize the file system." % \
-                        fs_conf.get_fs_name()
+        if not install_nodes and not excluded_nodes:
+            # Give pointer to next user step.
+            print "Use `shine format -f %s' to initialize the file system." % \
+                    fs_conf.get_fs_name()
 
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_installed()
+        # Notify backend of file system status mofication
+        fs_conf.set_status_fs_installed()
 
-            return RC_OK
+        return rc
 
     def register_fs(self, fs_conf):
         # register file system configuration to the backend

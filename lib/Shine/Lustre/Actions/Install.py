@@ -43,11 +43,3 @@ class Install(Action):
 
     def ev_start(self, worker):
         print "Updating file system configuration files on %s" % self.nodes
-
-    def ev_close(self, worker):
-        for rc, nodeset in worker.iter_retcodes():
-            if rc != 0:
-                raise ActionFailedError("Fatal: Installation of file system " \
-                    "configuration failed on %s (%s)" % (nodeset, os.strerror(rc)),
-                    rc)
-

@@ -42,7 +42,6 @@ from Shine.Lustre.Actions.Action import ActionFailedError
 from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyActionError
 from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
-from Shine.Lustre.Actions.Proxies.Preinstall import Preinstall
 
 from Shine.Lustre.Client import Client
 from Shine.Lustre.Router import Router
@@ -367,6 +366,28 @@ class FileSystem:
             task_self().set_info('connect_timeout', Globals().get_ssh_connect_timeout())
             task_self().resume()
 
+            err_nodes = NodeSet()
+            err_code = 0
+            err_txt = ""
+
+            if task_self().num_timeout():
+                # Add timeout nodes
+                err_nodes.update(NodeSet.fromlist(task_self().iter_keys_timeout()))
+                err_code = -1
+                err_txt = "Node timed out"
+
+            if task_self().max_retcode():
+
+                # Ignore nodes which returned 0
+                for rc, nodelist in task_self().iter_retcodes():
+                    if rc > 0:
+                        err_nodes.update(NodeSet.fromlist(nodelist))
+                err_code = task_self().max_retcode()
+                err_txt = task_self().node_buffer(err_nodes[0])
+
+            if len(err_nodes) > 0:
+                raise FSRemoteError(err_nodes, err_code, err_txt)
+
     def install(self, fs_config_file):
         """
         Install filesystem configuration file on its servers. 
@@ -376,7 +397,6 @@ class FileSystem:
         servers = self.managed_component_servers()
 
         try:
-            self._distant_action_by_server(Preinstall, servers)
             self._distant_action_by_server(Install, servers, config_file=fs_config_file)
         except ProxyActionError, e:
             # switch to public exception

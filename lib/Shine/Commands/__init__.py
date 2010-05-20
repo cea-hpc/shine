@@ -44,7 +44,6 @@ commandList = []
 #             "Tune"]:
 for cmd in [ "Show",
              "Install",
-             "Preinstall",
              "Remove",
              "Format",
              "Status",
