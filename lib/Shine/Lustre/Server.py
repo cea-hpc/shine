@@ -24,8 +24,10 @@ from ClusterShell.Task import task_self
 
 import socket
 
-
 class Server(NodeSet):
+
+    _CACHE_HOSTNAME_SHORT = None
+    _CACHE_HOSTNAME_LONG = None
 
     def __init__(self, node_name, nid):
         NodeSet.__init__(self, node_name)
@@ -33,6 +35,38 @@ class Server(NodeSet):
 
     def __str__(self):
         return "%s (%s)" % (NodeSet.__str__(self), self.nid)
+
+    @classmethod
+    def hostname_long(cls):
+        """
+        Return cached long host name. If not already cached, resolve and cache
+        it.
+        """
+        if not cls._CACHE_HOSTNAME_LONG:
+            cls._CACHE_HOSTNAME_LONG = socket.getfqdn()
+        return cls._CACHE_HOSTNAME_LONG
+        
+    @classmethod
+    def hostname_short(cls):
+        """
+        Return cached short host name. If not already cached, resolve and cache
+        it.
+        """
+        if not cls._CACHE_HOSTNAME_SHORT:
+            cls._CACHE_HOSTNAME_SHORT = cls.hostname_long().split('.', 1)[0]
+        return cls._CACHE_HOSTNAME_SHORT
+ 
+    @classmethod
+    def distant_servers(cls, servers):
+        """
+        Filter the local host from the provided server list.
+        """
+        if cls.hostname_long() in servers:
+            return servers.difference(cls.hostname_long())
+        elif cls.hostname_short() in servers:
+            return servers.difference(cls.hostname_short())
+        else:
+            return servers
 
     def is_local(self):
         """
@@ -42,12 +76,10 @@ class Server(NodeSet):
         domain name or machine short-name.
         """
         assert len(self) == 1
+        srvname = NodeSet.__str__(self)
 
-        local_hostname = socket.getfqdn()
-        local_hostname_short = local_hostname.split('.', 1)[0]
-        hostname = NodeSet.__str__(self)
-
-        return local_hostname == hostname or local_hostname_short == hostname
+        return self.hostname_long() == srvname or \
+               self.hostname_short() == srvname
 
     def tune(self, tuning_model, types, fs_name):
         """
@@ -57,8 +89,8 @@ class Server(NodeSet):
 
         # Retrieve the list of tuning parameters that must be applied to
         # the current node
-        tuning_parameters = tuning_model.get_params_for_name(NodeSet.__str__(self),
-                types)
+        tuning_parameters = tuning_model.get_params_for_name(
+                                                NodeSet.__str__(self), types)
         
         # Walk through the tuning parameters list and apply each one of them
         for tuning_parameter in tuning_parameters:

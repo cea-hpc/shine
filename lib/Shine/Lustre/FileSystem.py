@@ -43,6 +43,7 @@ from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyActionError
 from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
+from Shine.Lustre.Server import Server
 from Shine.Lustre.Client import Client
 from Shine.Lustre.Router import Router
 from Shine.Lustre.Target import MGT, MDT, OST
@@ -107,9 +108,6 @@ class FileSystem:
         self.debug = False
         self.set_eventhandler(event_handler)
         self.proxy_errors = []
-
-        self.local_hostname = socket.gethostname()
-        self.local_hostname_short = self.local_hostname.split('.', 1)[0]
 
         # All FS components (MGT, MDT, OST, Clients, ...)
         self._components = []
@@ -352,12 +350,7 @@ class FileSystem:
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
         # filter local server
-        if self.local_hostname in servers:
-            distant_servers = servers.difference(self.local_hostname)
-        elif self.local_hostname_short in servers:
-            distant_servers = servers.difference(self.local_hostname_short)
-        else:
-            distant_servers = servers
+        distant_servers = Server.distant_servers(servers)
 
         # perform action on distant servers
         if len(distant_servers) > 0:

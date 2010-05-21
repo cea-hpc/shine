@@ -13,6 +13,8 @@ import socket
 sys.path.insert(0, '../lib')
 
 from Shine.Lustre.Server import Server
+# No direct dependancies to NodeSet. This should be fixed.
+from ClusterShell.NodeSet import NodeSet
 
 class ServerTest(unittest.TestCase):
 
@@ -20,6 +22,12 @@ class ServerTest(unittest.TestCase):
         """test string representation"""
         srv = Server('localhost', 'localhost@tcp')
         self.assertEqual(str(srv), 'localhost (localhost@tcp)')
+
+    def testHostname(self):
+        """test hostname resolution"""
+        # Check hostname methods returns something
+        self.assertTrue(Server.hostname_short())
+        self.assertTrue(Server.hostname_long())
 
     def testIsLocal(self):
         """test is_local()"""
@@ -48,6 +56,21 @@ class ServerTest(unittest.TestCase):
         othername = fqdn + ".shine-false-tld"
         srv = Server(othername, '%s@tcp' % othername)
         self.assertFalse(srv.is_local())
+
+        # Check hostname methods are rightly seen as local
+        self.assertTrue(Server(Server.hostname_short(), 'foo').is_local())
+        self.assertTrue(Server(Server.hostname_long(), 'foo').is_local())
+
+    def testDistantServers(self):
+        """test distant_servers()"""
+        nodes = NodeSet("foo,bar")
+        self.assertEqual(Server.distant_servers(nodes), nodes)
+
+        nodes_short = nodes | NodeSet(Server.hostname_short())
+        self.assertEqual(Server.distant_servers(nodes_short), nodes)
+
+        nodes_long = nodes | NodeSet(Server.hostname_long())
+        self.assertEqual(Server.distant_servers(nodes_long), nodes)
 
 
 if __name__ == '__main__':

@@ -22,13 +22,12 @@
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
 from Shine.Configuration.Exceptions import *
+from Shine.Lustre.Server import Server
 from Command import Command
 from CommandRCDefs import *
 from RemoteCallEventHandler import RemoteCallEventHandler
 from Support.Nodes import Nodes
 from Support.Yes import Yes
-
-import socket
 
 
 class RemoteCommand(Command):
@@ -60,7 +59,7 @@ class RemoteCommand(Command):
         # Limit the scope of the command if called with local flag (-L) or
         # called remotely (-R).
         if self.has_local_flag():
-            self.opt_n = socket.gethostname().split('.', 1)[0]
+            self.opt_n = Server.hostname_short()
 
     def install_eventhandler(self, local_eventhandler, global_eventhandler):
         """

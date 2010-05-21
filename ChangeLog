@@ -1,3 +1,6 @@
+2010-05-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
+    * Hostname resolution improvements (fix ticket #60 and #61).
+
 2010-05-19  Aurelien Degremont  <aurelien.degremont@cea.fr>
     * Better error handling with unreachable nodes when installing(ticket #58).
 
