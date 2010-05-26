@@ -85,27 +85,6 @@ class Router(Component):
             self.state = RUNTIME_ERROR
             raise RouterError(self, "Bad routing status")
 
-    # 
-    # Event handling wrappers
-    #
-
-    def _action_start(self, act):
-        """Called by Actions.* when starting"""
-        self.fs._invoke('ev_%s%s_start' % (act, 'router'), comp=self)
-
-    def _action_done(self, act):
-        """Called by Actions.* when done"""
-        self.fs._invoke('ev_%s%s_done' % (act, 'router'), comp=self)
-
-    def _action_timeout(self, act):
-        """Called by Actions.* on timeout"""
-        self.fs._invoke('ev_%s%s_timeout' % (act, 'router'), comp=self)
-
-    def _action_failed(self, act, rc, message):
-        """Called by Actions.* on failure"""
-        self.fs._invoke('ev_%s%s_failed' % (act, 'router'), comp=self, 
-                        rc=rc, message=message)
-
     #
     # Client actions
     #

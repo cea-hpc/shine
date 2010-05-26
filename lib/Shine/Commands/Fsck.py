@@ -68,29 +68,29 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_fscktarget_start(self, node, target, **kwargs):
-        self.update_config_status(target, "checking")
+    def ev_fscktarget_start(self, node, comp, **kwargs):
+        self.update_config_status(comp, "checking")
 
         if self.verbose > 1:
-            print "%s: Starting fsck of %s %s (%s)" % (node, target.TYPE.upper(), \
-                    target.get_id(), target.dev)
+            print "%s: Starting fsck of %s %s (%s)" % (node, comp.TYPE.upper(), \
+                    comp.get_id(), comp.dev)
 
         self.update()
 
-    def ev_fscktarget_done(self, node, target):
-        self.update_config_status(target, "succeeded")
+    def ev_fscktarget_done(self, node, comp):
+        self.update_config_status(comp, "succeeded")
 
         if self.verbose > 1:
             print "%s: Fsck of %s %s (%s) succeeded" % \
-                    (node, target.TYPE.upper(), target.get_id(), target.dev)
+                    (node, comp.TYPE.upper(), comp.get_id(), comp.dev)
 
         self.update()
 
-    def ev_fscktarget_failed(self, node, target, rc, message):
-        self.update_config_status(target, "failed")
+    def ev_fscktarget_failed(self, node, comp, rc, message):
+        self.update_config_status(comp, "failed")
 
         print "%s: Fsck of %s %s (%s) failed with error %d" % \
-                (node, target.TYPE.upper(), target.get_id(), target.dev, rc)
+                (node, comp.TYPE.upper(), comp.get_id(), comp.dev, rc)
         print message
 
         self.update()
@@ -119,18 +119,18 @@ class LocalFsckEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def __init__(self, verbose=1):
         self.verbose = verbose
 
-    def ev_fscktarget_start(self, node, target):
-        print "Starting fsck of %s %s (%s)" % (target.TYPE.upper(), \
-                target.get_id(), target.dev)
+    def ev_fscktarget_start(self, node, comp):
+        print "Starting fsck of %s %s (%s)" % (comp.TYPE.upper(), \
+                comp.get_id(), comp.dev)
         sys.stdout.flush()
 
-    def ev_fscktarget_done(self, node, target):
+    def ev_fscktarget_done(self, node, comp):
         print "Fsck of %s %s (%s) succeeded" % \
-                (target.TYPE.upper(), target.get_id(), target.dev)
+                (comp.TYPE.upper(), comp.get_id(), comp.dev)
 
-    def ev_fscktarget_failed(self, node, target, rc, message):
+    def ev_fscktarget_failed(self, node, comp, rc, message):
         print "Fsck of %s %s (%s) failed with error %d" % \
-                (target.TYPE.upper(), target.get_id(), target.dev, rc)
+                (comp.TYPE.upper(), comp.get_id(), comp.dev, rc)
         print message
 
 

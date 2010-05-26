@@ -129,3 +129,31 @@ class Component(object):
         """
         return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %s" % self.state)
 
+    #
+    # Event raising methods
+    #
+
+    def _action_start(self, act, comp=None):
+        """Called by Actions.* when starting"""
+        if not comp:
+            comp = self.TYPE
+        self.fs._invoke('ev_%s%s_start' % (act, comp), comp=self)
+
+    def _action_done(self, act, comp=None):
+        """Called by Actions.* when done"""
+        if not comp:
+            comp = self.TYPE
+        self.fs._invoke('ev_%s%s_done' % (act, comp), comp=self)
+
+    def _action_timeout(self, act, comp=None):
+        """Called by Actions.* on timeout"""
+        if not comp:
+            comp = self.TYPE
+        self.fs._invoke('ev_%s%s_timeout' % (act, comp), comp=self)
+
+    def _action_failed(self, act, rc, message, comp=None):
+        """Called by Actions.* on failure"""
+        if not comp:
+            comp = self.TYPE
+        self.fs._invoke('ev_%s%s_failed' % (act, comp), comp=self, rc=rc, message=message)
+

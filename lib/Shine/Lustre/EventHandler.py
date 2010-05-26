@@ -32,110 +32,110 @@ class EventHandler(object):
     def __init__(self):
         pass
 
-    def ev_formatjournal_start(self, node, target):
+    def ev_formatjournal_start(self, node, comp):
         pass
 
-    def ev_formatjournal_done(self, node, target):
+    def ev_formatjournal_done(self, node, comp):
         pass
 
-    def ev_formatjournal_failed(self, node, target, rc, message):
+    def ev_formatjournal_failed(self, node, comp, rc, message):
         pass
 
-    def ev_formattarget_start(self, node, target):
+    def ev_formattarget_start(self, node, comp):
         pass
 
-    def ev_formattarget_done(self, node, target):
+    def ev_formattarget_done(self, node, comp):
         pass
 
-    def ev_formattarget_failed(self, node, target, rc, message):
+    def ev_formattarget_failed(self, node, comp, rc, message):
         pass
 
-    def ev_statustarget_start(self, node, target):
+    def ev_statustarget_start(self, node, comp):
         """
         Target status request is starting on node.
         """
 
-    def ev_statustarget_done(self, node, target):
+    def ev_statustarget_done(self, node, comp):
         """
         Target status has been updated.
         """
 
-    def ev_statustarget_failed(self, node, target, rc, message):
+    def ev_statustarget_failed(self, node, comp, rc, message):
         """
         A target status request has failed.
         """
 
-    def ev_starttarget_start(self, node, target):
+    def ev_starttarget_start(self, node, comp):
         """
         A Lustre target is being started.
         """
 
-    def ev_starttarget_failed(self, node, target, rc, message):
+    def ev_starttarget_failed(self, node, comp, rc, message):
         """
         A Lustre target has failed to start.
         """
 
-    def ev_starttarget_done(self, node, target):
+    def ev_starttarget_done(self, node, comp):
         """
         A Lustre target has started successfully.
         """
 
-    def ev_stoptarget_start(self, node, target):
+    def ev_stoptarget_start(self, node, comp):
         """
         A Lustre target is being stopped.
         """
 
-    def ev_stoptarget_failed(self, node, target, rc, message):
+    def ev_stoptarget_failed(self, node, comp, rc, message):
         """
         A Lustre target has failed to stop.
         """
 
-    def ev_stoptarget_done(self, node, target):
+    def ev_stoptarget_done(self, node, comp):
         """
         A Lustre target has been stopped successfully.
         """
 
-    def ev_statusclient_start(self, node, client):
+    def ev_statusclient_start(self, node, comp):
         """
         Client status request is starting on node.
         """
 
-    def ev_statusclient_done(self, node, client):
+    def ev_statusclient_done(self, node, comp):
         """
         Client status has been updated.
         """
 
-    def ev_statusclient_failed(self, node, client, rc, message):
+    def ev_statusclient_failed(self, node, comp, rc, message):
         """
         A client status request has failed.
         """
 
-    def ev_mountclient_start(self, node, client):
+    def ev_mountclient_start(self, node, comp):
         """
         A Lustre FS client is being started.
         """
 
-    def ev_mountclient_failed(self, node, client, rc, message):
+    def ev_mountclient_failed(self, node, comp, rc, message):
         """
         A Lustre FS client has failed to start/mount.
         """
 
-    def ev_mountclient_done(self, node, client):
+    def ev_mountclient_done(self, node, comp):
         """
         A Lustre FS client has started successfully.
         """
 
-    def ev_umountclient_start(self, node, client):
+    def ev_umountclient_start(self, node, comp):
         """
         A Lustre FS client is being stopped.
         """
 
-    def ev_umountclient_failed(self, node, client, rc, message):
+    def ev_umountclient_failed(self, node, comp, rc, message):
         """
         A Lustre FS client has failed to stop.
         """
 
-    def ev_umountclient_done(self, node, client):
+    def ev_umountclient_done(self, node, comp):
         """
         A Lustre FS client has been stopped successfully.
         """

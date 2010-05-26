@@ -106,7 +106,7 @@ class FileSystem:
     def __init__(self, fs_name, event_handler=None):
         self.fs_name = fs_name
         self.debug = False
-        self.set_eventhandler(event_handler)
+        self.event_handler = event_handler
         self.proxy_errors = []
 
         # All FS components (MGT, MDT, OST, Clients, ...)
@@ -126,36 +126,42 @@ class FileSystem:
     #
 
     def _invoke(self, event, **kwargs):
-        if self.event_handler:
-            if 'target' in kwargs or 'client' in kwargs or 'comp' in kwargs:
-                kwargs.setdefault('node', None)
-            getattr(self.event_handler, event)(**kwargs)
+        """
+        Inform the filesystem the provided event happened.
+        If an event handler is set, the associated callback will be called.
+        """
+        if not self.event_handler:
+            return
 
-    def set_eventhandler(self, event_handler):
-        self.event_handler = event_handler
+        # XXX: Temporary, to be sure all are removed
+        assert('client' not in kwargs)
+        assert('target' not in kwargs)
+
+        # Currently, all event callbacks need a node.
+        # When localy called, _invoke do not pass a node.
+        # XXX: When events v3 will be there, this could be cleaned
+        kwargs.setdefault('node', None)
+
+        getattr(self.event_handler, event)(**kwargs)
 
     def _handle_shine_event(self, event, node, **params):
         
-        # We should have a target or a client, not both
-        comp = params.get('comp')
-        name = 'comp'
-        if not comp:
-            comp = params.get('target')
-            name = 'target'
-        if not comp:
-            comp = params.get('client')
-            name = 'client'
-        else:
-            assert(not params.get('client'))
+        # XXX: Normally, there is no more of them. Sanity to be sure everything
+        # is removed.
+        assert('client' not in params)
+        assert('target' not in params)
 
-        if comp:
+        # Update the local component instance with the provided instance
+        # is one is available in params.
+        if 'comp' in params:
+            comp = params['comp']
             found = False
             for any in self._components:
                 if any.match(comp):
                     # update target from remote one
                     any.update(comp)
                     # substitute target parameter by local one
-                    params[name] = any
+                    params['comp'] = any
                     found = True
             if not found:
                 print "ERROR: Component update failed (%s)" % comp

@@ -70,25 +70,25 @@ class GlobalStatusEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def __init__(self, verbose=1):
         self.verbose = verbose
 
-    def ev_statustarget_start(self, node, target):
+    def ev_statustarget_start(self, node, comp):
         pass
 
-    def ev_statustarget_done(self, node, target):
+    def ev_statustarget_done(self, node, comp):
         pass
 
-    def ev_statustarget_failed(self, node, target, rc, message):
+    def ev_statustarget_failed(self, node, comp, rc, message):
         print "%s: Failed to status %s (%s)" % (node, \
-                target.get_id(), target.dev)
+                comp.get_id(), comp.dev)
         print ">> %s" % message
 
-    def ev_statusclient_start(self, node, client):
+    def ev_statusclient_start(self, node, comp):
         pass
 
-    def ev_statusclient_done(self, node, client):
+    def ev_statusclient_done(self, node, comp):
         pass
 
-    def ev_statusclient_failed(self, node, client, rc, message):
-        print "%s: Failed to status of FS %s" % (node, client.fs.fs_name)
+    def ev_statusclient_failed(self, node, comp, rc, message):
+        print "%s: Failed to status of FS %s" % (node, comp.fs.fs_name)
         print ">> %s" % message
 
 

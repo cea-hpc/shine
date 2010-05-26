@@ -53,22 +53,22 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def __init__(self, verbose=1):
         self.verbose = verbose
 
-    def ev_mountclient_start(self, node, client):
+    def ev_mountclient_start(self, node, comp):
 
         if self.verbose > 1:
-            print "%s: Mounting %s on %s ..." % (node, client.fs.fs_name, client.mount_path)
+            print "%s: Mounting %s on %s ..." % (node, comp.fs.fs_name, comp.mount_path)
 
-    def ev_mountclient_done(self, node, client):
+    def ev_mountclient_done(self, node, comp):
         self.update_client_status(node, "succeeded")
 
         if self.verbose > 1:
-            if client.status_info:
-                print "%s: Mount %s: %s" % (node, client.fs.fs_name, client.status_info)
+            if comp.status_info:
+                print "%s: Mount %s: %s" % (node, comp.fs.fs_name, comp.status_info)
             else:
                 print "%s: FS %s succesfully mounted on %s" % (node,
-                        client.fs.fs_name, client.mount_path)
+                        comp.fs.fs_name, comp.mount_path)
 
-    def ev_mountclient_failed(self, node, client, rc, message):
+    def ev_mountclient_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
 
         if rc:
@@ -76,7 +76,7 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
         else:
             strerr = message
         print "%s: Failed to mount FS %s on %s: %s" % \
-                (node, client.fs.fs_name, client.mount_path, strerr)
+                (node, comp.fs.fs_name, comp.mount_path, strerr)
         if rc:
             print message
 

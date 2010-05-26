@@ -44,86 +44,86 @@ class RemoteCallEventHandler(EventHandler):
                 binascii.b2a_base64(pickle.dumps(kwargs, -1))))
         sys.stdout.flush()
 
-    def ev_formatjournal_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_formatjournal_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_formatjournal_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_formatjournal_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_formatjournal_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_formatjournal_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_formattarget_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_formattarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_formattarget_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_formattarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_formattarget_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_formattarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_fscktarget_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_fscktarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_fscktarget_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_fscktarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_fscktarget_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_fscktarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_statustarget_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_statustarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_statustarget_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_statustarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_statustarget_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_statustarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_starttarget_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_starttarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_starttarget_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_starttarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_starttarget_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_starttarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_stoptarget_start(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_stoptarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_stoptarget_done(self, node, target):
-        self._shine_pickle(target=target)
+    def ev_stoptarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_stoptarget_failed(self, node, target, rc, message):
-        self._shine_pickle(target=target, rc=rc, message=message)
+    def ev_stoptarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_statusclient_start(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_statusclient_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_statusclient_done(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_statusclient_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_statusclient_failed(self, node, client, rc, message):
-        self._shine_pickle(client=client, rc=rc, message=message)
+    def ev_statusclient_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_mountclient_start(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_mountclient_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_mountclient_done(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_mountclient_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_mountclient_failed(self, node, client, rc, message):
-        self._shine_pickle(client=client, rc=rc, message=message)
+    def ev_mountclient_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
-    def ev_umountclient_start(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_umountclient_start(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_umountclient_done(self, node, client):
-        self._shine_pickle(client=client)
+    def ev_umountclient_done(self, node, comp):
+        self._shine_pickle(comp=comp)
 
-    def ev_umountclient_failed(self, node, client, rc, message):
-        self._shine_pickle(client=client, rc=rc, message=message)
+    def ev_umountclient_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
 
     def ev_statusrouter_start(self, node, comp):
         self._shine_pickle(comp=comp)

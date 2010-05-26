@@ -374,22 +374,6 @@ class Target(Component, Disk):
         except TargetDeviceError, e:
             self._action_failed('start', rc=None, message=str(e))
 
-    def _action_start(self, act, comp='target'):
-        """Called by Actions.* when starting"""
-        self.fs._invoke('ev_%s%s_start' % (act, comp), target=self)
-
-    def _action_done(self, act, comp='target'):
-        """Called by Actions.* when done"""
-        self.fs._invoke('ev_%s%s_done' % (act, comp), target=self)
-
-    def _action_timeout(self, act, comp='target'):
-        """Called by Actions.* on timeout"""
-        self.fs._invoke('ev_%s%s_timeout' % (act, comp), target=self)
-
-    def _action_failed(self, act, rc, message, comp='target'):
-        """Called by Actions.* on failure"""
-        self.fs._invoke('ev_%s%s_failed' % (act, comp), target=self, rc=rc, message=message)
-
     def stop(self, **kwargs):
 
         self.state = INPROGRESS
@@ -413,6 +397,30 @@ class Target(Component, Disk):
 
         except TargetDeviceError, e:
             self._action_failed('stop', rc=None, message=str(e))
+
+    #
+    # Event raising methods
+    #
+
+    # Those methods are overload due to the generic name 'target' used.
+    # When EventHandlers will be updated and refactorized, check if this is
+    # still useful.
+
+    def _action_start(self, act, comp='target'):
+        """Called by Actions.* when starting"""
+        Component._action_start(self, act, comp)
+
+    def _action_done(self, act, comp='target'):
+        """Called by Actions.* when done"""
+        Component._action_done(self, act, comp)
+
+    def _action_timeout(self, act, comp='target'):
+        """Called by Actions.* on timeout"""
+        Component._action_timeout(self, act, comp)
+
+    def _action_failed(self, act, rc, message, comp='target'):
+        """Called by Actions.* on failure"""
+        Component._action_failed(self, act, comp, rc, message, comp)
 
 
 class MGT(Target):

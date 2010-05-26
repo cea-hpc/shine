@@ -70,35 +70,35 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_stoptarget_start(self, node, target):
-        self.update_config_status(target, "stopping")
+    def ev_stoptarget_start(self, node, comp):
+        self.update_config_status(comp, "stopping")
         if self.verbose > 1:
             print "%s: Stopping %s (%s)..." % (node, \
-                    target.get_id(), target.dev)
+                    comp.get_id(), comp.dev)
         self.update()
 
-    def ev_stoptarget_done(self, node, target):
-        self.update_config_status(target, "succeeded")
+    def ev_stoptarget_done(self, node, comp):
+        self.update_config_status(comp, "succeeded")
         self.status_changed = True
         if self.verbose > 1:
-            if target.status_info:
+            if comp.status_info:
                 print "%s: Stop of %s (%s): %s" % \
-                        (node, target.get_id(), target.dev,
-                                target.status_info)
+                        (node, comp.get_id(), comp.dev,
+                                comp.status_info)
             else:
                 print "%s: Stop of %s (%s) succeeded" % \
-                        (node, target.get_id(), target.dev)
+                        (node, comp.get_id(), comp.dev)
         self.update()
 
-    def ev_stoptarget_failed(self, node, target, rc, message):
-        self.update_config_status(target, "failed")
+    def ev_stoptarget_failed(self, node, comp, rc, message):
+        self.update_config_status(comp, "failed")
         self.status_changed = True
         if rc:
             strerr = os.strerror(rc)
         else:
             strerr = message
         print "%s: Failed to stop %s (%s): %s" % \
-                (node, target.get_id(), target.dev,
+                (node, comp.get_id(), comp.dev,
                         strerr)
         if rc:
             print message
