@@ -33,7 +33,7 @@ import sys
 from itertools import ifilter, imap, groupby
 from operator import attrgetter
 
-from ClusterShell.NodeSet import NodeSet, RangeSet
+from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
@@ -451,9 +451,8 @@ class FileSystem:
                     target.format(**kwargs)
 
             else:
-                labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'format', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts,
+                              comps=e_targets, addopts=addopts,
                               failover=failover).launch()
 
             format_launched.update(e_targets)
@@ -482,9 +481,8 @@ class FileSystem:
                     target.fsck(**kwargs)
 
             else:
-                labels = NodeSet.fromlist([ t.label for t in e_targets ])
                 FSProxyAction(self, 'fsck', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts,
+                              comps=e_targets, addopts=addopts,
                               failover=failover).launch()
 
             fsck_launched.update(e_targets)
@@ -513,9 +511,8 @@ class FileSystem:
                 for comp in e_s_comps:
                     comp.status()
             else:
-                labels = NodeSet.fromlist([ c.label for c in e_s_comps ])
                 FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts, 
+                              comps=e_s_comps, addopts=addopts, 
                               failover=failover).launch()
 
             launched.update(e_s_comps)
@@ -541,7 +538,7 @@ class FileSystem:
             target.status()
         else:
             FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                          target.TYPE, RangeSet(str(target.index)), addopts=addopts).launch()
+                          comps=[target], addopts=addopts).launch()
 
         task_self().resume()
 
@@ -581,9 +578,8 @@ class FileSystem:
                         target.start(**kwargs)
                 else:
                     # Start per selected targets on this server.
-                    labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'start', NodeSet(server), self.debug,
-                                  labels=labels, addopts=addopts, 
+                                  comps=targets, addopts=addopts, 
                                   failover=failover).launch()
 
             # Resume current task, ie. start runloop, process workers events
@@ -623,9 +619,8 @@ class FileSystem:
                         target.stop(**kwargs)
                 else:
                     # Stop per selected targets on this server.
-                    labels = NodeSet.fromlist([ t.label for t in targets ])
                     FSProxyAction(self, 'stop', NodeSet(server), self.debug,
-                                  labels=labels, addopts=addopts,
+                                  comps=targets, addopts=addopts,
                                   failover=failover).launch()
 
             # Run local actions and FSProxyAction
@@ -655,7 +650,8 @@ class FileSystem:
                 servers_mountall.add(client.server)
 
         if len(servers_mountall) > 0:
-            FSProxyAction(self, 'mount', servers_mountall, self.debug, addopts=addopts).launch()
+            FSProxyAction(self, 'mount', servers_mountall, self.debug,
+                          addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -681,7 +677,8 @@ class FileSystem:
                 servers_umountall.add(client.server)
 
         if len(servers_umountall) > 0:
-            FSProxyAction(self, 'umount', servers_umountall, self.debug, addopts=addopts).launch()
+            FSProxyAction(self, 'umount', servers_umountall, self.debug,
+                          addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -726,9 +723,8 @@ class FileSystem:
 
                 server.tune(tuning_model, types, self.fs_name)
             else:
-                labels = NodeSet.fromlist([ t.label for t in e_comps ])
                 FSProxyAction(self, 'tune', NodeSet(server), self.debug,
-                              labels=labels, addopts=addopts).launch()
+                              comps=e_comps, addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()

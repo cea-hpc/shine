@@ -29,16 +29,18 @@ class FSProxyAction(ProxyAction):
     Generic file system command proxy action class.
     """
 
-    def __init__(self, fs, action, nodes, debug, targets_type=None, targets_indexes=None, labels=None, addopts=None, failover=None):
+    def __init__(self, fs, action, nodes, debug, comps=None, addopts=None, 
+                 failover=None):
+
         ProxyAction.__init__(self)
         self.fs = fs
         self.action = action
         assert isinstance(nodes, NodeSet)
         self.nodes = nodes
         self.debug = debug
-        self.targets_type = targets_type
-        self.targets_indexes = targets_indexes
-        self.labels = labels
+
+        self._comps = comps
+
         self.addopts = addopts
         self.failover = failover
 
@@ -57,13 +59,9 @@ class FSProxyAction(ProxyAction):
         if self.debug:
             command.append("-d")
 
-        if self.targets_type:
-            command.append("-t %s" % self.targets_type)
-            if self.targets_indexes:
-                command.append("-i %s" % self.targets_indexes)
-
-        if self.labels:
-            command.append("-l %s" % self.labels)
+        if self._comps:
+            labels = NodeSet.fromlist([ comp.label for comp in self._comps ])
+            command.append("-l %s" % labels)
 
         if self.addopts:
             command.append("-o '%s'" % self.addopts)
