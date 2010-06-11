@@ -1,3 +1,6 @@
+2010-06-11  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix failover with more than one failnode.
+
 2010-05-21  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Release: 0.907
 

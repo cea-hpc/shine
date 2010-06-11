@@ -143,10 +143,9 @@ class Target(Component, Disk):
             # XXX: We need to find intersec[0] in failservers.. we can do
             # something better here...
             for srv in self.failservers:
-                 if intersec[0].__eq__(srv):
+                if NodeSet(intersec[0]).__eq__(srv):
                     self.server = srv
-                    break
-            return True
+                    return True
 
         return False
 
