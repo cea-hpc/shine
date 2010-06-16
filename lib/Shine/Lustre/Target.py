@@ -143,7 +143,7 @@ class Target(Component, Disk):
             # XXX: We need to find intersec[0] in failservers.. we can do
             # something better here...
             for srv in self.failservers:
-                if NodeSet(intersec[0]).__eq__(srv):
+                if NodeSet(intersec[0]) == srv:
                     self.server = srv
                     return True
 
@@ -419,7 +419,7 @@ class Target(Component, Disk):
 
     def _action_failed(self, act, rc, message, comp='target'):
         """Called by Actions.* on failure"""
-        Component._action_failed(self, act, comp, rc, message, comp)
+        Component._action_failed(self, act, rc, message, comp)
 
 
 class MGT(Target):

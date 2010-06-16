@@ -1,3 +1,6 @@
+2010-06-16  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix error when a target raises an event failed.
+
 2010-06-11  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix failover with more than one failnode.
 
@@ -5,10 +8,10 @@
 	* Release: 0.907
 
 2010-05-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
-    * Hostname resolution improvements (fix ticket #60 and #61).
+	* Hostname resolution improvements (fix ticket #60 and #61).
 
 2010-05-19  Aurelien Degremont  <aurelien.degremont@cea.fr>
-    * Better error handling with unreachable nodes when installing(ticket #58).
+	* Better error handling with unreachable nodes when installing(ticket #58).
 
 2010-05-18  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Primary version of failover support (ticket #18).
