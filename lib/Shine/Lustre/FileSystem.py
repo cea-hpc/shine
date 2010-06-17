@@ -639,25 +639,23 @@ class FileSystem:
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        servers_mountall = NodeSet()
-
-        for client in self.managed_components(supports='mount'):
-            if client.server.is_local():
+        for server, iter_comps in self.managed_components(group_attr='server', 
+                                                          supports='mount'):
+            if server.is_local():
                 # local client
-                client.mount(**kwargs)
+                for comp in iter_comps:
+                    comp.mount(**kwargs)
             else:
                 # distant client
-                servers_mountall.add(client.server)
-
-        if len(servers_mountall) > 0:
-            FSProxyAction(self, 'mount', servers_mountall, self.debug,
-                          addopts=addopts).launch()
+                FSProxyAction(self, 'mount', NodeSet(server), self.debug,
+                              comps=list(iter_comps), addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        return self._check_errors([MOUNTED], self.managed_components(supports='mount'))
+        return self._check_errors([MOUNTED], 
+                                  self.managed_components(supports='mount'))
 
     def umount(self, **kwargs):
         """
@@ -666,25 +664,23 @@ class FileSystem:
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        servers_umountall = NodeSet()
-
-        for client in self.managed_components(supports='umount'):
-            if client.server.is_local():
+        for server, iter_comps in self.managed_components(group_attr='server', 
+                                                          supports='umount'):
+            if server.is_local():
                 # local client
-                client.umount(**kwargs)
+                for comp in iter_comps:
+                    comp.umount(**kwargs)
             else:
                 # distant client
-                servers_umountall.add(client.server)
-
-        if len(servers_umountall) > 0:
-            FSProxyAction(self, 'umount', servers_umountall, self.debug,
-                          addopts=addopts).launch()
+                FSProxyAction(self, 'umount', NodeSet(server), self.debug,
+                              comps=list(iter_comps), addopts=addopts).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        return self._check_errors([OFFLINE], self.managed_components(supports='umount'))
+        return self._check_errors([OFFLINE], 
+                                  self.managed_components(supports='umount'))
 
     def info(self):
         pass

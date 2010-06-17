@@ -186,7 +186,7 @@ class Fsck(FSLiveCriticalCommand):
                     excluded=self.nodes_support.get_excludes(),
                     failover=self.target_support.get_failover(),
                     indexes=self.indexes_support.get_rangeset(),
-                    labels=self.target_support.get_labels(),
+                    labels=self.label_support.get_labels(),
                     event_handler=eh)
 
             # Warn if trying to act on wrong nodes

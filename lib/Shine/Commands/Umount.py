@@ -131,6 +131,7 @@ class Umount(FSClientLiveCommand):
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
                     indexes=None,
+                    labels=self.label_support.get_labels(),
                     event_handler=eh)
 
             if not self.has_local_flag():

@@ -139,7 +139,7 @@ class Status(FSLiveCommand):
                     nodes=self.nodes_support.get_nodeset(),
                     excluded=self.nodes_support.get_excludes(),
                     indexes=self.indexes_support.get_rangeset(),
-                    labels=self.target_support.get_labels(),
+                    labels=self.label_support.get_labels(),
                     failover=self.target_support.get_failover(),
                     event_handler=eh)
 

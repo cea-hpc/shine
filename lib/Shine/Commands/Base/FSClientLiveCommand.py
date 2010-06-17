@@ -30,6 +30,7 @@ from Support.Nodes import Nodes
 from Support.FS import FS
 from Support.Verbose import Verbose
 from Support.AdditionalOptions import AdditionalOptions
+from Support.Label import Label
 
 
 class FSClientLiveCommand(RemoteCommand):
@@ -43,3 +44,4 @@ class FSClientLiveCommand(RemoteCommand):
         self.fs_support = FS(self, optional=True)
         self.verbose_support = Verbose(self)
         self.addopts = AdditionalOptions(self)
+        self.label_support = Label(self)

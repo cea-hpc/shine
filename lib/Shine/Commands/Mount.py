@@ -133,6 +133,7 @@ class Mount(FSClientLiveCommand):
                     nodes=self.nodes_support.get_nodeset(),
                     indexes=None,
                     excluded=self.nodes_support.get_excludes(),
+                    labels=self.label_support.get_labels(),
                     event_handler=eh)
 
             if not self.has_local_flag():

@@ -40,11 +40,6 @@ class Target:
 
         attr = { 'optional' : True,
                  'hidden' : False,
-                 'doc' : "specify component by label (ie: lustre-OST0000)" }
-        self.cmd.add_option('l', 'label', attr)
-
-        attr = { 'optional' : True,
-                 'hidden' : False,
                  'doc' : "Nodes to use to fail over" }
         self.cmd.add_option('F', 'fail server', attr)
 
@@ -57,11 +52,6 @@ class Target:
                 if t not in supported:
                     raise CommandBadParameterError(t, ", ".join(supported))
             return self.cmd.opt_t.lower()
-        return None
-
-    def get_labels(self):
-        if self.cmd.opt_l:
-            return NodeSet(self.cmd.opt_l)
         return None
 
     def get_failover(self):

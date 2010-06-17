@@ -32,7 +32,7 @@ from Support.Target import Target
 from Support.Verbose import Verbose
 from Support.Yes import Yes
 from Support.AdditionalOptions import AdditionalOptions
-
+from Support.Label import Label
 
 class FSLiveCommand(RemoteCommand):
     """
@@ -47,6 +47,7 @@ class FSLiveCommand(RemoteCommand):
         self.indexes_support = Indexes(self)
         self.verbose_support = Verbose(self)
         self.addopts = AdditionalOptions(self)
+        self.label_support = Label(self)
 
 class FSLiveCriticalCommand(FSLiveCommand):
 
