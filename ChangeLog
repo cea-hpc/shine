@@ -1,3 +1,6 @@
+2010-06-17  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Better target checks (ticket #71).
+
 2010-06-16  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix error when a target raises an event failed.
 

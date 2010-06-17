@@ -7,15 +7,16 @@
 """Unit test for Shine.Lustre.Disk"""
 
 import sys
+import os
 import unittest
 import tempfile
-from subprocess import *
+from subprocess import Popen, PIPE, STDOUT
 
 sys.path.insert(0, '../lib')
 
-from Shine.Lustre.Disk import *
+from Shine.Lustre.Disk import Disk, DiskDeviceError
 
-class ServerLoopbackTest(unittest.TestCase):
+class DiskLoopbackTest(unittest.TestCase):
 
     def makeFileDevice(self, size):
         # Get a temporary name for a file
@@ -116,7 +117,7 @@ class ServerLoopbackTest(unittest.TestCase):
         self.assertRaises(DiskDeviceError, d._disk_check)
 
 
-class ServerOtherTest(unittest.TestCase):
+class DiskOtherTest(unittest.TestCase):
 
     def testErrorDevCheck(self):
         """test device check with a wrong device"""
@@ -128,11 +129,14 @@ class ServerOtherTest(unittest.TestCase):
         d = Disk(dev='/dev/tty0')
         self.assertRaises(DiskDeviceError, d._device_check)
 
-    ### XXX: /dev/sda is hardcoded
+    ### XXX: /dev/sda and /dev/hda is hardcoded
     ### XXX: This does not check the device size
     def testBlockDevCheck(self):
         """test device check with a block device"""
-        d = Disk(dev='/dev/sda')
+        if os.path.exists('/dev/sda'):
+            d = Disk(dev='/dev/sda')
+        else:
+            d = Disk(dev='/dev/hda')
         d._device_check()
         self.assertEqual(d.dev_isblk, True)
         self.assertNotEqual(d.dev_size, 0)
@@ -155,13 +159,11 @@ class ServerOtherTest(unittest.TestCase):
         """test Disk exception classes"""
         d = Disk(dev="foo")
 
-        e = DiskException(disk=d)
-
         e = DiskDeviceError(disk=d, message="Something")
         self.assertEqual(str(e), "Something")
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(ServerLoopbackTest)
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(ServerOtherTest))
+    suite = unittest.TestLoader().loadTestsFromTestCase(DiskLoopbackTest)
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(DiskOtherTest))
     unittest.TextTestRunner(verbosity=2).run(suite)

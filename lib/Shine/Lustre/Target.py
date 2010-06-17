@@ -39,11 +39,8 @@ class TargetError(Exception):
     Target related error occured.
     """
     def __init__(self, target, message):
+        Exception.__init__(self, message)
         self.target = target
-        self.message = message
-
-    def __str__(self):
-        return self.message
 
 class TargetDeviceError(TargetError):
     """
@@ -174,6 +171,28 @@ class Target(Component, Disk):
         else:
             return Component.text_status(self)
 
+    #
+    # Target sanity checks
+    #
+
+    def _check_status(self, mountdata=True):
+        """
+        Sanity checks for device files and Lustre status.
+        If mountdata is set to False, target content will not be analyzed.
+        """
+
+        # check for disk level status
+        try:
+            self._device_check()
+            if mountdata:
+                self._mountdata_check(self.fs.fs_name, self.label)
+        except DiskDeviceError, error:
+            self.state = TARGET_ERROR
+            raise TargetDeviceError(self, str(error))
+
+        # check for Lustre level status
+        self._lustre_check()
+
     def _lustre_check(self):
 
         self.state = None   # Unknown
@@ -194,11 +213,11 @@ class Target(Component, Disk):
                     self.label)
         else:
             # get target's real device
-            f = open(mntdev_path[0])
+            fproc = open(mntdev_path[0])
             try:
-                self.mntdev = f.readline().rstrip('\n')
+                self.mntdev = fproc.readline().rstrip('\n')
             finally:
-                f.close()
+                fproc.close()
 
             loaded = True
 
@@ -224,10 +243,10 @@ class Target(Component, Disk):
                 raise TargetDeviceError(self, "incoherent state for %s (started but not mounted?)" % \
                        self.label)
 
-            if self.state == MOUNTED and self.TYPE != 'mgt':
+            if self.state == MOUNTED and self.TYPE != MGT.TYPE:
                 # check for MDT or OST recovery (MGS doesn't make any recovery)
                 try:
-                    f = open(recov_path[0], 'r')
+                    fproc = open(recov_path[0], 'r')
                 except (IOError, IndexError):
                     self.state = TARGET_ERROR
                     raise TargetDeviceError(self, "recovery_state file not found for %s" % \
@@ -238,18 +257,18 @@ class Target(Component, Disk):
                     completed_clients = -1
                     time_remaining = -1
 
-                    for line in f:
+                    for line in fproc:
                         if line.startswith("status:"):
                             key, status = line.rstrip().split(' ', 2)
                             break
                     if status == "COMPLETE":
-                        for line in f:
+                        for line in fproc:
                             if line.startswith("recovery_duration:"):
                                 key, recovery_duration = line.rstrip().split(' ', 2) 
                             if line.startswith("completed_clients:"):
                                 key, completed_clients = line.rstrip().split(' ', 2)
                     if status == "RECOVERING":
-                        for line in f:
+                        for line in fproc:
                             if line.startswith("time_remaining:"):
                                 key, time_remaining = line.rstrip().split(' ', 2)
                             if line.startswith("completed_clients:"):
@@ -257,22 +276,19 @@ class Target(Component, Disk):
                         self.state = RECOVERING
                         self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
                 finally:
-                    f.close()
+                    fproc.close()
 
     def format(self, **kwargs):
+        """
+        Check the target is correct and not used and format it in Lustre
+        format.
+        """
 
         self.state = INPROGRESS
         self._action_start('format')
 
         try:
-            self._device_check()
-        except DiskDeviceError, e:
-            self.state = TARGET_ERROR
-            self._action_failed('format', rc=1, message=str(e))
-            return
-
-        try:
-            self._lustre_check()
+            self._check_status(mountdata=False)
 
             if self.state == OFFLINE:
                 # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
@@ -292,23 +308,20 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
-        except TargetDeviceError, e:
-            self._action_failed('format', rc=-1, message=str(e))
+        except TargetDeviceError, error:
+            self._action_failed('format', rc=-1, message=str(error))
 
     def fsck(self, **kwargs):
+        """
+        Apply a filesystem coherency check on the Target. This does not
+        check coherency between several targets.
+        """
 
         self.state = INPROGRESS
         self._action_start('fsck')
 
         try:
-            self._device_check()
-        except DiskDeviceError, e:
-            self.state = TARGET_ERROR
-            self._action_failed('fsck', rc=1, message=str(e))
-            return
-
-        try:
-            self._lustre_check()
+            self._check_status(mountdata=False)
 
             if self.state == OFFLINE:
                 self.state = INPROGRESS
@@ -323,8 +336,8 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
-        except TargetDeviceError, e:
-            self._action_failed('fsck', rc=-1, message=str(e))
+        except TargetDeviceError, error:
+            self._action_failed('fsck', rc=-1, message=str(error))
 
     def status(self):
         """
@@ -333,26 +346,22 @@ class Target(Component, Disk):
         self._action_start('status')
 
         try:
-            # check for disk level status
-            self._disk_check(self.fs.fs_name, self.label)
-        except DiskDeviceError, e:
-            self.state = TARGET_ERROR
-            self._action_failed('status', rc=1, message=str(e))
-            return
-
-        # check for Lustre level status
-        self._lustre_check()
+            self._check_status()
+        except TargetDeviceError, error:
+            self._action_failed('status', rc=None, message=str(error))
 
         self._action_done('status')
 
     def start(self, **kwargs):
+        """
+        Start the local Target and check for system sanity.
+        """
 
         self.state = INPROGRESS
         self._action_start('start')
 
         try:
-            self._device_check()
-            self._lustre_check()
+            self._check_status()
 
             if self.state != OFFLINE:
                 # already mounted ?
@@ -370,17 +379,18 @@ class Target(Component, Disk):
             action = StartTarget(self, **kwargs)
             action.launch()
 
-        except TargetDeviceError, e:
-            self._action_failed('start', rc=None, message=str(e))
+        except TargetDeviceError, error:
+            self._action_failed('start', rc=None, message=str(error))
 
     def stop(self, **kwargs):
-
+        """
+        Stop the local Target and check for system sanity.
+        """
         self.state = INPROGRESS
         self._action_start('stop')
 
         try:
-            self._disk_check()
-            self._lustre_check()
+            self._check_status()
 
             if self.state == OFFLINE:
                 self.status_info = "%s is already stopped" % self.label
@@ -394,8 +404,8 @@ class Target(Component, Disk):
             action = StopTarget(self, **kwargs)
             action.launch()
 
-        except TargetDeviceError, e:
-            self._action_failed('stop', rc=None, message=str(e))
+        except TargetDeviceError, error:
+            self._action_failed('stop', rc=None, message=str(error))
 
     #
     # Event raising methods
@@ -432,6 +442,12 @@ class MGT(Target):
     def label(self):
         """Always returns the MGS label which is 'MGS'."""
         return 'MGS'
+
+    def _mountdata_check(self, fsname_check=None, label_check=None):
+        """Overload Disk method. Do not test filesystem name for MGS."""
+        # XXX: As MGT target could be defined as 'external', do we still
+        # need to avoid the fsname_check for MGT?
+        return Disk._mountdata_check(self, None, label_check)
 
 class MDT(Target):
 
