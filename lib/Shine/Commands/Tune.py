@@ -34,6 +34,7 @@ from Shine.Configuration.TuningModel import TuningParameterDeclarationException
 
 # Command base class
 from Base.FSLiveCommand import FSLiveCommand
+from Base.FSEventHandler import FSGlobalEventHandler
 from Base.CommandRCDefs import *
 # -R handler
 from Base.RemoteCallEventHandler import RemoteCallEventHandler
@@ -46,12 +47,13 @@ import Shine.Lustre.EventHandler
 from Shine.Lustre.FileSystem import *
 
 
-class GlobalTuneEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class GlobalTuneEventHandler(FSGlobalEventHandler):
 
     def __init__(self, verbose=1):
-        self.verbose = verbose
+        FSGlobalEventHandler.__init__(self, verbose)
 
-    def pre(self, fs):
+    def handle_pre(self, fs):
+        # attach fs to this handler
         if self.verbose > 0:
             print "Tuning filesystem %s..." % fs.fs_name
 

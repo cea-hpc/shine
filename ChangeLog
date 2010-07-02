@@ -1,6 +1,8 @@
 2010-07-02  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Clean example model file.
-	* Remove unsupported 'failover' parameter in model file.
+	* Remove unsupported 'failover' parameter in model file (ticket #66).
+	* Commmand mount, umount and status display progress information (ticket
+	  #2).
 
 2010-06-17  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Better target checks (ticket #71).

@@ -45,18 +45,26 @@ from Shine.FSUtils import open_lustrefs
 from Shine.Commands.Tune import Tune
 
 # Lustre events
+from Base.FSEventHandler import FSGlobalEventHandler
 import Shine.Lustre.EventHandler
 from Shine.Lustre.FileSystem import *
 
-class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class GlobalMountEventHandler(FSGlobalEventHandler):
 
-    def __init__(self, verbose=1):
-        self.verbose = verbose
+    def handle_pre(self, fs):
+        if self.verbose > 0:
+            count = len(list(fs.managed_components(supports='mount')))
+            servers = fs.managed_component_servers(supports='mount')
+            print "Starting %d client(s) of %s on %s" % (count,
+                    fs.fs_name, servers)
+
+    def handle_post(self, fs):
+        pass
 
     def ev_mountclient_start(self, node, comp):
-
         if self.verbose > 1:
             print "%s: Mounting %s on %s ..." % (node, comp.fs.fs_name, comp.mount_path)
+        self.update()
 
     def ev_mountclient_done(self, node, comp):
         self.update_client_status(node, "succeeded")
@@ -67,6 +75,7 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
             else:
                 print "%s: FS %s succesfully mounted on %s" % (node,
                         comp.fs.fs_name, comp.mount_path)
+        self.update()
 
     def ev_mountclient_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
@@ -79,6 +88,8 @@ class GlobalMountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                 (node, comp.fs.fs_name, comp.mount_path, strerr)
         if rc:
             print message
+
+        self.update()
 
     def set_fs_config(self, fs_conf):
         self.fs_conf = fs_conf
@@ -149,9 +160,9 @@ class Mount(FSClientLiveCommand):
                 result = RC_FAILURE
                 continue
 
-            if not self.remote_call and vlevel > 0:
-                print "Starting %s clients on %s..." % \
-                    (fs.fs_name, fs.managed_component_servers(supports='mount'))
+            # Will call the handle_pre() method defined by the event handler.
+            if hasattr(eh, 'pre'):
+                eh.pre(fs)
 
             status = fs.mount(mount_options=fs_conf.get_mount_options(), 
                               addopts=self.addopts.get_options())
@@ -194,5 +205,8 @@ class Mount(FSClientLiveCommand):
                     if rc == RC_RUNTIME_ERROR:
                         for nodes, msg in fs.proxy_errors:
                             print "%s: %s" % (nodes, msg)
+
+            if hasattr(eh, 'post'):
+                eh.post(fs)
 
         return result

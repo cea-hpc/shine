@@ -65,7 +65,7 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
             if self.status_changed:
                 self.status_changed = False
                 d = datetime.datetime.now()
-                print "[%s] In progress for %d target(s) on %s ..." % \
+                print "[%s] In progress for %d component(s) on %s ..." % \
                         (d.strftime("%H:%M"), target_count, target_servers)
 
     def update(self):
@@ -73,6 +73,6 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         # (re)start timer if needed
         if self.verbose > 0 and (not self.action_timer or not self.action_timer.is_valid()):
             # timer on
-            self.action_timer = task_self().timer(2.0, handler=self, interval=20.0, autoclose=True)
+            self.action_timer = task_self().timer(2.0, handler=self, interval=20, autoclose=True)
             assert self.action_timer != None
 

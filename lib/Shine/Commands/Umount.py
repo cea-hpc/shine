@@ -42,18 +42,27 @@ from Base.RemoteCallEventHandler import RemoteCallEventHandler
 from Shine.FSUtils import open_lustrefs
 
 # Lustre events
+from Base.FSEventHandler import FSGlobalEventHandler
 import Shine.Lustre.EventHandler
 from Shine.Lustre.FileSystem import *
 
 
-class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class GlobalUmountEventHandler(FSGlobalEventHandler):
 
-    def __init__(self, verbose=1):
-        self.verbose = verbose
+    def handle_pre(self, fs):
+        if self.verbose > 0:
+            count = len(list(fs.managed_components(supports='umount')))
+            servers = fs.managed_component_servers(supports='umount')
+            print "Stopping %d client(s) of %s on %s" % (count,
+                    fs.fs_name, servers)
+
+    def handle_post(self, fs):
+        pass
 
     def ev_umountclient_start(self, node, comp):
         if self.verbose > 1:
             print "%s: Unmounting %s on %s ..." % (node, comp.fs.fs_name, comp.mount_path)
+        self.update()
 
     def ev_umountclient_done(self, node, comp):
         self.update_client_status(node, "succeeded")
@@ -64,6 +73,7 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
             else:
                 print "%s: FS %s succesfully unmounted from %s" % (node,
                         comp.fs.fs_name, comp.mount_path)
+        self.update()
 
     def ev_umountclient_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
@@ -76,6 +86,8 @@ class GlobalUmountEventHandler(Shine.Lustre.EventHandler.EventHandler):
                 (node, comp.fs.fs_name, comp.mount_path, strerr)
         if rc:
             print message
+
+        self.update()
 
     def set_fs_config(self, fs_conf):
         self.fs_conf = fs_conf
@@ -146,9 +158,9 @@ class Umount(FSClientLiveCommand):
                 result = RC_FAILURE
                 continue
 
-            if not self.remote_call and vlevel > 0:
-                print "Stopping %s clients on %s..." % \
-                    (fs.fs_name, fs.managed_component_servers('umount'))
+            # Will call the handle_pre() method defined by the event handler.
+            if hasattr(eh, 'pre'):
+                eh.pre(fs)
 
             status = fs.umount(addopts=self.addopts.get_options())
             rc = self.fs_status_to_rc(status)
@@ -172,5 +184,8 @@ class Umount(FSClientLiveCommand):
                 elif rc == RC_RUNTIME_ERROR:
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)
+
+            if hasattr(eh, 'post'):
+                eh.post(fs)
 
         return result

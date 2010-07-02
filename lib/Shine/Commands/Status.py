@@ -54,6 +54,7 @@ from Shine.Utilities.AsciiTable import *
 
 # Lustre events and errors
 import Shine.Lustre.EventHandler
+from Base.FSEventHandler import FSGlobalEventHandler
 from Shine.Lustre.Disk import *
 from Shine.Lustre.FileSystem import *
 
@@ -65,31 +66,40 @@ import os
 (KILO, MEGA, GIGA, TERA) = (1024, 1048576, 1073741824, 1099511627776)
 
 
-class GlobalStatusEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class GlobalStatusEventHandler(FSGlobalEventHandler):
 
-    def __init__(self, verbose=1):
-        self.verbose = verbose
+    def handle_pre(self, fs):
+        if self.verbose > 0:
+            count = len(list(fs.managed_components(supports='status')))
+            servers = fs.managed_component_servers(supports='status')
+            print "Checking %d component(s) of %s on %s" % (count,
+                    fs.fs_name, servers)
+
+    def handle_post(self, fs):
+        pass
 
     def ev_statustarget_start(self, node, comp):
-        pass
+        self.update()
 
     def ev_statustarget_done(self, node, comp):
-        pass
+        self.update()
 
     def ev_statustarget_failed(self, node, comp, rc, message):
         print "%s: Failed to status %s (%s)" % (node, \
                 comp.get_id(), comp.dev)
         print ">> %s" % message
+        self.update()
 
     def ev_statusclient_start(self, node, comp):
-        pass
+        self.update()
 
     def ev_statusclient_done(self, node, comp):
-        pass
+        self.update()
 
     def ev_statusclient_failed(self, node, comp, rc, message):
         print "%s: Failed to status of FS %s" % (node, comp.fs.fs_name)
         print ">> %s" % message
+        self.update()
 
 
 class Status(FSLiveCommand):
@@ -168,6 +178,10 @@ class Status(FSLiveCommand):
             # disable servers checks when not requested
             if view.startswith("client"):
                 status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
+
+            # Will call the handle_pre() method defined by the event handler.
+            if hasattr(eh, 'pre'):
+                eh.pre(fs)
 
             fs_result = fs.status(status_flags, failover=self.target_support.get_failover())
 
