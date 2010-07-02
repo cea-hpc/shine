@@ -56,7 +56,7 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         Repeating timer callback for in-progress operations.
         """
 
-        filter_key = lambda t: t.state == INPROGRESS
+        filter_key = lambda t: t.state == INPROGRESS or t._list_action()
         targets = list(self.fs.managed_components(filter_key=filter_key))
         target_servers = NodeSet.fromlist([t.server for t in targets])
         target_count = len(targets)

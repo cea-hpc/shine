@@ -66,6 +66,9 @@ class Component(object):
         # Enabled or not
         self.action_enabled = enabled
 
+        # List of running action
+        self.__running_actions = []
+
         # Component behaviour change depending on its mode.
         self._mode = mode
 
@@ -130,6 +133,32 @@ class Component(object):
         return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %s" % self.state)
 
     #
+    # Inprogress action methods
+    #
+    def _add_action(self, act, comp=None):
+        """
+        Add the named action to the running action list.
+        """
+        if not comp:
+            comp = self.TYPE
+        assert((act, comp) not in self.__running_actions)
+        self.__running_actions.append((act, comp))
+
+    def _del_action(self, act, comp=None):
+        """
+        Remove the named action from the running action list.
+        """
+        if not comp:
+            comp = self.TYPE
+        self.__running_actions.remove((act, comp))
+
+    def _list_action(self):
+        """
+        Return the running action list.
+        """
+        return self.__running_actions
+
+    #
     # Event raising methods
     #
 
@@ -137,23 +166,27 @@ class Component(object):
         """Called by Actions.* when starting"""
         if not comp:
             comp = self.TYPE
+        self._add_action(act, comp)
         self.fs._invoke('ev_%s%s_start' % (act, comp), comp=self)
 
     def _action_done(self, act, comp=None):
         """Called by Actions.* when done"""
         if not comp:
             comp = self.TYPE
+        self._del_action(act, comp)
         self.fs._invoke('ev_%s%s_done' % (act, comp), comp=self)
 
     def _action_timeout(self, act, comp=None):
         """Called by Actions.* on timeout"""
         if not comp:
             comp = self.TYPE
+        self._del_action(act, comp)
         self.fs._invoke('ev_%s%s_timeout' % (act, comp), comp=self)
 
     def _action_failed(self, act, rc, message, comp=None):
         """Called by Actions.* on failure"""
         if not comp:
             comp = self.TYPE
-        self.fs._invoke('ev_%s%s_failed' % (act, comp), comp=self, rc=rc, message=message)
-
+        self._del_action(act, comp)
+        self.fs._invoke('ev_%s%s_failed' % (act, comp), comp=self, rc=rc, 
+                        message=message)

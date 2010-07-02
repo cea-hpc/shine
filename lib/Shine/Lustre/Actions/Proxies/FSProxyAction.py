@@ -20,6 +20,7 @@
 # $Id$
 
 from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionUnpackError
+from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -72,6 +73,16 @@ class FSProxyAction(ProxyAction):
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
 
+    def ev_start(self, worker):
+        """
+        Proxy command is starting.
+        """
+        # Add a 'proxy' running action for each component.
+        # XXX: This should be changed using a real event for proxy.
+        if self._comps:
+            for comp in self._comps:
+                comp._add_action('proxy')
+
     def ev_read(self, worker):
         node, buf = worker.last_read()
         try:
@@ -85,6 +96,24 @@ class FSProxyAction(ProxyAction):
         """
         End of proxy command.
         """
+
+        # Remove the 'proxy' running action for each component.
+        if self._comps:
+            for comp in self._comps:
+                # XXX: This should be changed using a real event for proxy.
+                comp._del_action('proxy')
+
+                # At this step, there should be no more INPROGRESS component.
+                # If yes, this is a bug, change state to RUNTIME_ERROR.
+                # INPROGRESS management could be change using running action
+                # list.
+                if comp.state == INPROGRESS:
+                    if len(comp._list_action()):
+                        actions = "actions: " + ", ".join(comp._list_action())
+                    print "ERROR: bad state for %s: %d %s" % \
+                                    (comp.label, comp.state, actions)
+                    comp.state = RUNTIME_ERROR
+
         # Gather nodes by return code
         for rc, nodes in worker.iter_retcodes():
             # some common remote errors:
@@ -102,9 +131,10 @@ class FSProxyAction(ProxyAction):
                     # Ok, those nodes have output, forget them
                     nobuffer_nodes.difference_update(nodes)
 
-                    ### FIXME #25: temporary SHINE msg filter to avoid pickle data to
-                    ### be dumped on screen. To be fixed as soon as ClusterShell is
-                    ### able to clean MsgTree buffers on demand (CS trac #3).
+                    ### FIXME #25: temporary SHINE msg filter to avoid pickle 
+                    ### data to be dumped on screen. To be fixed as soon as
+                    ### ClusterShell is able to clean MsgTree buffers on demand
+                    ### (CS trac #3).
                     buf = ""
                     for line in buffer.splitlines():
                         if not line.startswith("SHINE:"):
