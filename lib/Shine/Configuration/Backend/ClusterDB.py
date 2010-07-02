@@ -307,7 +307,7 @@ class ClusterDB(Backend):
                                                            'stripe_pattern' : fs.get_one('stripe_pattern'),
                                                            'nettype' : fs.get_one('nettype'),
                                                            'fstype' : fs.get_one('fstype'),
-                                                           'failover' : fs.get_one('failover'),
+                                                           'failover' : None,
                                                            'ha_timeout' : fs.get_one('ha_timeout'),
                                                            'mdt_mkfs_options' : fs.get_one('mdt_mkfs_options'),
                                                            'mdt_inode_size' : fs.get_one('mdt_inode_size'),

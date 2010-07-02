@@ -59,10 +59,6 @@ client: node=nova[35-39] mount_path=/my/specific/example
 
 ### Section 3 - Additionnal directives
 
-# failover
-# Enable failover support (yes), or failout (no).
-failover: yes
-
 # description
 # Optional FS description
 description: Example Lustre Filesystem
@@ -76,27 +72,40 @@ stripe_size: 1048576
 # Default value is 0 and means to stripe on all available OSTs.
 stripe_count: 2
 
-# mdt_mkfs_options
-# Optional argument to mkfs for MDT. Defaults is no options.
+#
+# mgt_format_params:
+# mdt_format_params:
+# ost_format_params:
+#
+# Optional argument that will be used by mkfs.lustre for a target. Default is
+# no option.
+#
+# ie: disable failover mode and enable failout instead
+# mdt_format_params: failover.mode=failout
+# ost_format_params: failover.mode=failout
 
-# We want 4k block for mdt and 4096 bytes/inode ratio.
-mdt_mkfs_options: -b 4096 -i 4096
+#
+# mgt_mkfs_options:
+# mdt_mkfs_options:
+# ost_mkfs_options:
+#
+# Optional argument for --mkfsoptions, by target type. You can use ext3 format
+# options here. Defaults is no option.
+# ie: do not reserve blocks for super-user.
+mgt_mkfs_options: -m 0
+mdt_mkfs_options: -m 0
+ost_mkfs_options: -m 0
 
-# mdt_mount_options
-# Optional argument to mount fs. Default is no options.
-
-# acl and user_xattr are enabled in this case.
-mdt_mount_options: acl,user_xattr
-
-# ost_mkfs_options
-# Optional argument to mkfs for OST. Defaults is no options.
-
-# We want 4k block for osts
-ost_mkfs_options: -b 4096
-
+#
+# mgt_mount_options:
+# mdt_mount_options:
 # ost_mount_options:
-# Optional argument to mount fs. Default is no options.
-ost_mount_options: extents,mballoc
+#
+# Optional argument used when starting a target. Default is no options.
+
+# ie: Enable ACL for MDT
+mdt_mount_options: acl
+
 
 # mount_options
 # This define the default options to mount the filesystem on clients.

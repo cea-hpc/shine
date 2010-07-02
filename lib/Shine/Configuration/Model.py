@@ -30,7 +30,6 @@ class Model(ModelFile):
        'fs_name'            : 'string',
        'stripe_size'        : 'digit',
        'stripe_count'       : 'digit',
-       'failover'           : [ 'yes', 'no' ],
        'mgt_mkfs_options'   : 'string',
        'mgt_mount_options'  : 'string',
        'mgt_mount_path'     : 'string',
@@ -65,7 +64,6 @@ class Model(ModelFile):
     defaults = {
        'stripe_size'        : 1048576,
        'stripe_count'       : 1,
-       'failover'           : 'no',
        'mgt_mkfs_options'   : "",
        'mgt_mount_options'  : "",
        'mgt_mount_path'     : "/mnt/$fs_name/mgt",
@@ -74,8 +72,8 @@ class Model(ModelFile):
        'mdt_mount_options'  : "",
        'mdt_mount_path'     : "/mnt/$fs_name/mdt/$index",
        'mdt_format_params'  : "",
-       'ost_mkfs_options'   : "-b 4096",
-       'ost_mount_options'  : "extents,mballoc",
+       'ost_mkfs_options'   : "",
+       'ost_mount_options'  : "",
        'ost_mount_path'     : "/mnt/$fs_name/ost/$index",
        'ost_format_params'  : "",
        'quota_type'         : "ug"
