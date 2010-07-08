@@ -29,36 +29,22 @@ for any filesystems previously installed and formatted.
 
 import os
 
-# Configuration
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
 from Shine.Commands.Status import Status
 from Shine.Commands.Tune import Tune
 
 # Command base class
-from Base.FSLiveCommand import FSLiveCommand
-from Base.FSEventHandler import FSGlobalEventHandler
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-# Command helper
-from Shine.FSUtils import open_lustrefs
-
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
 import Shine.Lustre.EventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
 
-# Shine Proxy Protocol
-from Shine.Lustre.Actions.Proxies.ProxyAction import *
-from Shine.Lustre.FileSystem import *
-
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 class GlobalStartEventHandler(FSGlobalEventHandler):
-
-    def __init__(self, verbose=1):
-        FSGlobalEventHandler.__init__(self, verbose)
 
     def handle_pre(self, fs):
         if self.verbose > 0:
@@ -132,9 +118,6 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             print message
         self.update()
 
-    def set_fs_config(self, fs_conf):
-        self.fs_conf = fs_conf
-
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
@@ -151,6 +134,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
 class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def __init__(self, verbose=1):
+        Shine.Lustre.EventHandler.EventHandler.__init__(self)
         self.verbose = verbose
 
     def ev_starttarget_start(self, node, comp):
@@ -198,21 +182,18 @@ class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
             print message
 
 
-class Start(FSLiveCommand):
+class Start(FSTargetLiveCommand):
     """
     shine start [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """
 
-    def __init__(self):
-        FSLiveCommand.__init__(self)
+    NAME = "start"
+    DESCRIPTION = "Start file system servers."
 
-    def get_name(self):
-        return "start"
+    GLOBAL_EH = GlobalStartEventHandler
+    LOCAL_EH = LocalStartEventHandler
 
-    def get_desc(self):
-        return "Start file system servers."
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
             RECOVERING : RC_OK,
             EXTERNAL : RC_ST_EXTERNAL,
@@ -221,93 +202,59 @@ class Start(FSLiveCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Prepare options...
+        mount_options = {}
+        mount_paths = {}
+        for target_type in [ 'mgt', 'mdt', 'ost' ]:
+            mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
+            mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
 
-        self.init_execute()
+        # Ignore all clients for this command
+        fs.disable_clients()
 
-        # Get verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers(supports='start'), "start"):
+            return RC_FAILURE
 
-        target = self.target_support.get_target()
-        for fsname in self.fs_support.iter_fsname():
+        # Will call the handle_pre() method defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
+            
+        # Notify backend of file system status mofication
+        fs_conf.set_status_fs_starting()
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(LocalStartEventHandler(vlevel),
-                    GlobalStartEventHandler(vlevel))
+        status = fs.start(mount_options=mount_options,
+                          mount_paths=mount_paths,
+                          addopts=self.addopts.get_options(),
+                          failover=self.target_support.get_failover())
 
-            # Open configuration and instantiate a Lustre FS.
-            fs_conf, fs = open_lustrefs(fsname, target,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    failover=self.target_support.get_failover(),
-                    indexes=self.indexes_support.get_rangeset(),
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
+        rc = self.fs_status_to_rc(status)
 
-            if not self.has_local_flag():
-                # Allow global handler to access fs_conf.
-                eh.set_fs_config(fs_conf)
-
-            # Prepare options...
-            mount_options = {}
-            mount_paths = {}
-            for target_type in [ 'mgt', 'mdt', 'ost' ]:
-                mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
-                mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
-
-            fs.set_debug(self.debug_support.has_debug())
-
-            # Ignore all clients for this command
-            fs.disable_clients()
-
-            # Warn if trying to act on wrong nodes
-            if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_component_servers(supports='start'), "start"):
-                result = RC_FAILURE
-                continue
-
-            # Will call the handle_pre() method defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-                
+        if rc == RC_OK:
             # Notify backend of file system status mofication
-            fs_conf.set_status_fs_starting()
+            fs_conf.set_status_fs_online()
 
-            status = fs.start(mount_options=mount_options,
-                              mount_paths=mount_paths,
-                              addopts=self.addopts.get_options(),
-                              failover=self.target_support.get_failover())
+            if vlevel > 0:
+                print "Start successful."
+            tuning = Tune.get_tuning(fs_conf)
+            status = fs.tune(tuning)
+            if status == RUNTIME_ERROR:
+                rc = RC_RUNTIME_ERROR
+            # XXX improve tuning on start error handling
+        elif vlevel > 0:
+            print "Tuning skipped."
 
-            rc = self.fs_status_to_rc(status)
-            if rc > result:
-                result = rc
+        if rc == RC_RUNTIME_ERROR:
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_online_failed()
 
-            if rc == RC_OK:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_online()
+            for nodes, msg in fs.proxy_errors:
+                print "%s: %s" % (nodes, msg)
 
-                if vlevel > 0:
-                    print "Start successful."
-                tuning = Tune.get_tuning(fs_conf)
-                status = fs.tune(tuning)
-                if status == RUNTIME_ERROR:
-                    rc = RC_RUNTIME_ERROR
-                # XXX improve tuning on start error handling
-            elif vlevel > 0:
-                print "Tuning skipped."
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
-            if rc == RC_RUNTIME_ERROR:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_online_failed()
-
-                for nodes, msg in fs.proxy_errors:
-                    print "%s: %s" % (nodes, msg)
-
-            if hasattr(eh, 'post'):
-                eh.post(fs)
-
-        return result
+        return rc

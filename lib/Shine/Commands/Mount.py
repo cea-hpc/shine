@@ -27,27 +27,20 @@ The mount command aims to start Lustre filesystem clients.
 
 import os
 
-# Configuration
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-# Command base class
-from Base.FSClientLiveCommand import FSClientLiveCommand
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-from Exceptions import CommandException
-
 # Command helper
-from Shine.FSUtils import open_lustrefs
 from Shine.Commands.Tune import Tune
 
+# Command base class
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-from Base.FSEventHandler import FSGlobalEventHandler
-import Shine.Lustre.EventHandler
-from Shine.Lustre.FileSystem import *
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
+
 
 class GlobalMountEventHandler(FSGlobalEventHandler):
 
@@ -91,9 +84,6 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def set_fs_config(self, fs_conf):
-        self.fs_conf = fs_conf
-
     def update_client_status(self, client_name, status):
         # Change the status of client 
         if status == "succeeded":
@@ -101,20 +91,18 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
         elif status == "failed":
             self.fs_conf.set_status_clients_mount_failed([client_name], None)
 
-class Mount(FSClientLiveCommand):
+class Mount(FSLiveCommand):
     """
+    shine mount
     """
 
-    def __init__(self):
-        FSClientLiveCommand.__init__(self)
+    NAME = "mount"
+    DESCRIPTION = "Mount file system clients."
 
-    def get_name(self):
-        return "mount"
+    GLOBAL_EH = GlobalMountEventHandler
+    LOCAL_EH = None
 
-    def get_desc(self):
-        return "Mount file system clients."
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
             RECOVERING : RC_FAILURE,
             OFFLINE : RC_FAILURE,
@@ -122,91 +110,58 @@ class Mount(FSClientLiveCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers(supports='mount'), "mount"):
+            return RC_FAILURE
 
-        self.init_execute()
+        # Will call the handle_pre() method defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
 
-        # Get verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        status = fs.mount(mount_options=fs_conf.get_mount_options(), 
+                          addopts=self.addopts.get_options())
 
-        for fsname in self.fs_support.iter_fsname():
+        rc = self.fs_status_to_rc(status)
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(None,
-                    GlobalMountEventHandler(vlevel))
+        if not self.remote_call:
+            if rc == RC_OK:
+                # Notify backend of file system status mofication
+                fs_conf.set_status_fs_mounted()
 
-            # Get filesystem informations
-            fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=self.nodes_support.get_nodeset(),
-                    indexes=None,
-                    excluded=self.nodes_support.get_excludes(),
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
+                if vlevel > 0:
+                    key = lambda c: c.state == MOUNTED
+                    print "Mount successful on %s" % \
+                        fs.managed_component_servers(supports='mount',filter_key=key)
 
-            if not self.has_local_flag():
-                # Allow global handler to access fs_conf.
-                eh.set_fs_config(fs_conf)
+                # Apply tuning after successful mount(s)
+                tuning = Tune.get_tuning(fs_conf)
+                status = fs.tune(tuning)
+                if status == MOUNTED:
+                    print "Filesystem tuning applied on %s" % \
+                        fs.managed_component_servers(supports='mount')
+                elif status == RUNTIME_ERROR:
+                    rc = RC_RUNTIME_ERROR
 
-            # Enabled debugging if debug flag was set on CLI.
-            fs.set_debug(self.debug_support.has_debug())
-
-            # Warn if trying to act on wrong nodes
-            if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_component_servers(supports='mount'), "mount"):
-                result = RC_FAILURE
-                continue
-
-            # Will call the handle_pre() method defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-
-            status = fs.mount(mount_options=fs_conf.get_mount_options(), 
-                              addopts=self.addopts.get_options())
-
-            rc = self.fs_status_to_rc(status)
-            if rc > result:
-                result = rc
-
-            if not self.remote_call:
-                if rc == RC_OK:
                     # Notify backend of file system status mofication
-                    fs_conf.set_status_fs_mounted()
+                    fs_conf.set_status_fs_warning()
 
-                    if vlevel > 0:
-                        key = lambda c: c.state == MOUNTED
-                        print "Mount successful on %s" % \
-                            fs.managed_component_servers(supports='mount',filter_key=key)
+                    for nodes, msg in fs.proxy_errors:
+                        print "%s: %s" % (nodes, msg)
+            else:
+                # Display a failure message in case of previous failed
+                # mounts. For now, if one mount fail, the tuning is
+                # skipped. Use `shine tune' to manually tune the FS.
+                # Trac ticket #46 aims to improve this.
+                if vlevel > 0:
+                    print "Tuning skipped!"
+                if rc == RC_RUNTIME_ERROR:
+                    for nodes, msg in fs.proxy_errors:
+                        print "%s: %s" % (nodes, msg)
 
-                    # Apply tuning after successful mount(s)
-                    tuning = Tune.get_tuning(fs_conf)
-                    status = fs.tune(tuning)
-                    if status == MOUNTED:
-                        print "Filesystem tuning applied on %s" % \
-                            fs.managed_component_servers(supports='mount')
-                    elif status == RUNTIME_ERROR:
-                        rc = RC_RUNTIME_ERROR
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
-                        # Notify backend of file system status mofication
-                        fs_conf.set_status_fs_warning()
-
-                        for nodes, msg in fs.proxy_errors:
-                            print "%s: %s" % (nodes, msg)
-                else:
-                    # Display a failure message in case of previous failed
-                    # mounts. For now, if one mount fail, the tuning is
-                    # skipped. Use `shine tune' to manually tune the FS.
-                    # Trac ticket #46 aims to improve this.
-                    if vlevel > 0:
-                        print "Tuning skipped!"
-                    if rc == RC_RUNTIME_ERROR:
-                        for nodes, msg in fs.proxy_errors:
-                            print "%s: %s" % (nodes, msg)
-
-            if hasattr(eh, 'post'):
-                eh.post(fs)
-
-        return result
+        return rc

@@ -69,7 +69,7 @@ class CommandRegistry:
         assert isinstance(cmd, Command)
 
         self.cmd_list.append(cmd)
-        self.cmd_dict[cmd.get_name()] = cmd
+        self.cmd_dict[cmd.NAME] = cmd
 
         # Keep an eye on ALL option arguments, this is to insure a global
         # options coherency within shine and allow us to intermix options and

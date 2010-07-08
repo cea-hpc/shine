@@ -29,39 +29,27 @@ of the filesystem, or if needed, to enquire about filesystem components
 detailed states.
 """
 
-# Configuration
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-# Command base class
-from Base.FSLiveCommand import FSLiveCommand
-from Base.CommandRCDefs import *
-# Additional options
-from Base.Support.View import View
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-
-# Error handling
-from Exceptions import CommandBadParameterError
-
-# Command helper
-from Shine.FSUtils import open_lustrefs
-
-# Command output formatting
-from Shine.Utilities.AsciiTable import *
-
-# Lustre events and errors
-import Shine.Lustre.EventHandler
-from Base.FSEventHandler import FSGlobalEventHandler
-from Shine.Lustre.Disk import *
-from Shine.Lustre.FileSystem import *
-
 from ClusterShell.NodeSet import NodeSet
 
-import os
+# Command base class
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
+                                              RC_ST_ONLINE, RC_ST_RECOVERING, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 
+# Additional options
+from Shine.Commands.Base.Support.View import View
+
+# Command output formatting
+from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
+# Lustre events and errors
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
+                                    STATUS_ANY, STATUS_CLIENTS, STATUS_SERVERS, \
+                                    STATUS_HASERVERS
 
 (KILO, MEGA, GIGA, TERA) = (1024, 1048576, 1073741824, 1099511627776)
 
@@ -102,23 +90,18 @@ class GlobalStatusEventHandler(FSGlobalEventHandler):
         self.update()
 
 
-class Status(FSLiveCommand):
+class Status(FSTargetLiveCommand):
     """
     shine status [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """
 
-    def __init__(self):
-        FSLiveCommand.__init__(self)
-        self.view_support = View(self)
+    NAME = "status"
+    DESCRIPTION = "Check for file system target status."
 
-    def get_name(self):
-        return "status"
+    GLOBAL_EH = GlobalStatusEventHandler
+    LOCAL_EH = None
 
-    def get_desc(self):
-        return "Check for file system target status."
-
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_ST_ONLINE,
             RECOVERING : RC_ST_RECOVERING,
             EXTERNAL : RC_ST_EXTERNAL,
@@ -127,85 +110,60 @@ class Status(FSLiveCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def __init__(self):
+        FSTargetLiveCommand.__init__(self)
+        self.view_support = View(self)
 
-    def execute(self):
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-        result = 0
+        # Warn if trying to act on wrong nodes
+        all_nodes = fs.managed_component_servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                all_nodes, "check"):
+            return RC_FAILURE
 
-        self.init_execute()
+        status_flags = STATUS_ANY
+        view = self.view_support.get_view()
 
-        # Get verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        # default view
+        if view is None:
+            view = "fs"
+        else:
+            view = view.lower()
 
-        target = self.target_support.get_target()
-        for fsname in self.fs_support.iter_fsname():
+        # disable client checks when not requested
+        if view.startswith("disk") or view.startswith("target"):
+            status_flags &= ~STATUS_CLIENTS
+            fs.disable_clients()
+        # disable servers checks when not requested
+        if view.startswith("client"):
+            status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(None, GlobalStatusEventHandler(vlevel))
+        # Will call the handle_pre() method defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
 
-            fs_conf, fs = open_lustrefs(fsname, target,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    indexes=self.indexes_support.get_rangeset(),
-                    labels=self.label_support.get_labels(),
-                    failover=self.target_support.get_failover(),
-                    event_handler=eh)
+        fs_result = fs.status(status_flags, failover=self.target_support.get_failover())
 
-            # Warn if trying to act on wrong nodes
-            all_nodes = fs.managed_component_servers()
-            if not self.nodes_support.check_valid_list(fsname, \
-                    all_nodes, "check"):
-                result = max(RC_FAILURE, result)
-                continue
+        if fs_result == RUNTIME_ERROR:
+            for nodes, msg in fs.proxy_errors:
+                print nodes
+                print '-' * 15
+                print msg
+            print
 
-            fs.set_debug(self.debug_support.has_debug())
+        result = self.fs_status_to_rc(fs_result)
 
-            status_flags = STATUS_ANY
-            view = self.view_support.get_view()
-
-            # default view
-            if view is None:
-                view = "fs"
-            else:
-                view = view.lower()
-
-            # disable client checks when not requested
-            if view.startswith("disk") or view.startswith("target"):
-                status_flags &= ~STATUS_CLIENTS
-                fs.disable_clients()
-            # disable servers checks when not requested
-            if view.startswith("client"):
-                status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
-
-            # Will call the handle_pre() method defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-
-            fs_result = fs.status(status_flags, failover=self.target_support.get_failover())
-
-            if fs_result == RUNTIME_ERROR:
-                for nodes, msg in fs.proxy_errors:
-                    print nodes
-                    print '-' * 15
-                    print msg
-                print
-
-            result = max(self.fs_status_to_rc(fs_result), result)
-
-            if not self.remote_call and vlevel > 0:
-                if view == "fs":
-                    self.status_view_fs(fs)
-                elif view.startswith("target"):
-                    self.status_view_targets(fs)
-                elif view.startswith("disk"):
-                    self.status_view_disks(fs)
-                else:
-                    raise CommandBadParameterError(self.view_support.get_view(),
-                            "fs, targets, disks")
+        if not self.remote_call and vlevel > 0:
+            if view == "fs":
+                self.status_view_fs(fs)
+            elif view.startswith("target"):
+                self.status_view_targets(fs)
+            elif view.startswith("disk"):
+                self.status_view_disks(fs)
 
         return result
+
 
     def status_view_targets(self, fs):
         """

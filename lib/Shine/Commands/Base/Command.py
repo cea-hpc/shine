@@ -33,6 +33,10 @@ class Command(object):
     The base class for command objects that can be added to the commands
     registry.
     """
+
+    NAME = "<undefined>"
+    DESCRIPTION = "Undocumented"
+
     def __init__(self):
         self.options = {}
         self.getopt_string = ""
@@ -47,12 +51,6 @@ class Command(object):
         """Return whether the command should not be displayed to user."""
         return False
     
-    def get_name(self):
-        raise NotImplementedError("Derived classes must implement.")
-
-    def get_desc(self):
-        return "Undocumented"
-
     def get_params_desc(self):
         pdesc = self.params_desc.strip()
         if self.has_subcommand():

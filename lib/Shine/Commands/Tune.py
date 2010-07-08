@@ -26,31 +26,23 @@ The tune command aims to apply tuning parameters on any components of a
 Lustre filesystem.
 """
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
+from Shine.Configuration.Globals import Globals
+
 from Shine.Configuration.TuningModel import TuningModel
 from Shine.Configuration.TuningModel import TuningParameterDeclarationException
 
 # Command base class
-from Base.FSLiveCommand import FSLiveCommand
-from Base.FSEventHandler import FSGlobalEventHandler
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-# Command helper
-from Shine.FSUtils import open_lustrefs
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
+                                              RC_RUNTIME_ERROR
 
 # Lustre events
-import Shine.Lustre.EventHandler
-from Shine.Lustre.FileSystem import *
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
+from Shine.Lustre.FileSystem import RUNTIME_ERROR
 
 
 class GlobalTuneEventHandler(FSGlobalEventHandler):
-
-    def __init__(self, verbose=1):
-        FSGlobalEventHandler.__init__(self, verbose)
 
     def handle_pre(self, fs):
         # attach fs to this handler
@@ -66,75 +58,49 @@ class GlobalTuneEventHandler(FSGlobalEventHandler):
             print "Tuning of filesystem %s failed." % fs.fs_name
 
 
-class Tune(FSLiveCommand):
+class Tune(FSTargetLiveCommand):
 
-    def __init__(self):
-        FSLiveCommand.__init__(self)
+    GLOBAL_EH = GlobalTuneEventHandler
+    LOCAL_EH = None
 
-    def get_name(self):
-        return "tune"
+    NAME = "tune"
+    DESCRIPTION = "Tune file system servers."
 
-    def get_desc(self):
-        return "Tune file system servers."
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Warn if trying to act on wrong nodes
+        all_nodes = fs.managed_component_servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                all_nodes, "tune"):
+            return RC_FAILURE
 
-        self.init_execute()
-
-        # Get verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
-        debug = self.debug_support.has_debug()
-
-        target = self.target_support.get_target()
-        for fsname in self.fs_support.iter_fsname():
-
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(None,
-                    GlobalTuneEventHandler(vlevel))
-
-            fs_conf, fs = open_lustrefs(fsname, target,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    indexes=self.indexes_support.get_rangeset(),
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
-
-            fs.set_debug(debug)
-
-            # Warn if trying to act on wrong nodes
-            all_nodes = fs.managed_component_servers()
-            if not self.nodes_support.check_valid_list(fsname, \
-                    all_nodes, "tune"):
-                continue
-
-            tuning = self.get_tuning(fs_conf)
-            if not tuning:
-                continue
-
-            # Will call the handle_pre() method defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-                
-            if not self.remote_call and (vlevel > 1 or debug):
-                print tuning
-
-            status = fs.tune(tuning, addopts=self.addopts.get_options())
-            if status == RUNTIME_ERROR:
-                for nodes, msg in fs.proxy_errors:
-                    print nodes
-                    print '-' * 15
-                    print msg
-                return RC_RUNTIME_ERROR
-            elif status == 0:
-                if hasattr(eh, 'post_ok'):
-                    eh.post_ok(fs)
-            else:
-                if hasattr(eh, 'post_ko'):
-                    eh.post_ko(fs, status)
-                return RC_RUNTIME_ERROR
-
+        tuning = self.get_tuning(fs_conf)
+        if not tuning:
             return RC_OK
+
+        # Will call the handle_pre() method defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
+            
+        if not self.remote_call and (vlevel > 1):
+            print tuning
+
+        status = fs.tune(tuning, addopts=self.addopts.get_options())
+        if status == RUNTIME_ERROR:
+            for nodes, msg in fs.proxy_errors:
+                print nodes
+                print '-' * 15
+                print msg
+            return RC_RUNTIME_ERROR
+        elif status == 0:
+            if hasattr(eh, 'post_ok'):
+                eh.post_ok(fs)
+        else:
+            if hasattr(eh, 'post_ko'):
+                eh.post_ko(fs, status)
+            return RC_RUNTIME_ERROR
+
+        return RC_OK
 
     def get_tuning(cls, fs_conf):
         """

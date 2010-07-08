@@ -38,18 +38,15 @@ class Install(Command):
     """
     shine install -m /path/to/model.lmf
     """
-    
+ 
+    NAME = "install"
+    DESCRIPTION = "Install a new file system."
+
     def __init__(self):
         Command.__init__(self)
 
         self.lmf_support = LMF(self)
         self.nodes_support = Nodes(self)
-
-    def get_name(self):
-        return "install"
-
-    def get_desc(self):
-        return "Install a new file system."
 
     def execute(self):
 

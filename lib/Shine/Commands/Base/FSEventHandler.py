@@ -36,7 +36,11 @@ import datetime
 class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         ClusterShell.Event.EventHandler):
 
-    def __init__(self, verbose=1):
+    def __init__(self, verbose=1, fs_conf=None):
+        Shine.Lustre.EventHandler.EventHandler.__init__(self)
+        ClusterShell.Event.EventHandler.__init__(self)
+        self.fs = None
+        self.fs_conf = fs_conf
         self.verbose = verbose
         self.action_timer = None
         self.last_target_count = 0
@@ -64,9 +68,9 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
         if target_count > 0:
             if self.status_changed:
                 self.status_changed = False
-                d = datetime.datetime.now()
+                now = datetime.datetime.now()
                 print "[%s] In progress for %d component(s) on %s ..." % \
-                        (d.strftime("%H:%M"), target_count, target_servers)
+                        (now.strftime("%H:%M"), target_count, target_servers)
 
     def update(self):
         self.status_changed = True
@@ -75,4 +79,3 @@ class FSGlobalEventHandler(Shine.Lustre.EventHandler.EventHandler,
             # timer on
             self.action_timer = task_self().timer(2.0, handler=self, interval=20, autoclose=True)
             assert self.action_timer != None
-

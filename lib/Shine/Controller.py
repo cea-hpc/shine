@@ -75,11 +75,11 @@ class Controller:
 
         for cmd in self.cmds:
             if not cmd.is_hidden():
-                if len(cmd.get_name()) > cmd_maxlen:
-                    cmd_maxlen = len(cmd.get_name())
+                if len(cmd.NAME) > cmd_maxlen:
+                    cmd_maxlen = len(cmd.NAME)
         for cmd in self.cmds:
             if not cmd.is_hidden():
-                print "  %-*s %s" % (cmd_maxlen, cmd.get_name(),
+                print "  %-*s %s" % (cmd_maxlen, cmd.NAME,
                     cmd.get_params_desc())
 
     def print_error(self, errmsg):
@@ -89,9 +89,9 @@ class Controller:
         if msg:
             print msg
             print
-        print "Usage: %s %s" % (cmd.get_name(), cmd.get_params_desc())
+        print "Usage: %s %s" % (cmd.NAME, cmd.get_params_desc())
         print
-        print cmd.get_desc()
+        print cmd.DESCRIPTION
 
     def save_exception(self, error, cmd_args):
         """

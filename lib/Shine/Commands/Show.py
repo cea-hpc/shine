@@ -51,17 +51,14 @@ class Show(Command):
     shine show [-f <fsname>] <conf|fs|info|storage|tuning>
     """
 
+    NAME = "show"
+    DESCRIPTION = "Show configuration parameters."
+
     def __init__(self):
         Command.__init__(self)
         self.fs_support = FS(self, optional=True)
         self.verbose_support = Verbose(self, with_quiet=False)
         self.subcmd = None
-
-    def get_name(self):
-        return "show"
-
-    def get_desc(self):
-        return "Show configuration parameters."
 
     def has_subcommand(self):
         """The show command supports and even requires a subcommand."""

@@ -27,24 +27,16 @@ The umount command aims to stop Lustre filesystem clients.
 
 import os
 
-# Configuration
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
 # Command base class
-from Base.FSClientLiveCommand import FSClientLiveCommand
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-# Command helper
-from Shine.FSUtils import open_lustrefs
-
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-from Base.FSEventHandler import FSGlobalEventHandler
-import Shine.Lustre.EventHandler
-from Shine.Lustre.FileSystem import *
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
 class GlobalUmountEventHandler(FSGlobalEventHandler):
@@ -89,9 +81,6 @@ class GlobalUmountEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def set_fs_config(self, fs_conf):
-        self.fs_conf = fs_conf
-
     def update_client_status(self, client_name, status):
         # Change the status of client 
         if status == "succeeded":
@@ -100,21 +89,18 @@ class GlobalUmountEventHandler(FSGlobalEventHandler):
             self.fs_conf.set_status_clients_umount_failed([client_name], None)
 
 
-class Umount(FSClientLiveCommand):
+class Umount(FSLiveCommand):
     """
     shine umount
     """
 
-    def __init__(self):
-        FSClientLiveCommand.__init__(self)
+    NAME = "umount"
+    DESCRIPTION = "Unmount file system clients."
 
-    def get_name(self):
-        return "umount"
+    GLOBAL_EH = GlobalUmountEventHandler
+    LOCAL_EH = None
 
-    def get_desc(self):
-        return "Unmount file system clients."
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,
             RECOVERING : RC_FAILURE,
             OFFLINE : RC_OK,
@@ -122,70 +108,40 @@ class Umount(FSClientLiveCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers('umount'), "unmount"):
+            return RC_FAILURE
 
-        self.init_execute()
+        # Will call the handle_pre() method defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
 
-        # Get verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        status = fs.umount(addopts=self.addopts.get_options())
 
-        for fsname in self.fs_support.iter_fsname():
+        rc = self.fs_status_to_rc(status)
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(None,
-                    GlobalUmountEventHandler(vlevel))
+        if not self.remote_call:
+            if rc == RC_OK:
+                
+                # Is there mounted clients ?
+                client_status_dict = fs_conf.get_status_clients()
+                nb_mounted_clients = len([ node_name for node_name in client_status_dict if client_status_dict[node_name]['status'] == 'm_complete'])
+                if nb_mounted_clients == 0:
+                    # No
+                    # all client nodes have been umounted successfuly
+                    fs_conf.set_status_fs_online()
+                if vlevel > 0:
+                    key = lambda c: c.state == OFFLINE
+                    print "Unmount successful on %s" % \
+                        fs.managed_component_servers('umount', filter_key=key)
+            elif rc == RC_RUNTIME_ERROR:
+                for nodes, msg in fs.proxy_errors:
+                    print "%s: %s" % (nodes, msg)
 
-            fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    indexes=None,
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
-            if not self.has_local_flag():
-                # Allow global handler to access fs_conf.
-                eh.set_fs_config(fs_conf)
-
-            fs.set_debug(self.debug_support.has_debug())
-
-            # Warn if trying to act on wrong nodes
-            if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_component_servers('umount'), "unmount"):
-                result = RC_FAILURE
-                continue
-
-            # Will call the handle_pre() method defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-
-            status = fs.umount(addopts=self.addopts.get_options())
-            rc = self.fs_status_to_rc(status)
-            if rc > result:
-                result = rc
-
-            if not self.remote_call:
-                if rc == RC_OK:
-                    
-                    # Is there mounted clients ?
-                    client_status_dict = fs_conf.get_status_clients()
-                    nb_mounted_clients = len([ node_name for node_name in client_status_dict if client_status_dict[node_name]['status'] == 'm_complete'])
-                    if nb_mounted_clients == 0:
-                        # No
-                        # all client nodes have been umounted successfuly
-                        fs_conf.set_status_fs_online()
-                    if vlevel > 0:
-                        key = lambda c: c.state == OFFLINE
-                        print "Unmount successful on %s" % \
-                            fs.managed_component_servers('umount', filter_key=key)
-                elif rc == RC_RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
-
-            if hasattr(eh, 'post'):
-                eh.post(fs)
-
-        return result
+        return rc

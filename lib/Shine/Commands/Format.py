@@ -19,44 +19,24 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-from Status import Status
-from Exceptions import *
-
-from Base.FSLiveCommand import FSLiveCriticalCommand
-from Base.FSEventHandler import FSGlobalEventHandler
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-
-from Shine.FSUtils import open_lustrefs
-
-# timer events
-import ClusterShell.Event
-
-# lustre events
-import Shine.Lustre.EventHandler
-
-# Shine Proxy Protocol
-from Shine.Lustre.Actions.Proxies.ProxyAction import *
-from Shine.Lustre.FileSystem import *
-
-from ClusterShell.NodeSet import *
-from ClusterShell.Task import task_self
-
-import datetime
-import socket
 import sys
+
+from Shine.Commands.Status import Status
+
+# Command base class
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
+# Lustre events
+import Shine.Lustre.EventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
 class GlobalFormatEventHandler(FSGlobalEventHandler):
-
-    def __init__(self, verbose=1):
-        FSGlobalEventHandler.__init__(self, verbose)
 
     def handle_pre(self, fs):
         # attach fs to this handler
@@ -84,7 +64,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
                 (node, comp.get_id(), comp.jdev, rc)
         print message
 
-    def ev_formattarget_start(self, node, comp, **kwargs):
+    def ev_formattarget_start(self, node, comp):
         self.update_config_status(comp, "formatting")
 
         if self.verbose > 1:
@@ -111,9 +91,6 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def set_fs_config(self, fs_conf):
-        self.fs_conf = fs_conf
-
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
@@ -132,6 +109,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def __init__(self, verbose=1):
+        Shine.Lustre.EventHandler.EventHandler.__init__(self)
         self.verbose = verbose
         self.failures = 0
         self.success = 0
@@ -167,21 +145,18 @@ class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
         print message
 
 
-class Format(FSLiveCriticalCommand):
+class Format(FSTargetLiveCriticalCommand):
     """
     shine format -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
     
-    def __init__(self):
-        FSLiveCriticalCommand.__init__(self)
+    NAME = "format"
+    DESCRIPTION = "Format file system targets."
 
-    def get_name(self):
-        return "format"
+    GLOBAL_EH = GlobalFormatEventHandler
+    LOCAL_EH = LocalFormatEventHandler
 
-    def get_desc(self):
-        return "Format file system targets."
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,
             EXTERNAL : RC_ST_EXTERNAL,
             RECOVERING : RC_FAILURE,
@@ -190,107 +165,65 @@ class Format(FSLiveCriticalCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers(supports='format'), "format"):
+            return RC_FAILURE
 
-        # Do not allow implicit filesystems format.
-        if not self.opt_f:
-            raise CommandHelpException("A filesystem is required (use -f).", self)
+        # Ignore all clients for this command
+        fs.disable_clients()
 
-        # Initialize remote command specifics.
-        self.init_execute()
+        if not self.ask_confirm("Format %s on %s: are you sure?" % (fs.fs_name,
+                fs.managed_component_servers(supports='format'))):
+            return RC_FAILURE
 
-        # Setup verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        mkfs_options = {}
+        format_params = {}
+        for target_type in [ 'mgt', 'mdt', 'ost' ]:
+            format_params[target_type] = \
+                    fs_conf.get_target_format_params(target_type)
+            mkfs_options[target_type] = \
+                    fs_conf.get_target_mkfs_options(target_type) 
 
-        target = self.target_support.get_target()
-        for fsname in self.fs_support.iter_fsname():
+        # Call a pre_format method if defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
+        
+        # Notify backend of file system status mofication
+        fs_conf.set_status_fs_formating()
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(LocalFormatEventHandler(vlevel),
-                    GlobalFormatEventHandler(vlevel))
+        # Format really.
+        status = fs.format(stripecount=fs_conf.get_stripecount(),
+                    stripesize=fs_conf.get_stripesize(),
+                    format_params=format_params,
+                    mkfs_options=mkfs_options,
+                    quota=fs_conf.has_quota(),
+                    quota_type=fs_conf.get_quota_type(),
+                    addopts = self.addopts.get_options(),
+                    failover=self.target_support.get_failover())
 
-            # Open configuration and instantiate a Lustre FS.
-            fs_conf, fs = open_lustrefs(fsname, target,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    failover=self.target_support.get_failover(),
-                    indexes=self.indexes_support.get_rangeset(),
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
+        rc = self.fs_status_to_rc(status)
 
-            # Warn if trying to act on wrong nodes
-            if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_component_servers(supports='format'), "format"):
-                result = RC_FAILURE
-                continue
-
-            if not self.has_local_flag():
-                # Allow global handler to access fs_conf.
-                eh.set_fs_config(fs_conf)
-
-            # Prepare options...
-            fs.set_debug(self.debug_support.has_debug())
-
-            # Ignore all clients for this command
-            fs.disable_clients()
-
-            if not self.ask_confirm("Format %s on %s: are you sure?" % (fsname,
-                    fs.managed_component_servers(supports='format'))):
-                result = RC_FAILURE
-                continue
-
-            mkfs_options = {}
-            format_params = {}
-            for target_type in [ 'mgt', 'mdt', 'ost' ]:
-                format_params[target_type] = \
-                        fs_conf.get_target_format_params(target_type)
-                mkfs_options[target_type] = \
-                        fs_conf.get_target_mkfs_options(target_type) 
-
-            # Call a pre_format method if defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-            
+        if rc == RC_OK:
             # Notify backend of file system status mofication
-            fs_conf.set_status_fs_formating()
+            fs_conf.set_status_fs_formated()
 
-            # Format really.
-            status = fs.format(stripecount=fs_conf.get_stripecount(),
-                        stripesize=fs_conf.get_stripesize(),
-                        format_params=format_params,
-                        mkfs_options=mkfs_options,
-                        quota=fs_conf.has_quota(),
-                        quota_type=fs_conf.get_quota_type(),
-                        addopts = self.addopts.get_options(),
-                        failover=self.target_support.get_failover())
+            if vlevel > 0:
+                print "Format successful."
+        else:
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_format_failed()
 
-            rc = self.fs_status_to_rc(status)
-            if rc > result:
-                result = rc
+            if rc == RC_RUNTIME_ERROR:
+                for nodes, msg in fs.proxy_errors:
+                    print "%s: %s" % (nodes, msg)
+            if vlevel > 0:
+                print "Format failed"
 
-            if rc == RC_OK:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_formated()
+        # Call a post_format method if defined by the event handler.
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
-                if vlevel > 0:
-                    print "Format successful."
-            else:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_format_failed()
-
-                if rc == RC_RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
-                if vlevel > 0:
-                    print "Format failed"
-
-            # Call a post_format method if defined by the event handler.
-            if hasattr(eh, 'post'):
-                eh.post(fs)
-
-        return result
-
+        return rc

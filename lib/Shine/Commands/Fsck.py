@@ -19,43 +19,23 @@
 #
 # $Id$
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-from Status import Status
-from Exceptions import *
-
-from Base.FSLiveCommand import FSLiveCriticalCommand
-from Base.FSEventHandler import FSGlobalEventHandler
-from Base.CommandRCDefs import *
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-
-from Shine.FSUtils import open_lustrefs
-
-# timer events
-import ClusterShell.Event
-
-# lustre events
-import Shine.Lustre.EventHandler
-
-# Shine Proxy Protocol
-from Shine.Lustre.Actions.Proxies.ProxyAction import *
-from Shine.Lustre.FileSystem import *
-
-from ClusterShell.NodeSet import *
-from ClusterShell.Task import task_self
-
-import datetime
-import socket
 import sys
 
-class GlobalFsckEventHandler(FSGlobalEventHandler):
+from Shine.Commands.Status import Status
 
-    def __init__(self, verbose=1):
-        FSGlobalEventHandler.__init__(self, verbose)
+# Command base class
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
+                                              RC_FAILURE, RC_TARGET_ERROR, \
+                                              RC_CLIENT_ERROR, RC_RUNTIME_ERROR
+# Lustre events
+import Shine.Lustre.EventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
+
+class GlobalFsckEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
         # attach fs to this handler
@@ -68,7 +48,7 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_fscktarget_start(self, node, comp, **kwargs):
+    def ev_fscktarget_start(self, node, comp):
         self.update_config_status(comp, "checking")
 
         if self.verbose > 1:
@@ -95,9 +75,6 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 
         self.update()
 
-    def set_fs_config(self, fs_conf):
-        self.fs_conf = fs_conf
-
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
@@ -117,6 +94,7 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 class LocalFsckEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def __init__(self, verbose=1):
+        Shine.Lustre.EventHandler.EventHandler.__init__(self)
         self.verbose = verbose
 
     def ev_fscktarget_start(self, node, comp):
@@ -134,21 +112,18 @@ class LocalFsckEventHandler(Shine.Lustre.EventHandler.EventHandler):
         print message
 
 
-class Fsck(FSLiveCriticalCommand):
+class Fsck(FSTargetLiveCriticalCommand):
     """
     shine fsck -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
     
-    def __init__(self):
-        FSLiveCriticalCommand.__init__(self)
+    NAME = "fsck"
+    DESCRIPTION = "Fsck on targets backend file system."
 
-    def get_name(self):
-        return "fsck"
+    GLOBAL_EH = GlobalFsckEventHandler
+    LOCAL_EH = LocalFsckEventHandler
 
-    def get_desc(self):
-        return "Fsck on targets backend file system."
-
-    target_status_rc_map = { \
+    TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,
             EXTERNAL : RC_ST_EXTERNAL,
             RECOVERING : RC_FAILURE,
@@ -157,90 +132,48 @@ class Fsck(FSLiveCriticalCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    def execute(self):
-        result = 0
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers(supports="fsck"), "fsck"):
+            return RC_FAILURE
 
-        # Do not allow implicit filesystems fsck.
-        if not self.opt_f:
-            raise CommandHelpException("A filesystem is required (use -f).", self)
+        if not self.ask_confirm("Fsck %s on %s: are you sure?" % (fs.fs_name,
+                fs.managed_component_servers(supports='fsck'))):
+            return RC_FAILURE
 
-        # Initialize remote command specifics.
-        self.init_execute()
+        # Call a pre_fsck method if defined by the event handler.
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
+        
+        # Notify backend of file system status mofication
+        fs_conf.set_status_fs_checking()
 
-        # Setup verbose level.
-        vlevel = self.verbose_support.get_verbose_level()
+        # Fsck really.
+        status = fs.fsck(addopts = self.addopts.get_options(),
+                         failover=self.target_support.get_failover())
 
-        target = self.target_support.get_target()
-        for fsname in self.fs_support.iter_fsname():
+        rc = self.fs_status_to_rc(status)
 
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(LocalFsckEventHandler(vlevel),
-                    GlobalFsckEventHandler(vlevel))
-
-            # Open configuration and instantiate a Lustre FS.
-            fs_conf, fs = open_lustrefs(fsname, target,
-                    nodes=self.nodes_support.get_nodeset(),
-                    excluded=self.nodes_support.get_excludes(),
-                    failover=self.target_support.get_failover(),
-                    indexes=self.indexes_support.get_rangeset(),
-                    labels=self.label_support.get_labels(),
-                    event_handler=eh)
-
-            # Warn if trying to act on wrong nodes
-            if not self.nodes_support.check_valid_list(fsname, \
-                    fs.managed_component_servers(), "fsck"):
-                result = RC_FAILURE
-                continue
-
-            if not self.has_local_flag():
-                # Allow global handler to access fs_conf.
-                eh.set_fs_config(fs_conf)
-
-            # Prepare options...
-            fs.set_debug(self.debug_support.has_debug())
-
-            if not self.ask_confirm("Fsck %s on %s: are you sure?" % (fsname,
-                    fs.managed_component_servers(supports='fsck'))):
-                result = RC_FAILURE
-                continue
-
-            # Call a pre_fsck method if defined by the event handler.
-            if hasattr(eh, 'pre'):
-                eh.pre(fs)
-            
+        if rc == RC_OK:
             # Notify backend of file system status mofication
-            fs_conf.set_status_fs_checking()
+            fs_conf.set_status_fs_offline()
 
-            # Fsck really.
-            status = fs.fsck(addopts = self.addopts.get_options(),
-                             failover=self.target_support.get_failover())
+            if vlevel > 0:
+                print "Fsck successful."
+        else:
+            # Notify backend of file system status mofication
+            fs_conf.set_status_fs_critical()
 
-            rc = self.fs_status_to_rc(status)
-            if rc > result:
-                result = rc
+            if rc == RC_RUNTIME_ERROR:
+                for nodes, msg in fs.proxy_errors:
+                    print "%s: %s" % (nodes, msg)
+            if vlevel > 0:
+                print "Fsck failed"
 
-            if rc == RC_OK:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_offline()
+        # Call a post_fsck method if defined by the event handler.
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
-                if vlevel > 0:
-                    print "Fsck successful."
-            else:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_critical()
-
-                if rc == RC_RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
-                if vlevel > 0:
-                    print "Fsck failed"
-
-            # Call a post_fsck method if defined by the event handler.
-            if hasattr(eh, 'post'):
-                eh.post(fs)
-
-        return result
-
+        return rc

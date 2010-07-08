@@ -56,7 +56,10 @@ class Remove(RemoteCriticalCommand):
     File System description from the Shine environment.
     All datas are lost after the Remove command completion.
     """
-    
+ 
+    NAME = "remove"
+    DESCRIPTION = "Remove a previously installed file system"
+
     def __init__(self):
         """
         Initialization of the Remove command object
@@ -64,18 +67,6 @@ class Remove(RemoteCriticalCommand):
         # Call parent intialization function
         RemoteCriticalCommand.__init__(self)
         self.fs_support = FS(self, optional=False)
-
-    def get_name(self):
-        """
-        Return the name of the command.
-        """
-        return "remove"
-
-    def get_desc(self):
-        """
-        Return the description message of the command.
-        """
-        return "Remove a previously installed file system"
 
     target_status_rc_map = { \
             MOUNTED : RC_FAILURE,
@@ -178,4 +169,3 @@ class Remove(RemoteCriticalCommand):
 
         # Unregister file system configuration from the backend
         fs_conf.unregister_fs()
-
