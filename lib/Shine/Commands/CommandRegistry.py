@@ -116,6 +116,9 @@ class CommandRegistry:
         except KeyError, e:
             raise CommandNotFoundError(opt)
 
+        if not command:
+            raise CommandException("No command was specified.")
+
         # Parse
         command.parse(new_args)
 
