@@ -82,6 +82,12 @@ class Component(object):
         """
         return "%s-%s" % (self.fs.fs_name, self.TYPE)
 
+    def longtext(self):
+        """
+        Return a string describing this component, for output purposes.
+        """
+        return self.label
+
     #
     # Serializing methods.
     # Pickle representation do not include filesystem pointer.

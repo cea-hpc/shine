@@ -27,8 +27,6 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
-import os
-
 from Shine.Commands.Status import Status
 from Shine.Commands.Tune import Tune
 
@@ -38,85 +36,41 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-import Shine.Lustre.EventHandler
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 class GlobalStartEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        if self.verbose > 0:
-            count = len(list(fs.managed_components(supports='start')))
-            servers = fs.managed_component_servers(supports='start')
-            print "Starting %d component(s) of %s on %s" % (count,
-                    fs.fs_name, servers)
+    ACTION = 'start'
+    ACTIONING = 'starting'
 
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
     def ev_starttarget_start(self, node, comp):
-        self.update_config_status(comp, "starting")
-        # start/restart timer if needed (we might be running a new runloop)
-        if self.verbose > 1:
-            print "%s: Starting %s (%s)..." % (node, \
-                    comp.get_id(), comp.dev)
-        self.update()
+        self.update_config_status(comp, "start")
+        self.action_start(node, comp)
 
     def ev_starttarget_done(self, node, comp):
-        self.update_config_status(comp, "succeeded")
-        self.status_changed = True
-        if self.verbose > 1:
-            if comp.status_info:
-                print "%s: Start of %s (%s): %s" % \
-                       (node, comp.get_id(), comp.dev, comp.status_info)
-            else:
-                print "%s: Start of %s (%s) succeeded" % \
-                       (node, comp.get_id(), comp.dev)
-        self.update()
+        self.update_config_status(comp, "done")
+        self.action_done(node, comp)
 
     def ev_starttarget_failed(self, node, comp, rc, message):
         self.update_config_status(comp, "failed")
-
-        self.status_changed = True
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to start %s (%s): %s" % \
-               (node, comp.get_id(), comp.dev, strerr)
-        if rc:
-            print message
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def ev_startrouter_start(self, node, comp):
-        if self.verbose > 1:
-            print "%s: Starting router..." % node
-        self.update()
+        self.action_start(node, comp)
 
     def ev_startrouter_done(self, node, comp):
-        self.status_changed = True
-        if self.verbose > 1:
-            if comp.status_info:
-                print "%s: Start of router: %s" % \
-                       (node, comp.status_info)
-            else:
-                print "%s: Start of router succeeded" % node
-        self.update()
+        self.action_done(node, comp)
 
     def ev_startrouter_failed(self, node, comp, rc, message):
-        self.status_changed = True
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to start router: %s" % \
-               (node, strerr)
-        if rc:
-            print message
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
@@ -124,62 +78,35 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
             target.TYPE.upper())]
 
         # Change the status of targets to register their running state
-        if status == "succeeded":
+        if status == "done":
             self.fs_conf.set_status_targets_online(target_list, None)
         elif status == "failed":
             self.fs_conf.set_status_targets_offline(target_list, None)
         else:
             self.fs_conf.set_status_targets_starting(target_list, None)
 
-class LocalStartEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class LocalStartEventHandler(FSLocalEventHandler):
 
-    def __init__(self, verbose=1):
-        Shine.Lustre.EventHandler.EventHandler.__init__(self)
-        self.verbose = verbose
+    ACTION = 'start'
+    ACTIONING = 'starting'
 
     def ev_starttarget_start(self, node, comp):
-        if self.verbose > 1:
-            print "Starting %s (%s)..." % \
-                   (comp.get_id(), comp.dev)
+        self.action_start(node, comp)
 
     def ev_starttarget_done(self, node, comp):
-        if self.verbose > 1:
-            if comp.status_info:
-                print "Start of %s (%s): %s" % \
-                       (comp.get_id(), comp.dev, comp.status_info)
-            else:
-                print "Start of %s (%s) succeeded" % \
-                       (comp.get_id(), comp.dev)
+        self.action_done(node, comp)
 
     def ev_starttarget_failed(self, node, comp, rc, message):
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "Failed to start %s (%s): %s" % \
-               (comp.get_id(), comp.dev, strerr)
-        if rc:
-            print message
+        self.action_failed(node, comp, rc, message)
 
     def ev_startrouter_start(self, node, comp):
-        if self.verbose > 1:
-            print "Starting router..."
+        self.action_start(node, comp)
 
     def ev_startrouter_done(self, node, comp):
-        if self.verbose > 1:
-            if comp.status_info:
-                print "Start of router: %s" % comp.status_info
-            else:
-                print "Start of router succeeded"
+        self.action_done(node, comp)
 
     def ev_startrouter_failed(self, node, comp, rc, message):
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "Failed to start router: %s" % strerr
-        if rc:
-            print message
+        self.action_failed(node, comp, rc, message)
 
 
 class Start(FSTargetLiveCommand):

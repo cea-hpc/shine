@@ -55,6 +55,12 @@ class Router(Component):
         RUNTIME_ERROR: "CHECK FAILURE" 
     }
 
+    def longtext(self):
+        """
+        Return the routeur server name.
+        """
+        return "router on %s" % self.server
+
     def _router_check(self):
         """
         Check LNET routing capabilities and change object state

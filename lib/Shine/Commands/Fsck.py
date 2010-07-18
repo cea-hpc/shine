@@ -19,8 +19,6 @@
 #
 # $Id$
 
-import sys
-
 from Shine.Commands.Status import Status
 
 # Command base class
@@ -29,51 +27,32 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-import Shine.Lustre.EventHandler
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 class GlobalFsckEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        # attach fs to this handler
-        if self.verbose > 0:
-            count = len(list(fs.managed_components()))
-            servers = fs.managed_component_servers()
-            print "Starting fsck of %d targets on %s" % (count, servers)
+    ACTION = 'fsck'
+    ACTIONING = 'checking'
 
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
     def ev_fscktarget_start(self, node, comp):
-        self.update_config_status(comp, "checking")
-
-        if self.verbose > 1:
-            print "%s: Starting fsck of %s %s (%s)" % (node, comp.TYPE.upper(), \
-                    comp.get_id(), comp.dev)
-
-        self.update()
+        self.update_config_status(comp, "start")
+        self.action_start(node, comp)
 
     def ev_fscktarget_done(self, node, comp):
-        self.update_config_status(comp, "succeeded")
-
-        if self.verbose > 1:
-            print "%s: Fsck of %s %s (%s) succeeded" % \
-                    (node, comp.TYPE.upper(), comp.get_id(), comp.dev)
-
-        self.update()
+        self.update_config_status(comp, "done")
+        self.action_done(node, comp)
 
     def ev_fscktarget_failed(self, node, comp, rc, message):
         self.update_config_status(comp, "failed")
-
-        print "%s: Fsck of %s %s (%s) failed with error %d" % \
-                (node, comp.TYPE.upper(), comp.get_id(), comp.dev, rc)
-        print message
-
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
@@ -82,7 +61,7 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 
         # Change the status of targets to avoid their use
         # in an other file system
-        if status == "succeeded":
+        if status == "done":
             self.fs_conf.set_status_targets_offline(target_list, None)
             self.fs_conf.set_status_targets_formated(target_list, None)
         elif status == "failed":
@@ -91,25 +70,19 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
             self.fs_conf.set_status_targets_checking(target_list, None)
 
 
-class LocalFsckEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class LocalFsckEventHandler(FSLocalEventHandler):
 
-    def __init__(self, verbose=1):
-        Shine.Lustre.EventHandler.EventHandler.__init__(self)
-        self.verbose = verbose
+    ACTION = 'fsck'
+    ACTIONING = 'checking'
 
     def ev_fscktarget_start(self, node, comp):
-        print "Starting fsck of %s %s (%s)" % (comp.TYPE.upper(), \
-                comp.get_id(), comp.dev)
-        sys.stdout.flush()
+        self.action_start(node, comp)
 
     def ev_fscktarget_done(self, node, comp):
-        print "Fsck of %s %s (%s) succeeded" % \
-                (comp.TYPE.upper(), comp.get_id(), comp.dev)
+        self.action_done(node, comp)
 
     def ev_fscktarget_failed(self, node, comp, rc, message):
-        print "Fsck of %s %s (%s) failed with error %d" % \
-                (comp.TYPE.upper(), comp.get_id(), comp.dev, rc)
-        print message
+        self.action_failed(node, comp, rc, message)
 
 
 class Fsck(FSTargetLiveCriticalCommand):

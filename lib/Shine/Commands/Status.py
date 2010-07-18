@@ -56,39 +56,35 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
 
 class GlobalStatusEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        if self.verbose > 0:
-            count = len(list(fs.managed_components(supports='status')))
-            servers = fs.managed_component_servers(supports='status')
-            print "Checking %d component(s) of %s on %s" % (count,
-                    fs.fs_name, servers)
-
-    def handle_post(self, fs):
-        pass
+    ACTION = 'status'
+    ACTIONING = 'checking'
 
     def ev_statustarget_start(self, node, comp):
-        self.update()
+        self.action_start(node, comp)
 
     def ev_statustarget_done(self, node, comp):
-        self.update()
+        self.action_done(node, comp)
 
     def ev_statustarget_failed(self, node, comp, rc, message):
-        print "%s: Failed to status %s (%s)" % (node, \
-                comp.get_id(), comp.dev)
-        print ">> %s" % message
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def ev_statusclient_start(self, node, comp):
-        self.update()
+        self.action_start(node, comp)
 
     def ev_statusclient_done(self, node, comp):
-        self.update()
+        self.action_done(node, comp)
 
     def ev_statusclient_failed(self, node, comp, rc, message):
-        print "%s: Failed to status of FS %s" % (node, comp.fs.fs_name)
-        print ">> %s" % message
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
+    def ev_statusrouter_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_statusrouter_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_statusrouter_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
 
 class Status(FSTargetLiveCommand):
     """

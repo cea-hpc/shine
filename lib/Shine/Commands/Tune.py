@@ -45,17 +45,13 @@ from Shine.Lustre.FileSystem import RUNTIME_ERROR
 class GlobalTuneEventHandler(FSGlobalEventHandler):
 
     def handle_pre(self, fs):
-        # attach fs to this handler
-        if self.verbose > 0:
-            print "Tuning filesystem %s..." % fs.fs_name
+        self.log_verbose("Tuning filesystem %s..." % fs.fs_name)
 
     def post_ok(self, fs):
-        if self.verbose > 0:
-            print "Filesystem %s successfully tuned." % fs.fs_name
+        self.log_verbose("Filesystem %s successfully tuned." % fs.fs_name)
 
     def post_ko(self, fs, status):
-        if self.verbose > 0:
-            print "Tuning of filesystem %s failed." % fs.fs_name
+        self.log_verbose("Tuning of filesystem %s failed." % fs.fs_name)
 
 
 class Tune(FSTargetLiveCommand):

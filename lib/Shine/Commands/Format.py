@@ -19,8 +19,6 @@
 #
 # $Id$
 
-import sys
-
 from Shine.Commands.Status import Status
 
 # Command base class
@@ -29,8 +27,8 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-import Shine.Lustre.EventHandler
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
@@ -38,58 +36,33 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
 
 class GlobalFormatEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        # attach fs to this handler
-        if self.verbose > 0:
-            count = len(list(fs.managed_components(supports='format')))
-            servers = fs.managed_component_servers(supports='format')
-            print "Starting format of %d targets on %s" % (count, servers)
+    ACTION = 'format'
+    ACTIONING = 'formating'
 
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
     def ev_formatjournal_start(self, node, comp):
-        if self.verbose > 1:
-            print "%s: Starting format of %s journal (%s)" % (node, \
-                    comp.get_id(), comp.jdev)
+        self.action_start(node, comp, 'journal')
 
     def ev_formatjournal_done(self, node, comp):
-        if self.verbose > 1:
-            print "%s: Format of %s journal (%s) succeeded" % \
-                    (node, comp.get_id(), comp.jdev)
+        self.action_done(node, comp, 'journal')
 
     def ev_formatjournal_failed(self, node, comp, rc, message):
-        print "%s: Format of %s journal (%s) failed with error %d" % \
-                (node, comp.get_id(), comp.jdev, rc)
-        print message
+        self.action_failed(node, comp, rc, message, 'journal')
 
     def ev_formattarget_start(self, node, comp):
-        self.update_config_status(comp, "formatting")
-
-        if self.verbose > 1:
-            print "%s: Starting format of %s (%s)" % (node, comp.get_id(), \
-                                                      comp.dev)
-
-        self.update()
+        self.update_config_status(comp, "start")
+        self.action_start(node, comp)
 
     def ev_formattarget_done(self, node, comp):
-        self.update_config_status(comp, "succeeded")
-
-        if self.verbose > 1:
-            print "%s: Format of %s (%s) succeeded" % \
-                    (node, comp.get_id(), comp.dev)
-
-        self.update()
+        self.update_config_status(comp, "done")
+        self.action_done(node, comp)
 
     def ev_formattarget_failed(self, node, comp, rc, message):
         self.update_config_status(comp, "failed")
-
-        print "%s: Format of %s (%s) failed with error %d" % \
-                (node, comp.get_id(), comp.dev, rc)
-        print message
-
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def update_config_status(self, target, status):
         # Retrieve the right target from the configuration
@@ -98,7 +71,7 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
 
         # Change the status of targets to avoid their use
         # in an other file system
-        if status == "succeeded":
+        if status == "done":
             self.fs_conf.set_status_targets_formated(target_list, None)
         elif status == "failed":
             self.fs_conf.set_status_targets_format_failed(target_list, None)
@@ -106,44 +79,28 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
             self.fs_conf.set_status_targets_formating(target_list, None)
 
 
-class LocalFormatEventHandler(Shine.Lustre.EventHandler.EventHandler):
+class LocalFormatEventHandler(FSLocalEventHandler):
 
-    def __init__(self, verbose=1):
-        Shine.Lustre.EventHandler.EventHandler.__init__(self)
-        self.verbose = verbose
-        self.failures = 0
-        self.success = 0
+    ACTION = 'format'
+    ACTIONING = 'formating'
 
     def ev_formatjournal_start(self, node, comp):
-        print "Starting format of %s journal (%s)" % \
-               (comp.get_id(), comp.jdev)
+        self.action_start(node, comp, 'journal')
 
     def ev_formatjournal_done(self, node, comp):
-        print "Format of %s journal (%s) succeeded" % \
-               (comp.get_id(), comp.jdev)
+        self.action_done(node, comp, 'journal')
 
     def ev_formatjournal_failed(self, node, comp, rc, message):
-        self.failures += 1
-        print "Format of %s journal (%s) failed with error %d" % \
-               (comp.get_id(), comp.jdev, rc)
-        print message
+        self.action_failed(node, comp, rc, message, 'journal')
 
     def ev_formattarget_start(self, node, comp):
-        print "Starting format of %s (%s)" % \
-               (comp.get_id(), comp.dev)
-        sys.stdout.flush()
+        self.action_start(node, comp)
 
     def ev_formattarget_done(self, node, comp):
-        self.success += 1
-        print "Format of %s (%s) succeeded" % \
-               (comp.get_id(), comp.dev)
+        self.action_done(node, comp)
 
     def ev_formattarget_failed(self, node, comp, rc, message):
-        self.failures += 1
-        print "Format of %s (%s) failed with error %d" % \
-               (comp.get_id(), comp.dev, rc)
-        print message
-
+        self.action_failed(node, comp, rc, message)
 
 class Format(FSTargetLiveCriticalCommand):
     """

@@ -66,6 +66,12 @@ class Client(Component):
         self.mount_path = mount_path
         self.lnetdev = None
 
+    def longtext(self):
+        """
+        Return the client filesystem name and mount point.
+        """
+        return "%s on %s" % (self.fs.fs_name, self.mount_path)
+    
     def match(self, other):
         return Component.match(self, other) and \
                self.mount_path == other.mount_path

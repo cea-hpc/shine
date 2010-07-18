@@ -156,6 +156,12 @@ class Target(Component, Disk):
 
         return self.label
     
+    def longtext(self):
+        """
+        Return the target name and device
+        """
+        return "%s (%s)" % (self.label, self.dev)
+
     def get_nids(self):
         """
         Return an ordered list of target's NIDs.

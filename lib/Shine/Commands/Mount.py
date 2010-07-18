@@ -44,49 +44,23 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
 
 class GlobalMountEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        if self.verbose > 0:
-            count = len(list(fs.managed_components(supports='mount')))
-            servers = fs.managed_component_servers(supports='mount')
-            print "Starting %d client(s) of %s on %s" % (count,
-                    fs.fs_name, servers)
-
-    def handle_post(self, fs):
-        pass
+    ACTION = 'mount'
+    ACTIONING = 'mounting'
 
     def ev_mountclient_start(self, node, comp):
-        if self.verbose > 1:
-            print "%s: Mounting %s on %s ..." % (node, comp.fs.fs_name, comp.mount_path)
-        self.update()
+        self.action_start(node, comp)
 
     def ev_mountclient_done(self, node, comp):
-        self.update_client_status(node, "succeeded")
-
-        if self.verbose > 1:
-            if comp.status_info:
-                print "%s: Mount %s: %s" % (node, comp.fs.fs_name, comp.status_info)
-            else:
-                print "%s: FS %s succesfully mounted on %s" % (node,
-                        comp.fs.fs_name, comp.mount_path)
-        self.update()
+        self.update_client_status(node, "done")
+        self.action_done(node, comp)
 
     def ev_mountclient_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
-
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to mount FS %s on %s: %s" % \
-                (node, comp.fs.fs_name, comp.mount_path, strerr)
-        if rc:
-            print message
-
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def update_client_status(self, client_name, status):
         # Change the status of client 
-        if status == "succeeded":
+        if status == "done":
             self.fs_conf.set_status_clients_mount_complete([client_name], None)
         elif status == "failed":
             self.fs_conf.set_status_clients_mount_failed([client_name], None)

@@ -25,8 +25,6 @@ Shine `umount' command classes.
 The umount command aims to stop Lustre filesystem clients.
 """
 
-import os
-
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, \
@@ -41,49 +39,23 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
 
 class GlobalUmountEventHandler(FSGlobalEventHandler):
 
-    def handle_pre(self, fs):
-        if self.verbose > 0:
-            count = len(list(fs.managed_components(supports='umount')))
-            servers = fs.managed_component_servers(supports='umount')
-            print "Stopping %d client(s) of %s on %s" % (count,
-                    fs.fs_name, servers)
-
-    def handle_post(self, fs):
-        pass
+    ACTION = 'mount'
+    ACTIONING = 'mounting'
 
     def ev_umountclient_start(self, node, comp):
-        if self.verbose > 1:
-            print "%s: Unmounting %s on %s ..." % (node, comp.fs.fs_name, comp.mount_path)
-        self.update()
+        self.action_start(node, comp)
 
     def ev_umountclient_done(self, node, comp):
-        self.update_client_status(node, "succeeded")
-
-        if self.verbose > 1:
-            if comp.status_info:
-                print "%s: Umount %s: %s" % (node, comp.fs.fs_name, comp.status_info)
-            else:
-                print "%s: FS %s succesfully unmounted from %s" % (node,
-                        comp.fs.fs_name, comp.mount_path)
-        self.update()
+        self.update_client_status(node, "done")
+        self.action_done(node, comp)
 
     def ev_umountclient_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
-
-        if rc:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        print "%s: Failed to unmount FS %s from %s: %s" % \
-                (node, comp.fs.fs_name, comp.mount_path, strerr)
-        if rc:
-            print message
-
-        self.update()
+        self.action_failed(node, comp, rc, message)
 
     def update_client_status(self, client_name, status):
         # Change the status of client 
-        if status == "succeeded":
+        if status == "done":
             self.fs_conf.set_status_clients_umount_complete([client_name], None)
         elif status == "failed":
             self.fs_conf.set_status_clients_umount_failed([client_name], None)
