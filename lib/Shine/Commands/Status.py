@@ -45,7 +45,8 @@ from Shine.Commands.Base.Support.View import View
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
 # Lustre events and errors
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
                                     STATUS_ANY, STATUS_CLIENTS, STATUS_SERVERS, \
@@ -86,6 +87,39 @@ class GlobalStatusEventHandler(FSGlobalEventHandler):
     def ev_statusrouter_failed(self, node, comp, rc, message):
         self.action_failed(node, comp, rc, message)
 
+class LocalStatusEventHandler(FSLocalEventHandler):
+
+    ACTION = 'status'
+    ACTIONING = 'checking'
+
+    def ev_statustarget_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_statustarget_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_statustarget_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
+
+    def ev_statusclient_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_statusclient_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_statusclient_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
+
+    def ev_statusrouter_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_statusrouter_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_statusrouter_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
+
+
 class Status(FSTargetLiveCommand):
     """
     shine status [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
@@ -95,7 +129,7 @@ class Status(FSTargetLiveCommand):
     DESCRIPTION = "Check for file system target status."
 
     GLOBAL_EH = GlobalStatusEventHandler
-    LOCAL_EH = None
+    LOCAL_EH = LocalStatusEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_ST_ONLINE,

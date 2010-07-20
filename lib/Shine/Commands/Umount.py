@@ -31,7 +31,8 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
@@ -39,8 +40,8 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
 
 class GlobalUmountEventHandler(FSGlobalEventHandler):
 
-    ACTION = 'mount'
-    ACTIONING = 'mounting'
+    ACTION = 'umount'
+    ACTIONING = 'unmounting'
 
     def ev_umountclient_start(self, node, comp):
         self.action_start(node, comp)
@@ -60,6 +61,20 @@ class GlobalUmountEventHandler(FSGlobalEventHandler):
         elif status == "failed":
             self.fs_conf.set_status_clients_umount_failed([client_name], None)
 
+class LocalUmountEventHandler(FSLocalEventHandler):
+
+    ACTION = 'umount'
+    ACTIONING = 'unmounting'
+
+    def ev_umountclient_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_umountclient_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_umountclient_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
+
 
 class Umount(FSLiveCommand):
     """
@@ -70,7 +85,7 @@ class Umount(FSLiveCommand):
     DESCRIPTION = "Unmount file system clients."
 
     GLOBAL_EH = GlobalUmountEventHandler
-    LOCAL_EH = None
+    LOCAL_EH = LocalUmountEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,

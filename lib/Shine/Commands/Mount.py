@@ -25,8 +25,6 @@ Shine `mount' command classes.
 The mount command aims to start Lustre filesystem clients.
 """
 
-import os
-
 # Command helper
 from Shine.Commands.Tune import Tune
 
@@ -36,7 +34,8 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 # Lustre events
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
@@ -65,6 +64,21 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
         elif status == "failed":
             self.fs_conf.set_status_clients_mount_failed([client_name], None)
 
+class LocalMountEventHandler(FSLocalEventHandler):
+
+    ACTION = 'mount'
+    ACTIONING = 'mounting'
+
+    def ev_mountclient_start(self, node, comp):
+        self.action_start(node, comp)
+
+    def ev_mountclient_done(self, node, comp):
+        self.action_done(node, comp)
+
+    def ev_mountclient_failed(self, node, comp, rc, message):
+        self.action_failed(node, comp, rc, message)
+
+
 class Mount(FSLiveCommand):
     """
     shine mount
@@ -74,7 +88,7 @@ class Mount(FSLiveCommand):
     DESCRIPTION = "Mount file system clients."
 
     GLOBAL_EH = GlobalMountEventHandler
-    LOCAL_EH = None
+    LOCAL_EH = LocalMountEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,

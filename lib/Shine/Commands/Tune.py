@@ -37,7 +37,8 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
                                               RC_RUNTIME_ERROR
 
 # Lustre events
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import RUNTIME_ERROR
 
@@ -53,11 +54,21 @@ class GlobalTuneEventHandler(FSGlobalEventHandler):
     def post_ko(self, fs, status):
         self.log_verbose("Tuning of filesystem %s failed." % fs.fs_name)
 
+class LocalTuneEventHandler(FSLocalEventHandler):
+
+    def handle_pre(self, fs):
+        self.log_verbose("Tuning filesystem %s..." % fs.fs_name)
+
+    def post_ok(self, fs):
+        self.log_verbose("Filesystem %s successfully tuned." % fs.fs_name)
+
+    def post_ko(self, fs, status):
+        self.log_verbose("Tuning of filesystem %s failed." % fs.fs_name)
 
 class Tune(FSTargetLiveCommand):
 
     GLOBAL_EH = GlobalTuneEventHandler
-    LOCAL_EH = None
+    LOCAL_EH = LocalTuneEventHandler
 
     NAME = "tune"
     DESCRIPTION = "Tune file system servers."
