@@ -140,10 +140,10 @@ class Client(Component):
 
         try:
             self._lustre_check()
+            self._action_done('status')
         except ClientError, e:
             self._action_failed('status', rc=None, message=str(e))
 
-        self._action_done('status')
 
     def mount(self, **kwargs):
         """

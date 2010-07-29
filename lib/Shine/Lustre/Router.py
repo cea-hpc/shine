@@ -103,10 +103,10 @@ class Router(Component):
 
         try:
             self._router_check()
+            self._action_done('status')
         except RouterError, error:
             self._action_failed('status', rc=None, message=str(error))
 
-        self._action_done('status')
 
     def start(self, **kwargs):
         """

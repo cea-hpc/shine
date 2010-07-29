@@ -86,6 +86,9 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
 
 class LocalStopEventHandler(FSLocalEventHandler):
 
+    ACTION = 'stop'
+    ACTIONING = 'stopping'
+
     def ev_stoptarget_start(self, node, comp):
         self.action_start(node, comp)
 

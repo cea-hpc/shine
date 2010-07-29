@@ -353,10 +353,10 @@ class Target(Component, Disk):
 
         try:
             self._check_status()
+            self._action_done('status')
         except TargetDeviceError, error:
             self._action_failed('status', rc=None, message=str(error))
 
-        self._action_done('status')
 
     def start(self, **kwargs):
         """

@@ -97,6 +97,11 @@ class FSProxyAction(ProxyAction):
         End of proxy command.
         """
 
+        # XXX: Before all, we must check if shine command ran without
+        # bugs, node crash, etc... So we need to verify all node retcode
+        # and change the component state on the bad nodes.
+
+
         # Remove the 'proxy' running action for each component.
         if self._comps:
             for comp in self._comps:
@@ -108,6 +113,7 @@ class FSProxyAction(ProxyAction):
                 # INPROGRESS management could be change using running action
                 # list.
                 if comp.state == INPROGRESS:
+                    actions = ""
                     if len(comp._list_action()):
                         actions = "actions: " + ", ".join(comp._list_action())
                     print "ERROR: bad state for %s: %d %s" % \
