@@ -101,7 +101,7 @@ class AsciiTable:
     Main class used to display ascii-based table.
     """
     
-    columns = 800
+    columns = 80
 
     def __init__(self, out=sys.stdout):
         self.out = out
