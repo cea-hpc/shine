@@ -1,3 +1,11 @@
+2010-08-18  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix bug when mount on admin node raises exception with clusterdb (#76).
+
+2010-07-29  Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix bug with 'shine status' on a bad node.
+	* Fix traceback when a node crash during shine execution.
+	* Fix bad message with 'shine stop -L'
+
 2010-07-23  Stephane Thiell  <stephane.thiell@cea.fr>
 	* Release: 0.908
 

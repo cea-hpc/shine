@@ -140,7 +140,7 @@ class FileSystem:
         # Currently, all event callbacks need a node.
         # When localy called, _invoke do not pass a node.
         # XXX: When events v3 will be there, this could be cleaned
-        kwargs.setdefault('node', None)
+        kwargs.setdefault('node', Server.hostname_short())
 
         getattr(self.event_handler, event)(**kwargs)
 
