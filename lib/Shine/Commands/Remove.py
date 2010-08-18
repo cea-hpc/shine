@@ -17,40 +17,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# $Id$
 
-# Import Section
+"""
+Shine 'remove' command classes.
 
-from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-# Command base class
-from Base.RemoteCommand import RemoteCriticalCommand
-from Base.CommandRCDefs import *
-from Base.Support.FS import FS
-from Base.Support.Nodes import Nodes
-
-# Error handling
-from Exceptions import *
-
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
-
-# Command helper
-from Shine.FSUtils import open_lustrefs
-
-# Lustre events and errors
-import Shine.Lustre.EventHandler
-from Shine.Lustre.Disk import *
-from Shine.Lustre.FileSystem import *
+The remove command aims to uninstall a Lustre filesystem setup with Shine.
+This will interact with the backend and will remove local cached files.
+"""
 
 
-class GlobalRemoveEventHandler(Shine.Lustre.EventHandler.EventHandler):
+from ClusterShell.NodeSet import NodeSet
 
-    def __init__(self):
-        pass
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
 
-class Remove(RemoteCriticalCommand):
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, RUNTIME_ERROR
+
+
+class Remove(FSTargetLiveCriticalCommand):
     """
     This Remove Command object is used to completly remove the
     File System description from the Shine environment.
@@ -60,111 +46,84 @@ class Remove(RemoteCriticalCommand):
     NAME = "remove"
     DESCRIPTION = "Remove a previously installed file system"
 
-    def __init__(self):
-        """
-        Initialization of the Remove command object
-        """
-        # Call parent intialization function
-        RemoteCriticalCommand.__init__(self)
-        self.fs_support = FS(self, optional=False)
+    def execute_fs(self, fs, fs_conf, eh, vlevel):
 
-    target_status_rc_map = { \
-            MOUNTED : RC_FAILURE,
-            RECOVERING : RC_FAILURE,
-            OFFLINE : RC_OK,
-            TARGET_ERROR : RC_TARGET_ERROR,
-            CLIENT_ERROR : RC_CLIENT_ERROR,
-            RUNTIME_ERROR : RC_RUNTIME_ERROR }
+        rc = RC_OK
 
-    def fs_status_to_rc(self, status):
-        return self.target_status_rc_map[status]
+        # Warn if trying to act on wrong nodes
+        if not self.nodes_support.check_valid_list(fs.fs_name, \
+                fs.managed_component_servers(), "uninstall"):
+            return RC_FAILURE
 
-    def execute(self):
-        result = RC_OK
+        # Admin mode
+        if not self.has_local_flag():
 
-        self.init_execute()
+            # Get first the status of any FS components and display some
+            # warnings if filesystem is not OK.
+            fs.status()
+            for state, targets in fs.managed_components(group_attr="state"):
+                # Mounted filesystem!
+                if state in [MOUNTED, RECOVERING]:
+                    labels = NodeSet.fromlist([t.server for t in targets])
+                    print "WARNING: Some targets are started: %s" % labels
+                # Error, won't be able to remove on these nodes
+                elif state == RUNTIME_ERROR:
+                    for nodes, msg in fs.proxy_errors:
+                        print nodes
+                        print '-' * 15
+                        print msg
+                    print "WARNING: Removing %s might failed on some nodes " \
+                          "(see above)!" % fs.fs_name
 
-        # Do not allow implicit filesystems format.
-        if not self.opt_f:
-            raise CommandHelpException(\
-                    "Missing -f option. You must specify at least one file system name.", self)
+            # Confirmation
+            if not self.ask_confirm("Please confirm the removal of filesystem" \
+                                    " ``%s''" % fs.fs_name):
+                return RC_FAILURE
 
-        # Walk through the list of File system name provided by the user
-        for fsname in self.fs_support.iter_fsname():
-            # Install appropriate event handler.
-            eh = self.install_eventhandler(None, GlobalRemoveEventHandler())
+            # Do the job now!
+            print "Removing filesystem %s..." % fs.fs_name
+            if fs.remove():
+                print "Error: failed to remove all filesystem %s " \
+                      "configuration files" % fs.fs_name
+                return RC_FAILURE
 
-            try:
-                # Open configuration and instantiate a Lustre FS.
-                fs_conf, fs = open_lustrefs(fsname, None,
-                        nodes=self.nodes_support.get_nodeset(),
-                        excluded=self.nodes_support.get_excludes(),
-                        indexes=None,
-                        event_handler=eh)
-            except:
-                print "Problem with filesystem ``%s'' configuration files." % fsname
-                raise
+            # XXX: This is not really nice. Need to find a better way.
+            if not self.nodes_support.get_nodeset() \
+               and not self.nodes_support.get_excludes() \
+               and not self.target_support.get_target() \
+               and not self.label_support.get_labels() \
+               and not self.target_support.get_failover() \
+               and not self.indexes_support.get_rangeset():
 
-            # Prepare options...
-            fs.set_debug(self.debug_support.has_debug())
+                print "Unregistering FS %s from backend..." % fs.fs_name
+                retcode = self.unregister_fs(fs_conf)
+                if retcode:
+                    print "Error: failed to unregister FS from backend " \
+                          "(rc = %d)" % retcode
+                    return RC_FAILURE
 
-            # Warn if trying to act on wrong nodes
-            all_nodes = fs.managed_component_servers()
-            if not self.nodes_support.check_valid_list(fsname, \
-                    all_nodes, "uninstall"):
-                continue
+            print "Filesystem %s removed." % fs.fs_name
 
-            # Get first the status of any FS components
-            fs.status(STATUS_ANY)
+        # Local mode (either -R or -L)
+        else:
+            if fs.remove():
+                if self.local_flag:
+                    print "Error: failed to remove filesystem ```%s'' " \
+                          "configuration files" % fs.fs_name
+                return RC_FAILURE
 
-            if not self.has_local_flag():
-
-                for state, targets in fs.managed_components(group_attr="state"):
-
-                    # mounted filesystem!
-                    if state in [MOUNTED, RECOVERING]:
-                        labels = NodeSet.fromlist([t.server for t in targets])
-                        print "WARNING: Some targets are started: %s" % labels
-
-                    # wont be able to remove on these nodes
-                    if state == RUNTIME_ERROR:
-                        for nodes, msg in fs.proxy_errors:
-                            print nodes
-                            print '-' * 15
-                            print msg
-                        print "WARNING: Removing %s might failed on some nodes (see above)!" % fs.fs_name
-
-                if self.ask_confirm("Please confirm the removal of filesystem ``%s''" % fs.fs_name):
-                    print "Removing filesystem %s..." % fs.fs_name
-                    rc = fs.remove()
-                    if rc:
-                        print "Error: failed to remove all filesystem %s configuration files" % fs.fs_name
-                        result = RC_FAILURE
-
-                    if not self.nodes_support.get_nodeset() and not self.nodes_support.get_excludes():
-                        print "Unregistering FS %s from backend..." % fs.fs_name
-                        rc = self.unregister_fs(fs_conf)
-                        if rc:
-                            print "Error: failed to unregister FS from backend (rc=%d)" % rc
-                        else:
-                            print "Filesystem %s removed." % fs.fs_name
-                else:
-                    result = RC_FAILURE
-
-            elif self.remote_call:
-                rc = fs.remove()
-                if rc:
-                    result = RC_FAILURE
+            elif self.local_flag:
+                print "Filesystem %s removed." % fs.fs_name
         
-        return result
+        return rc
 
     def unregister_fs(self, fs_conf):
-        nodes = NodeSet()
+        """
+        Unregister all client nodes and the filesystem from the backend.
+        """
         
-        for node, path in fs_conf.iter_clients():
-            nodes.add(node)
-            
         # Unregister all the file system client
+        nodes = fs_conf.get_client_nodes()
         fs_conf.unregister_clients(nodes)
 
         # Unregister file system configuration from the backend
