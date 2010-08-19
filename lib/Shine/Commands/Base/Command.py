@@ -36,6 +36,7 @@ class Command(object):
 
     NAME = "<undefined>"
     DESCRIPTION = "Undocumented"
+    SUBCOMMANDS = None
 
     def __init__(self):
         self.options = {}
@@ -53,18 +54,10 @@ class Command(object):
     
     def get_params_desc(self):
         pdesc = self.params_desc.strip()
-        if self.has_subcommand():
-            return "%s %s" % ('|'.join(self.get_subcommands()), pdesc)
+        if self.SUBCOMMANDS:
+            return "%s %s" % ('|'.join(self.SUBCOMMANDS), pdesc)
         return pdesc
 
-    def has_subcommand(self):
-        """Return whether the command supports subcommand(s)."""
-        return False
-
-    def get_subcommands(self):
-        """Return the list of subcommand(s)."""
-        raise NotImplementedError("Derived classes must implement.")
-    
     def add_option(self, flag, arg, attr, cb=None):
         """
         Add an option for getopt with optional argument.

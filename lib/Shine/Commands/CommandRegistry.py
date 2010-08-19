@@ -105,7 +105,7 @@ class CommandRegistry:
                 else:
                     if command:
                         # Command has already been found, so?
-                        if command.has_subcommand():
+                        if command.SUBCOMMANDS:
                             # The command supports subcommand: keep it in new_args.
                             new_args.append(opt)
                         else:

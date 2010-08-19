@@ -59,9 +59,6 @@ class FSLiveCommand(RemoteCommand):
         self.addopts = AdditionalOptions(self)
         self.label_support = Label(self)
 
-    def get_subcommands(self):
-        return []
-
     def fs_status_to_rc(self, status):
         return self.TARGET_STATUS_RC_MAP.get(status, RC_RUNTIME_ERROR)
 

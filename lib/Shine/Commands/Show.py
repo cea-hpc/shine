@@ -28,44 +28,32 @@ The show command aims to show various shine configuration parameters.
 # Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
-from Shine.Configuration.Exceptions import *
-
-from Exceptions import *
 
 # Command base class
-from Base.Command import Command
-from Base.CommandRCDefs import *
-from Base.Support.FS import FS
-from Base.Support.Verbose import Verbose
-# -R handler
-from Base.RemoteCallEventHandler import RemoteCallEventHandler
+from Shine.Commands.Base.Command import Command
+from Shine.Commands.Base.Support.FS import FS
+from Shine.Commands.Base.Support.Verbose import Verbose
+from Shine.Commands.Exceptions import CommandHelpException
 
-# Command helper
-from Shine.FSUtils import open_lustrefs
-
+# Utilities
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
+
+from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 
 class Show(Command):
     """
-    shine show [-f <fsname>] <conf|fs|info|storage|tuning>
+    shine show [-f <fsname>] [-v] <conf|fs|info|storage>
     """
 
     NAME = "show"
     DESCRIPTION = "Show configuration parameters."
+    SUBCOMMANDS = [ "conf", "fs", "info", "storage" ]
 
     def __init__(self):
         Command.__init__(self)
         self.fs_support = FS(self, optional=True)
         self.verbose_support = Verbose(self, with_quiet=False)
-        self.subcmd = None
-
-    def has_subcommand(self):
-        """The show command supports and even requires a subcommand."""
-        return True
-
-    def get_subcommands(self):
-        return [ "conf", "fs", "info", "storage", "tuning" ]
 
     def cmd_show_conf(self):
         """Show shine.conf"""
@@ -106,72 +94,69 @@ class Show(Command):
             try:
                 # Get the file system configuration structure
                 fs_conf = Configuration(fsname)
-                
-                # Retrieve quota configuration information
-                quota_info_string=''
-
-                if fs_conf.has_quota():
-                    quota_info_string += 'type=%s ' % fs_conf.get_quota_type()
-
-                    qiunit_string = fs_conf.get_quota_iunit()
-                    quota_info_string += 'iunit=%s ' %(qiunit_string or '[lustre_default]')
-
-                    qbunit_string = fs_conf.get_quota_bunit()
-                    quota_info_string += 'bunit=%s ' %(qbunit_string or '[lustre_default]')
-
-                    qitune_string = fs_conf.get_quota_itune()
-                    quota_info_string += 'itune=%s ' %(qitune_string or '[lustre_default]')
-
-                    qbtune_string = fs_conf.get_quota_btune()
-                    quota_info_string += 'btune=%s ' %(qbtune_string or '[lustre_default]')
-                else:
-                    quota_info_string = 'not activated'
-
-                # Get file system stripping configuration information
-                stripping_info_string = 'stripe_size=%s ' % fs_conf.get_stripesize()
-                stripping_info_string += 'stripe_count=%s' % fs_conf.get_stripecount()
-
-                # Get the device path used to mount the file system 
-                # on client node
-                device_path_string = fs_conf.get_nid(fs_conf.get_target_mgt().get_nodename()) \
-                                    + ":/" + fs_conf.get_fs_name()
-
-                # Add configuration parameter to the list of element displayed
-                # in the summary tab.
-                fslist.append(dict([['name', 'name'],
-                                    ['value', fs_conf.get_fs_name()]]))
-                fslist.append(dict([['name', 'mount path'],
-                                    ['value', fs_conf.get_client_mount(None)]]))
-                fslist.append(dict([['name', 'device path'],
-                                    ['value', device_path_string]]))
-                fslist.append(dict([['name', 'mount options'],
-                                    ['value', fs_conf.get_mount_options()]]))
-                fslist.append(dict([['name', 'quotas'],
-                                    ['value', quota_info_string]]))
-                fslist.append(dict([['name', 'stripping'],
-                                    ['value', stripping_info_string]]))
-                fslist.append(dict([['name', 'tuning'],
-                                    ['value', Globals().get_tuning_file()]]))
-                fslist.append(dict([['name', 'description'],
-                                    ['value', fs_conf.get_description()]]))
-
-                # Display the list of collected configuration information
-                layout = AsciiTableLayout()
-                layout.set_show_header(False)
-                layout.set_column("name", 0, AsciiTableLayout.LEFT)
-                layout.set_column("value", 1, AsciiTableLayout.LEFT)
-                AsciiTable().print_from_list_of_dict(fslist, layout)
-
             except:
                 # We fail to get current file system configuration information.
                 # Display an error message.
                 print "Error with FS ``%s'' configuration files." % fsname
                 raise
+                
+            # Retrieve quota configuration information
+            quota_info = ''
+            if fs_conf.has_quota():
+                quota_info += 'type=%s ' % fs_conf.get_quota_type()
+
+                qiunit = fs_conf.get_quota_iunit() or '[lustre_default]'
+                quota_info += 'iunit=%s ' % qiunit
+
+                qbunit = fs_conf.get_quota_bunit() or '[lustre_default]'
+                quota_info += 'bunit=%s ' % qbunit
+
+                qitune = fs_conf.get_quota_itune() or '[lustre_default]'
+                quota_info += 'itune=%s ' % qitune
+
+                qbtune = fs_conf.get_quota_btune() or '[lustre_default]'
+                quota_info += 'btune=%s ' % qbtune
+            else:
+                quota_info = 'not activated'
+
+            # Get file system stripping configuration information
+            stripping = 'stripe_size=%s ' % fs_conf.get_stripesize()
+            stripping += 'stripe_count=%s' % fs_conf.get_stripecount()
+
+            # Get the device path used to mount the file system 
+            # on client node
+            mgsnid = fs_conf.get_nid(fs_conf.get_target_mgt().get_nodename())
+            device_path = "%s:/%s" % (mgsnid, fs_conf.get_fs_name())
+
+            # Add configuration parameter to the list of element displayed
+            # in the summary tab.
+            fslist.append(dict([['name', 'name'],
+                                ['value', fs_conf.get_fs_name()]]))
+            fslist.append(dict([['name', 'default mount path'],
+                                ['value', fs_conf.get_mount_path()]]))
+            fslist.append(dict([['name', 'device path'],
+                                ['value', device_path]]))
+            fslist.append(dict([['name', 'mount options'],
+                                ['value', fs_conf.get_mount_options()]]))
+            fslist.append(dict([['name', 'quotas'],
+                                ['value', quota_info]]))
+            fslist.append(dict([['name', 'stripping'],
+                                ['value', stripping]]))
+            fslist.append(dict([['name', 'tuning'],
+                                ['value', Globals().get_tuning_file()]]))
+            fslist.append(dict([['name', 'description'],
+                                ['value', fs_conf.get_description()]]))
+
+            # Display the list of collected configuration information
+            layout = AsciiTableLayout()
+            layout.set_show_header(False)
+            layout.set_column("name", 0, AsciiTableLayout.LEFT)
+            layout.set_column("value", 1, AsciiTableLayout.LEFT)
+            AsciiTable().print_from_list_of_dict(fslist, layout)
+
 
     def cmd_show_storage(self):
         """Show storage info"""
-        from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
-        from Shine.Configuration.Backend.Backend import Backend
 
         backend = BackendRegistry().get_selected()
         if not backend:
@@ -179,47 +164,25 @@ class Show(Command):
             assert Globals().get_backend() == "None", \
                     "Error: please check your storage backend configuration" \
                     "(backend=%s)" % Globals().get_backend()
-            print "Storage backend is disabled, please check storage information " \
-                    "as a per-filesystem basis with ``show info''."
+            print "Storage backend is disabled, please check storage " \
+                  "information as a per-filesystem basis with ``show info''."
         else:
             backend.start() 
             cnt = 0
-            for t in [ 'mgt', 'mdt', 'ost']:
-                for dev in backend.get_target_devices(t):
+            for tgt in [ 'mgt', 'mdt', 'ost']:
+                for dev in backend.get_target_devices(tgt):
                     print dev
                     cnt += 1
             print "Total: %d devices" % cnt
         return 0
 
-    def cmd_show_tuning(self):
-        """Show global tuning info"""
-        print "Not implemented yet."
-
     def execute(self):
-        result = 0
 
         if len(self.arguments) != 1:
             raise CommandHelpException("Invalid command usage.", self)
 
-        self.subcmd = self.arguments[0]
-        if self.subcmd not in self.get_subcommands():
+        subcmd = self.arguments[0]
+        if subcmd not in self.SUBCOMMANDS:
             raise CommandHelpException("Cannot show this.", self)
 
-        return getattr(self, 'cmd_show_%s' % self.subcmd)()
-        
-        
-
-
-
-
-        for fsname in self.fs_support.iter_fsname():
-
-            # Open configuration and instantiate a Lustre FS.
-            fs_conf, fs = open_lustrefs(fsname, None,
-                    nodes=None, indexes=None, event_handler=None)
-
-            fs.set_debug(self.debug_support.has_debug())
-
-
-        
-        return result
+        return getattr(self, 'cmd_show_%s' % subcmd)()
