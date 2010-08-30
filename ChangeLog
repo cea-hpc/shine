@@ -1,5 +1,6 @@
 2010-08-30 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix bug when using failover.
+	* Fix bug when installing/removing configuration on ha_node (#72).
 
 2010-08-18  Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix bug when mount on admin node raises exception with clusterdb (#76).

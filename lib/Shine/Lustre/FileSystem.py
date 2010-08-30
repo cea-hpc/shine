@@ -393,7 +393,13 @@ class FileSystem:
         Server list is built from enabled targets and enabled clients only.
         """
 
+        # Get all possible servers 
         servers = self.managed_component_servers()
+        # Do not forget to install also on failover servers
+        # XXX: This does not take -n/-x flag in account
+        for comp in self.managed_components(supports='failservers'):
+            if len(comp.failservers) > 0:
+                servers.update(NodeSet.fromlist(comp.failservers))
 
         try:
             self._distant_action_by_server(Install, servers, config_file=fs_config_file)
@@ -407,22 +413,28 @@ class FileSystem:
         """
 
         result = 0
-        servers = NodeSet()
 
-        # iterate over lustre servers
-        for server, iter_comps in self.managed_components(group_attr="server"):
-            if server.is_local():
-                # remove local fs configuration file
-                conf_dir_path = Globals().get_conf_dir()
-                fs_file = os.path.join(Globals().get_conf_dir(), "%s.xmf" % self.fs_name)
-                rc = os.unlink(fs_file)
-                result = max(result, rc)
-            else:
-                servers.add(server)
+        # Get all possible servers 
+        servers = self.managed_component_servers()
+        # Do not forget to install also on failover servers
+        # XXX: This does not take -n/-x flag in account
+        for comp in self.managed_components(supports='failservers'):
+            if len(comp.failservers) > 0:
+                servers.update(NodeSet.fromlist(comp.failservers))
 
-        if len(servers) > 0:
+        # filter local server
+        distant_servers = Server.distant_servers(servers)
+
+        # If size is different, we have a local server in the list
+        if len(distant_servers) < len(servers):
+            # remove local fs configuration file
+            fs_file = os.path.join(Globals().get_conf_dir(), "%s.xmf" % self.fs_name)
+            rc = os.unlink(fs_file)
+            result = max(result, rc)
+
+        if len(distant_servers) > 0:
             # Perform the remove operations on all targets for these nodes.
-            FSProxyAction(self, 'remove', servers, self.debug).launch()
+            FSProxyAction(self, 'remove', distant_servers, self.debug).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
