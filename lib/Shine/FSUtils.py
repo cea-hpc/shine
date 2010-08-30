@@ -80,7 +80,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         # Change current server if failover nodes are used.
         if failover and len(failover):
-            target.failover(failover)
+            target.action_enabled = target.failover(failover)
 
         # Now that server is set, check explicit nodes and exclusion
         if (nodes is not None and target.server not in nodes) or \

@@ -125,9 +125,9 @@ class Target(Component, Disk):
         """
         Helper method to change Target current server based on a candidate list.
 
-        It checks if only one server from the candidate list matches 
-        one of the failover server of this target. If more than one matches, it
-        raises an exception. If no server matches if retun False. If it has
+        It checks if only one server from the candidate list matches one of the
+        failover server of this target. If more than one matches, it
+        raises an exception. If no server matches it returns False. If it has
         changes the current server, it returns true.
         """
         intersec = candidates.intersection(NodeSet.fromlist(self.failservers))
