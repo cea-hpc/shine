@@ -1,3 +1,6 @@
+2010-09-02 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Some cleaning in shine.conf supported options. (#66)
+
 2010-08-30 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix bug when using failover.
 	* Fix bug when installing/removing configuration on ha_node (#72).

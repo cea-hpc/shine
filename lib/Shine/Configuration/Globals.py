@@ -52,26 +52,18 @@ class Globals(object):
             'conf_dir'                  : 'path',
             'lmf_dir'                   : 'path',
             'tuning_file'               : 'path',
-            'log_file'                  : 'path',
-            'log_level'                 : [ 'debug', 'info', 'warn', 'error' ],
             'ssh_connect_timeout'       : 'digit',
             'ssh_fanout'                : 'digit',
             'default_timeout'           : 'digit',
+            # XXX: Not yet implemented
             'start_timeout'             : 'digit',
             'mount_timeout'             : 'digit',
             'umount_timeout'            : 'digit',
             'stop_timeout'              : 'digit',
             'status_timeout'            : 'digit',
-            'disable_nagios'            : ['yes', 'no'],
-            'disable_chkconfig_for_ldap': ['yes', 'no'],
-            'use_stormap_for_chk_dev'   : ['yes', 'no'],
-            'set_ioscheds_timeout'      : 'digit',
-            'allow_loop_devices'        : ['yes', 'no'],
-            'check_only_mounted_nodes_on_mnt_status' : ['yes', 'no'],
             'set_tuning_timeout'        : 'digit',
-            'disable_modules_unloading' : ['yes', 'no'],
-            'disable_mgmt_node_test'    : ['yes', 'no'],
-            'plugin'                    : 'string'
+            'log_file'                  : 'path',
+            'log_level'                 : [ 'debug', 'info', 'warn', 'error' ],
         }
 
         defaults = {
@@ -81,21 +73,17 @@ class Globals(object):
             'conf_dir'                  : '/var/cache/shine/conf',
             'lmf_dir'                   : '/etc/shine/models',
             'tuning_file'               : '',
-            'log_file'                  : 'warn',
-            'log_level'                 : 'warn',
-            'ssh_connect_timeout'       : 10,
+            'ssh_connect_timeout'       : 30,
             'ssh_fanout'                : 0,
             'default_timeout'           : 30,
+            # XXX: Not yet implemented
             'start_timeout'             : 0,
             'mount_timeout'             : 0,
             'umount_timeout'            : 0,
             'stop_timeout'              : 0,
             'status_timeout'            : 0, 
-            'disable_nagios'            : 'yes',
-            'disable_chkconfig_for_ldap': 'yes',
-            'use_stormap_for_chk_dev'   : 'yes',
-            'set_ioscheds_timeout'      : 0,
-            'allow_loop_devices'        : 'yes',
+            'log_file'                  : '/var/log/shine.log',
+            'log_level'                 : 'warn',
         }
 
 
@@ -142,5 +130,3 @@ class Globals(object):
 
         def get_ssh_fanout(self):
             return int(self.get_one('ssh_fanout'))
-
-        # ...
