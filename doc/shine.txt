@@ -7,7 +7,7 @@ lustre command line administration tool
 ---------------------------------------
 
 :Author: A Degremont (CEA), J Fereyre (Bull), S Thiell (CEA)
-:Date:   2010-02-17
+:Date:   2010-09-22
 :Copyright: GPL
 :Version: 1.0
 :Manual section: 1
@@ -29,9 +29,9 @@ management task with:
 
     * one human-readable configuration file to describe your filesystem
 
-    * start, stop, format (and more) your filesystem from an unique machine, thanks to a simple command line interface.
+    * start, stop, mount, format (and more) your filesystem from an unique machine, thanks to a simple command line interface.
 
-It is still in beta stage (feedbacks are welcomed).
+Supported versions of Lustre are 1.6.x, 1.8.x and 2.x. It is still in beta stage (feedbacks are welcomed).
 
 
 
@@ -58,15 +58,18 @@ Here is the description of the supported commands:
     the entire Lustre filesystem or only target patterns  that  will  match
     Shine backend entries.  By installing, we mean that shine will generate
     a filesystem configuration  and  will spread it to the concerned nodes
-    (MGS, MDS, OSS and clients).
+    (MGS, MDS, OSS, LNET routers and clients).
 
 `remove`
     Remove an installed file system. This command removes the filesystem
-    description but nothing is done on the various targets involved  in
-    the considered  filesystem (no reformatting of freed target is done).
+    description but nothing is done on the various targets involved in
+    the considered filesystem (no reformatting of freed target is done).
 
 `format`
     Format an installed filesystem.
+
+`fsck`
+    Perform a "check and repair" *fsck* on specified targets backend file system in parallel.
 
 `status`
     Get filesystem current status. See -V option below to specify a status view.
@@ -112,6 +115,9 @@ OPTIONS
     ``shine`` command assumes that the file is located in the
     `/etc/shine/models` directory.
 
+-o <Additional_options>
+    Used to specify additional underlying command line options.
+
 -q
     Quiet mode.
 
@@ -121,6 +127,7 @@ OPTIONS
         * mgt
         * mdt
         * ost
+        * router
 
 -v
     Enable verbose mode.
@@ -142,7 +149,20 @@ OPTIONS
 EXIT STATUS
 ===========
 
-An exit status of zero indicates success of the ``shine`` command.
+In general, an exit status of zero indicates success of the *shine* command.  However, special return codes are defined for the *status* command:
+
+    * 0 indicates an *online* Lustre component (eg. a started target or mounted client)
+    * 4 indicates a *recovering* component (eg. a well started target that is still in Lustre recovery)
+    * 8 indicates an *offline* Lustre component (eg. a stopped target or un-mounted client)
+    * 16 indicates either a target error or an external target (not managed)
+    * 18 indicates an error occuring on a client
+    * 128 indicates a runtime error (eg. wrong shine installation or configuration)
+
+If multiple targets (of possibly multiple filesystems) are concerned by the scope of the *status* command (selected by OPTIONS) and their current states are different, the largest state code is returned. You can get all *shine* command return code constants definition with:
+
+:# pydoc Shine.Commands.Base.CommandRCDefs:
+
+
 
 
 EXAMPLES
@@ -160,6 +180,8 @@ EXAMPLES
 :# shine mount -f lustre1 -n cluster[5-6]:
     Mount `lustre1` filesystem on node cluster5 and cluster6.
 
+:# shine status -f lustre1 -V target:
+    Get state of targets of filesystem `lustre1`.
 
 FILES
 =====
@@ -172,7 +194,7 @@ FILES
   Default location for LMF (Lustre Model File) files.
 
 */etc/shine/storage.conf*
-  Storage configuration file.
+  Storage configuration file (deprecated).
 
 */etc/shine/tuning.conf*
   Tuning configuration file.
@@ -187,5 +209,5 @@ BUG REPORTS
 ===========
 
 Use the following URL to submit a bug report or feedback:
-  http://sourceforge.net/apps/trac/lustre-shine/report
+  http://sourceforge.net/apps/trac/lustre-shine/newticket
 
