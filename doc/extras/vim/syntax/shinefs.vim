@@ -42,6 +42,7 @@ syn keyword shineFSKey              mgt
 syn keyword shineFSKey              mdt
 syn keyword shineFSKey              ost
 syn keyword shineFSKey              client
+syn keyword shineFSKey              router
 
 syn match shineVariable             /\$\(fs_name\|index\)/
 
