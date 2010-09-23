@@ -25,7 +25,6 @@ Lustre FileSystem class.
 Represents a Lustre FS.
 """
 
-from sets import Set
 import socket
 import os
 import sys
@@ -448,7 +447,7 @@ class FileSystem:
 
         # Remember format launched, so we can check their status once
         # all operations are done.
-        format_launched = Set()
+        format_launched = set()
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -478,7 +477,7 @@ class FileSystem:
     def fsck(self, **kwargs):
         # Remember fsck launched, so we can check their status once
         # all operations are done.
-        fsck_launched = Set()
+        fsck_launched = set()
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -510,7 +509,7 @@ class FileSystem:
         Get status of filesystem.
         """
 
-        launched = Set()
+        launched = set()
 
         # Filter components depending on flags
         # XXX: Ugly test, implement something cleaner.
@@ -725,7 +724,7 @@ class FileSystem:
         for server, iter_comp in self.managed_components(group_attr="server", supports='label'):
             e_comps = list(iter_comp)
             if server.is_local():
-                types = Set()
+                types = set()
                 for t in e_comps:
                     types.add(type_map[t.TYPE])
 

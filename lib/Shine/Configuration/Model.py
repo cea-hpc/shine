@@ -20,8 +20,6 @@
 
 from ModelFile import ModelFile, SubElement
 
-from sets import Set
-
 import re
 
 class Model(ModelFile):
@@ -166,7 +164,7 @@ class ModelNidMap(SubElement):
         """
         Sort nodes and nids keys for a better understanding.
         """
-        keys = Set(self.keys.keys())
+        keys = set(self.keys.keys())
         elems = []
         for k in ('nodes','nids'):
             elems.append("%s%s%s" % (k, self.sep, self.get_one(k)))
