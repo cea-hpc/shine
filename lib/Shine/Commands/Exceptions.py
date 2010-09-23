@@ -35,14 +35,6 @@ class CommandHelpException(CommandException):
         CommandException.__init__(self, message)
         self.cmd = cmd
 
-class CommandSyntaxError(CommandException):
-    def __init__(self, file, line_nbr, line):
-        self.file = file
-        self.lineNbr = line_nbr
-        self.line = line
-        self.message = "Syntax error in %s at line %d: \"%s\"" % \
-                       (self.file, self.lineNbr, self.line)
-
 class CommandNotFoundError(CommandException):
     def __init__(self, cmd_name):
         self.cmd = cmd_name

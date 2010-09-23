@@ -22,23 +22,6 @@
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
 
-class ActionException(Exception):
-    def __init__(self, message, rc):
-        self.message = message
-        self.rc = rc
-    def __str__(self):
-        return self.message
-
-class ActionErrorException(ActionException):
-    pass
-
-class ActionWarningException(ActionException):
-    pass
-
-class ActionFailedError(ActionErrorException):
-    pass
-
-
 class Action(EventHandler):
     """
     Astract shine action class.

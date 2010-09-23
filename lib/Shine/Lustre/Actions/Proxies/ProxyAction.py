@@ -19,7 +19,6 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action, ActionException
 from ClusterShell.Task import task_self
 
 import os
@@ -27,20 +26,12 @@ import sys
 
 import binascii, pickle
 
+from Shine.Lustre.Actions.Action import Action
+
 # SHINE PROXY PROTOCOL CONSTANTS
 
 SHINE_MSG_VERSION = 2
 
-
-class ProxyActionException(ActionException):
-    def __init__(self, nodes, message, rc=-1):
-        ActionException.__init__(self, message, rc)
-        self.nodes = nodes
-
-class ProxyActionError(ProxyActionException):
-    """
-    Base class for proxy action error exceptions.
-    """
 
 class ProxyActionUnpackError(Exception):
     """

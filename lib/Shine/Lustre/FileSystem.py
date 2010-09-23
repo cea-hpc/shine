@@ -37,8 +37,6 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Lustre.Actions.Action import ActionFailedError
-from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyActionError
 from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
@@ -50,26 +48,18 @@ from Shine.Lustre.Target import MGT, MDT, OST
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, RECOVERING, OFFLINE, RUNTIME_ERROR, CLIENT_ERROR, TARGET_ERROR
 
 
-class FSException(Exception):
-    def __init__(self, message):
-        self.message = message
-    def __str__(self):
-        return self.message
-
-class FSError(FSException):
+class FSError(Exception):
     """
     Base FileSystem error exception.
     """
 
-class FSSyntaxError(FSError):
-    def __init__(self, message):
-        self.message = "Syntax error: \"%s\"" % (message)
-    def __str__(self):
-        return self.message
-
-class FSBadTargetError(FSSyntaxError):
+class FSBadTargetError(FSError):
+    """
+    Raise when a attempt to create an unknown target is detected.
+    """
     def __init__(self, target_name):
-        self.message = "Syntax error: unrecognized target \"%s\"" % (target_name)
+        msg = "Syntax error: unrecognized target \"%s\"" % target_name
+        FSError.__init__(msg)
 
 class FSStructureError(FSError):
     """
@@ -82,13 +72,14 @@ class FSRemoteError(FSError):
     """
     Remote host(s) not available, or a remote operation failed.
     """
-    def __init__(self, nodes, rc, message):
-        FSError.__init__(self, message)
+    def __init__(self, nodes, rc, msg):
+        FSError.__init__(self)
+        self.msg = msg
         self.nodes = nodes
         self.rc = int(rc)
 
     def __str__(self):
-        return "%s: %s [rc=%d]" % (self.nodes, self.message, self.rc)
+        return "%s: %s [rc=%d]" % (self.nodes, self.msg, self.rc)
 
 
 STATUS_SERVERS      = 0x01
@@ -400,11 +391,7 @@ class FileSystem:
             if len(comp.failservers) > 0:
                 servers.update(NodeSet.fromlist(comp.failservers))
 
-        try:
             self._distant_action_by_server(Install, servers, config_file=fs_config_file)
-        except ProxyActionError, e:
-            # switch to public exception
-            raise FSRemoteError(e.nodes, e.rc, e.message)
         
     def remove(self):
         """
@@ -715,10 +702,7 @@ class FileSystem:
                     tune_all.add(server)
 
             if len(tune_all) > 0:
-                try:
-                    self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
-                except ActionFailedError, error:
-                    print "WARNING: %s" % str(error)
+                self._distant_action_by_server(Install, tune_all, config_file=Globals().get_tuning_file())
 
         # Apply tunings
         for server, iter_comp in self.managed_components(group_attr="server", supports='label'):

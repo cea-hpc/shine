@@ -21,7 +21,7 @@
 
 import os
 
-from Shine.Lustre.Actions.Action import Action, ActionFailedError
+from Shine.Lustre.Actions.Action import Action
 
 class Install(Action):
     """
