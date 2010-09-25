@@ -13,7 +13,6 @@ import tempfile
 sys.path.insert(0, '../lib')
 
 from Shine.Configuration.Model import Model
-from sets import Set
 
 class ModelTest(unittest.TestCase):
 
@@ -37,21 +36,20 @@ class ModelTest(unittest.TestCase):
     def testDefaultValues(self):
         """test defaults values"""
         # All default values had been declared in syntax dict.
-        syntax_keys = Set(Model.syntax.keys())
-        defaults_keys = Set(Model.defaults.keys())
+        syntax_keys = set(Model.syntax.keys())
+        defaults_keys = set(Model.defaults.keys())
         self.assertTrue(defaults_keys <= syntax_keys)
 
         m = Model()
         self.assertEqual(m.get('stripe_size'), [ 1048576 ])
         self.assertEqual(m.get('stripe_count'), [ 1 ])
-        self.assertEqual(m.get('failover'), ['no'])
         self.assertEqual(m.get('quota_type'), ['ug'])
 
     def testLoadExample(self):
         """Load example.lmf and checks it."""
         m = Model()
         m.load_from_file("../conf/models/example.lmf")
-        self.assertEqual(len(m.keys.keys()), 20)
+        self.assertEqual(len(m.keys.keys()), 19)
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(ModelTest)

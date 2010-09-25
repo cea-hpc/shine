@@ -6,12 +6,14 @@
 
 """Unit test for Shine.Configuration.FileSystem"""
 
+import os
 import sys
 import unittest
 import tempfile
 
 sys.path.insert(0, '../lib')
 
+from Shine.Configuration.Globals import Globals
 from Shine.Configuration.FileSystem import FileSystem
 from Shine.Configuration.Exceptions import ConfigInvalidFileSystem
 
@@ -19,10 +21,13 @@ class FileSystemTest(unittest.TestCase):
 
     def setUp(self):
         self._fs = None
+        # XXX: This is a hack. Not official method to change a Globals param.
+        Globals().keys['conf_dir'] = [ tempfile.mkdtemp(prefix='shine-test') ]
 
     def tearDown(self):
         if self._fs:
             self._fs.unregister()
+        os.rmdir(Globals().get_conf_dir())
 
     def makeTestFile(self, text):
         """
@@ -44,7 +49,7 @@ class FileSystemTest(unittest.TestCase):
     def testLoadFile(self):
         """create a FileSystem from model example.lmf"""
         self._fs = FileSystem(lmf="../conf/models/example.lmf")
-        self.assertEqual(len(self._fs.keys.keys()), 20)
+        self.assertEqual(len(self._fs.keys.keys()), 19)
 
     def testMGSOnly(self):
         """filesystem with only a MGS"""
