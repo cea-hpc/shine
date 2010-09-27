@@ -19,74 +19,80 @@
 #
 # $Id$
 
-
-from Exceptions import *
+"""
+Help to manipulate a mapping between a list of nodes and a list of Lustre NID.
+"""
 
 from ClusterShell.NodeSet import NodeSet
+from Shine.Configuration.Exceptions import ConfigException
+
+class InvalidNidMapError(ConfigException):
+    """Raise when nodes or nid ranges are used"""
+
+    def __init__(self, nodes, nids):
+        ConfigException.__init__(self, "Erroneous NID map")
+        self.nodes = nodes
+        self.nids = nids
+
+    def __str__(self):
+        return "Erroneous NID map : %s -> %s" % (self.nodes, self.nids)
 
 
-class NidMap:
+class NidMap(object):
     """
     NID mapping helper class for shine.
     """
     def __init__(self, nodes_pat=None, nids_pat=None):
-        self.map = {}
+        self._map = {}
 
-        if nodes_pat:
-            # Convert to NodeSets
-            nodes, nids = NodeSet(nodes_pat), NodeSet(nids_pat)
-
-            # Sanity check
-            if len(nodes) != len(nids):
-                raise ConfigBadNidMapError(nodes, nids)
-
-            # Fill map dict
-            nids_l = list(nids)
-            i = 0
-            for node in nodes:
-                self.map[node] = nids_l[i]
-                i = i + 1
-
-    def fromlist(cls, l):
-        """
-        Helper class method to build a NidMap object from a list of
-        ModelNidMap objects as provided by Model.py.
-        """
-        inst = NidMap()
-        for map in l:
-            inst.add(map)
-        return inst
-    fromlist = classmethod(fromlist)
+        if nodes_pat or nids_pat:
+            self.add(nodes_pat, nids_pat)
 
     def __str__(self):
-        buf = ""
-        for k,v in self.map.iteritems():
-            buf += "%s -> %s\n" % (k, v)
-        return buf
+        output = []
+        for nodes, nids in self._map.iteritems():
+            output.append("%s -> %s\n" % (nodes, ':'.join(nids)))
+        return ''.join(output)
 
     def __getitem__(self, key):
-        return self.map[key]
+        return self._map[key]
 
-    def add(self, modelnidmap):
+    def add(self, nodes, nids):
         """
-        Add one-to-one mapping from an nidmap line entry as ModelNidMap.
+        Add one-to-one mapping from 2 strings representing NodeSet.
         Sizes of the provided nodeset and nidset must be the same.
         """
+
+        # Convert to NodeSets
+        ns_nodes, ns_nids = NodeSet(nodes), NodeSet(nids)
+
+        # Sanity check
+        if len(ns_nodes) != len(ns_nids):
+            raise InvalidNidMapError(ns_nodes, ns_nids)
+
+        # Fill map dict
+        for node, nid in zip(ns_nodes, ns_nids):
+            self._map.setdefault(node, []).append(nid)
+
+    def add_modelnidmap(self, modelnidmap):
+        """
+        Add one-to-one mapping from an nidmap line entry as ModelNidMap.
+        """
+
         # Get nodes and nids from the ModelNidMap object representing
         # one nid_map: line
         nodes = modelnidmap.get_one('nodes')
         nids = modelnidmap.get_one('nids')
 
-        # Convert to nodesets
-        nodes_s, nids_s = NodeSet(nodes), NodeSet(nids)
+        self.add(nodes, nids) 
 
-        # Sanity check
-        if len(nodes_s) != len(nids_s):
-            raise ConfigBadNidMapError(nodes_s, nids_s)
-
-        # Fill map dict
-        nids_l = list(nids_s)
-        i = 0
-        for node in nodes_s:
-            self.map[node] = nids_l[i]
-            i = i + 1
+    @classmethod
+    def fromlist(cls, maplist):
+        """
+        Helper class method to build a NidMap object from a list of
+        ModelNidMap objects as provided by Shine.Configuration.Model
+        """
+        nidmap = NidMap()
+        for elem in maplist:
+            nidmap.add_modelnidmap(elem)
+        return nidmap

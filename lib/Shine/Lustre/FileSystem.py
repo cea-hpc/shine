@@ -171,7 +171,7 @@ class FileSystem:
             self.mgt = comp
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
-                   tag=None, enabled=True, mode='managed'):
+                   tag=None, enabled=True, mode='managed', network=None):
         """
         Create a new attached target.
         """
@@ -184,7 +184,7 @@ class FileSystem:
         # Instantiate matching target class (eg. 'ost' -> OST).
         target = getattr(sys.modules[self.__class__.__module__], type.upper())(fs=self,
                 server=server, index=index, dev=dev, jdev=jdev, group=group, tag=tag,
-                enabled=enabled, mode=mode)
+                enabled=enabled, mode=mode, network=network)
         
         return target
 

@@ -20,6 +20,7 @@
 # $Id$
 
 from Shine.Lustre.Actions.Action import Action
+import Shine.Lustre.Target
 
 class Format(Action):
     """
@@ -53,6 +54,9 @@ class Format(Action):
             self.launch_format()
 
     def launch_format(self):
+        mgt_type = Shine.Lustre.Target.MGT.TYPE
+        mdt_type = Shine.Lustre.Target.MDT.TYPE
+        ost_type = Shine.Lustre.Target.OST.TYPE
         self.jformat = False
         
         command = ["export PATH=/usr/lib/lustre:$PATH;", "mkfs.lustre", "--reformat", '"--fsname=%s"' % \
@@ -61,17 +65,18 @@ class Format(Action):
 
         mgs_nids = self.target.fs.get_mgs_nids()
 
-        if self.target.TYPE == 'mgt':
+        if self.target.TYPE == mgt_type:
 
             command.append("--mgs")     # '--mgs' and not '--mgt'
 
-        elif self.target.TYPE == 'mdt':
+        elif self.target.TYPE == mdt_type:
 
             command.append("--mdt")
 
-            # MGS NIDs (several MGS supported but only one NID per MGS supported for now)
-            for nid in mgs_nids:
-                command.append('"--mgsnode=%s"' %  nid)
+            # MGS NIDs
+            for nidlist in mgs_nids:
+                nids = ','.join(nidlist)
+                command.append('"--mgsnode=%s"' % nids)
 
             command.append("--index=%d" % self.target.index)
 
@@ -84,13 +89,14 @@ class Format(Action):
                 command.append('"--param=mdt.quota_type=%s"' % \
                         self.quota_type)
 
-        elif self.target.TYPE == 'ost':
+        elif self.target.TYPE == ost_type:
 
             command.append("--ost")
 
             # MGS NIDs
-            for nid in mgs_nids:
-                command.append('"--mgsnode=%s"' %  nid)
+            for nidlist in mgs_nids:
+                nids = ','.join(nidlist)
+                command.append('"--mgsnode=%s"' % nids)
 
             command.append("--index=%d" % self.target.index)
 
@@ -101,8 +107,21 @@ class Format(Action):
         # failnode: NID(s) of failover partner
         target_nids = self.target.get_nids()
         if len(target_nids) > 1:
-            for nid in target_nids[1:]:
-                command.append('"--failnode=%s"' % nid)
+            for nidlist in target_nids[1:]:
+
+                # if 'network' is specified, restrict the list of partner
+                if self.target.network and self.target.TYPE in [mdt_type, ost_type]:
+                    suffix = '@%s' % self.target.network
+                    nidlist = filter(lambda n: n.endswith(suffix), nidlist)
+
+                # if there is still some matching partners, add them
+                if len(nidlist) > 0:
+                    nids = ','.join(nidlist)
+                    command.append('"--failnode=%s"' % nids)
+
+        # network: restrict target to a specific LNET network
+        if self.target.network and self.target.TYPE in [mdt_type, ost_type]:
+            command.append('--network=%s' % self.target.network)
 
         if self.mkfs_options:
             opts = self.mkfs_options.get(self.target.TYPE)

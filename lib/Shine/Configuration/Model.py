@@ -124,7 +124,8 @@ class ModelDevice(SubElement):
       'jdev'       : 'string',
       'index'      : 'digit',
       'group'      : 'string',
-      'mode'       : 'string'
+      'mode'       : 'string',
+      'network'    : 'string',
     }
 
     defaults = {

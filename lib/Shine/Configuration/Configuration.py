@@ -77,6 +77,9 @@ class Target:
     def get_mode(self):
         return self.dic.get('mode', 'managed')
 
+    def get_network(self):
+        return self.dic.get('network')
+
 class Clients:
     def __init__(self, cf_client):
         self.dic = cf_client.get_dict()

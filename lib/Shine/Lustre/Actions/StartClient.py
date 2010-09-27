@@ -56,9 +56,10 @@ class StartClient(Action):
             command.append(self.addopts)
 
         # MGS NIDs
-
-        command.append("%s:/%s" % (':'.join(self.client.fs.get_mgs_nids()),
-            self.client.fs.fs_name))
+        # List of node nids ['foo1@tcp0,foo1@tcp1', 'foo2@tcp0,foo2@tcp1']
+        nodenids = [','.join(nids) for nids in self.client.fs.get_mgs_nids()]
+        mgsfullnid = ':'.join(nodenids)
+        command.append("%s:/%s" % (mgsfullnid, self.client.fs.fs_name))
 
         command.append(self.client.mount_path)
 

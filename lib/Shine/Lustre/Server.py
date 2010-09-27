@@ -29,12 +29,12 @@ class Server(NodeSet):
     _CACHE_HOSTNAME_SHORT = None
     _CACHE_HOSTNAME_LONG = None
 
-    def __init__(self, node_name, nid):
+    def __init__(self, node_name, nids):
         NodeSet.__init__(self, node_name)
-        self.nid = nid
+        self.nids = nids
 
     def __str__(self):
-        return "%s (%s)" % (NodeSet.__str__(self), self.nid)
+        return "%s (%s)" % (NodeSet.__str__(self), ','.join(self.nids))
 
     @classmethod
     def hostname_long(cls):

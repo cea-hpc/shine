@@ -20,7 +20,7 @@ class ServerTest(unittest.TestCase):
 
     def testStringRepr(self):
         """test string representation"""
-        srv = Server('localhost', 'localhost@tcp')
+        srv = Server('localhost', ['localhost@tcp'])
         self.assertEqual(str(srv), 'localhost (localhost@tcp)')
 
     def testHostname(self):

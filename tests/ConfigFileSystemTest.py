@@ -105,6 +105,18 @@ mgt: node=foo1 dev=/dev/dummy2
 mdt: node=foo1 dev=/dev/dummy1
 """) 
 
+    def testMultipleNidMap(self):
+        """filesystem with complex nid setup"""
+        self._fs = self.makeTestFileSystem("""
+fs_name: example
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
+nid_map: nodes=foo[1-2] nids=foo[1-2]-bone@tcp1
+mgt: node=foo1 ha_node=foo2
+""") 
+        self.assertEqual(len(self._fs.keys.keys()), 3)
+        self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp0','foo1-bone@tcp1'])
+        self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp0','foo2-bone@tcp1'])
+
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(FileSystemTest)

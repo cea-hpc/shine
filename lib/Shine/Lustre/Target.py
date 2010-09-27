@@ -66,7 +66,7 @@ class Target(Component, Disk):
     }
 
     def __init__(self, fs, server, index, dev, jdev=None, group=None,
-            tag=None, enabled=True, mode='managed'):
+            tag=None, enabled=True, mode='managed', network=None):
         """
         Initialize a Lustre target object.
         """
@@ -80,6 +80,7 @@ class Target(Component, Disk):
         self.index = int(index)
         self.group = group
         self.tag = tag
+        self.network = network
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -166,7 +167,7 @@ class Target(Component, Disk):
         """
         Return an ordered list of target's NIDs.
         """
-        return [s.nid for s in self.allservers()]
+        return [s.nids for s in self.allservers()]
 
     def text_status(self):
         """

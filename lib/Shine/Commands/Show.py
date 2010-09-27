@@ -123,10 +123,11 @@ class Show(Command):
             stripping = 'stripe_size=%s ' % fs_conf.get_stripesize()
             stripping += 'stripe_count=%s' % fs_conf.get_stripecount()
 
-            # Get the device path used to mount the file system 
-            # on client node
-            mgsnid = fs_conf.get_nid(fs_conf.get_target_mgt().get_nodename())
-            device_path = "%s:/%s" % (mgsnid, fs_conf.get_fs_name())
+            # Get the device path used to mount the file system on client node
+            mgsnodes = [fs_conf.get_target_mgt().get_nodename()]
+            mgsnodes += fs_conf.get_target_mgt().ha_nodes()
+            mgsnids = [ ','.join(fs_conf.get_nid(node)) for node in mgsnodes ]
+            device_path = "%s:/%s" % (':'.join(mgsnids), fs_conf.get_fs_name())
 
             # Add configuration parameter to the list of element displayed
             # in the summary tab.
