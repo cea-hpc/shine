@@ -12,6 +12,9 @@ fs_name: example
 
 # nid_map
 # Hosts to Lnet NIDs mapping.
+#
+# Use multiple lines with the same nodes if you have several nids for
+# the same machines.
 nid_map: nodes=nova[0-32] nids=nova[0-32]@tcp0
 
 # mount_path
@@ -23,9 +26,10 @@ mount_path: /example
 
 # Defines your Lustre filesystem targets.
 #
-# ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
-#      [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
-#      [ group=<RegExp> ] [ mode={external|managed} ]
+# mgt|mdt|ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
+#              [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
+#              [ group=<RegExp> ] [ mode={external|managed} ]
+#              [ network=<RegExp> ]
 #
 # Here, we don't use any backend (no File nor ClusterDB), so we have to
 # fully describe our targets (no RegExp accepted). For this simple
