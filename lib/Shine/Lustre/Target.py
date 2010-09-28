@@ -30,16 +30,18 @@ from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
 
 from Shine.Lustre.Disk import Disk, DiskDeviceError
-from Shine.Lustre.Component import Component, MOUNTED, EXTERNAL, RECOVERING, OFFLINE, INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
+from Shine.Lustre.Component import Component, ComponentError, \
+                                   MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
+                                   INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
 from Shine.Lustre.Server import Server
 
 
-class TargetError(Exception):
+class TargetError(ComponentError):
     """
     Target related error occured.
     """
     def __init__(self, target, message):
-        Exception.__init__(self, message)
+        ComponentError.__init__(self, message)
         self.target = target
 
 class TargetDeviceError(TargetError):
@@ -315,7 +317,7 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
-        except TargetDeviceError, error:
+        except TargetError, error:
             self._action_failed('format', rc=-1, message=str(error))
 
     def fsck(self, **kwargs):
@@ -343,7 +345,7 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
-        except TargetDeviceError, error:
+        except TargetError, error:
             self._action_failed('fsck', rc=-1, message=str(error))
 
     def status(self):
@@ -355,7 +357,7 @@ class Target(Component, Disk):
         try:
             self._check_status()
             self._action_done('status')
-        except TargetDeviceError, error:
+        except TargetError, error:
             self._action_failed('status', rc=None, message=str(error))
 
 
@@ -386,7 +388,7 @@ class Target(Component, Disk):
             action = StartTarget(self, **kwargs)
             action.launch()
 
-        except TargetDeviceError, error:
+        except TargetError, error:
             self._action_failed('start', rc=None, message=str(error))
 
     def stop(self, **kwargs):
@@ -411,7 +413,7 @@ class Target(Component, Disk):
             action = StopTarget(self, **kwargs)
             action.launch()
 
-        except TargetDeviceError, error:
+        except TargetError, error:
             self._action_failed('stop', rc=None, message=str(error))
 
     #

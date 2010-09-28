@@ -22,19 +22,20 @@
 import glob
 import os 
 
-from Shine.Lustre.Component import Component, MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
+from Shine.Lustre.Component import Component, ComponentError, \
+                                   MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
 
 from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
 from Shine.Lustre.Target import MDT, OST
 
-class ClientError(Exception):
+class ClientError(ComponentError):
     """
     Client error exception.
     """
     def __init__(self, client, message=None):
-        Exception.__init__(self, message)
+        ComponentError.__init__(self, message)
         self.client = client
 
 

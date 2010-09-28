@@ -29,6 +29,9 @@
  TARGET_ERROR, \
  RUNTIME_ERROR) = range(8)
 
+class ComponentError(Exception):
+    """Generic exception for any components."""
+
 class Component(object):
     """
     Abstract class for all common part of all Lustre filesystem 

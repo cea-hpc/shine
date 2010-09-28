@@ -21,18 +21,18 @@
 
 import os 
 
-from Shine.Lustre.Component import Component, MOUNTED, OFFLINE, TARGET_ERROR, \
-                                   RUNTIME_ERROR
+from Shine.Lustre.Component import Component, ComponentError, \
+                                   MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
 
 from Shine.Lustre.Actions.StartRouter import StartRouter
 from Shine.Lustre.Actions.StopRouter import StopRouter
 
-class RouterError(Exception):
+class RouterError(ComponentError):
     """
     Router error exception.
     """
     def __init__(self, router, message=None):
-        Exception.__init__(self, message)
+        ComponentError.__init__(self, message)
         self.router = router
 
 

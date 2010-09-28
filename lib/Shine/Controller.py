@@ -19,24 +19,23 @@
 #
 # $Id$
 
-from Configuration.Globals import Globals
-from Commands.CommandRegistry import CommandRegistry
+from Shine.Configuration.Globals import Globals
+from Shine.Commands.CommandRegistry import CommandRegistry
 
-from Configuration.ModelFile import ModelFileException
-from Configuration.ModelFile import ModelFileIOError
+from Shine.Configuration.ModelFile import ModelFileException
+from Shine.Configuration.ModelFile import ModelFileIOError
 
-from Configuration.Exceptions import ConfigException
-from Commands.Exceptions import *
-from Commands.Base.CommandRCDefs import *
+from Shine.Configuration.Exceptions import ConfigException
+from Shine.Commands.Exceptions import CommandHelpException, CommandException
+from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
 
-from Lustre.FileSystem import FSRemoteError
-from Shine.Lustre.Target import TargetError
+from Shine.Lustre.FileSystem import FSRemoteError
+from Shine.Lustre.Component import ComponentError
 
-from ClusterShell.Task import *
-from ClusterShell.NodeSet import *
+from ClusterShell.Task import task_self
+from ClusterShell.NodeSet import NodeSetParseError, RangeSetParseError
 
 import getopt
-import logging
 import re
 import sys
 import datetime
@@ -54,12 +53,6 @@ def print_csdebug(task, s):
 class Controller:
 
     def __init__(self):
-        self.logger = logging.getLogger("shine")
-        #handler = logging.FileHandler(Globals().get_log_file())
-        #formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s : %(message)s')
-        #handler.setFormatter(formatter)
-        #self.logger.addHandler(handler)
-        #self.logger.setLevel(Globals().get_log_level())
         self.cmds = CommandRegistry()
 
         task = task_self()
@@ -83,7 +76,7 @@ class Controller:
                     cmd.get_params_desc())
 
     def print_error(self, errmsg):
-        print >>sys.stderr, "Error:", errmsg
+        print >> sys.stderr, "Error:", errmsg
 
     def print_help(self, msg, cmd):
         if msg:
@@ -113,8 +106,6 @@ class Controller:
 
     def run_command(self, cmd_args):
 
-        #self.logger.info("running %s" % cmd_name)
-
         try:
             return self.cmds.execute(cmd_args)
         except getopt.GetoptError, e:
@@ -133,7 +124,7 @@ class Controller:
         except FSRemoteError, e:
             self.print_error(e)
             return e.rc
-        except TargetError, e:
+        except ComponentError, e:
             self.print_error("%s" % e)
         except NodeSetParseError, e:
             self.print_error("%s" % e)
