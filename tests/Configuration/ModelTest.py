@@ -8,28 +8,19 @@
 
 import sys
 import unittest
-import tempfile
 
 sys.path.insert(0, '../lib')
 
+from TestUtils import makeTestFile
 from Shine.Configuration.Model import Model
 
 class ModelTest(unittest.TestCase):
-
-    def makeTestFile(self, text):
-        """
-        Create a temporary file with the provided text.
-        """
-        f = tempfile.NamedTemporaryFile()
-        f.write(text)
-        f.flush()
-        return f
 
     def makeTestModel(self, text):
         """
         Create a temporary file instance and returns a ModelFile with it.
         """
-        f = self.makeTestFile(text)
+        f = makeTestFile(text)
         model = Model(filename=f.name)
         return model
 

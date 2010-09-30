@@ -8,30 +8,21 @@
 
 import sys
 import unittest
-import tempfile
 
 sys.path.insert(0, '../lib')
 
+from TestUtils import makeTestFile
 from ClusterShell.NodeSet import NodeSet
 from Shine.Configuration.TuningModel import TuningModel, TuningParameter, TuningParameterDeclarationException
 
 class TuningModelTest(unittest.TestCase):
 
-    def makeTestFile(self, text):
-        """
-        Create a temporary file with the provided text.
-        """
-        self.f = tempfile.NamedTemporaryFile()
-        self.f.write(text)
-        self.f.flush()
-        return self.f
-
     def makeTestTuningModel(self, text):
         """
         Create a temporary file instance and returns a TuningModel with it.
         """
-        f = self.makeTestFile(text)
-        model = TuningModel(filename=f.name)
+        self.f = makeTestFile(text)
+        model = TuningModel(filename=self.f.name)
         return model
 
     def testExampleFile(self):

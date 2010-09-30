@@ -47,6 +47,11 @@ class NidMapTest(unittest.TestCase):
         self.assertRaises(InvalidNidMapError, NidMap, nodes_pat="foo[1-3]")
         self.assertRaises(InvalidNidMapError, NidMap, nids_pat="foo[1-3]")
  
+    def testCheckException(self):
+        """cast NidMap exception to string is ok"""
+        exp = InvalidNidMapError("foo", "foo[1-2]")
+        str(exp)
+
     def testFromList(self):
         """construct from a list of modelnidmap"""
         model = Model()

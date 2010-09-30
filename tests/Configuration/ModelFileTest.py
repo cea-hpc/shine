@@ -9,29 +9,20 @@
 import os
 import sys
 import unittest
-import tempfile
 
 sys.path.insert(0, '../lib')
 
+from TestUtils import makeTestFile, makeTempFilename
 from Shine.Configuration.ModelFile import *
 
 
 class ModelFileTest(unittest.TestCase):
 
-    def makeTestFile(self, text):
-        """
-        Create a temporary file with the provided text.
-        """
-        f = tempfile.NamedTemporaryFile()
-        f.write(text)
-        f.flush()
-        return f
-
     def makeTestModel(self, text):
         """
         Create a temporary file instance and returns a ModelFile with it.
         """
-        f = self.makeTestFile(text)
+        f = makeTestFile(text)
         model = ModelFile(filename=f.name)
         return model
 
@@ -93,7 +84,7 @@ multiple: value2
     def testWrongSyntax(self):
         """test different invalid syntax"""
 
-        f = self.makeTestFile("wrong syntax line\n")
+        f = makeTestFile("wrong syntax line\n")
         self.assertRaises(ModelFileSyntaxError, ModelFile, filename=f.name)
 
     def testNewAndLoad(self):
@@ -103,7 +94,7 @@ multiple: value2
         self.failIf(m.filename)
 
         # Load one file
-        f1 = self.makeTestFile("""
+        f1 = makeTestFile("""
 key: value
 key2: value
 key3: value
@@ -115,8 +106,8 @@ key4: re-again
         self.assertEqual(len(m.keys.keys()), 4)
         self.assertEqual(m.get_filename(), f1.name)
 
-	# Load another file now
-        f2 = self.makeTestFile("""
+        # Load another file now
+        f2 = makeTestFile("""
 key: value
 key2: value
 key3: value
@@ -137,8 +128,7 @@ key6: re-again
         m1.add('key3', 'value')
 
         # Get a temporary name for a file
-        fd, filename = tempfile.mkstemp()
-        os.close(fd)
+        filename = makeTempFilename()
 
         # First, the ModelFile should not have its name defined
         self.failIf(m1.get_filename())

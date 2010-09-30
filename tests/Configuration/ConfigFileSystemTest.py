@@ -13,6 +13,7 @@ import tempfile
 
 sys.path.insert(0, '../lib')
 
+from TestUtils import makeTestFile
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.FileSystem import FileSystem
 from Shine.Configuration.Exceptions import ConfigInvalidFileSystem
@@ -29,20 +30,11 @@ class FileSystemTest(unittest.TestCase):
             self._fs.unregister()
         os.rmdir(Globals().get_conf_dir())
 
-    def makeTestFile(self, text):
-        """
-        Create a temporary file with the provided text.
-        """
-        tmp = tempfile.NamedTemporaryFile()
-        tmp.write(text)
-        tmp.flush()
-        return tmp
-
     def makeTestFileSystem(self, text):
         """
         Create a temporary file instance and returns a FileSystem with it.
         """
-        testfile = self.makeTestFile(text)
+        testfile = makeTestFile(text)
         fsconf = FileSystem(lmf=testfile.name)
         return fsconf
 
