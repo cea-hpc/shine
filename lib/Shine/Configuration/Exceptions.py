@@ -19,22 +19,12 @@
 #
 # $Id$
 
-#from Model import ModelDevice
-
 class ConfigException(Exception):
     def __init__(self, message):
         self.message = message
 
     def __str__(self):
         return self.message
-
-class ConfigSyntaxError(ConfigException):
-    def __init__(self, file, line_nbr, line):
-        self.file = file
-        self.lineNbr = line_nbr
-        self.line = line
-        self.message = "Syntax error in %s at line %d: \"%s\"" % \
-                       (self.file, self.lineNbr, self.line)
 
 class ConfigDeviceNotFoundError(ConfigException):
     def __init__(self, model_dev):

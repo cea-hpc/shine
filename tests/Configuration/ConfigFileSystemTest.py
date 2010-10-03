@@ -109,6 +109,48 @@ mgt: node=foo1 ha_node=foo2
         self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp0','foo1-bone@tcp1'])
         self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp0','foo2-bone@tcp1'])
 
+    def testNoIndexDefined(self):
+        """filesystem with no index set"""
+        self._fs = self.makeTestFileSystem("""
+fs_name: example
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
+mgt: node=foo1 
+mdt: node=foo2 
+ost: node=foo2 
+ost: node=foo1 
+""") 
+        self.assertEqual(len(self._fs.get('ost')), 2)
+        self.assertEqual(self._fs.get('ost')[0].get_one('node'), 'foo2')       
+        self.assertEqual(self._fs.get('ost')[0].get_one('index'), '0')
+        self.assertEqual(self._fs.get('ost')[1].get_one('node'), 'foo1')
+        self.assertEqual(self._fs.get('ost')[1].get_one('index'), '1')
+
+    def testSomeIndexedDefined(self):
+        """filesystem with not all indexes set"""
+        self._fs = self.makeTestFileSystem("""
+fs_name: example
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
+mgt: node=foo1 
+mdt: node=foo2 
+ost: node=foo2 
+ost: node=foo1 index=0
+""") 
+        self.assertEqual(len(self._fs.get('ost')), 2)
+        self.assertEqual(self._fs.get('ost')[0].get_one('node'), 'foo2')       
+        self.assertEqual(self._fs.get('ost')[0].get_one('index'), '1')
+        self.assertEqual(self._fs.get('ost')[1].get_one('node'), 'foo1')
+        self.assertEqual(self._fs.get('ost')[1].get_one('index'), '0')
+
+    def testSameIndexedDefined(self):
+        """filesystem with same index used twice"""
+        self.assertRaises(ConfigInvalidFileSystem, self.makeTestFileSystem, """
+fs_name: example
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
+mgt: node=foo1 
+mdt: node=foo2 
+ost: node=foo2 index=0
+ost: node=foo1 index=0
+""") 
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(FileSystemTest)

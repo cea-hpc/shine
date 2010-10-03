@@ -1,3 +1,6 @@
+2010-10-03 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix index declaration in model file (#24, #70).
+
 2010-09-25 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Supports multiple nids per server and --network option (#74).
 

@@ -52,6 +52,9 @@ class TargetDevice:
     def add_index(self, index):
         self.params['index'] = index
 
+    def index(self):
+        return int(self.params['index'])
+
     def __str__(self):
         node = self.params.get('node', '')
         ha_node = self.params.get('ha_node')

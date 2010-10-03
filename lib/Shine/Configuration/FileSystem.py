@@ -19,19 +19,21 @@
 #
 # $Id$
 
-
-from Globals import Globals
-from Model import Model
-from Exceptions import *
-from TuningModel import TuningModel
-
-from NidMap import NidMap
-from TargetDevice import TargetDevice
-
-from Backend.Backend import Backend
-
 import copy
 import os
+
+from ClusterShell.NodeSet import RangeSet
+
+from Shine.Configuration.Globals import Globals
+from Shine.Configuration.Model import Model
+from Shine.Configuration.Exceptions import ConfigInvalidFileSystem, \
+                                           ConfigDeviceNotFoundError, \
+                                           ConfigException
+from Shine.Configuration.TuningModel import TuningModel
+from Shine.Configuration.NidMap import NidMap
+from Shine.Configuration.TargetDevice import TargetDevice
+from Shine.Configuration.Backend.Backend import Backend
+from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 
 class FileSystem(Model):
@@ -39,8 +41,7 @@ class FileSystem(Model):
     Lustre File System Configuration class.
     """
     def __init__(self, fs_name=None, lmf=None, tuning_file=None):
-        """ Initialize File System config
-        """
+        """ Initialize File System config """
         self.backend = None
 
         globals = Globals()
@@ -89,8 +90,6 @@ class FileSystem(Model):
         """
         if not self.backend:
 
-            from Backend.BackendRegistry import BackendRegistry
-
             # Start the selected config backend system.
             self.backend = BackendRegistry().get_selected()
             if self.backend:
@@ -110,6 +109,9 @@ class FileSystem(Model):
             if target not in self.get_dict():
                 continue
 
+            # Lustre supports up to FFFF targets per type.
+            indexes = RangeSet("0-65535") 
+
 
             if self.backend:
 
@@ -119,14 +121,13 @@ class FileSystem(Model):
                 try:
                     # Save the model target selection
                     target_models = copy.copy(self.get(target))
-                except KeyError, e:
-                    raise ConfigException("No %s target found" %(target))
+                except KeyError:
+                    raise ConfigException("No %s target found" % target)
 
                 # Delete it (to be replaced... see below)
                 self.delete(target)
                  
                 # Iterates on ModelDevices
-                i = 0
                 for target_model in target_models:
                     result = target_model.match_device(candidates)
                     if target_model.get('mode')[0] == 'external':
@@ -135,40 +136,63 @@ class FileSystem(Model):
 
                     if len(result) == 0:
                         raise ConfigDeviceNotFoundError(target_model)
-                    for matching in result:
-                        candidates.remove(matching)
-                        #
-                        # target index is now mandatory in XMF files
-                        if not matching.has_index():
-                            matching.add_index(i)
-                            i += 1
 
-                        # `matching' is a TargetDevice, we want to add it to the
-                        # underlying Model object. The current way to do this to
-                        # create a configuration line string (performed by
-                        # TargetDevice.getline()) and then call Model.add(). 
-                        # TODO: add methods to Model/ModelDevice to avoid the use
-                        #       of temporary configuration string line.
-                        self.add(target, matching.getline())
+                    try:
+                        # Remove already used index from candidate list.
+                        for matching in result:
+                            if matching.has_index():
+                                indexes.remove(matching.index())
+
+                        for matching in result:
+                            candidates.remove(matching)
+                            
+                            # Manage index
+                            # target index is now mandatory in XMF files
+                            if not matching.has_index():
+                                matching.add_index(indexes[0])
+                                indexes.remove(matching.index())
+
+                            # `matching' is a TargetDevice, we want to add it
+                            # to the underlying Model object. The current way
+                            # to do this to create a configuration line string
+                            # (performed by TargetDevice.getline()) and then
+                            # call Model.add(). 
+                            # TODO: add methods to Model/ModelDevice to avoid
+                            #  the use of temporary configuration string line.
+                            self.add(target, matching.getline())
+
+                    except KeyError:
+                        raise ConfigInvalidFileSystem(self, \
+                                "Index %d for %s used twice." % \
+                                (matching.index(), target))
+
+            # Support for backend None
             else:
-                # no backend support
 
                 devices = copy.copy(self.get_with_dict(target))
 
                 self.delete(target)
 
-                target_devices = []
-                i = 0
-                for dict in devices:
-                    t = TargetDevice(target, dict)
-                    if not t.has_index():
-                        t.add_index(i)
-                        i += 1
-                    target_devices.append(TargetDevice(target, dict))
-                    self.add(target, t.getline())
+                try:
+                    # Remove already used index from candidate list.
+                    for params in devices:
+                        if 'index' in params:
+                            indexes.remove(int(params['index']))
 
-                if len(target_devices) == 0:
-                    raise ConfigDeviceNotFoundError(self)
+                    for params in devices:
+                        tgt = TargetDevice(target, params)
+
+                        # Manage index
+                        if not tgt.has_index():
+                            tgt.add_index(indexes[0])
+                            indexes.remove(tgt.index())
+                            
+                        self.add(target, tgt.getline())
+
+                except KeyError:
+                    raise ConfigInvalidFileSystem(self, \
+                             "Index %d for %s used twice." % \
+                              (tgt.index(), target))
 
         self._check_coherency()
 
