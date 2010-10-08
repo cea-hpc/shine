@@ -1,3 +1,6 @@
+2010-10-06 Olivier Hargoaa  <olivier.hargoaa@bull.fr>
+	* Add journal_dev option on target mount when needed (#80).
+
 2010-10-03 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix index declaration in model file (#24, #70).
 

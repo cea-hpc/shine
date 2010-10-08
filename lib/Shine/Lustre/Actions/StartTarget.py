@@ -19,6 +19,7 @@
 #
 # $Id$
 
+import os
 import re
 
 from Shine.Lustre.Actions.Action import Action
@@ -74,7 +75,7 @@ class StartTarget(Action):
 
             try:
                 mount_path = self._substitute(mount_path, var_map)
-            except KeyError, e:
+            except KeyError:
                 # Unknown variable in mount_path: failback to default
                 pass
 
@@ -104,6 +105,16 @@ class StartTarget(Action):
         elif self.addopts:
             command.append("-o")
             command.append(self.addopts)
+
+        # When device detection order is variable, jdev could have a different
+        # major/minor than the one it has on previous mount.
+        # In this case, we must be sure we use the current one to avoid error.
+        #
+        # (Note: We can use `blkid' instead of jdev and extract the current
+        # journal UUID if we have issue using directly jdev path.)
+        if self.target.jdev:
+            majorminor = os.stat(self.target.jdev).st_rdev
+            command.append("-o journal_dev=%#x" % majorminor)
 
         command.append(self.target.dev)
         command.append(mount_path)
