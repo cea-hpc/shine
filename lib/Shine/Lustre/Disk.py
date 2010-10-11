@@ -30,10 +30,7 @@ import os
 import stat
 import struct
 import tempfile
-
-from ClusterShell.Task import task_self
-
-from Shine.Configuration.Globals import Globals
+import subprocess
 
 ### From lustre/include/lustre_disk.h:
 
@@ -122,6 +119,7 @@ class Disk:
         self.ldd_fsname = None
         self.ldd_svname = None
         self._ldd_flags = 0
+        self._ldd_params = None
 
     def update(self, other):
         """
@@ -176,51 +174,41 @@ class Disk:
         Read on-disk CONFIGS/mountdata and optionally check its content against
         provided fsname and service label.
         """
-        task = task_self()
-        tmp_dir = tempfile.mkdtemp(prefix='shine-debugfs-')
 
         # Run debugfs to read mountdata file without having to mount the
         # ldiskfs filesystem.
-        debugfs = task.shell("export PATH=/usr/lib/lustre/:${PATH}; debugfs -c -R 'dump /%s %s/mountdata' '%s'" % \
-                (MOUNT_DATA_FILE, tmp_dir, self.dev),
-                timeout=Globals().get_default_timeout())
+        tmp_mountdata = tempfile.NamedTemporaryFile(prefix='shine-debugfs-', 
+                                                    suffix='-mountdata')
+        subprocess.call("export PATH=/usr/lib/lustre/:${PATH};" + \
+                        "debugfs -R 'dump /%s %s' '%s'" % \
+                        (MOUNT_DATA_FILE, tmp_mountdata.name, self.dev),
+                        stderr=subprocess.PIPE, shell=True)
 
-        task.resume()
-
-        # Note: checking debugfs.retcode() is not reliable as debugfs seems
+        # Note: checking debugfs.returncode is not reliable as debugfs seems
         # to always return 0.
-
-        if task.num_timeout() > 0:
-            raise DiskDeviceError(self, "debugfs command timeout (%.0fs)" % \
-                    Globals().get_default_timeout())
-
-        tmp_mountdata = os.path.join(tmp_dir, "mountdata")
-        try:
-            f = open(tmp_mountdata, "r")
-        except IOError, e:
-            try:
-               os.rmdir(tmp_dir)
-            except:
-                pass
-            # open() raises IOError which might be also a debugfs read failure.
-            raise DiskDeviceError(self, "Failed to open %s file (%s)" % \
-                    (MOUNT_DATA_FILE, e.strerror))
 
         try:
             # Read struct lustre_disk_data, which is:
-            # 12288 bytes == sizeof(struct lustre_disk_data) as of 1.6.7 or 1.8.0
-            bytes = f.read(12288)
+            # 12288 bytes == sizeof(struct lustre_disk_data) as of 1.6.7 or
+            # 1.8.0
+            data_read = tmp_mountdata.read(12288)
+            if len(data_read) == 0:
+                raise DiskDeviceError(self, "Failed to read mountdata for %s" \
+                                      % self.dev)
+
             format = 'IIIIIIII64s64s40s824s3072s4096s4096s'
             required_length = struct.calcsize(format)
-            if len(bytes) < required_length:
+            if len(data_read) < required_length:
                 raise DiskDeviceError(self, \
                         "Unexpected EOF while reading %s" % MOUNT_DATA_FILE)
             
-            # Unpack first fields of struct lustre_disk_data (in native byte order).
-            (ldd_magic, ldd_feat_compat, ldd_feat_rocompat, fdd_feat_incompat,
+            # Unpack first fields of struct lustre_disk_data (in native byte
+            # order).
+            (ldd_magic, ldd_feat_compat, ldd_feat_rocompat, ldd_feat_incompat,
                     ldd_config_ver, ldd_flags, ldd_svindex, ldd_mount_type,
-                    ldd_fsname, ldd_svname, ldd_uuid, ldd_userdata, ldd_padding,
-                    ldd_mount_opts, ldd_params) = struct.unpack(format, bytes)
+                    ldd_fsname, ldd_svname, ldd_uuid, ldd_userdata,
+                    ldd_padding, ldd_mount_opts, ldd_params) = \
+                    struct.unpack(format, data_read)
 
             # Light sanity check.
             if ldd_magic != LDD_MAGIC:
@@ -244,9 +232,7 @@ class Disk:
             self._ldd_flags = ldd_flags
             self._ldd_params = ldd_params[0:ldd_params.find('\0')].strip()
         finally:
-            f.close()
-            os.unlink(tmp_mountdata)
-            os.rmdir(tmp_dir)
+            tmp_mountdata.close()
 
     def has_need_index_flag(self):
         """LDD flag: need an index assignment"""
