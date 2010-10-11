@@ -83,7 +83,7 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
 
     def action_failed(self, node, comp, rc, message, comp_name=None):
         comp_id = self._id_for_comp(comp_name, comp)
-        if rc > 0:
+        if rc > 0 and not message:
             strerr = os.strerror(rc)
         else:
             strerr = message
@@ -123,7 +123,7 @@ class FSGlobalEventHandler(FSLocalEventHandler,
 
     def action_failed(self, node, comp, rc, message, comp_name=None):
         comp_id = self._id_for_comp(comp_name, comp)
-        if rc > 0:
+        if rc > 0 and not message:
             strerr = os.strerror(rc)
         else:
             strerr = message
