@@ -71,24 +71,24 @@ LDD_MAGIC = 0x1dd00001
 # 
 # /* On-disk configuration file. In host-endian order. */
 # struct lustre_disk_data {
-#         __u32      ldd_magic;
-#         __u32      ldd_feature_compat;  /* compatible feature flags */
-#         __u32      ldd_feature_rocompat;/* read-only compatible feature flags */
-#         __u32      ldd_feature_incompat;/* incompatible feature flags */
+#      __u32      ldd_magic;
+#      __u32      ldd_feature_compat;  /* compatible feature flags */
+#      __u32      ldd_feature_rocompat;/* read-only compatible feature flags */
+#      __u32      ldd_feature_incompat;/* incompatible feature flags */
 # 
-#         __u32      ldd_config_ver;      /* config rewrite count - not used */
-#         __u32      ldd_flags;           /* LDD_SV_TYPE */
-#         __u32      ldd_svindex;         /* server index (0001), must match 
-#                                            svname */
-#         __u32      ldd_mount_type;      /* target fs type LDD_MT_* */
-#         char       ldd_fsname[64];      /* filesystem this server is part of */
-#         char       ldd_svname[64];      /* this server's name (lustre-mdt0001)*/
-#         __u8       ldd_uuid[40];        /* server UUID (COMPAT_146) */
+#      __u32      ldd_config_ver;      /* config rewrite count - not used */
+#      __u32      ldd_flags;           /* LDD_SV_TYPE */
+#      __u32      ldd_svindex;         /* server index (0001), must match 
+#                                         svname */
+#      __u32      ldd_mount_type;      /* target fs type LDD_MT_* */
+#      char       ldd_fsname[64];      /* filesystem this server is part of */
+#      char       ldd_svname[64];      /* this server's name (lustre-mdt0001)*/
+#      __u8       ldd_uuid[40];        /* server UUID (COMPAT_146) */
 # 
-# /*200*/ char       ldd_userdata[1024 - 200]; /* arbitrary user string */
-# /*1024*/__u8       ldd_padding[4096 - 1024];
-# /*4096*/char       ldd_mount_opts[4096]; /* target fs mount opts */
-# /*8192*/char       ldd_params[4096];     /* key=value pairs */
+# /*200*/ char    ldd_userdata[1024 - 200]; /* arbitrary user string */
+# /*1024*/__u8    ldd_padding[4096 - 1024];
+# /*4096*/char    ldd_mount_opts[4096]; /* target fs mount opts */
+# /*8192*/char    ldd_params[4096];     /* key=value pairs */
 # };
 
 
@@ -119,7 +119,6 @@ class Disk:
         self.ldd_fsname = None
         self.ldd_svname = None
         self._ldd_flags = 0
-        self._ldd_params = None
 
     def update(self, other):
         """
@@ -132,6 +131,12 @@ class Disk:
         self._ldd_flags = other._ldd_flags
 
     def _disk_check(self, fsname_check=None, label_check=None):
+        """
+        Check that described lustre disk device is sane.
+
+        This includes checking device path, type, size, ... and Lustre
+        mountdata file.
+        """
         self._device_check()
         self._mountdata_check(fsname_check, label_check)
 
@@ -141,8 +146,8 @@ class Disk:
         """
         try:
             info = os.stat(self.dev)
-        except OSError, e:
-            raise DiskDeviceError(self, str(e))
+        except OSError, error:
+            raise DiskDeviceError(self, str(error))
 
         mode = info[stat.ST_MODE]
 
@@ -150,16 +155,16 @@ class Disk:
             # block device
             self.dev_isblk = True
             # get dev size
-            f = open("/proc/partitions", 'r')
+            partitions = open("/proc/partitions", 'r')
             try:
                 dev = os.path.basename(self.dev)
-                for line in f:
+                for line in partitions:
                     d_info = line.rstrip('\n').split(' ')
                     if len(d_info) > 1 and d_info[-1] == dev:
                         self.dev_size = int(d_info[-2]) * 1024
                         break
             finally:
-                f.close()
+                partitions.close()
 
         elif stat.S_ISREG(mode):
             # regular file
@@ -179,13 +184,16 @@ class Disk:
         # ldiskfs filesystem.
         tmp_mountdata = tempfile.NamedTemporaryFile(prefix='shine-debugfs-', 
                                                     suffix='-mountdata')
-        subprocess.call("export PATH=/usr/lib/lustre/:${PATH};" + \
-                        "debugfs -R 'dump /%s %s' '%s'" % \
+        retcode = subprocess.call("export PATH=/usr/lib/lustre/:${PATH};" + \
+                        "debugfs -c -R 'dump /%s %s' '%s'" % \
                         (MOUNT_DATA_FILE, tmp_mountdata.name, self.dev),
                         stderr=subprocess.PIPE, shell=True)
 
-        # Note: checking debugfs.returncode is not reliable as debugfs seems
-        # to always return 0.
+        # Note: checking debugfs retcode is not reliable as debugfs seems to
+        # always return 0.
+        if retcode > 0:
+            raise DiskDeviceError(self, "Failed to run 'debugfs' to read " + \
+                                  "mountdata (rc=%d)" % retcode)
 
         try:
             # Read struct lustre_disk_data, which is:
@@ -196,8 +204,8 @@ class Disk:
                 raise DiskDeviceError(self, "Failed to read mountdata for %s" \
                                       % self.dev)
 
-            format = 'IIIIIIII64s64s40s824s3072s4096s4096s'
-            required_length = struct.calcsize(format)
+            fmt = 'IIIIIIII64s64s40s824s3072s4096s4096s'
+            required_length = struct.calcsize(fmt)
             if len(data_read) < required_length:
                 raise DiskDeviceError(self, \
                         "Unexpected EOF while reading %s" % MOUNT_DATA_FILE)
@@ -208,7 +216,7 @@ class Disk:
                     ldd_config_ver, ldd_flags, ldd_svindex, ldd_mount_type,
                     ldd_fsname, ldd_svname, ldd_uuid, ldd_userdata,
                     ldd_padding, ldd_mount_opts, ldd_params) = \
-                    struct.unpack(format, data_read)
+                    struct.unpack(fmt, data_read)
 
             # Light sanity check.
             if ldd_magic != LDD_MAGIC:
@@ -217,20 +225,24 @@ class Disk:
 
             # Could add supported features check here.
 
-            # Data checks: check configured lustre service and fsname on this disk
+            # Check configured lustre service and fsname on this disk
             self.ldd_fsname = ldd_fsname[0:ldd_fsname.find('\0')]
             self.ldd_svname = ldd_svname[0:ldd_svname.find('\0')]
-
             if fsname_check and self.ldd_fsname != fsname_check:
-                raise DiskDeviceError(self, "Found service %s for fs '%s'!='%s' on %s" % \
-                        (self.ldd_svname, self.ldd_fsname, fsname_check, self.dev))
-
+                raise DiskDeviceError(self, \
+                        "Found service %s for fs '%s'!='%s' on %s" % \
+                        (self.ldd_svname, self.ldd_fsname, \
+                         fsname_check, self.dev))
             if label_check and self.ldd_svname != label_check:
-                raise DiskDeviceError(self, "Found service %s!=%s for fs '%s' on %s" % \
-                        (self.ldd_svname, label_check, self.ldd_fsname, self.dev))
+                raise DiskDeviceError(self, \
+                         "Found service %s!=%s for fs '%s' on %s" % \
+                        (self.ldd_svname, label_check, \
+                         self.ldd_fsname, self.dev))
 
             self._ldd_flags = ldd_flags
-            self._ldd_params = ldd_params[0:ldd_params.find('\0')].strip()
+
+            # If needed, LDD_PARAMS could be get with:
+            # ldd_params = ldd_params[0:ldd_params.find('\0')].strip()
         finally:
             tmp_mountdata.close()
 
