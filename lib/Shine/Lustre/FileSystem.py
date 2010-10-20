@@ -391,7 +391,7 @@ class FileSystem:
             if len(comp.failservers) > 0:
                 servers.update(NodeSet.fromlist(comp.failservers))
 
-            self._distant_action_by_server(Install, servers, config_file=fs_config_file)
+        self._distant_action_by_server(Install, servers, config_file=fs_config_file)
         
     def remove(self):
         """
