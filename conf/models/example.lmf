@@ -15,7 +15,7 @@ fs_name: example
 #
 # Use multiple lines with the same nodes if you have several nids for
 # the same machines.
-nid_map: nodes=nova[0-32] nids=nova[0-32]@tcp0
+nid_map: nodes=nova[0-39] nids=nova[0-39]@tcp0
 
 # mount_path
 # Default clients mount point path.
@@ -136,3 +136,9 @@ mgt_mount_path: /mnt/$fs_name/mgt
 mdt_mount_path: /mnt/$fs_name/mdt/$index
 ost_mount_path: /mnt/$fs_name/ost/$index
 
+#
+# Routers
+#
+
+# nova7 and nova8 are declared as LNET routers.
+router: node=nova[7-8]
