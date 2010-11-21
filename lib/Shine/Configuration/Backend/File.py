@@ -23,7 +23,6 @@ import os
 import shelve
 
 from Shine.Configuration.Backend.Backend import Backend
-from Shine.Configuration.Backend.FileSupport.Storage import Storage
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.ModelFile import ModelFile
 from Shine.Configuration.TargetDevice import TargetDevice
