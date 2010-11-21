@@ -300,14 +300,10 @@ class AsciiTable:
 
         lst = []
 
-        # We like it sorted.
-        sorted_keys = dictionary.keys()
-        sorted_keys.sort()
-
         # Create the list of dict entries we need, for each item of the list,
         # create a dictionary with key=(column header name). If no header is
         # specified, we use dummy keys 0 and 1.
-        for k in sorted_keys:
+        for k in sorted(dictionnay.iterkeys()):
             lst.append(dict([(head_key, k), (head_val, dictionary[k])]))
 
         # Create simple dict layout

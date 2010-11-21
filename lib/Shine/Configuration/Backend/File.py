@@ -1,5 +1,5 @@
 # File.py -- File backend module
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2010 CEA
 #
 # This file is part of shine
 #
@@ -19,19 +19,45 @@
 #
 # $Id$
 
-
-
-from Backend import Backend
-from FileSupport.Storage import Storage
-from Shine.Configuration.Globals import Globals
-from Shine.Configuration.TargetDevice import TargetDevice
-
-from datetime import datetime
 import os
 import shelve
 
+from Shine.Configuration.Backend.Backend import Backend
+from Shine.Configuration.Backend.FileSupport.Storage import Storage
+from Shine.Configuration.Globals import Globals
+from Shine.Configuration.ModelFile import ModelFile
+from Shine.Configuration.TargetDevice import TargetDevice
 
-BACKEND_MODNAME="File"
+BACKEND_MODNAME = "File"
+
+
+class Storage(ModelFile):
+    """Storage file for backend File."""
+
+    def __init__(self, sep=":", linesep="\n"):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_custom('mgt', FileDevice(), multiple=True)
+        self.add_custom('mdt', FileDevice(), multiple=True)
+        self.add_custom('ost', FileDevice(), multiple=True)
+
+    def get_target_devices(self, tgt_type):
+        return [TargetDevice(tgt_type, tgt)
+                for tgt in self.elements(tgt_type).as_dict()]
+
+
+class FileDevice(ModelFile):
+    """ModelFile sub element representing a Target."""
+
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('tag',     check='string')
+        self.add_element('node',    check='string')
+        self.add_element('ha_node', check='string')
+        self.add_element('dev',     check='path')
+        self.add_element('size',    check='digit')
+        self.add_element('jdev',    check='path')
+        self.add_element('jsize',   check='digit')
+
 
 class File(Backend):
 
@@ -50,13 +76,14 @@ class File(Backend):
         pass
 
     def stop(self):
-        #print "BACKEND STOP"
-        for d in self.status_clients.itervalues():
-            d.close()
+        for cli in self.status_clients.itervalues():
+            cli.close()
         self.status_clients = {}
 
     def _start_storage(self):
-        self.storage_file = Storage(Globals().get_storage_file())
+        storage = Storage()
+        storage.load(Globals().get_storage_file())
+        self.storage_file = storage
 
     def _start_status_client(self, fs_name):
 
@@ -66,8 +93,7 @@ class File(Backend):
 
         status_file = os.path.join(status_dir, fs_name)
 
-        #print "Starting status client for FS %s" % fs_name
-        self.status_clients[fs_name] =  shelve.open(status_file)
+        self.status_clients[fs_name] = shelve.open(status_file)
 
     def get_target_devices(self, target):
         """
@@ -90,7 +116,7 @@ class File(Backend):
                 Backend.UMOUNT_FAILED   : "u_failed",
                 Backend.UMOUNT_WARNING  : "u_warning"
               }
-        
+
         if not sta.has_key(status):
             raise BackendInvalidParameterError()
 
@@ -103,7 +129,7 @@ class File(Backend):
         #print "status: %s" % d
         d.close()
         """
-        
+
     def get_status_clients(self, fs_name):
         """
         Get all client's status of the form { node1 : { 'status' : status,
@@ -112,7 +138,7 @@ class File(Backend):
         if not self.status_clients.has_key(fs_name):
             self._start_status_client(fs_name)
         return self.status_clients[fs_name]
-        
+
     def set_status_target(self, fs_name, targets, status, options):
         """
         Set status of file system target.
@@ -121,7 +147,7 @@ class File(Backend):
 
     def get_status_target(self, fs_name):
         """
-        Get all target status of the form { target1 : { 'status' : status, 
+        Get all target status of the form { target1 : { 'status' : status,
         'date' : datetime, 'options' : None }, target2 : ... }
         """
         pass

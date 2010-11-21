@@ -31,58 +31,60 @@ from Shine.Configuration.Exceptions import ConfigInvalidFileSystem, \
                                            ConfigException
 from Shine.Configuration.TuningModel import TuningModel
 from Shine.Configuration.NidMap import NidMap
-from Shine.Configuration.TargetDevice import TargetDevice
 from Shine.Configuration.Backend.Backend import Backend
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
-
 
 class FileSystem(Model):
     """
     Lustre File System Configuration class.
     """
-    def __init__(self, fs_name=None, lmf=None, tuning_file=None):
-        """ Initialize File System config """
+
+    def __init__(self, filename):
+        Model.__init__(self)
+
         self.backend = None
+        self.xmf_path = None
 
-        globals = Globals()
-
-        fs_conf_dir = os.path.expandvars(globals.get_conf_dir())
-        fs_conf_dir = os.path.normpath(fs_conf_dir)
-
-        # Load the file system from model or extended model
-        if not fs_name and lmf:
-            Model.__init__(self, lmf)
-
-            self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, self.get_one('fs_name'))
-
-            self._setup_target_devices()
-
-            # Reload
-            self.set_filename(self.xmf_path)
-
-        elif fs_name:
-            self.xmf_path = "%s/%s.xmf" % (fs_conf_dir, fs_name)
-            Model.__init__(self, self.xmf_path)
-
-        self.fs_name = self.get_one('fs_name')
-        if len(self.fs_name) > 8:
-            raise ConfigException("filesystem name `%s' is invalid (must be 1-8 chars)" % \
-                    self.fs_name)
+        try:
+            self.load(filename)
+        except IOError:
+            raise ConfigException("Could not read %s" % filename)
 
         # Set nodes to nids mapping using the NidMap helper class
         self.nid_map = NidMap.fromlist(self.get('nid_map'))
-        
+
         # Initialize the tuning model to None if no special tuning configuration
         # is provided
-        self.tuning_model = None
-        
-        if tuning_file:
-            # It a tuning configuration file is provided load it
-            self.tuning_model = TuningModel(tuning_file)
-        else:
-            self.tuning_model = TuningModel()
+        self.tuning_model = TuningModel()
 
-        #self._start_backend()
+    @property
+    def fs_name(self):
+        return self.get('fs_name')
+
+    @classmethod
+    def create_from_model(cls, lmf):
+        """Save to cache."""
+
+        model = FileSystem(lmf)
+        # xmf_path could be set later if setup_target_devices do not need it
+        fs_conf_dir = os.path.expandvars(Globals().get_conf_dir())
+        conf_file = "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), model.fs_name)
+        model.xmf_path = conf_file
+        # This will create the XMF 
+        model._setup_target_devices()
+
+        # Reload from content saved in _setup_target_devices()
+        return cls.load_from_fsname(model.fs_name)
+
+    @classmethod
+    def load_from_fsname(cls, fsname):
+        """Load from cache."""
+        fs_conf_dir = os.path.expandvars(Globals().get_conf_dir())
+        conf_file = "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), fsname)
+        fsconf = FileSystem(conf_file)
+        fsconf.xmf_path = conf_file
+        return fsconf
+
 
     def _start_backend(self):
         """
@@ -106,48 +108,51 @@ class FileSystem(Model):
         for target in [ 'mgt', 'mdt', 'ost' ]:
 
             # So, first, look for which ones are defined in model
-            if target not in self.get_dict():
+            if target not in self:
                 continue
 
             # Lustre supports up to FFFF targets per type.
-            indexes = RangeSet("0-65535") 
-
+            indexes = RangeSet("0-65535")
 
             if self.backend:
 
                 # Returns a list of TargetDevices
-                candidates = copy.copy(self.backend.get_target_devices(target))
+                candidates = self.backend.get_target_devices(target)
 
-                try:
-                    # Save the model target selection
-                    target_models = copy.copy(self.get(target))
-                except KeyError:
-                    raise ConfigException("No %s target found" % target)
+                # Save the model target selection
+                target_models = copy.copy(self.get(target))
 
                 # Delete it (to be replaced... see below)
-                self.delete(target)
-                 
-                # Iterates on ModelDevices
-                for target_model in target_models:
-                    result = target_model.match_device(candidates)
-                    if target_model.get('mode')[0] == 'external':
-                        self.add(target, str(target_model))
-                        continue
+                self.elements(target).clear()
 
-                    if len(result) == 0:
-                        raise ConfigDeviceNotFoundError(target_model)
+                try:
 
-                    try:
-                        # Remove already used index from candidate list.
-                        for matching in result:
-                            if matching.has_index():
-                                indexes.remove(matching.index())
+                    # Remove already used index from candidate list.
+                    for target_model in target_models:
+                        if 'index' in target_model:
+                            indexes.remove(target_model.get('index'))
+
+                    # Iterates on each Model.Target
+                    for target_model in target_models:
+
+                        # Do not try to match external components
+                        if target_model.get('mode') == 'external':
+                            self.elements(target).parse(str(target_model))
+                            continue
+
+                        result = target_model.match_device(candidates)
+                        if len(result) == 0:
+                            raise ConfigDeviceNotFoundError(target_model)
 
                         for matching in result:
                             candidates.remove(matching)
-                            
-                            # Manage index
-                            # target index is now mandatory in XMF files
+
+                            # If an index was specified, set it.
+                            if 'index' in target_model:
+                                matching.add_index(target_model.get('index'))
+                                target_model.elements('index').clear()
+
+                            # Manage index, mandatoy in XMF files
                             if not matching.has_index():
                                 matching.add_index(indexes[0])
                                 indexes.remove(matching.index())
@@ -156,61 +161,55 @@ class FileSystem(Model):
                             # to the underlying Model object. The current way
                             # to do this to create a configuration line string
                             # (performed by TargetDevice.getline()) and then
-                            # call Model.add(). 
+                            # call Model.parse(). 
                             # TODO: add methods to Model/ModelDevice to avoid
                             #  the use of temporary configuration string line.
-                            self.add(target, matching.getline())
+                            self.elements(target).parse(matching.getline())
 
-                    except KeyError:
-                        raise ConfigInvalidFileSystem(self, \
-                                "Index %d for %s used twice." % \
-                                (matching.index(), target))
+                except KeyError, error:
+                    raise ConfigInvalidFileSystem(self, \
+                            "Index %d for %s used twice." % \
+                            (str(error), target))
 
             # Support for backend None
             else:
 
-                devices = copy.copy(self.get_with_dict(target))
-
-                self.delete(target)
-
                 try:
-                    # Remove already used index from candidate list.
-                    for params in devices:
+                    # Remove already used indexes from candidate list.
+                    for params in self.elements(target):
                         if 'index' in params:
-                            indexes.remove(int(params['index']))
+                            indexes.remove(params.get('index'))
 
-                    for params in devices:
-                        tgt = TargetDevice(target, params)
+                    # Manage index
+                    for params in self.elements(target):
+                        if 'index' not in params:
+                            params.add('index', str(indexes[0]))
+                            indexes.remove(indexes[0])
 
-                        # Manage index
-                        if not tgt.has_index():
-                            tgt.add_index(indexes[0])
-                            indexes.remove(tgt.index())
-                            
-                        self.add(target, tgt.getline())
-
-                except KeyError:
+                except KeyError, error:
                     raise ConfigInvalidFileSystem(self, \
-                             "Index %d for %s used twice." % \
-                              (tgt.index(), target))
+                             "Index %s for %s used twice." % \
+                              (str(error), target))
 
         self._check_coherency()
 
         # Save XMF
-        self.save(self.xmf_path, "Shine Lustre file system config file for %s" % \
-                self.get_one('fs_name'))
-    
+        self.save(self.xmf_path,
+                  "# Shine Lustre file system config file for %s" % \
+                  self.get('fs_name'))
+
     def _check_coherency(self):
         """Verify that the declared components make a coherent filesystem."""
-        
+
         # If we have a target or a client, we need a MGT
-        if ((self.has_key('client') or self.has_key('mdt') or self.has_key('ost')) \
-            and not (self.has_key('mgt'))):
+        if (('client' in self or 'mdt' in self or 'ost' in self) \
+            and not ('mgt' in self)):
             raise ConfigInvalidFileSystem(self, "A MGS must be declared.")
 
         # We should have both MDT and OST or neither
-        if bool(self.has_key('mdt')) ^ bool(self.has_key('ost')):
-            raise ConfigInvalidFileSystem(self, "You must declare both MDT and OST or neither.")
+        if ('mdt' in self) ^ ('ost' in self):
+            raise ConfigInvalidFileSystem(self,
+                     "You must declare both MDT and OST or neither.")
 
     def get_nid(self, node):
         try:
@@ -218,14 +217,11 @@ class FileSystem(Model):
         except KeyError:
             raise ConfigException("Cannot get NID for %s, aborting. Please verify `nid_map' configuration." % node)
 
-    def __str__(self):
-        return ">> BACKEND:\n%s\n>> MODEL:\n%s" % (self.backend, Model.__str__(self))
-
     def close(self):
         if self.backend:
             self.backend.stop()
             self.backend = None
-    
+
     def register_client(self, node):
         """
         This function aims to register a new client that will be able to mount the
@@ -236,7 +232,7 @@ class FileSystem(Model):
         """
         if self._start_backend():
             self.backend.register_client(self.fs_name, node)
-        
+
     def unregister_client(self, node):
         """
         This function aims to unregister a client of this  file system
@@ -246,7 +242,7 @@ class FileSystem(Model):
         """
         if self._start_backend():
             self.backend.unregister_client(self.fs_name, node)
-    
+
     def _set_status_client(self, node, status, options):
         """
         This function is used to change specified client status.
@@ -312,7 +308,7 @@ class FileSystem(Model):
         This function is used to change the specified target status.
         """
         if self._start_backend():
-            self.backend.set_status_target(self.fs_name, target, 
+            self.backend.set_status_target(self.fs_name, target,
                 status, options)
 
     def set_status_target_unknown(self, target, options):
@@ -430,7 +426,7 @@ class FileSystem(Model):
     def unregister(self):
         """
         This function aims to remove a file system configuration from
-        the backend.        
+        the backend.
         """
         result = 0
         if self._start_backend():

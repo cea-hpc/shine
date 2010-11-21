@@ -81,10 +81,10 @@ class NidMap(object):
 
         # Get nodes and nids from the ModelNidMap object representing
         # one nid_map: line
-        nodes = modelnidmap.get_one('nodes')
-        nids = modelnidmap.get_one('nids')
+        nodes = modelnidmap.get('nodes')
+        nids = modelnidmap.get('nids')
 
-        self.add(nodes, nids) 
+        self.add(nodes, nids)
 
     @classmethod
     def fromlist(cls, maplist):

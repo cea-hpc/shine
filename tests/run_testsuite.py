@@ -37,15 +37,19 @@ if __name__ == '__main__':
             sys.exit(0)
 
     loader = unittest.TestLoader()
-    suite = loader.loadTestsFromNames([ 
-                "Configuration.ConfigFileSystemTest",
+    suite = loader.loadTestsFromNames([
                 "Configuration.ModelFileTest",
+                "Configuration.GlobalsTest",
                 "Configuration.ModelTest",
                 "Configuration.NidMapTest",
+                "Configuration.ConfigFileSystemTest",
+                "Configuration.ConfigurationTest",
                 "Configuration.TuningModelTest",
+                "Configuration.BackendFileTest",
 #                "Lustre.DiskTest",
                 "Lustre.ServerTest",
                 "Lustre.TargetTest",
+                "FSUtilsTest",
             ])
 
     unittest.TextTestRunner(verbosity=verb).run(suite)

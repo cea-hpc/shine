@@ -1,4 +1,4 @@
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007, 2008, 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -18,174 +18,152 @@
 #
 # $Id$
 
-from ModelFile import ModelFile, SubElement
+"""
+Provides classes to load/read and save Shine model files or cache files.
+"""
 
 import re
 
+from Shine.Configuration.ModelFile import ModelFile, SimpleElement
+
+
 class Model(ModelFile):
+    """Represent a Shine model file.
 
-    syntax = { 
-       'fs_name'            : 'string',
-       'stripe_size'        : 'digit',
-       'stripe_count'       : 'digit',
-       'mgt_mkfs_options'   : 'string',
-       'mgt_mount_options'  : 'string',
-       'mgt_mount_path'     : 'string',
-       'mgt_format_params'  : 'string',
-       'mdt_mkfs_options'   : 'string',
-       'mdt_mount_options'  : 'string',
-       'mdt_mount_path'     : 'string',
-       'mdt_format_params'  : 'string',
-       'ost_mkfs_options'   : 'string',
-       'ost_mount_options'  : 'string',
-       'ost_mount_path'     : 'string',
-       'ost_format_params'  : 'string',
-       'quota'              : ['yes', 'no'],
-       'quota_type'         : 'string',
-       'quota_bunit'        : 'digit',
-       'quota_iunit'        : 'digit',
-       'quota_btune'        : 'digit',
-       'quota_itune'        : 'digit',
-       'description'        : 'string',
-       'mount_options'      : 'string',
-       'mount_path'         : 'path',
+    All method from ModelFile class could be used to manipulate it."""
 
-       'nid_map'            : 'subelem',
+    def __init__(self, sep=":", linesep="\n"):
+        ModelFile.__init__(self, sep, linesep)
 
-       'mgt'                : 'subelem',
-       'mdt'                : 'subelem',
-       'ost'                : 'subelem',
-       'client'             : 'subelem',
-       'router'             : 'subelem'
-       }
+        # General
+        self.add_custom('fs_name', FSName())
+        self.add_element('description',       check='string')
 
-    defaults = {
-       'stripe_size'        : 1048576,
-       'stripe_count'       : 1,
-       'mgt_mkfs_options'   : "",
-       'mgt_mount_options'  : "",
-       'mgt_mount_path'     : "/mnt/$fs_name/mgt",
-       'mgt_format_params'  : "",
-       'mdt_mkfs_options'   : "",
-       'mdt_mount_options'  : "",
-       'mdt_mount_path'     : "/mnt/$fs_name/mdt/$index",
-       'mdt_format_params'  : "",
-       'ost_mkfs_options'   : "",
-       'ost_mount_options'  : "",
-       'ost_mount_path'     : "/mnt/$fs_name/ost/$index",
-       'ost_format_params'  : "",
-       'quota_type'         : "ug"
-       }
+        # Stripping
+        self.add_element('stripe_size',       check='digit', default=1048576)
+        self.add_element('stripe_count',      check='digit', default=1)
 
-    def sub_element(self, key, value):
-        if key == 'nid_map':
-            return ModelNidMap(self, value)
-        elif key == 'client':
-            return self.sub_element_expand(ModelClient, key, value)
-        else:
-            # targets
-            return self.sub_element_expand(ModelDevice, key, value)
-    
-    def _keycmp(self, k1, k2):
-        """ sort()-compliant compare function for nice xmf keys sorting.
-        """
-        target_keys = [ 'mgt', 'mdt', 'ost' ]
+        # Common target options
+        for tgt in ['mgt', 'mdt', 'ost' ]:
+            self.add_element(tgt + "_mkfs_options",  check='string')
+            self.add_element(tgt + "_mount_options", check='string')
+            self.add_element(tgt + "_format_params", check='string')
+        self.add_element("mgt_mount_path",    check='string',
+                default='/mnt/$fs_name/mgt')
+        self.add_element("mdt_mount_path",    check='string',
+                default='/mnt/$fs_name/mdt/$index')
+        self.add_element("ost_mount_path",    check='string',
+                default='/mnt/$fs_name/ost/$index')
 
-        k1_is_target = k2_is_target = 0
+        # Common client options
+        self.add_element('mount_options',     check='string')
+        self.add_element('mount_path',        check='path')
 
-        # Check if keys are target keys
-        if k1 in target_keys:
-            k1_is_target = 1
-        if k2 in target_keys:
-            k2_is_target = 1
-        # Put target keys at the end of the file
-        if k1_is_target and not k2_is_target:
-            return 1
-        elif not k1_is_target and k2_is_target:
-            return -1
-        # If both are targets, sort them by index so that the mgt will be the first
-        elif k1_is_target and k2_is_target:
-            return cmp(target_keys.index(k1), target_keys.index(k2))
-        else:
-            # Otherwise, call the default compare function.
-            return cmp(k1, k2)
-    
-class ModelDevice(SubElement):
+        # Quota
+        self.add_element('quota',             check='boolean')
+        self.add_element('quota_type',        check='string', default='ug')
+        self.add_element('quota_bunit',       check='digit')
+        self.add_element('quota_iunit',       check='digit')
+        self.add_element('quota_btune',       check='digit')
+        self.add_element('quota_itune',       check='digit')
+
+        # NidMapping
+        self.add_custom('nid_map', NidMap(), multiple=True)
+
+        # Targets
+        self.add_custom('mgt', Target(), multiple=True)
+        self.add_custom('mdt', Target(), multiple=True)
+        self.add_custom('ost', Target(), multiple=True)
+        # Client
+        self.add_custom('client', Client(), multiple=True)
+        # Router
+        self.add_custom('router', Router(), multiple=True)
+
+
+class FSName(SimpleElement):
     """
-    SubElement representing a target (mgt, mdt, ost) configuration
-    line.
+    A 'string' SimpleElement which also check that value length is 8 or less.
     """
 
-    syntax = {
-      'tag'        : 'string',
-      'node'       : 'string',
-      'ha_node'    : 'string',
-      'dev'        : 'string',
-      'jdev'       : 'string',
-      'index'      : 'digit',
-      'group'      : 'string',
-      'mode'       : 'string',
-      'network'    : 'string',
-    }
+    def __init__(self, check='string', default=None, values=None):
+        SimpleElement.__init__(self, check, default, values)
 
-    defaults = {
-      'mode'       : 'managed'
-    }
+    def _validate(self, value):
+        """Call SimpleElement validate method and also check value length."""
+        value = SimpleElement._validate(self, value)
+        if len(value) > 8:
+            raise ValueError("Name '%s' should be 8-character long max" % value)
+        return value
 
+
+class NidMap(ModelFile):
+    """Define 'nid_map' in model file: nodes=<NODES> nids=<NODES>@<NETWORK>"""
+
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('nodes', check='string')
+        self.add_element('nids',  check='string')
+
+
+class Target(ModelFile):
+    """Define 'mgt', 'mdt', 'ost' in model file."""
+
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('node',    check='string')
+        self.add_element('ha_node', check='string', multiple=True)
+        self.add_element('dev',     check='path')
+        self.add_element('jdev',    check='path')
+        self.add_element('index',   check='digit')
+        self.add_element('group',   check='string')
+        self.add_element('mode',    check='enum',
+                default='managed', values=['managed', 'external'])
+        self.add_element('network', check='string')
+        self.add_element('tag',     check='string')
 
     def match_device(self, candidates):
+        """
+        Filter the `candidates` list with only those who shared the same key,
+        value pairs.
+        """
         matching = []
 
-        # Foreach possible target
+        # For each possible targets
         for target in candidates:
 
-            # Verify my keys matches its attributes
-            for key, regexp in self:
-                pattern = target.get(key)
-                if pattern is None:
+            # Verify my keys match its attributes
+            for key, regexp in self.iteritems():
+                # Index as a special meaning and should not be considered
+                if key == 'index':
+                    continue
+                # Key is missing, this does not match
+                if key not in target:
                     break
-                # FIXME: Manage the possible regexp exception
-                if not re.match('^' + regexp + '$', pattern):
-                    break
+
+                try:
+                    if not re.match('^' + regexp + '$', target.get(key)):
+                        break
+                except re.error:
+                    raise ValueError("Bad syntax: %s" % regexp)
+
+            # Ok, everything matches, add it
             else:
                 matching.append(target)
 
         return matching
 
-    
-class ModelNidMap(SubElement):
-    """SubElement representing a nid_map configuration line."""
+class Router(ModelFile):
+    """Define 'router' in model file: nodes=<NODES>"""
 
-    syntax = {
-      'nodes'       : 'string',
-      'nids'        : 'string'
-    }
-
-    def __str__(self):    
-        """
-        Sort nodes and nids keys for a better understanding.
-        """
-        keys = set(self.keys.keys())
-        elems = []
-        for k in ('nodes','nids'):
-            elems.append("%s%s%s" % (k, self.sep, self.get_one(k)))
-            keys.remove(k)
-        for k in keys:
-            elems.append("%s%s%s" % (k, self.sep, self.get_one(k)))
-        return ' '.join(elems)
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('node',    check='string')
 
 
-class ModelClient(SubElement):
-    """SubElement representing a client configuration line."""
-    
-    syntax = {
-      'node'       : 'string',
-      'mount_path' : 'string'
-    }
+class Client(ModelFile):
+    """Define 'client' in model file: nodes=<NODES> [mount_path=<PATH>]"""
 
-class ModelRouteur(SubElement):
-    """SubElement representing a routeur configuration line."""
-
-    syntax = {
-      'node'       : 'string',
-    }
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('node',        check='string')
+        self.add_element('mount_path',  check='path')

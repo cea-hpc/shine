@@ -12,7 +12,8 @@ import unittest
 sys.path.insert(0, "../lib")
 
 from Shine.Configuration.NidMap import NidMap, InvalidNidMapError
-from Shine.Configuration.Model import Model, ModelNidMap
+from Shine.Configuration.Model import Model
+from Shine.Configuration.Model import NidMap as ModelNidMap
 
 class NidMapTest(unittest.TestCase):
 
@@ -46,7 +47,7 @@ class NidMapTest(unittest.TestCase):
         """should complain if a nodes is missing when instanciating"""
         self.assertRaises(InvalidNidMapError, NidMap, nodes_pat="foo[1-3]")
         self.assertRaises(InvalidNidMapError, NidMap, nids_pat="foo[1-3]")
- 
+
     def testCheckException(self):
         """cast NidMap exception to string is ok"""
         exp = InvalidNidMapError("foo", "foo[1-2]")
@@ -54,9 +55,10 @@ class NidMapTest(unittest.TestCase):
 
     def testFromList(self):
         """construct from a list of modelnidmap"""
-        model = Model()
-        line1 = ModelNidMap(model, "nodes=foo[1-2] nids=foo[1-2]-ib0@o2ib4")
-        line2 = ModelNidMap(model, "nodes=bar[1-2] nids=bar[1-2]-ib0@o2ib4")
+        line1 = ModelNidMap()
+        line1.parse("nodes=foo[1-2] nids=foo[1-2]-ib0@o2ib4")
+        line2 = ModelNidMap()
+        line2.parse("nodes=bar[1-2] nids=bar[1-2]-ib0@o2ib4")
         nm = NidMap.fromlist([line1, line2])
         self.assertEqual(nm["foo1"], ["foo1-ib0@o2ib4"])
         self.assertEqual(nm["foo2"], ["foo2-ib0@o2ib4"])

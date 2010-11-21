@@ -131,7 +131,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 def create_lustrefs(fs_model_file, event_handler=None, nodes=None, excluded=None):
     """
     """
-    fs_conf = Configuration(fs_model=fs_model_file)
+    fs_conf = Configuration.create_from_model(fs_model_file)
     
     fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \
                               nodes=nodes, excluded=excluded)
@@ -147,7 +147,7 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
     from installed shine configuration.
     """
     # Create file system configuration
-    fs_conf = Configuration(fs_name)
+    fs_conf = Configuration.load_from_cache(fs_name)
 
     if target_types:
         target_types = target_types.split(',')

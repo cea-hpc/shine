@@ -1,4 +1,4 @@
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2010 CEA
 #
 # This file is part of shine
 #
@@ -18,361 +18,550 @@
 #
 # $Id$
 
+"""
+ModelFile handles ModelFile configuration file manipulation.
+
+You must declare each supported field and syntax:
+    model = ModelFile()
+    model.add_element('name', check='string')
+    ...
+You can create your own type.
+You can load and save from disk.
+"""
+
+import re
+import copy
+
 from ClusterShell.NodeSet import RangeSet
 
-import datetime
-import re
 
-class ModelFileException(Exception):
-    def __init__(self, message):
-        self.message = message
+class SimpleElement(object):
+    """
+    A data storing class for ModelFile.
 
-    def __str__(self):
-        return self.message
+    It handles the checking and storing of a value based on checking-type.
+    It could be inherited to implement custom type for ModelFile.
+    """
 
-class ModelFileIOError(ModelFileException):
-    def __init__(self, file):
-        self.file = file
-        self.message = "Cannot access file %s" % file
+    def __init__(self, check, default=None, values=None):
+        self._content = None
+        self._check = check
+        self._default = default
+        self._values = values or []
 
-class ModelFileSyntaxError(ModelFileException):
-    def __init__(self, file, line_nbr, line, reason=""):
-        self.file = file
-        self.lineNbr = line_nbr
-        self.line = line
-        self.reason = reason
-        self.message = "Syntax error in %s at line %d:\n\"%s\"" % \
-                       (self.file, self.lineNbr, self.line)
-        if len(reason) > 0:
-            self.message += "\n%s" % self.reason
+    def emptycopy(self):
+        """Return a new empty copy of this element, with the same attributes."""
+        return type(self)(self._check, self._default, self._values)
 
-class ModelFileSyntaxErrorReason(ModelFileException):
-    def __init__(self, reason):
-        self.message = reason
+    def copy(self):
+        """Return a deep copy of an SimpleElement."""
+        return copy.deepcopy(self)
 
-
-class ModelFileKeywordError(ModelFileException):
-    def __init__(self, key):
-        self.key = key
-        self.message = "Invalid keyword '%s'." % (key)
-
-class ModelFileValueError(ModelFileException):
-    def __init__(self, key, value, text):
-        self.key = key
-        self.value = value
-        self.message = "Invalid value '%s' for '%s'. %s." % \
-                        (value, key, text)
-
-
-class ModelFile:
-
-    syntax = {}
-    defaults = {}
-
-    def __init__(self, filename=None, sep=':'):
-        self.keysuplen = 16
-        self.valsuplen = 16
-        self.sep = sep
-        self.keys = {}
-        self.filename = filename
-        if filename:
-            self.load_from_file(filename)
-
-    #
-    # File management
-    #
-
-    def get_filename(self):
-        return self.filename
-
-    def set_filename(self, filename, sep=':'):
-        self.filename = filename
-        self.sep = sep
-        self.keys = {}
-        if filename:
-            self._parse(filename)
-
-    def load_from_file(self, filename):
+    # Readers
+    def get(self, default=None):
         """
-        Read the file pointed by @filename, parse it and load its content in 
-        the current instance. The current content is reset.
-        ModelFile.filename now points to @filename.
+        Return, by priority, one of those: the element content or the element
+        default or the provided default value.
         """
-        self.keys = {}
-        self._parse(filename)
-        self.filename = filename
- 
-    def save_to_file(self, filename=None):
-        """
-        Save the current content the a specified filename if provided. If not
-        filename was already set for this object, it becomes its filename.
-        """
-
-        # If not filename, use the current name
-        if not filename:
-            filename = self.filename
-        # If no filename was specified before, store this one
-        if not self.filename:
-            self.filename = filename
-
-        # If I still got no filename, this is an error
-        # XXX: This should be a specific exception.
-        if not self.filename:
-            raise ModelFileException("No filename defined.")
-
-        self.save(filename)
-
-    def save(self, path, header=None):
-        f = open(path, 'w+')
-        # Add a header if provided
-        if header:
-            f.write("#" * 72 + "\n")
-            f.write("# %s\n" % header)
-            f.write("# %s\n" % datetime.datetime.now().ctime())
-            f.write("#" * 72 + "\n")
-        # Save content order by keys
-        keylist = self.keys.keys()
-        keylist.sort(self._keycmp)
-        for k in keylist:
-            for sub_value in self.keys[k]:
-                f.write("%s: %s\n" % (k, sub_value))
-        f.close()
-
-    #
-    # Item management
-    #
-
-    def _parse(self, filename):
-        line_nbr = 0
-        try:
-            file = open(filename, 'r')
-            for line in file:
-                line_nbr += 1
-                line = line.split('#', 1)[0].strip()
-                if line:
-                    key, value = line.split(self.sep, 1)
-                    self.add(key.strip(), value.strip())
-            file.close()
-        except ValueError, e:
-            raise ModelFileSyntaxError(filename, line_nbr, line)
-        except ModelFileSyntaxErrorReason, e:
-            raise ModelFileSyntaxError(filename, line_nbr, line, e.message)
-        except IOError, e:
-            raise ModelFileIOError(filename)
-
-    def _add(self, key, value):
-        # Key is unknown, create a list with 'value'
-        if key not in self.keys:
-            self.keys[key] = [value]
-            if len(key) > self.keysuplen:
-                self.keysuplen = len(key)
-        # there's already a list for this key, add the value
+        if self._content is not None:
+            return self._content
+        elif self._default is not None:
+            return self._default
         else:
-            self.keys[key].append(value)
+            return default
 
-    def add(self, key, value):
-
-        # Do we have a grammar and params are valid ?
-        if self.syntax:
-            value = self.validate(key, value)
-
-        # If needed, expand to multiple values (eg. for subelem pattern)
-        if type(value) is list:
-            for val in value:
-                self._add(key, val)
-        else:
-            self._add(key, value)
-
-    def delete(self, key):
-        if self.keys.has_key(key):
-            del self.keys[key]
-
-    def get(self, key):
-
-        # Return the corresponding values
-        if key in self.keys:
-            return self.keys[key]
-
-        # If unavailable, use the default one
-        elif key in self.defaults:
-
-            #
-            # To keep behaviour consistant with 'values', we should return a
-            # list here.
-            # To simplify the 'defaults' dict declaration, we transform the
-            # default value into a list if not already the case.
-            #
-            if type(self.defaults[key]) is type([]):
-                return self.defaults[key]
-            else:
-                return [ self.defaults[key] ]
-
-        # To keep existing behaviour, raise a KeyError.
-        # XXX: But later, it should behave like a dict.get() and
-        # simply returns a None value.
-        else:
-            raise KeyError()
-
-    def get_one(self, key):
-        try:
-            return self.get(key)[0]
-        except (KeyError, IndexError), e:
-            return ''
-
-    def has_key(self, key):
-        return self.keys.has_key(key)
-
-    def get_with_dict(self, key):
-        lst = [] 
-        for e in self.keys[key]:
-            if isinstance(e, ModelFile):
-                e = e.get_dict()
-            lst.append(e)
-        return lst
-
-    def get_dict(self):
-        result_dict = {}
-        for key, val in self.keys.iteritems():
-            for e in val:
-                if isinstance(e, ModelFile):
-                    e = e.get_dict()
-                if key in result_dict:
-                    if type(result_dict[key]) is list:
-                        result_dict[key].append(e)
-                    else:
-                        result_dict[key] = [ result_dict[key], e ]
-                else:
-                    result_dict[key] = e
-        return result_dict
-
-    #
-    # SubElement handling
-    #
-
-    def sub_element(self, key, value, sep = "="):
-        return SubElement(self, value, sep)
-
-    def sub_element_expand(self, sub_class, key, value):
-        """
-        Expand RangeSet based sub_elements.
-        """
-        # Should we expand device pattern?
-        fmt = "" # Format string
-        rg_list = [] # List of ranges found
-        while value.find('[') >= 0:
-            pfx, sfx = value.split('[', 1)
-            rg, value = sfx.split(']', 1)
-            rg_list.append(rg)
-            fmt += "%s%%s" % pfx
-        fmt += value
-
-        if len(rg_list) == 0:
-            # No range, it's a single entry. Process directly.
-            return sub_class(self, value)
-
-        # Range(s) found, we will return a list of sub_class.
-        result = []
-
-        # Create range iterators for all ranges found.
-        rangesets = [RangeSet(rg) for rg in rg_list]
-
-        # Sanity check: all ranges must have the same size
-        lastsz = -1
-        for it in rangesets:
-            sz = len(it)
-            if lastsz > -1 and lastsz != sz:
-                raise ModelFileSyntaxErrorReason("Range size mismatch (%d != %d)" % \
-                        (lastsz, sz))
-            lastsz = sz
-
-        # Generate devices.
-        try:
-            rg_gens = [it.__iter__() for it in rangesets]
-            while True:
-                result.append(sub_class(self, fmt % tuple([rg_gens[i].next()
-                    for i in range(0, len(rg_gens))])))
-        except StopIteration:
-            pass
-        
-        return result
-
-    def validate(self, key, value):
-
-        # Verify if the keyword exists
-        if key not in self.syntax:
-            raise ModelFileKeywordError(key)
-            
-        # If the code is a string, check its meaning
-        elif type(self.syntax[key]) is str:
-            code = self.syntax[key]
-            # The value defined a subelement
-            if code == 'subelem':
-                return self.sub_element(key, value)
-            # The value must be an integer
-            elif code == 'digit' and not value.isdigit():
-                raise ModelFileValueError(key, value, 'Must be an integer')
-            # The value must be a path. FIXME: Can we avoid using a RE here?
-            elif code == 'path' and not re.match("^\/([\.\w-]+/)*[\.\w-]+/?$",value):
-                raise ModelFileValueError(key, value, 'Must be a path')
-
-            # FIXME: All other cases are valid for the moment...
-
-        # Else, the code must be a list of valid values
-        elif value not in self.syntax[key]:
-            raise ModelFileValueError(key, value, ' Valid ones are: %s' % \
-                                      ",".join(self.syntax[key]))
-
-        # FIXME: All other cases are valid for the moment...
-        return value
+    def content(self, default=None):
+        """For SimpleElement, behave like get()."""
+        return self.get(default)
 
     def __iter__(self):
-        for k, v in self.keys.iteritems():
-            for sub_value in v:
-                yield k, sub_value
+        yield self._content
 
     def __str__(self):
-        str = ""
-        for k, v in self:
-            str += "%s%s %s\n" % (k, self.sep, v)
-        return str
+        return str(self._content)
 
-    def _keycmp(self, k1, k2):
-        return cmp(k1, k2)
+    def __len__(self):
+        return int(self._content is not None)
 
-class SubElement(ModelFile):
+    def __hash__(self):
+        return hash(self.__class__) ^ hash(self._content) ^ hash(self._check)
 
-    def __init__(self, file, line, sep="="):
-        assert isinstance(file, ModelFile), type(file)
-        self.file = file
-        self.sep = sep
-        self.line = line
-        self.keysuplen = 16
-        self.valsuplen = 16
-        self.keys = {}
-        self._parse()
+    def __eq__(self, other):
+        if type(other) != type(self):
+            return NotImplemented
+        return self._content == other._content and self._check == other._check
 
-    def _parse(self):
-        try:
-            for str in self.line.split():
-                key, value = str.split(self.sep, 2)
-                self.add(key, value)
-        except ValueError, e:
-            if self.file:
-                raise ModelFileSyntaxError(self.file.filename, 0, self.line)
+    def as_dict(self):
+        """Helper method for ModelFile.as_dict().
+
+        Return same content than get().
+        """
+        return self.get()
+
+    def diff(self, other):
+        """
+        Compare this SimpleElement with another one and return a tuple with 3
+        elements. If the two elements are the same, the tuple contains:
+         3 empty copy is this element,
+        if they are different, it returns:
+         an empty copy, a copy of the other element and an empty copy.
+        """
+        if self == other:
+            return self.emptycopy(), self.emptycopy(), self.emptycopy()
+        elif len(self) == 0 and len(other) == 1:
+            return other.copy(), self.emptycopy(), self.emptycopy()
+        elif len(self) == 1 and len(other) == 0:
+            return self.emptycopy(), self.emptycopy(), self.copy()
+        else:
+            return self.emptycopy(), other.copy(), self.emptycopy()
+
+    # Setters
+    def replace(self, data):
+        """Replace the content with `data'."""
+        self.clear()
+        self.add(data)
+
+    def clear(self):
+        """Clear the element content."""
+        self._content = None
+
+    def _validate(self, value):
+        """
+        Check that @value is valid regarding to SimpleElement check type.
+
+        This function will convert @value to the type correspoding to the check
+        type, and returns it.
+        It raises a ValueError is check type is not respected.
+        """
+        if self._check == 'digit':
+            return int(value)
+
+        elif self._check == 'boolean':
+            if value.lower() in ['yes', 'true', '1' ]:
+                return True
+            elif value.lower() in ['no', 'false', '0' ]:
+                return False
             else:
-                raise ModelFileException("Internal error.")
-            
-    def __str__(self):    
+                raise ValueError("'%s' not a boolean value" % value)
+
+        elif self._check == 'string':
+            if type(value) is not str:
+                raise ValueError("'%s' not a string" % value)
+            return str(value)
+
+        elif self._check == 'enum':
+            if str(value) not in [str(val) for val in self._values]:
+                raise ValueError("%s not in %s" % (value, self._values))
+            return [val for val in self._values if str(val) == str(value)].pop()
+
+        elif self._check == 'path':
+            if not re.match("^\/([\.\w-]+/)*[\.\w-]+/?$", value):
+                raise ValueError("'%s' is not a valid path" % value)
+            return value
+
+        else:
+            raise TypeError("Check type: %s is unmanaged" % self._check)
+
+    def add(self, value):
+        """Validate and set the SimpleElement value.
+
+        Raises a ValueError is called twice. See MultipleElement if you need
+        multiple values.
+        """
+        # Simple element could not 'add' several times. See MultipleElement.
+        if self._content is not None:
+            raise ValueError("SimpleElement content already set to '%s'" %
+                    self._content)
+
+        # Check value has a valid content.
+        self._content = self._validate(value)
+
+    def parse(self, data):
+        """Parse, validate and set the SimpleElement value.
+
+        See add() for more details.
+        """
+        self.add(data)
+
+
+class MultipleElement(object):
+    """
+    This is a container over a list of non-multiple element, like SimpleElement or
+    ModelFile.
+
+    It uses the provided instance, at init, as a reference for all the data that
+    it will have to manage.
+    """
+
+    def __init__(self, orig_elem):
+        self._origelem = orig_elem
+        self._elements = []
+
+    def emptycopy(self):
+        """Return a new empty copy of this element, with the same attributes."""
+        return type(self)(self._origelem.emptycopy())
+
+    def copy(self):
+        """Return a deep copy of a MultipleElement."""
+        return copy.deepcopy(self)
+
+    # Readers
+    def elements(self):
+        """Access to defined element objects and contents."""
+        return self._elements
+
+    def get(self, default=None):
+        """Return a list containing all element data.
+
+        See SimpleElement.get().
+        """
+        return list(self) or default
+
+    def content(self, default=None):
+        """For MultipleElement, it behaves like get()."""
+        return self.get(default)
+
+    def __getitem__(self, idx):
+        return self.get()[idx]
+
+    def __iter__(self):
+        return (elem.content() for elem in self.elements())
+
+    def __len__(self):
+        return len(self.elements())
+
+    def __str__(self):
+        return " ".join([str(elem) for elem in self])
+
+    def __eq__(self, other):
+        return self._origelem == other._origelem \
+                and self.elements() == other.elements()
+
+    def as_dict(self):
+        """Helper method for ModelFile.as_dict().
+
+        Return a list with all contained element transformed with as_dict().
+        """
+        return [elem.as_dict() for elem in self.elements()]
+
+    def diff(self, other):
+        """Compare a MultipleElement with another one.
+
+        Return a tuple of three new MultipleElements.
+        First one contains only the elements added in other.
+        Second one contains an empty MultipleElement.
+        Third one contains only the elements removed from self.
+        """
+        localkeys = set(self.elements())
+        otherkeys = set(other.elements())
+
+        # Detect new elements in other. Add them keeping order.
+        added = self.emptycopy()
+        added_elems = otherkeys - localkeys
+        for elem in other.elements():
+            if elem in added_elems:
+                added.elements().append(elem.copy())
+
+        # Detect missing elements in other. Add them keeping order.
+        removed = self.emptycopy()
+        removed_elems = localkeys - otherkeys
+        for elem in self.elements():
+            if elem in removed_elems:
+                removed.elements().append(elem.copy())
+
+        changed = self.emptycopy()
+
+        return added, changed, removed
+
+    # Setters
+    @classmethod
+    def _expand_range(cls, data):
+        """
+        Return an iterator on multiple lines based on the ranges the provided
+        data contains.
+        """
+
+        fmt = ''       # Format string
+        rng_list = []  # List of ranges found
+        while data.find('[') >= 0:
+            pfx, sfx = data.split('[', 1)
+            rng, data = sfx.split(']', 1)
+            rng_list.append(rng)
+            fmt += "%s%%s" % pfx
+        fmt += data
+
+        # If no range is found, no more work is needed
+        if not rng_list:
+            return iter([data])
+
+        # Create range iterators for all ranges found.
+        rangesets = [RangeSet(rng) for rng in rng_list]
+
+        # Verify that all ranges have the same length
+        minsize = min([len(rng) for rng in rangesets])
+        maxsize = max([len(rng) for rng in rangesets])
+        if minsize != maxsize:
+            raise ValueError("Range size mismatch %d != %d" %
+                             (minsize, maxsize))
+
+        # Generate the new lines based from the rangeset
+        return (fmt % tpl for tpl in zip(*rangesets))
+
+    def add(self, value):
+        """Add a new element to this MultipleElement and call add() on it."""
+        newone = self._origelem.emptycopy()
+        newone.add(value)
+        self._elements.append(newone)
+
+    def parse(self, data):
+        """Add a new element to this MultipleElement and call parse() on it."""
+        for data in self._expand_range(data):
+            newone = self._origelem.emptycopy()
+            newone.parse(data)
+            self._elements.append(newone)
+
+    def replace(self, value):
+        """Replace current content with `value'."""
+        self.clear()
+        self.add(value)
+
+    def __delitem__(self, idx):
+        del self._elements[idx]
+
+    def remove(self, value):
+        """Remove element containing value."""
+        elem = self._origelem.emptycopy()
+        elem.add(value)
+        if elem not in self.elements():
+            raise ValueError("%s not in MultipleElement", value)
+        self.elements().remove(elem)
+
+    def clear(self):
+        """Remove all elements from this MultipleElement."""
+        self._elements = []
+
+
+
+class ModelFile(object):
+    """
+    Manipulate a ModelFile in memory.
+
+    A ModelFile has defined elements. It tell what value are supported.
+    Each elements could a SimpleElement, a MultipleElement or a custom one.
+
+    You can handle a ModelFile more or less like a dict. It could be save to
+    disk and load from it.
+    """
+
+    def __init__(self, sep=':', linesep="\n"):
+        self._sep = sep
+        self._linesep = linesep
+        self._elements = {}
+
+    def emptycopy(self):
+        """Return a new empty copy of this element, with the same attributes."""
+        newone = type(self)(self._sep, self._linesep)
+        # Some elements could be defined in __init__, or added manually.
+        # Add what's missing
+        missing = set(self.elements()) - set(newone.elements())
+        for name in missing:
+            newone.add_custom(name, self.elements()[name].emptycopy())
+        return newone
+
+    def copy(self):
+        """Return a deep copy of ModelFile."""
+        return copy.deepcopy(self)
+
+    # Element management
+
+    def elements(self, key=None):
+        """Access to defined element objects and contents."""
+        if key is not None:
+            return self._elements.get(key)
+        return self._elements
+
+    def add_element(self, name, multiple=False, **kwargs):
+        """Add a new supported SimpleElement with key `name`.
+
+        - multiple: If several values could be associated to this key.
+        - check: type of element in
+                        ['string', 'digit', 'enum', 'path', 'boolean']
+        - values: accepted values for 'enum' check.
+
+        See `SimpleElement`.
+        """
+        self.add_custom(name, SimpleElement(**kwargs), multiple)
+
+    def add_custom(self, name, custom_elem, multiple=False):
+        """Add a custom Element type.
+
+        This could be any element that supports needed interface.
+        See `SimpleElement` or `MultipleElement`for examples."""
+        if name in self._elements:
+            raise KeyError("%s is already defined" % name)
+
+        if multiple:
+            self._elements[name] = MultipleElement(custom_elem)
+        else:
+            self._elements[name] = custom_elem
+
+    def del_element(self, name):
+        """
+        Deletes a element definition and its content, which was added using
+        add_element() or add_custom().
+        """
+        del self._elements[name]
+
+    def is_element(self, name):
+        """Test if `name` is declared. It could be empty."""
+        return name in self._elements
+
+    # Readers
+    def get(self, key, default=None):
+        """Return data associated to element pointed by key.
+
+        Optionaly default could be used if current value is None.
+        """
+        return self._elements[key].content(default)
+
+    def content(self, default=None):
+        """Return an object behaving like a dict.
+
+        Optional default will be returned if this is empty."""
+        if self._elements:
+            return self
+        else:
+            return default
+
+    def __str__(self):
         elems = []
-        for k, v in self:
-            elems.append("%s%s%s" % (k, self.sep, v))
-        return ' '.join(elems)
+        for key, values in self.iteritems():
+            elems.append(''.join([key, self._sep, str(values)]))
+        return self._linesep.join(elems)
 
-#
-# For test purposes only
-#
-if __name__ == '__main__':
-    import sys
-    conf = ModelFile(sys.argv[1], sys.argv[2])
-    print conf
+    def __len__(self):
+        return len(list(self.iterkeys()))
 
+    # To behave more like a dict
+    def __contains__(self, key):
+        """Test if specified key has a non None content."""
+        return self.get(key, None) is not None
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __delitem__(self, key):
+        self._elements[key].clear()
+
+    def iterkeys(self):
+        """Iterate over the keys with non-empty value."""
+        return (key for key, value in self._elements.iteritems() if len(value))
+
+    def iteritems(self):
+        """Iterate over the keys and non-empty values.
+        Multiple elements will yield for each element in it."""
+        for key, element in self._elements.iteritems():
+            if len(element):
+                for value in element:
+                    yield key, value
+
+    # Content access
+
+    def add(self, key, value):
+        """Add a new value for element linked to @key.
+
+        @value is analyzed by the element itself."""
+        self._elements[key].add(value)
+
+    def replace(self, key, value):
+        """Replace the content of `key' with `data'."""
+        self._elements[key].replace(value)
+
+    def __iter__(self):
+        return self.iterkeys()
+
+    def __eq__(self, other):
+        return self._sep == other._sep and self._linesep == self._linesep \
+                and self.elements() == other.elements()
+
+    def __hash__(self):
+        value = hash(self.__class__)
+        for elem in self._elements:
+            value = value ^ hash(elem)
+        return value
+
+    def diff(self, other):
+        """Compare a ModelFile with another one.
+
+        Return a tuple of three new ModelFiles:
+        First one contains only the elements added in other.
+        Second one contains an empty MultipleElement.
+        Third one contains only the elements removed from self.
+        """
+
+        localkeys = set(self.iterkeys())
+        otherkeys = set(other.iterkeys())
+
+        added = self.emptycopy()
+        for key in otherkeys - localkeys:
+            added.elements()[key] = other.elements()[key].copy()
+
+        removed = self.emptycopy()
+        for key in localkeys - otherkeys:
+            removed.elements()[key] = self.elements()[key].copy()
+
+        changed = self.emptycopy()
+        for key in localkeys & otherkeys:
+            elemadded, elemchanged, elemremoved = \
+                self.elements()[key].diff(other.elements()[key])
+            if elemadded:
+                added.elements()[key] = elemadded.copy()
+            if elemremoved:
+                removed.elements()[key] = elemremoved.copy()
+            if elemchanged:
+                changed.elements()[key] = elemchanged.copy()
+
+        return added, changed, removed
+
+
+    # Representation
+
+    def as_dict(self):
+        """Return a dict containing all elements and content using only Python
+        built-in objects."""
+        return dict([(key, self._elements[key].as_dict())
+            for key in self.iterkeys()])
+
+    def parse(self, data):
+        """Parse @data based on separators and declared elements."""
+        for line in data.split(self._linesep):
+            try:
+                key, value = line.split(self._sep, 1)
+            except ValueError:
+                raise ValueError("Wrong syntax '%s'" % line)
+            self._elements[key.strip()].parse(value.strip())
+
+    # File handling
+    def load(self, filename):
+        """Fill a model file using data from file pointed by filename."""
+        modelfd = open(filename)
+        for nbr, line in enumerate(modelfd):
+            # Remove comments and blank lines
+            line = line.split('#', 1)[0].strip()
+            if line:
+                try:
+                    self.parse(line)
+                except ValueError, error:
+                    raise ValueError("%s at line %d" % (error, nbr + 1))
+        modelfd.close()
+
+    def save(self, filename, header=None):
+        """Write model file content to specified file.
+
+        `header` could be optionaly use to add some specific content as file
+        start."""
+        modelfd = open(filename, 'w+')
+        if header:
+            modelfd.write("%s\n" % header)
+        modelfd.write("%s" % self)
+        modelfd.close()

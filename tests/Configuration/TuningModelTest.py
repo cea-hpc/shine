@@ -11,17 +11,17 @@ import unittest
 
 sys.path.insert(0, '../lib')
 
-from TestUtils import makeTestFile
+from Utils import makeTempFile
 from ClusterShell.NodeSet import NodeSet
 from Shine.Configuration.TuningModel import TuningModel, TuningParameter, TuningParameterDeclarationException
 
 class TuningModelTest(unittest.TestCase):
 
-    def makeTestTuningModel(self, text):
+    def makeTempTuningModel(self, text):
         """
         Create a temporary file instance and returns a TuningModel with it.
         """
-        self.f = makeTestFile(text)
+        self.f = makeTempFile(text)
         model = TuningModel(filename=self.f.name)
         return model
 
@@ -32,13 +32,13 @@ class TuningModelTest(unittest.TestCase):
 
     def testEmptyFile(self):
         """test empty tuning"""
-        m = self.makeTestTuningModel("")
+        m = self.makeTempTuningModel("")
         m.parse()
         self.assertEqual(len(m._parameter_dict.keys()), 0)
 
     def testComments(self):
         """test comments and blank lines"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 # This is a comment
 
    #### Another one ##
@@ -49,8 +49,8 @@ class TuningModelTest(unittest.TestCase):
 
     def testSimpleFile(self):
         """test simple tuning"""
-        m = self.makeTestTuningModel("""
-alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug 
+        m = self.makeTempTuningModel("""
+alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
 1 panic_on_lbug MDS;OSS;CLT""")
         m.parse()
 
@@ -64,20 +64,20 @@ alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
 
     def testAliasMissing(self):
         """test tuning with missing alias"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 bar foo CLT""")
         self.assertRaises(TuningParameterDeclarationException, TuningModel.parse, m)
 
     def testWrongSyntax(self):
         """test tuning with wrong syntax"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 alias foo=/foo
 bar foo CLT ; MDS""")
         self.assertRaises(TuningParameterDeclarationException, TuningModel.parse, m)
 
     def testFileValue(self):
         """test tuning with path as value"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 alias daemon_file = /proc/sys/lnet/daemon_file
 /tmp/toto.log daemon_file MDS;OSS;CLT""")
         m.parse()
@@ -93,7 +93,7 @@ alias daemon_file = /proc/sys/lnet/daemon_file
 
     def testQuotedValue(self):
         """test tuning with a quoted value"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 alias daemon_file=/proc/sys/lnet/daemon_file
 "/tmp/toto space.log" daemon_file MDS;OSS;CLT""")
         m.parse()
@@ -109,7 +109,7 @@ alias daemon_file=/proc/sys/lnet/daemon_file
 
     def testOnNodes(self):
         """test tuning with nodes"""
-        m = self.makeTestTuningModel("""
+        m = self.makeTempTuningModel("""
 alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug 
 1 panic_on_lbug MDS;CLT;foo[1-5]""")
         m.parse()

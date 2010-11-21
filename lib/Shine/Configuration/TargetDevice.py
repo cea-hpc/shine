@@ -33,6 +33,9 @@ class TargetDevice:
         self.target = target
         self.params = copy.copy(dic)
 
+    def __contains__(self, key):
+        return key in self.params
+
     def get(self, key):
         return self.params.get(key)
 

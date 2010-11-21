@@ -1,5 +1,5 @@
 # Exceptions.py -- Configuration exception classes
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2010 CEA
 #
 # This file is part of shine
 #
@@ -21,6 +21,7 @@
 
 class ConfigException(Exception):
     def __init__(self, message):
+        Exception.__init__(self)
         self.message = message
 
     def __str__(self):
@@ -28,6 +29,7 @@ class ConfigException(Exception):
 
 class ConfigDeviceNotFoundError(ConfigException):
     def __init__(self, model_dev):
+        ConfigException.__init__(self)
         self.model_dev = model_dev
         self.message = "No matching device found for \"%s\"" % model_dev
 

@@ -19,9 +19,7 @@
 #
 # $Id$
 
-from Globals import Globals
 from FileSystem import FileSystem
-from ModelFile import ModelFileException
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -33,7 +31,7 @@ import socket
 class Target:
     def __init__(self, type, cf_target):
         self.type = type
-        self.dic = cf_target.get_dict()
+        self.dic = cf_target.as_dict()
 
     def get_type(self):
         return self.type
@@ -82,7 +80,7 @@ class Target:
 
 class Clients:
     def __init__(self, cf_client):
-        self.dic = cf_client.get_dict()
+        self.dic = cf_client.as_dict()
 
     def get_nodes(self):
         return self.dic.get('node')
@@ -93,27 +91,34 @@ class Clients:
 
 class Routers:
     def __init__(self, cf_router):
-        self.dic = cf_router.get_dict()
+        self.dic = cf_router.as_dict()
 
     def get_nodes(self):
         return self.dic.get('node')
 
 class Configuration:
-    def __init__(self, fs_name=None, fs_model=None):
+    def __init__(self):
         """FS configuration initializer."""
-
         self.debug = False
+        self._fs = None
 
-        # Initialize FS configuration
-        if fs_name or fs_model:
-            try:
-                self._fs = FileSystem(fs_name, fs_model)
-            except ConfigException, e:
-                raise ConfigException("Error during parsing of filesystem configuration file : %s" % e) 
-            except ModelFileException, e:
-                raise ConfigException("%s" % e)
-        else:
-            self._fs = None
+    @classmethod
+    def load_from_cache(cls, fsname):
+        conf = Configuration()
+        try:
+            conf._fs = FileSystem.load_from_fsname(fsname)
+        except (TypeError, ValueError), error:
+            raise ConfigException(str(error))
+        return conf
+
+    @classmethod
+    def create_from_model(cls, lmf):
+        conf = Configuration()
+        try:
+            conf._fs = FileSystem.create_from_model(lmf)
+        except (TypeError, ValueError), error:
+            raise ConfigException(str(error))
+        return conf
 
     def close(self):
         self._fs.close()
@@ -140,8 +145,8 @@ class Configuration:
         Return a generator over all FS targets.
         """
         for target_type in [ 'mgt', 'mdt', 'ost' ]:
-            if target_type not in self._fs.get_dict():
-                continue 
+            if target_type not in self._fs:
+                continue
             tgt_cf_list = self._fs.get(target_type)
             for t in tgt_cf_list:
                 yield Target(target_type, t)
@@ -162,12 +167,12 @@ class Configuration:
         elif target_type == 'OST':
             # The target is an OST. Walk through the list of 
             # OSTs to retrieve the right one.
-             for current_ost in self.iter_targets_ost():
-                 if current_ost.get_tag() == target_tag:
-                     # The ost tag match the searched one.
-                     # save the target and break the loop
-                     target = current_ost
-                     break
+            for current_ost in self.iter_targets_ost():
+                if current_ost.get_tag() == target_tag:
+                    # The ost tag match the searched one.
+                    # save the target and break the loop
+                    target = current_ost
+                    break
         else:
             # The target type is currently not supported by the
             # configuration
@@ -177,7 +182,7 @@ class Configuration:
 
     def get_client_nodes(self):
         nodes = NodeSet()
-        if self._fs.has_key('client'):
+        if 'client' in self._fs:
             cli_cf_list = self._fs.get('client')
         else:
             return nodes
@@ -195,13 +200,13 @@ class Configuration:
         # build a dict where keys are mount paths
         mounts = {}
         # no client defined?
-        if not self._fs.has_key('client'):
+        if not 'client' in self._fs:
             return mounts
         cli_cf_list = self._fs.get('client')
 
-        if not self._fs.has_key('mount_path'):
+        if not 'mount_path' in self._fs:
             raise ConfigException("mount_path not specified")
-        default_path = self._fs.get_one('mount_path')
+        default_path = self._fs.get('mount_path')
 
         remain_nodes = None
         if select_nodes:
@@ -242,7 +247,7 @@ class Configuration:
                 return path
 
         #print "Warning: path not found for client %s ??" % client
-        return self._fs.get_one('mount_path')
+        return self._fs.get('mount_path')
 
     def iter_clients(self):
         """
@@ -257,7 +262,7 @@ class Configuration:
         """
         Iterate over (node)
         """
-        if self._fs.has_key('router'):
+        if 'router' in self._fs:
             for elem in self._fs.get('router'):
                 rtr = Routers(elem)
                 yield rtr.get_nodes()
@@ -269,43 +274,43 @@ class Configuration:
         """
         # List of type supported by the local node
         type_list = []
-        
+
         # Get the locahost name
         localhost_name = socket.gethostname()
-        
+
         # Is the node registered as a client 
         if localhost_name in self.get_client_nodes():
             type_list.append('client')
-        
+
         # Is the node registered as mdt
         if localhost_name == self.get_target_mdt().get_nodename():
             type_list.append('mds')
-        
+
         # Is the node registered as mgt
         if localhost_name == self.get_target_mgt().get_nodename():
             type_list.append('mgs')
 
         # Is the node registered as an oss
         for oss_node in self.iter_targets_ost():
-            
+
             # is the node the current oss
             if localhost_name == oss_node.get_nodename():
                 type_list.append('oss')
                 break
-            
+
         return type_list
 
     # General FS getters
     #
     def get_fs_name(self):
-        return self._fs.get_one('fs_name')
+        return self._fs.get('fs_name')
 
     def get_cfg_filename(self):
         """
         Return FS xmf file path.
         """
-        return self._fs.get_filename()
-    
+        return self._fs.xmf_path
+
     def get_tuning_cfg_filename(self):
         """
         Return the tuning.conf file path
@@ -313,70 +318,57 @@ class Configuration:
         self._fs.tuning_model.get_filename()
 
     def get_description(self):
-        return self._fs.get_one('description')
+        return self._fs.get('description')
 
     def has_quota(self):
         """
         Return if quota has been enabled in the configuration file.
         """
-        return self._fs.get_one('quota') == 'yes'
-    
+        return self._fs.get('quota') == 'yes'
+
     def get_quota_type(self):
-        return self._fs.get_one('quota_type')
+        return self._fs.get('quota_type')
 
     def get_quota_bunit(self):
-        return self._fs.get_one('quota_bunit')
+        return self._fs.get('quota_bunit')
 
     def get_quota_iunit(self):
-        return self._fs.get_one('quota_iunit')
+        return self._fs.get('quota_iunit')
 
     def get_quota_btune(self):
-        return self._fs.get_one('quota_btune')
+        return self._fs.get('quota_btune')
 
     def get_quota_itune(self):
-        return self._fs.get_one('quota_itune')
+        return self._fs.get('quota_itune')
 
     def get_mount_path(self):
-        return self._fs.get_one('mount_path')
-        
+        return self._fs.get('mount_path')
+
     def get_mount_options(self):
-        return self._fs.get_one('mount_options')
-        
+        return self._fs.get('mount_options')
+
     def get_target_mount_options(self, target):
-        return self._fs.get_one('%s_mount_options' % str(target).lower())
+        return self._fs.get('%s_mount_options' % str(target).lower())
 
     def get_target_mount_path(self, target):
-        return self._fs.get_one('%s_mount_path' % str(target).lower())
+        return self._fs.get('%s_mount_path' % str(target).lower())
 
     def get_target_format_params(self, target):
-        return self._fs.get_one('%s_format_params' % str(target).lower())
+        return self._fs.get('%s_format_params' % str(target).lower())
 
     def get_target_mkfs_options(self, target):
-        return self._fs.get_one('%s_mkfs_options' % str(target).lower())
+        return self._fs.get('%s_mkfs_options' % str(target).lower())
 
     # Stripe info getters
     #
     def get_stripecount(self):
-        if self._fs.has_key('stripe_count'):
-            return int(self._fs.get_one('stripe_count'))
-        return None
+        return self._fs.get('stripe_count', None)
 
     def get_stripesize(self):
-        if self._fs.has_key('stripe_size'):
-            return int(self._fs.get_one('stripe_size'))
-        return None
-
-    def get_nettype(self):
-        if self._fs.has_key('nettype'):
-            return self._fs.get_one('nettype')
-        # default is tcp
-        return "tcp"
+        return self._fs.get('stripe_size', None)
 
     # Target status setters
     #
-    #def set_target_status(self, ...):
-    #    pass
-
     def register_clients(self, nodes):
         """
         Call the file system new client registration function for each

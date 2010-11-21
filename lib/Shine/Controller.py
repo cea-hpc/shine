@@ -22,9 +22,6 @@
 from Shine.Configuration.Globals import Globals
 from Shine.Commands.CommandRegistry import CommandRegistry
 
-from Shine.Configuration.ModelFile import ModelFileException
-from Shine.Configuration.ModelFile import ModelFileIOError
-
 from Shine.Configuration.Exceptions import ConfigException
 from Shine.Commands.Exceptions import CommandHelpException, CommandException
 from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
@@ -114,10 +111,6 @@ class Controller:
             self.print_help(e.message, e.cmd)
         except CommandException, e:
             self.print_error(e.message)
-        except ModelFileIOError, e:
-            print "Error - %s" % e.message
-        except ModelFileException, e:
-            print "ModelFile: %s" % e
         except ConfigException, e:
             print "Configuration: %s" % e
         # file system
