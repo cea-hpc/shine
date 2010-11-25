@@ -107,7 +107,7 @@ class Configuration:
         conf = Configuration()
         try:
             conf._fs = FileSystem.load_from_fsname(fsname)
-        except (TypeError, ValueError), error:
+        except ValueError, error:
             raise ConfigException(str(error))
         return conf
 
@@ -116,7 +116,7 @@ class Configuration:
         conf = Configuration()
         try:
             conf._fs = FileSystem.create_from_model(lmf)
-        except (TypeError, ValueError), error:
+        except ValueError, error:
             raise ConfigException(str(error))
         return conf
 

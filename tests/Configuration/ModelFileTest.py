@@ -17,7 +17,7 @@ from Shine.Configuration.ModelFile import ModelFile, SimpleElement, \
 
 class SimpleElementTest(unittest.TestCase):
 
-    def element_tests(self, elem, toadd, toread, diffadd, diffread=None):
+    def common_checking(self, elem, toadd, toread, diffadd, diffread=None):
         """base function to build a test for SimpleElement"""
         self.assertEqual(elem.get(), None)
         self.assertEqual(len(elem), 0)
@@ -70,6 +70,7 @@ class SimpleElementTest(unittest.TestCase):
         added, changed, removed = elem.diff(other)
         self.assertEqual(changed.get(), diffread)
         self.assertTrue(len(added) == len(removed) == 0)
+        elem.clear()
 
     def testGenericTestSimpleElement(self):
         """test common SimpleElement methods"""
@@ -78,7 +79,7 @@ class SimpleElementTest(unittest.TestCase):
 
         # Could not add twice
         elem.add('foo')
-        self.assertRaises(ValueError, elem.add, 'bar')
+        self.assertRaises(KeyError, elem.add, 'bar')
 
         elem.clear()
         elem.add('foo')
@@ -86,38 +87,38 @@ class SimpleElementTest(unittest.TestCase):
     def testStringSimpleElement(self):
         """test SimpleElement(check='string')"""
         elem = SimpleElement('string')
-        self.element_tests(elem, 'ok', 'ok', 'ko')
+        self.common_checking(elem, 'ok', 'ok', 'ko')
         self.assertRaises(ValueError, elem.add, 45)
 
     def testBooleanSimpleElement(self):
         """test SimpleElement(check='boolean')"""
         elem = SimpleElement('boolean')
-        self.element_tests(elem, 'no', False, 'yes', True)
+        self.common_checking(elem, 'no', False, 'yes', True)
 
         elem = SimpleElement('boolean')
-        self.element_tests(elem, 'True', True, 'False', False)
+        self.common_checking(elem, 'True', True, 'False', False)
 
         elem = SimpleElement('boolean')
-        self.element_tests(elem, '0', False, '1', True)
+        self.common_checking(elem, '0', False, '1', True)
 
         self.assertRaises(ValueError, elem.add, 'wrong')
 
     def testDigitSimpleElement(self):
         """test SimpleElement(check='digit')"""
         elem = SimpleElement('digit')
-        self.element_tests(elem, 45, 45, 54)
+        self.common_checking(elem, 45, 45, 54)
         self.assertRaises(ValueError, elem.add, 'notadigit')
 
     def testEnumSimpleElement(self):
         """test SimpleElement(check='enum')"""
         elem = SimpleElement('enum', values=[.25, .50, .75])
-        self.element_tests(elem, .25, .25, .50)
+        self.common_checking(elem, .25, .25, .50)
         self.assertRaises(ValueError, elem.add, 'notinlist')
 
     def testPathSimpleElement(self):
         """test SimpleElement(check='path')"""
         elem = SimpleElement('path')
-        self.element_tests(elem, '/mnt/lustre', '/mnt/lustre', '/mnt/foo')
+        self.common_checking(elem, '/mnt/lustre', '/mnt/lustre', '/mnt/foo')
         self.assertRaises(ValueError, elem.add, 'not a path')
 
     def testWrongSimpleElement(self):
@@ -158,7 +159,7 @@ class MultipleElementTest(unittest.TestCase):
         elem.remove("3")
         self.assertEqual(elem.get(), ["7"])
         self.assertEqual(len(elem), 1)
-        self.assertRaises(ValueError, elem.remove, "6")
+        self.assertRaises(KeyError, elem.remove, "6")
 
         # replace()
         elem.replace("12")

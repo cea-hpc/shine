@@ -25,8 +25,19 @@ You must declare each supported field and syntax:
     model = ModelFile()
     model.add_element('name', check='string')
     ...
-You can create your own type.
+
+You can create your own types.
+    class MyElement(SimpleElement):
+        def _validate(self, data):
+            if len(data) > 10:
+                raise ValueError("Data too long")
+
+    model.add_custom('title', MyElement())
+
 You can load and save from disk.
+    model = ModelFile()
+    model.load("/tmp/modelfile")
+    model.save("/tmp/modelfile.copy")
 """
 
 import re
@@ -170,8 +181,7 @@ class SimpleElement(object):
         """
         # Simple element could not 'add' several times. See MultipleElement.
         if self._content is not None:
-            raise ValueError("SimpleElement content already set to '%s'" %
-                    self._content)
+            raise KeyError("Content already set to '%s'" % self._content)
 
         # Check value has a valid content.
         self._content = self._validate(value)
@@ -333,7 +343,7 @@ class MultipleElement(object):
         elem = self._origelem.emptycopy()
         elem.add(value)
         if elem not in self.elements():
-            raise ValueError("%s not in MultipleElement", value)
+            raise KeyError("%s not in MultipleElement", value)
         self.elements().remove(elem)
 
     def clear(self):
@@ -398,7 +408,7 @@ class ModelFile(object):
         This could be any element that supports needed interface.
         See `SimpleElement` or `MultipleElement`for examples."""
         if name in self._elements:
-            raise KeyError("%s is already defined" % name)
+            raise KeyError("%s is already declared" % name)
 
         if multiple:
             self._elements[name] = MultipleElement(custom_elem)
