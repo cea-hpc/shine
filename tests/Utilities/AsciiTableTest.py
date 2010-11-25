@@ -19,9 +19,10 @@ import Shine.Utilities.AsciiTable as AsciiTable
 class AsciiTableTest(unittest.TestCase):
 
 
-    outputAsciiTableHeader = """+------------------------------------------+------------------------------------------+------------------------------------------+
+    outputAsciiTableHeader = \
+"""+------------------------------------------+------------------------------------------+------------------------------------------+
 |first Key                                 |second Key                                |third Key                                 |
-+------------------------------------------+------------------------------------------+------------------------------------------
++------------------------------------------+------------------------------------------+------------------------------------------+
 |value11value11value11value11value11value1 |value12value12value12                     |value13                                   |
 |+1value11value11                          |                                          |                                          |
 |value21                                   |value22value22value22value22value22value2 |value23                                   |
@@ -33,7 +34,8 @@ class AsciiTableTest(unittest.TestCase):
 +------------------------------------------+------------------------------------------+------------------------------------------+
 """
 
-    outputAsciiTableNoHeader = """+------------------------------------------+------------------------------------------+------------------------------------------+
+    outputAsciiTableNoHeader = \
+"""+------------------------------------------+------------------------------------------+------------------------------------------+
 |value11value11value11value11value11value1 |value12value12value12                     |value13                                   |
 |+1value11value11                          |                                          |                                          |
 |value21                                   |value22value22value22value22value22value2 |value23                                   |
@@ -103,7 +105,7 @@ class AsciiTableTest(unittest.TestCase):
         f = tempfile.NamedTemporaryFile()
         AsciiTable.AsciiTable.get_term_cols = AsciiTable.AsciiTable.get_term_cols_from_environ
         table = AsciiTable.AsciiTable(f)
-        os.environ['COLUMNS'] = "129"
+        os.environ['COLUMNS'] = "130"
         simple1 = { "key1" : "value11" * 8, "key2": "value12" * 3, "key3": "value13" }
         simple2 = { "key1" : "value21", "key2": "value22" * 16, "key3": "value23"  }
         simple3 = { "key1" : "value31", "key2": "value32" * 8, "key3": "value33" * 14 }
