@@ -1,5 +1,5 @@
 # FSUtils.py -- Useful shine FS utility functions
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -20,14 +20,12 @@
 # $Id$
 
 
-from Configuration.Configuration import Configuration
-from Lustre.FileSystem import FileSystem
-from Lustre.Server import *
-from Lustre.Target import *
-
 from ClusterShell.NodeSet import NodeSet, RangeSet
 
-import socket
+from Shine.Configuration.Configuration import Configuration
+from Shine.Lustre.FileSystem import FileSystem
+from Shine.Lustre.Server import Server
+
 
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         failover=None, indexes=None, labels=None, groups=None,
@@ -63,30 +61,30 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         # filter on target types, indexes, groups and nodes
         target_action_enabled = True
         if (target_types is not None and cf_t_type not in target_types) or \
-            (indexes is not None and cf_t_index not in indexes) or \
-            (groups is not None and (cf_t_group is None or cf_t_group not in groups)):
-                target_action_enabled = False
+           (indexes is not None and cf_t_index not in indexes) or \
+           (groups is not None and (cf_t_group is None or cf_t_group not in groups)):
+            target_action_enabled = False
 
-        target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev, cf_t_jdev,
-                cf_t_group, cf_t_tag, target_action_enabled, cf_t_mode, cf_t_net)
+        target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev,
+                               cf_t_jdev, cf_t_group, cf_t_tag,
+                               target_action_enabled, cf_t_mode, cf_t_net)
 
         # Now the device is instanciated, we could check label name
         if (labels is not None and target.label not in labels):
             target.action_enabled = False
 
         # add failover hosts
-        ha_nodes = cf_target.ha_nodes()
         for ha_node in cf_target.ha_nodes():
             target.add_server(Server(ha_node, fs_conf.get_nid(ha_node)))
 
         # Change current server if failover nodes are used.
-        if failover and len(failover):
+        if failover and len(failover) and target.action_enabled:
             target.action_enabled = target.failover(failover)
 
         # Now that server is set, check explicit nodes and exclusion
         if (nodes is not None and target.server not in nodes) or \
            (excluded is not None and target.server in excluded):
-              target.action_enabled = False
+            target.action_enabled = False
             
 
     # Create attached file system clients...
@@ -128,9 +126,10 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     return fs
 
 
-def create_lustrefs(fs_model_file, event_handler=None, nodes=None, excluded=None):
-    """
-    """
+def create_lustrefs(fs_model_file, event_handler=None, nodes=None, 
+                    excluded=None):
+    """Create a FileSystem instance from configuration file and save in on
+    disk."""
     fs_conf = Configuration.create_from_model(fs_model_file)
     
     fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \

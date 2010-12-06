@@ -1,3 +1,6 @@
+2010-12-06 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix target selection errors when using -F.
+
 2010-11-22 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Rewrite ModelFile handling class.
 	  Configuration code improvements. Also fix #75.
