@@ -62,14 +62,20 @@ class FileSystem(Model):
         return self.get('fs_name')
 
     @classmethod
+    def _cache_path(cls, fsname):
+        """Build and check a cache file path from filesystem name."""
+        fs_conf_dir = os.path.expandvars(Globals().get_conf_dir())
+        if not os.path.exists(fs_conf_dir):
+            raise ConfigException("Cache directory does not exist '%s'" % 
+                                  fs_conf_dir)
+        return "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), fsname)
+
+    @classmethod
     def create_from_model(cls, lmf):
         """Save to cache."""
-
         model = FileSystem(lmf)
         # xmf_path could be set later if setup_target_devices do not need it
-        fs_conf_dir = os.path.expandvars(Globals().get_conf_dir())
-        conf_file = "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), model.fs_name)
-        model.xmf_path = conf_file
+        model.xmf_path = cls._cache_path(model.fs_name)
         # This will create the XMF 
         model._setup_target_devices()
 
@@ -79,8 +85,7 @@ class FileSystem(Model):
     @classmethod
     def load_from_fsname(cls, fsname):
         """Load from cache."""
-        fs_conf_dir = os.path.expandvars(Globals().get_conf_dir())
-        conf_file = "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), fsname)
+        conf_file = cls._cache_path(fsname)
         fsconf = FileSystem(conf_file)
         fsconf.xmf_path = conf_file
         return fsconf
