@@ -19,6 +19,7 @@
 #
 # $Id$
 
+import os
 
 from Shine.Configuration.ModelFile import ModelFile
 
@@ -36,7 +37,8 @@ class Globals(object):
         if not Globals.__instance:
             Globals.__instance = Globals._Globals()
             # Load config file
-            Globals.__instance.load(cls.DEFAULT_CONF_FILE)
+            if os.path.exists(cls.DEFAULT_CONF_FILE):
+                Globals.__instance.load(cls.DEFAULT_CONF_FILE)
         return Globals.__instance
 
     def __getattr__(self, attr):

@@ -13,8 +13,14 @@ from Shine.Configuration.Globals import Globals
 
 class GlobalsTest(unittest.TestCase):
 
+    def testNoFileIsOk(self):
+        """test that Globals load if not file is found"""
+        self.assertEqual(Globals().get('backend'), 'None')
+
     def testLoadExample(self):
+        backup = Globals.DEFAULT_CONF_FILE
         Globals.DEFAULT_CONF_FILE = "../conf/shine.conf"
         self.assertEqual(Globals().get('backend'), 'None')
         self.assertEqual(Globals().get('storage_file'),
                 '/etc/shine/storage.conf')
+        Globals.DEFAULT_CONF_FILE = backup
