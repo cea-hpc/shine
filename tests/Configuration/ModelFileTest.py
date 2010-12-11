@@ -12,7 +12,7 @@ import unittest
 from Utils import makeTempFile, makeTempFilename
 from ClusterShell.NodeSet import NodeSet
 from Shine.Configuration.ModelFile import ModelFile, SimpleElement, \
-                                          MultipleElement
+                                          MultipleElement, ModelFileValueError
 
 
 class SimpleElementTest(unittest.TestCase):
@@ -88,7 +88,7 @@ class SimpleElementTest(unittest.TestCase):
         """test SimpleElement(check='string')"""
         elem = SimpleElement('string')
         self.common_checking(elem, 'ok', 'ok', 'ko')
-        self.assertRaises(ValueError, elem.add, 45)
+        self.assertRaises(ModelFileValueError, elem.add, 45)
 
     def testBooleanSimpleElement(self):
         """test SimpleElement(check='boolean')"""
@@ -101,25 +101,25 @@ class SimpleElementTest(unittest.TestCase):
         elem = SimpleElement('boolean')
         self.common_checking(elem, '0', False, '1', True)
 
-        self.assertRaises(ValueError, elem.add, 'wrong')
+        self.assertRaises(ModelFileValueError, elem.add, 'wrong')
 
     def testDigitSimpleElement(self):
         """test SimpleElement(check='digit')"""
         elem = SimpleElement('digit')
         self.common_checking(elem, 45, 45, 54)
-        self.assertRaises(ValueError, elem.add, 'notadigit')
+        self.assertRaises(ModelFileValueError, elem.add, 'notadigit')
 
     def testEnumSimpleElement(self):
         """test SimpleElement(check='enum')"""
         elem = SimpleElement('enum', values=[.25, .50, .75])
         self.common_checking(elem, .25, .25, .50)
-        self.assertRaises(ValueError, elem.add, 'notinlist')
+        self.assertRaises(ModelFileValueError, elem.add, 'notinlist')
 
     def testPathSimpleElement(self):
         """test SimpleElement(check='path')"""
         elem = SimpleElement('path')
         self.common_checking(elem, '/mnt/lustre', '/mnt/lustre', '/mnt/foo')
-        self.assertRaises(ValueError, elem.add, 'not a path')
+        self.assertRaises(ModelFileValueError, elem.add, 'not a path')
 
     def testWrongSimpleElement(self):
         """test SimpleElement with a wrong check"""
@@ -275,7 +275,7 @@ class ModelFileTest(unittest.TestCase):
         self.assertEqual(len(model), 0)
 
         # parse() 
-        self.assertRaises(ValueError, model.parse, "foo one two")
+        self.assertRaises(ModelFileValueError, model.parse, "foo one two")
 
         # __contains__() False
         self.assertFalse('foo' in model)
@@ -339,7 +339,7 @@ class ModelFileTest(unittest.TestCase):
                 try:
                     return NodeSet(value)
                 except:
-                    raise ValueError
+                    raise ModelFileValueError
 
         model = ModelFile()
         model.add_custom('nodes', ElemNodeSet(), multiple=True)
@@ -349,7 +349,7 @@ class ModelFileTest(unittest.TestCase):
         self.assertEqual(str(model), "nodes:foo[1-5]")
         self.assertEqual([str(item) for item in model.get('nodes')],
                 [str(NodeSet('foo[1-5]'))])
-        self.assertRaises(ValueError, model.add, 'nodes', 'bad[15')
+        self.assertRaises(ModelFileValueError, model.add, 'nodes', 'bad[15')
 
     def testCompoundElement(self):
         """test a ModelFile with a compound element"""
@@ -567,7 +567,7 @@ class ModelFileTest(unittest.TestCase):
         del model['foo']
 
         # Ranges mismatch
-        self.assertRaises(ValueError, model.parse, "foo: five[1-5] two[1-2]")
+        self.assertRaises(ModelFileValueError, model.parse, "foo: five[1-5] two[1-2]")
 
     def testLoadModelFromFile(self):
         """load a ModelFile from file"""
@@ -586,7 +586,7 @@ bar: 2""")
 
         # Bad file syntax
         testfile = makeTempFile("""foo bad file""")
-        self.assertRaises(ValueError, model.load, testfile.name)
+        self.assertRaises(ModelFileValueError, model.load, testfile.name)
 
     def testSaveModelToFile(self):
         """save a ModelFile to a file"""

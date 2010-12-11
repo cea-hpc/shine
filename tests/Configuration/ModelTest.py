@@ -9,7 +9,7 @@
 import unittest
 
 from Utils import makeTempFile
-from Shine.Configuration.Model import Model
+from Shine.Configuration.Model import Model, ModelFileValueError
 
 class ModelTest(unittest.TestCase):
 
@@ -37,7 +37,7 @@ class ModelTest(unittest.TestCase):
         """Model with a too long fsname"""
         testfile = makeTempFile("""fs_name: too_long_name""")
         model = Model()
-        self.assertRaises(ValueError, model.load, testfile.name)
+        self.assertRaises(ModelFileValueError, model.load, testfile.name)
 
     def testHaNodes(self):
         """Model with several ha_nodes."""
@@ -72,5 +72,5 @@ mgt: node=foo7""")
 nid_map: nodes=foo[7] nids=foo[7]@tcp
 mgt: node=(\<badregexp>""")
         candidate = [ {'node': 'foo7', 'dev': '/dev/sda'} ]
-        self.assertRaises(ValueError, model.get('mgt')[0].match_device,
+        self.assertRaises(ModelFileValueError, model.get('mgt')[0].match_device,
                 candidate)

@@ -24,8 +24,8 @@ Provides classes to load/read and save Shine model files or cache files.
 
 import re
 
-from Shine.Configuration.ModelFile import ModelFile, SimpleElement
-
+from Shine.Configuration.ModelFile import ModelFile, SimpleElement, \
+                                          ModelFileValueError
 
 class Model(ModelFile):
     """Represent a Shine model file.
@@ -92,7 +92,8 @@ class FSName(SimpleElement):
         """Call SimpleElement validate method and also check value length."""
         value = SimpleElement._validate(self, value)
         if len(value) > 8:
-            raise ValueError("Name '%s' should be 8-character long max" % value)
+            raise ModelFileValueError(
+                           "Name '%s' should be 8-character long max" % value)
         return value
 
 
@@ -144,7 +145,7 @@ class Target(ModelFile):
                     if not re.match('^' + regexp + '$', target.get(key)):
                         break
                 except re.error:
-                    raise ValueError("Bad syntax: %s" % regexp)
+                    raise ModelFileValueError("Bad syntax: %s" % regexp)
 
             # Ok, everything matches, add it
             else:

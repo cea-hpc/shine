@@ -19,14 +19,13 @@
 #
 # $Id$
 
-from FileSystem import FileSystem
+import socket
 
 from ClusterShell.NodeSet import NodeSet
 
-from Exceptions import ConfigException
+from Shine.Configuration.FileSystem import FileSystem
+from Shine.Configuration.Exceptions import ConfigException
 
-
-import socket
 
 class Target:
     def __init__(self, type, cf_target):
@@ -105,19 +104,13 @@ class Configuration:
     @classmethod
     def load_from_cache(cls, fsname):
         conf = Configuration()
-        try:
-            conf._fs = FileSystem.load_from_fsname(fsname)
-        except ValueError, error:
-            raise ConfigException(str(error))
+        conf._fs = FileSystem.load_from_fsname(fsname)
         return conf
 
     @classmethod
     def create_from_model(cls, lmf):
         conf = Configuration()
-        try:
-            conf._fs = FileSystem.create_from_model(lmf)
-        except ValueError, error:
-            raise ConfigException(str(error))
+        conf._fs = FileSystem.create_from_model(lmf)
         return conf
 
     def close(self):

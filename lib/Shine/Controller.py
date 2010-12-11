@@ -20,9 +20,10 @@
 # $Id$
 
 from Shine.Configuration.Globals import Globals
-from Shine.Commands.CommandRegistry import CommandRegistry
-
+from Shine.Configuration.ModelFile import ModelFileValueError
 from Shine.Configuration.Exceptions import ConfigException
+
+from Shine.Commands.CommandRegistry import CommandRegistry
 from Shine.Commands.Exceptions import CommandHelpException, CommandException
 from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
 
@@ -113,6 +114,8 @@ class Controller:
             self.print_error(e.message)
         except ConfigException, e:
             print "Configuration: %s" % e
+        except ModelFileValueError, error:
+            self.print_error(str(error))
         # file system
         except FSRemoteError, e:
             self.print_error(e)

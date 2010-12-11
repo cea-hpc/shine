@@ -30,7 +30,7 @@ You can create your own types.
     class MyElement(SimpleElement):
         def _validate(self, data):
             if len(data) > 10:
-                raise ValueError("Data too long")
+                raise ModelFileValueError("Data too long")
 
     model.add_custom('title', MyElement())
 
@@ -45,6 +45,8 @@ import copy
 
 from ClusterShell.NodeSet import RangeSet
 
+class ModelFileValueError(Exception):
+    """Raise when a bad value is used when adding a data or parsing a file."""
 
 class SimpleElement(object):
     """
@@ -142,10 +144,14 @@ class SimpleElement(object):
 
         This function will convert @value to the type correspoding to the check
         type, and returns it.
-        It raises a ValueError is check type is not respected.
+        It raises a ModelFileValueError is check type is not respected.
         """
         if self._check == 'digit':
-            return int(value)
+            try:
+                retval = int(value)
+            except ValueError, error:
+                raise ModelFileValueError(str(error))
+            return retval
 
         elif self._check == 'boolean':
             if value.lower() in ['yes', 'true', '1' ]:
@@ -153,21 +159,21 @@ class SimpleElement(object):
             elif value.lower() in ['no', 'false', '0' ]:
                 return False
             else:
-                raise ValueError("'%s' not a boolean value" % value)
+                raise ModelFileValueError("'%s' not a boolean value" % value)
 
         elif self._check == 'string':
             if type(value) is not str:
-                raise ValueError("'%s' not a string" % value)
+                raise ModelFileValueError("'%s' not a string" % value)
             return str(value)
 
         elif self._check == 'enum':
             if str(value) not in [str(val) for val in self._values]:
-                raise ValueError("%s not in %s" % (value, self._values))
+                raise ModelFileValueError("%s not in %s" % (value, self._values))
             return [val for val in self._values if str(val) == str(value)].pop()
 
         elif self._check == 'path':
             if not re.match("^\/([\.\w-]+/)*[\.\w-]+/?$", value):
-                raise ValueError("'%s' is not a valid path" % value)
+                raise ModelFileValueError("'%s' is not a valid path" % value)
             return value
 
         else:
@@ -176,7 +182,7 @@ class SimpleElement(object):
     def add(self, value):
         """Validate and set the SimpleElement value.
 
-        Raises a ValueError is called twice. See MultipleElement if you need
+        Raises aModelFileValueError is called twice. See MultipleElement if you need
         multiple values.
         """
         # Simple element could not 'add' several times. See MultipleElement.
@@ -311,7 +317,7 @@ class MultipleElement(object):
         minsize = min([len(rng) for rng in rangesets])
         maxsize = max([len(rng) for rng in rangesets])
         if minsize != maxsize:
-            raise ValueError("Range size mismatch %d != %d" %
+            raise ModelFileValueError("Range size mismatch %d != %d" %
                              (minsize, maxsize))
 
         # Generate the new lines based from the rangeset
@@ -548,7 +554,7 @@ class ModelFile(object):
             try:
                 key, value = line.split(self._sep, 1)
             except ValueError:
-                raise ValueError("Wrong syntax '%s'" % line)
+                raise ModelFileValueError("Wrong syntax '%s'" % line)
             self._elements[key.strip()].parse(value.strip())
 
     # File handling
@@ -561,8 +567,8 @@ class ModelFile(object):
             if line:
                 try:
                     self.parse(line)
-                except ValueError, error:
-                    raise ValueError("%s at line %d" % (error, nbr + 1))
+                except ModelFileValueError, error:
+                    raise ModelFileValueError("%s at line %d" % (error, nbr + 1))
         modelfd.close()
 
     def save(self, filename, header=None):
