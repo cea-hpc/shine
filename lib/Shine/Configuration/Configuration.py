@@ -174,15 +174,21 @@ class Configuration:
         return target
 
     def get_client_nodes(self):
-        nodes = NodeSet()
-        if 'client' in self._fs:
-            cli_cf_list = self._fs.get('client')
+        """Return a NodeSet with all client nodes."""
+        if 'client' not in self._fs:
+            return NodeSet()
         else:
-            return nodes
-        for c in cli_cf_list:
-            clients = Clients(c)
-            nodes.update(clients.get_nodes())
-        return nodes
+            return NodeSet.fromlist([Clients(cli).get_nodes() 
+                                      for cli in self._fs.get('client')])
+
+    def get_default_mount_path(self):
+        """
+        Return the default client mount path or raise a ConfigException 
+        if it does not exist.
+        """
+        if not 'mount_path' in self._fs:
+            raise ConfigException("mount_path not specified")
+        return self._fs.get('mount_path')
 
     def get_client_mounts(self, select_nodes=None):
         """
@@ -195,38 +201,25 @@ class Configuration:
         # no client defined?
         if not 'client' in self._fs:
             return mounts
-        cli_cf_list = self._fs.get('client')
-
-        if not 'mount_path' in self._fs:
-            raise ConfigException("mount_path not specified")
-        default_path = self._fs.get('mount_path')
 
         remain_nodes = None
         if select_nodes:
             remain_nodes = NodeSet(select_nodes)
 
-        for c in cli_cf_list:
-            clients = Clients(c)
+        for clients in [Clients(cli) for cli in self._fs.get('client')]:
             concern_nodes = NodeSet(clients.get_nodes())
             if remain_nodes:
                 concern_nodes.intersection_update(remain_nodes)
                 remain_nodes.difference_update(concern_nodes)
             if len(concern_nodes) > 0:
-                path = clients.get_mount_path()
-                if not path:
-                    path = default_path
-                if mounts.has_key(path):
-                    nodes = mounts[path]
-                    nodes.update(concern_nodes)
-                else:
-                    mounts[path] = NodeSet(concern_nodes)
+                path = clients.get_mount_path() or \
+                       self.get_default_mount_path()
+                mounts.setdefault(path, NodeSet()).update(concern_nodes)
         
+        # Fill unknown nodes with default mount point
         if remain_nodes:
-            # fill unknown nodes with default mount point
-            if mounts.has_key(default_path):
-                mounts[default_path].update(remain_nodes)
-            else:
-                mounts[default_path] = remain_nodes
+            default_path = self.get_default_mount_path()
+            mounts.setdefault(default_path, NodeSet()).update(remain_nodes)
 
         return mounts
 
