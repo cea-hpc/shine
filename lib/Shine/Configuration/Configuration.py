@@ -223,18 +223,6 @@ class Configuration:
 
         return mounts
 
-    def get_client_mount(self, client):
-        """
-        Get mount path for a client.
-        """
-        mounts = self.get_client_mounts()
-        for path, nodes in mounts.iteritems():
-            if nodes.intersection_update(client):
-                return path
-
-        #print "Warning: path not found for client %s ??" % client
-        return self._fs.get('mount_path')
-
     def iter_clients(self):
         """
         Iterate over (node, mount_path)
@@ -252,39 +240,6 @@ class Configuration:
             for elem in self._fs.get('router'):
                 rtr = Routers(elem)
                 yield rtr.get_nodes()
-
-    def get_localnode_type(self):
-        """
-        Function used to known the Lustre target type supported by the local node
-        for the current file system
-        """
-        # List of type supported by the local node
-        type_list = []
-
-        # Get the locahost name
-        localhost_name = socket.gethostname()
-
-        # Is the node registered as a client 
-        if localhost_name in self.get_client_nodes():
-            type_list.append('client')
-
-        # Is the node registered as mdt
-        if localhost_name == self.get_target_mdt().get_nodename():
-            type_list.append('mds')
-
-        # Is the node registered as mgt
-        if localhost_name == self.get_target_mgt().get_nodename():
-            type_list.append('mgs')
-
-        # Is the node registered as an oss
-        for oss_node in self.iter_targets_ost():
-
-            # is the node the current oss
-            if localhost_name == oss_node.get_nodename():
-                type_list.append('oss')
-                break
-
-        return type_list
 
     # General FS getters
     #
