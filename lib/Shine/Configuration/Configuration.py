@@ -138,7 +138,7 @@ class Configuration:
         Return a generator over all FS targets.
         """
         for target_type in [ 'mgt', 'mdt', 'ost' ]:
-            if target_type not in self._fs:
+            if target_type not in self._fs.model:
                 continue
             tgt_cf_list = self._fs.get(target_type)
             for t in tgt_cf_list:
@@ -175,7 +175,7 @@ class Configuration:
 
     def get_client_nodes(self):
         """Return a NodeSet with all client nodes."""
-        if 'client' not in self._fs:
+        if 'client' not in self._fs.model:
             return NodeSet()
         else:
             return NodeSet.fromlist([Clients(cli).get_nodes() 
@@ -186,7 +186,7 @@ class Configuration:
         Return the default client mount path or raise a ConfigException 
         if it does not exist.
         """
-        if not 'mount_path' in self._fs:
+        if not 'mount_path' in self._fs.model:
             raise ConfigException("mount_path not specified")
         return self._fs.get('mount_path')
 
@@ -199,7 +199,7 @@ class Configuration:
         # build a dict where keys are mount paths
         mounts = {}
         # no client defined?
-        if not 'client' in self._fs:
+        if not 'client' in self._fs.model:
             return mounts
 
         remain_nodes = None
@@ -248,7 +248,7 @@ class Configuration:
         """
         Iterate over (node)
         """
-        if 'router' in self._fs:
+        if 'router' in self._fs.model:
             for elem in self._fs.get('router'):
                 rtr = Routers(elem)
                 yield rtr.get_nodes()

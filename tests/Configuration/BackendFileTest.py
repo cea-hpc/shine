@@ -33,13 +33,14 @@ class BackendFileTest(unittest.TestCase):
     def make_temp_fs(self, txt):
         self._fsfile = makeTempFile(txt)
         self._conf = Configuration.create_from_model(self._fsfile.name)
+        self._model = self._conf._fs.model
 
     def test_simple_mgs(self):
         self.make_temp_conf("mgt: node=foo1 dev=/dev/sda")
         self.make_temp_fs("""fs_name: example
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp0
 mgt: node=foo1""")
-        self.assertEqual(self._conf._fs.get('mgt')[0].get('dev'), '/dev/sda')
+        self.assertEqual(self._model.get('mgt')[0].get('dev'), '/dev/sda')
 
     def test_multiple_matches(self):
         self.make_temp_conf(
@@ -53,11 +54,11 @@ nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp0
 mgt: node=foo1
 mdt: node=foo1
 ost: node=foo1""")
-        self.assertEqual(self._conf._fs.get('mgt')[0].get('dev'), '/dev/sda')
-        self.assertEqual(self._conf._fs.get('mdt')[0].get('dev'), '/dev/sdd')
-        self.assertEqual(len(self._conf._fs.elements('ost')), 2)
-        self.assertEqual(self._conf._fs.get('ost')[0].get('dev'), '/dev/sdb')
-        self.assertEqual(self._conf._fs.get('ost')[1].get('dev'), '/dev/sdc')
+        self.assertEqual(self._model.get('mgt')[0].get('dev'), '/dev/sda')
+        self.assertEqual(self._model.get('mdt')[0].get('dev'), '/dev/sdd')
+        self.assertEqual(len(self._model.elements('ost')), 2)
+        self.assertEqual(self._model.get('ost')[0].get('dev'), '/dev/sdb')
+        self.assertEqual(self._model.get('ost')[1].get('dev'), '/dev/sdc')
 
     def test_index_external(self):
         self.make_temp_conf(
@@ -73,12 +74,12 @@ mdt: node=foo1 mode=external
 ost: node=foo2
 ost: node=foo1 dev=/dev/sdb index=0
 ost: node=foo1 dev=/dev/sdc""")
-        self.assertEqual(self._conf._fs.get('mgt')[0].get('dev'), '/dev/sda')
-        self.assertEqual(self._conf._fs.get('mdt')[0].get('mode'), 'external')
-        self.assertEqual(len(self._conf._fs.elements('ost')), 3)
-        self.assertEqual(self._conf._fs.get('ost')[0].get('dev'), '/dev/sdb')
-        self.assertEqual(self._conf._fs.get('ost')[0].get('index'), 1)
-        self.assertEqual(self._conf._fs.get('ost')[1].get('dev'), '/dev/sdb')
-        self.assertEqual(self._conf._fs.get('ost')[1].get('index'), 0)
-        self.assertEqual(self._conf._fs.get('ost')[2].get('dev'), '/dev/sdc')
-        self.assertEqual(self._conf._fs.get('ost')[2].get('index'), 2)
+        self.assertEqual(self._model.get('mgt')[0].get('dev'), '/dev/sda')
+        self.assertEqual(self._model.get('mdt')[0].get('mode'), 'external')
+        self.assertEqual(len(self._model.elements('ost')), 3)
+        self.assertEqual(self._model.get('ost')[0].get('dev'), '/dev/sdb')
+        self.assertEqual(self._model.get('ost')[0].get('index'), 1)
+        self.assertEqual(self._model.get('ost')[1].get('dev'), '/dev/sdb')
+        self.assertEqual(self._model.get('ost')[1].get('index'), 0)
+        self.assertEqual(self._model.get('ost')[2].get('dev'), '/dev/sdc')
+        self.assertEqual(self._model.get('ost')[2].get('index'), 2)

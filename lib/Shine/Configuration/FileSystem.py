@@ -34,19 +34,19 @@ from Shine.Configuration.NidMap import NidMap
 from Shine.Configuration.Backend.Backend import Backend
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
-class FileSystem(Model):
+class FileSystem(object):
     """
     Lustre File System Configuration class.
     """
 
     def __init__(self, filename):
-        Model.__init__(self)
 
         self.backend = None
         self.xmf_path = None
+        self.model = Model()
 
         try:
-            self.load(filename)
+            self.model.load(filename)
         except IOError:
             raise ConfigException("Could not read %s" % filename)
 
@@ -60,6 +60,10 @@ class FileSystem(Model):
     @property
     def fs_name(self):
         return self.get('fs_name')
+
+    def get(self, key, default=None):
+        """Return the Model value pointed by `key'"""
+        return self.model.get(key, default)
 
     @classmethod
     def _cache_path(cls, fsname):
@@ -113,7 +117,7 @@ class FileSystem(Model):
         for target in [ 'mgt', 'mdt', 'ost' ]:
 
             # So, first, look for which ones are defined in model
-            if target not in self:
+            if target not in self.model:
                 continue
 
             # Lustre supports up to FFFF targets per type.
@@ -125,10 +129,10 @@ class FileSystem(Model):
                 candidates = self.backend.get_target_devices(target)
 
                 # Save the model target selection
-                target_models = copy.copy(self.get(target))
+                target_models = copy.copy(self.model.get(target))
 
                 # Delete it (to be replaced... see below)
-                self.elements(target).clear()
+                self.model.elements(target).clear()
 
                 try:
 
@@ -142,7 +146,7 @@ class FileSystem(Model):
 
                         # Do not try to match external components
                         if target_model.get('mode') == 'external':
-                            self.elements(target).parse(str(target_model))
+                            self.model.elements(target).parse(str(target_model))
                             continue
 
                         result = target_model.match_device(candidates)
@@ -169,7 +173,8 @@ class FileSystem(Model):
                             # call Model.parse(). 
                             # TODO: add methods to Model/ModelDevice to avoid
                             #  the use of temporary configuration string line.
-                            self.elements(target).parse(matching.getline())
+                            self.model.elements(target).parse(
+                                                            matching.getline())
 
                 except KeyError, error:
                     raise ConfigInvalidFileSystem(self, \
@@ -181,12 +186,12 @@ class FileSystem(Model):
 
                 try:
                     # Remove already used indexes from candidate list.
-                    for params in self.elements(target):
+                    for params in self.model.elements(target):
                         if 'index' in params:
                             indexes.remove(params.get('index'))
 
                     # Manage index
-                    for params in self.elements(target):
+                    for params in self.model.elements(target):
                         if 'index' not in params:
                             params.add('index', str(indexes[0]))
                             indexes.remove(indexes[0])
@@ -199,22 +204,108 @@ class FileSystem(Model):
         self._check_coherency()
 
         # Save XMF
-        self.save(self.xmf_path,
+        self.model.save(self.xmf_path,
                   "# Shine Lustre file system config file for %s" % \
-                  self.get('fs_name'))
+                  self.fs_name)
 
     def _check_coherency(self):
         """Verify that the declared components make a coherent filesystem."""
 
+        model = self.model
         # If we have a target or a client, we need a MGT
-        if (('client' in self or 'mdt' in self or 'ost' in self) \
-            and not ('mgt' in self)):
+        if (('client' in model or 'mdt' in model or 'ost' in model) \
+            and not ('mgt' in model)):
             raise ConfigInvalidFileSystem(self, "A MGS must be declared.")
 
         # We should have both MDT and OST or neither
-        if ('mdt' in self) ^ ('ost' in self):
+        if ('mdt' in model) ^ ('ost' in model):
             raise ConfigInvalidFileSystem(self,
                      "You must declare both MDT and OST or neither.")
+
+    def compare(self, otherfs):
+        """Compare the FileSystem model with another FileSystem and 
+        return a dictionnary describing the needed actions."""
+        
+        actions = {}
+        added, changed, removed = self.model.diff(otherfs.model)
+
+        anyset = set(changed.iterkeys()) | set(added.iterkeys()) \
+                  | set(removed.iterkeys())
+
+        # Read-only keys: fs_name
+        readonly = set(['fs_name'])
+        if readonly & anyset:
+            raise ConfigException("%s could not be changed" % 
+                                  ", ".join(readonly & anyset))
+
+        # Need to reformat targets
+        reformatkeys = set(['mgt_mkfs_options', 'mdt_mkfs_options', 
+                            'ost_mkfs_options', 'mgt_format_params',
+                            'mdt_format_params', 'ost_format_params'])
+        if reformatkeys & anyset:
+            actions['reformat'] = True
+
+        # Need a tunefs.lustre
+        tunefskeys = set(['quota', 'quota_type', 'quota_bunit', 'quota_iunit', 
+                          'quota_btune', 'quota_itune', 'stripe_size',
+                          'stripe_count'])
+        if tunefskeys & anyset:
+            actions['tunefs'] = True
+
+        # Need a writeconf
+        writeconfkeys = set(['nid_map'])
+        if writeconfkeys & anyset:
+            actions['writeconf'] = True
+
+        # Need to remount clients
+        remountkeys = set(['mount_options', 'mount_path'])
+        if remountkeys & anyset:
+            # XXX: Could be improved to remount only needed clients
+            actions['remount'] = True
+
+        # Need to restart targets
+        restartkeys = set(['mgt_mount_path', 'mdt_mount_path', 'ost_mount_path',
+                           'mgt_mount_options', 'mdt_mount_options', 
+                           'ost_mount_options'])
+        if restartkeys & anyset:
+            actions['restart'] = True
+
+        # Only need to update cache file
+        copykeys = set(['description'])
+        if copykeys & anyset:
+            actions['copyconf'] = True
+
+        # Clients have changed
+        if 'client' in removed:
+            actions['unmount'] = removed.elements('client')
+        if 'client' in added:
+            actions['mount'] = added.elements('client')
+        if 'client' in changed:
+            assert True, 'Client change is not supported'
+
+        # Router has changed
+        if 'router' in removed:
+            actions.setdefault('stop', []).append(removed.elements('router'))
+        if 'router' in added:
+            actions.setdefault('start', []).append(added.elements('router'))
+        if 'router' in changed:
+            assert True, 'Router change is not supported'
+
+        # Some targets have changed
+        for tgt in [ 'mgt', 'mdt', 'ost']:
+            if tgt in removed:
+                actions.setdefault('stop', []).append(removed.elements(tgt))
+            if tgt in added:
+                actions.setdefault('format', []).append(added.elements(tgt))
+                actions.setdefault('start', []).append(added.elements(tgt))
+            if tgt in changed:    
+                assert True, '%s change is not supported' % tgt.upper()
+
+        # If some actions is required, we need to update config files.
+        if len(actions) > 0:
+            actions['copyconf'] = True
+
+        return actions
 
     def get_nid(self, node):
         try:

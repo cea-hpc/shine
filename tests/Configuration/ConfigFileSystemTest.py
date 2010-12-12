@@ -10,7 +10,7 @@ import unittest
 
 from Utils import makeTempFile, setup_tempdirs, clean_tempdirs
 from Shine.Configuration.FileSystem import FileSystem
-from Shine.Configuration.Exceptions import ConfigInvalidFileSystem
+from Shine.Configuration.Exceptions import ConfigException, ConfigInvalidFileSystem
 
 class FileSystemTest(unittest.TestCase):
 
@@ -37,7 +37,7 @@ class FileSystemTest(unittest.TestCase):
     def testLoadFile(self):
         """create a FileSystem from model example.lmf"""
         fs = FileSystem(filename="../conf/models/example.lmf")
-        self.assertEqual(len(fs), 20)
+        self.assertEqual(len(fs.model), 20)
 
     def testMGSOnly(self):
         """filesystem with only a MGS"""
@@ -46,7 +46,7 @@ fs_name: mgs
 nid_map: nodes=foo1 nids=foo1@tcp
 mgt: node=foo1 dev=/dev/dummy
 """)
-        self.assertEqual(len(self._fs), 3)
+        self.assertEqual(len(self._fs.model), 3)
 
     def testRouterOnly(self):
         """filesystem with only routers"""
@@ -55,7 +55,7 @@ fs_name: router
 nid_map: nodes=foo1 nids=foo1@tcp
 router: node=foo1
 """)
-        self.assertEqual(len(self._fs), 3)
+        self.assertEqual(len(self._fs.model), 3)
 
     def testClientOnly(self):
         """filesystem with only clients"""
@@ -65,7 +65,7 @@ nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp
 mgt: node=foo1 dev=/dev/dummy
 client: node=foo[2-3]
 """)
-        self.assertEqual(len(self._fs), 4)
+        self.assertEqual(len(self._fs.model), 4)
 
     def testMDTnoMGT(self):
         """filesystem with a MDT and no MGT"""
@@ -101,7 +101,7 @@ nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
 nid_map: nodes=foo[1-2] nids=foo[1-2]-bone@tcp1
 mgt: node=foo1 ha_node=foo2
 """)
-        self.assertEqual(len(self._fs), 3)
+        self.assertEqual(len(self._fs.model), 3)
         self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp0', 'foo1-bone@tcp1'])
         self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp0', 'foo2-bone@tcp1'])
 
@@ -147,3 +147,120 @@ mdt: node=foo2
 ost: node=foo2 index=0
 ost: node=foo1 index=0
 """)
+
+
+class FileSystemCompareTest(unittest.TestCase):
+
+    def setUp(self):
+        setup_tempdirs()
+
+    def tearDown(self):
+        clean_tempdirs()
+
+    def _compare(self, orig, new):
+        tmpfile = makeTempFile(orig)
+        origconf = FileSystem(tmpfile.name)
+        newfile = makeTempFile(new)
+        newconf = FileSystem(newfile.name)
+        return origconf.compare(newconf)
+
+    def test_forbidden(self):
+        self.assertRaises(ConfigException, self._compare,
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+""",
+"""fs_name: compar2
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+""")
+
+    def test_only_description(self):
+        actions = self._compare(
+"""fs_name: compare
+description: foo
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+""",
+"""fs_name: compare
+description: bar
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+""")
+        self.assertEqual(len(actions), 1)
+        self.assertTrue(actions.get('copyconf', False))
+
+    def test_no_difference(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 0)
+
+    def test_clients_path(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 mode=external
+client: node=foo[2,3] mount_path=/mypath
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 mode=external
+client: node=foo2 mount_path=/mypath
+client: node=foo3 mount_path=/mypath2
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue('unmount' in actions)
+        self.assertTrue('mount' in actions)
+
+    def test_nid_change(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@o2ib
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('writeconf', False))
+
+    def test_add_ost(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda
+ost: node=foo4 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('format', False))
+        self.assertTrue(actions.get('start', False))
+
+    def test_remove_router(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+router: node=foo1
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+router: node=foo2
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('stop', False))
+        self.assertTrue(actions.get('start', False))
