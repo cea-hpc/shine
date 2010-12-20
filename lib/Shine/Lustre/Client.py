@@ -62,9 +62,9 @@ class Client(Component):
         """
         Initialize a Lustre client object.
         """
-        Component.__init__(self, fs, server, enabled)
-
         self.mount_path = mount_path
+
+        Component.__init__(self, fs, server, enabled)
         self.lnetdev = None
 
     def longtext(self):
@@ -72,10 +72,14 @@ class Client(Component):
         Return the client filesystem name and mount point.
         """
         return "%s on %s" % (self.fs.fs_name, self.mount_path)
-    
-    def match(self, other):
-        return Component.match(self, other) and \
-               self.mount_path == other.mount_path
+
+    def uniqueid(self):
+        """
+        Return a unique string representing this client.
+
+        This takes self.mount_path in account.
+        """
+        return "%s-%s" % (Component.uniqueid(self), self.mount_path)
 
     def update(self, other):
         """

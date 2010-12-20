@@ -102,7 +102,7 @@ class FileSystem:
         self.proxy_errors = []
 
         # All FS components (MGT, MDT, OST, Clients, ...)
-        self._components = []
+        self._components = {}
 
         # file system MGT
         self.mgt = None
@@ -138,24 +138,18 @@ class FileSystem:
 
     def _handle_shine_event(self, event, node, **params):
         
-        # XXX: Normally, there is no more of them. Sanity to be sure everything
-        # is removed.
-        assert('client' not in params)
-        assert('target' not in params)
-
         # Update the local component instance with the provided instance
-        # is one is available in params.
+        # if one is available in params.
         if 'comp' in params:
             comp = params['comp']
-            found = False
-            for other in self._components:
-                if other.match(comp):
-                    # update target from remote one
-                    other.update(comp)
-                    # substitute target parameter by local one
-                    params['comp'] = other
-                    found = True
-            if not found:
+            comp.fs = self
+            try:
+                other = self._components[comp.uniqueid()]
+                # update target from remote one
+                other.update(comp)
+                # substitute target parameter by local one
+                params['comp'] = other
+            except KeyError:
                 print "ERROR: Component update failed (%s)" % comp
 
         self._invoke(event, node=node, **params)
@@ -168,7 +162,7 @@ class FileSystem:
     #
 
     def _attach_component(self, comp):
-        self._components.append(comp)
+        self._components[comp.uniqueid()] = comp
         if comp.TYPE == MGT.TYPE:
             self.mgt = comp
 
@@ -257,7 +251,7 @@ class FileSystem:
             else:
                 key = lambda x: filter_key(x) \
                                 and attrgetter("action_enabled")(x)
-            return ifilter(key, self._components)
+            return ifilter(key, self._components.itervalues())
 
     def managed_components(self, group_attr=None, group_key=None,
                            supports=None, filter_key=None, reverse=False):

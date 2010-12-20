@@ -85,22 +85,15 @@ class Component(object):
         """
         return "%s-%s" % (self.fs.fs_name, self.TYPE)
 
+    def uniqueid(self):
+        """Return a unique string representing this component."""
+        return "%s-%s" % (self.label, ','.join(self.server.nids))
+
     def longtext(self):
         """
         Return a string describing this component, for output purposes.
         """
         return self.label
-
-    #
-    # Serializing methods.
-    # Pickle representation do not include filesystem pointer.
-    #
-    def match(self, other):
-        """
-        Return whether this component and other describe the same thing.
-        """
-        return self.TYPE == other.TYPE and \
-               self.server == other.server
 
     def update(self, other):
         """

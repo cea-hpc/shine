@@ -19,6 +19,36 @@ from Shine.Lustre.Target import Target, TargetError
 
 class TargetTest(unittest.TestCase):
 
+    def test_unique_id(self):
+        """test target.uniqueid()"""
+        fs1 = FileSystem('uniqueid')
+        srv1 = Server('foo1', ['foo1@tcp'])
+        tgt1 = fs1.new_target(srv1, 'ost', 0, '/dev/null')
+
+        fs2 = FileSystem('uniqueid')
+        srv2 = Server('foo1', ['foo1@tcp'])
+        tgt2 = fs2.new_target(srv2, 'ost', 0, '/dev/null')
+
+        self.assertEqual(tgt2.uniqueid(), tgt1.uniqueid())
+
+    def test_unique_id_failover(self):
+        """test target.uniqueid()"""
+        fs1 = FileSystem('uniqueid')
+        srv1a = Server('foo1', ['foo1@tcp'])
+        srv1b = Server('foo2', ['foo2@tcp'])
+        tgt1 = fs1.new_target(srv1a, 'ost', 0, '/dev/null')
+        tgt1.add_server(srv1b)
+
+        fs2 = FileSystem('uniqueid')
+        srv2a = Server('foo1', ['foo1@tcp'])
+        srv2b = Server('foo2', ['foo2@tcp'])
+        tgt2 = fs2.new_target(srv2a, 'ost', 0, '/dev/null')
+        tgt2.add_server(srv2b)
+        tgt2.failover(NodeSet('foo2'))
+
+        print tgt2.uniqueid()
+        self.assertEqual(tgt2.uniqueid(), tgt1.uniqueid())
+
     def testHaNode(self):
         """test failover servers"""
         fs = FileSystem('nonreg')

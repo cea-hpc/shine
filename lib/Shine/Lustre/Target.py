@@ -72,9 +72,6 @@ class Target(Component, Disk):
         """
         Initialize a Lustre target object.
         """
-        Component.__init__(self, fs, server, enabled, mode)
-        Disk.__init__(self, dev, jdev)
-
         self.defaultserver = server   # Default server the target runs on
         self.failservers = [ ]        # All failover servers
 
@@ -83,6 +80,9 @@ class Target(Component, Disk):
         self.group = group
         self.tag = tag
         self.network = network
+
+        Component.__init__(self, fs, server, enabled, mode)
+        Disk.__init__(self, dev, jdev)
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -93,15 +93,19 @@ class Target(Component, Disk):
         """Return the target label which match the Lustre target name."""
         return "%s-%s%04x" % (self.fs.fs_name, self.TYPE.upper(), self.index)
 
-
     def __lt__(self, other):
         return self.START_ORDER < other.START_ORDER
 
-    def match(self, other):
-        return Component.match(self, other) and \
-               self.dev == other.dev and \
-               self.index == other.index and \
-               str(self.defaultserver) == str(other.defaultserver)
+    def uniqueid(self):
+        """
+        Return a unique string representing this target.
+
+        This takes all possible nids in account.
+        """
+        # For target, it is safer to use the full nid list to compare.
+        # We cannot simply call Component.uniqueid().
+        nidlist = [','.join(srv.nids) for srv in self.allservers()]
+        return "%s-%s" % (self.label, ':'.join(nidlist))
 
     def update(self, other):
         """
