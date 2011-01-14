@@ -100,12 +100,12 @@ class Target(Component, Disk):
         """
         Return a unique string representing this target.
 
-        This takes all possible nids in account.
+        This matches the Target label.
         """
-        # For target, it is safer to use the full nid list to compare.
-        # We cannot simply call Component.uniqueid().
-        nidlist = [','.join(srv.nids) for srv in self.allservers()]
-        return "%s-%s" % (self.label, ':'.join(nidlist))
+        # uniqueid is used when the target is added to a filesystem.
+        # We cannot use the target servers list because it can changed when
+        # add_server() is called.
+        return self.label
 
     def update(self, other):
         """
