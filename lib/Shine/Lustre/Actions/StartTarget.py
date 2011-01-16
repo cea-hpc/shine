@@ -20,7 +20,7 @@
 # $Id$
 
 import os
-import re
+from string import Template
 
 from Shine.Lustre.Actions.Action import FSAction
 
@@ -39,26 +39,6 @@ class StartTarget(FSAction):
         self.addopts = kwargs.get('addopts')
         self.mount_paths = kwargs.get('mount_paths')
 
-    def _substitute(self, template, mapping):
-        """
-        Performs the template substitution, returning a new string.
-        mapping is any dictionary-like object with keys that match
-        the placeholders in the template.
-
-        To get changed with Template.string.substitute in Python 2.4
-        when the Python 2.3 compat constraint will be dropped.
-        """
-
-        # Do we have something which looks like a variable?
-        m = re.search(r"\$([A-Za-z0-9_]+)", template)
-        while m is not None:
-            var = m.group(1)
-            if var not in mapping:
-                raise KeyError, var
-            template = template.replace("$%s" % var, mapping[var])
-            m = re.search("\$([A-Za-z0-9_]+)", template)
-        return template
-
     def _prepare_cmd(self):
         """Mount file system target."""
 
@@ -72,7 +52,7 @@ class StartTarget(FSAction):
                         'index'   : str(self.comp.index) }
 
             try:
-                mount_path = self._substitute(mount_path, var_map)
+                mount_path = Template(mount_path).substitute(var_map)
             except KeyError:
                 # Unknown variable in mount_path: failback to default
                 pass
