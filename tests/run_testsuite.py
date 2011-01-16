@@ -49,6 +49,7 @@ if __name__ == '__main__':
 #                "Lustre.DiskTest",
                 "Lustre.ServerTest",
                 "Lustre.TargetTest",
+                "Lustre.ActionsTest",
                 "FSUtilsTest",
             ])
 

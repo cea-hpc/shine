@@ -1,5 +1,5 @@
 # Format.py -- Lustre action class : format
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2010 CEA
 #
 # This file is part of shine
 #
@@ -19,151 +19,222 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+from Shine.Lustre.Actions.Action import FSAction
+# take care of cross-dependency
 import Shine.Lustre.Target
 
-class Format(Action):
+class CommonFormat(FSAction):
+    """
+    Common class for Format and TuneFS action as they share a lot of common
+    arguments.
+    """
+
+    def __init__(self, target, **kwargs):
+        FSAction.__init__(self, target)
+
+        # Hack to work aroung cross-dependcy with Target
+        self.MGT_TYPE = Shine.Lustre.Target.MGT.TYPE
+        self.MDT_TYPE = Shine.Lustre.Target.MDT.TYPE
+        self.OST_TYPE = Shine.Lustre.Target.OST.TYPE
+
+        self.stripecount = kwargs.get('stripecount')
+        self.stripesize = kwargs.get('stripesize')
+        self.format_params = kwargs.get('format_params')
+        self.mkfs_options = kwargs.get('mkfs_options')
+
+        # Quota
+        if kwargs.get('quota', False):
+            self.quota_type = kwargs['quota_type']
+        else:
+            self.quota_type = None
+
+    def _mgsnids(self):
+        """
+        Prepare the argument list for mgsnode NID parameters.
+        """
+        params = []
+        # MGS NIDs
+        for nidlist in self.comp.fs.get_mgs_nids():
+            params += [ '"--mgsnode=%s"' % ','.join(nidlist) ]
+        return params
+
+    def _prepare_cmd(self):
+
+        command = []
+
+        # --mgsnode and specific --param
+        if self.comp.TYPE == self.MDT_TYPE:
+            command += self._mgsnids()
+            if self.stripecount:
+                command.append('--param=lov.stripecount=%d' % self.stripecount)
+            if self.stripesize:
+                command.append('--param=lov.stripesize=%d' % self.stripesize)
+            if self.quota_type is not None:
+                command.append('"--param=mdt.quota_type=%s"' % self.quota_type)
+
+        elif self.comp.TYPE == self.OST_TYPE:
+            command += self._mgsnids()
+            if self.quota_type is not None:
+                command.append('"--param=ost.quota_type=%s"' % self.quota_type)
+
+        # --failnode: NID(s) of failover partner
+        target_nids = self.comp.get_nids()
+        for nidlist in target_nids[1:]:
+
+            # if 'network' is specified, restrict the list of partner
+            if self.comp.network and self.comp.TYPE in [self.MDT_TYPE, self.OST_TYPE]:
+                suffix = '@%s' % self.comp.network
+                nidlist = [ nid for nid in nidlist if nid.endswith(suffix) ]
+
+            # if there is still some matching partners, add them
+            if len(nidlist) > 0:
+                nids = ','.join(nidlist)
+                command.append('"--failnode=%s"' % nids)
+
+        # --network: restrict target to a specific LNET network
+        if self.comp.network and self.comp.TYPE in [self.MDT_TYPE, self.OST_TYPE]:
+            command.append('--network=%s' % self.comp.network)
+
+        # Generic --param
+        if self.format_params and self.format_params.get(self.comp.TYPE):
+            command.append('"--param=%s"' %
+                    self.format_params.get(self.comp.TYPE))
+
+        return command
+
+
+class Tunefs(CommonFormat):
+    """
+    Run 'tunefs' command on Lustre devices.
+    """
+
+    NAME = 'tunefs'
+
+    def __init__(self, target, **kwargs):
+        CommonFormat.__init__(self, target, **kwargs)
+        self.writeconf = kwargs.get('writeconf', False)
+
+    def _prepare_cmd(self):
+        """
+        Prepare the 'tunefs' command line.
+        """
+
+        command = [ "tunefs.lustre --erase-params --quiet" ]
+
+        command += CommonFormat._prepare_cmd(self)
+
+        # Generic --mkfsoptions
+        if self.mkfs_options and self.comp.TYPE in self.mkfs_options:
+            command.append('"--mkfsoptions=%s"' %
+                           self.mkfs_options.get(self.comp.TYPE))
+
+        # Writeconf flag
+        if self.writeconf:
+            command.append('--writeconf')
+
+        command.append(self.comp.dev)
+
+        return command
+
+
+class Format(CommonFormat):
     """
     File system format action class.
     """
 
-    def __init__(self, target, **kwargs):
-        Action.__init__(self)
-        self.target = target
-        assert self.target != None
-        self.stripecount = kwargs.get('stripecount', 1)
-        self.stripesize = kwargs.get('stripesize', 1048576)
-        self.format_params = kwargs.get('format_params')
-        self.mkfs_options = kwargs.get('mkfs_options')
-        self.activate_quota = kwargs.get('quota', False)
-        self.quota_type = kwargs.get('quota_type', "")
-        self.mkfsopts = []
-        self.jformat = False
+    NAME = 'format'
+
+    def _prepare_cmd(self):
+        """Return target format command line."""
+
+        command = ['mkfs.lustre --reformat --quiet']
+        command.append('"--fsname=%s"' % self.comp.fs.fs_name)
+
+        if self.comp.TYPE == self.MGT_TYPE:
+            # '--mgs' and not '--mgt'
+            command.append("--mgs")
+
+        elif self.comp.TYPE == self.MDT_TYPE:
+            command.append("--mdt")
+            command.append("--index=%d" % self.comp.index)
+
+        elif self.comp.TYPE == self.OST_TYPE:
+            command.append("--ost")
+            command.append("--index=%d" % self.comp.index)
+
+        command += CommonFormat._prepare_cmd(self)
+
+        # --mkfsoptions
+        mkfsopts = []
+        if self.comp.jdev:
+            # Declare the external journal
+            mkfsopts += ["-j -J device=%s" % self.comp.jdev]
+        if self.mkfs_options and self.mkfs_options.get(self.comp.TYPE):
+            mkfsopts.append(self.mkfs_options.get(self.comp.TYPE))
+        if len(mkfsopts) > 0:
+            command.append('"--mkfsoptions=%s"' % ' '.join(mkfsopts))
+
+        # loop back devices
+        if not self.comp.dev_isblk:
+            command.append('--device-size=%d' % (self.comp.dev_size / 1024))
+
+        command.append(self.comp.dev)
+
+        return command
 
     def launch(self):
         """
-        Format file system target.
+        Create a command line and schedule it to be run by self.task
+
+        If a journal device for this target exists, a dedicated action for it is
+        first process before really doing the job for the full target.
         """
-        # Format journal device first if specified.
-        if self.target.jdev:
-            self.jformat = True
-            self.mkfsopts = ["-j", "-J", "device=%s" % self.target.jdev]
-            command = "export PATH=/usr/lib/lustre:$PATH; mke2fs -q -F -O journal_dev -b 4096 %s" % self.target.jdev
-            self.task.shell(command, handler=self)
+
+        # Format first the journal if it exists
+        if self.comp.jdev:
+            JournalFormat(self.comp, nextaction=self).launch()
+            # It is ok to not launch current action here. In JournalFormat 
+            # ev_close(), FSAction.launch(self) will be called to run
+            # the normal launch method.
         else:
-            self.launch_format()
+            FSAction.launch(self)
 
-    def launch_format(self):
-        mgt_type = Shine.Lustre.Target.MGT.TYPE
-        mdt_type = Shine.Lustre.Target.MDT.TYPE
-        ost_type = Shine.Lustre.Target.OST.TYPE
-        self.jformat = False
-        
-        command = ["export PATH=/usr/lib/lustre:$PATH;", "mkfs.lustre", "--reformat", '"--fsname=%s"' % \
-                self.target.fs.fs_name]
-        command.append("--quiet")
 
-        mgs_nids = self.target.fs.get_mgs_nids()
+class JournalFormat(FSAction):
+    """
+    Specific Format Action for a journal device.
 
-        if self.target.TYPE == mgt_type:
+    This action should be associated with the target object and the format
+    action of this target.
+    """
 
-            command.append("--mgs")     # '--mgs' and not '--mgt'
+    NAME = 'format'
 
-        elif self.target.TYPE == mdt_type:
+    def __init__(self, comp, nextaction):
+        FSAction.__init__(self, comp)
+        self.nextaction = nextaction
 
-            command.append("--mdt")
-
-            # MGS NIDs
-            for nidlist in mgs_nids:
-                nids = ','.join(nidlist)
-                command.append('"--mgsnode=%s"' % nids)
-
-            command.append("--index=%d" % self.target.index)
-
-            if self.stripecount:
-                command.append('"--param=lov.stripecount=%d"' % self.stripecount)
-            if self.stripesize:
-                command.append('"--param=lov.stripesize=%d"' % self.stripesize)
-
-            if self.activate_quota:
-                command.append('"--param=mdt.quota_type=%s"' % \
-                        self.quota_type)
-
-        elif self.target.TYPE == ost_type:
-
-            command.append("--ost")
-
-            # MGS NIDs
-            for nidlist in mgs_nids:
-                nids = ','.join(nidlist)
-                command.append('"--mgsnode=%s"' % nids)
-
-            command.append("--index=%d" % self.target.index)
-
-            if self.activate_quota:
-                command.append('"--param=ost.quota_type=%s"' % \
-                        self.quota_type)
-
-        # failnode: NID(s) of failover partner
-        target_nids = self.target.get_nids()
-        if len(target_nids) > 1:
-            for nidlist in target_nids[1:]:
-
-                # if 'network' is specified, restrict the list of partner
-                if self.target.network and self.target.TYPE in [mdt_type, ost_type]:
-                    suffix = '@%s' % self.target.network
-                    nidlist = filter(lambda n: n.endswith(suffix), nidlist)
-
-                # if there is still some matching partners, add them
-                if len(nidlist) > 0:
-                    nids = ','.join(nidlist)
-                    command.append('"--failnode=%s"' % nids)
-
-        # network: restrict target to a specific LNET network
-        if self.target.network and self.target.TYPE in [mdt_type, ost_type]:
-            command.append('--network=%s' % self.target.network)
-
-        if self.mkfs_options:
-            opts = self.mkfs_options.get(self.target.TYPE)
-            if opts:
-                self.mkfsopts.append(opts)
-
-        if len(self.mkfsopts) > 0:
-            command.append('"--mkfsoptions=%s"' % ' '.join(self.mkfsopts))
-
-        if self.format_params:
-            param = self.format_params.get(self.target.TYPE)
-            if param:
-                command.append('"--param=%s"' % param)
-
-        # Loop devices handling
-        if not self.target.dev_isblk:
-            command.append('"--device-size=%d"' % (self.target.dev_size/1024))
-
-        command.append(self.target.dev)
-
-        self.task.shell(' '.join(command), handler=self)
+    def _prepare_cmd(self):
+        """Return target journal device format command line."""
+        return [ "mke2fs -q -F -O journal_dev -b 4096 %s" % self.comp.jdev ]
 
     def ev_start(self, worker):
-        if self.jformat:
-            self.target._action_start('format', comp='journal')
+        """Event callback when journal format start."""
+        self.comp._action_start('format', comp='journal')
 
     def ev_close(self, worker):
-        if self.jformat:
-            comp = 'journal'
-        else:
-            comp = 'target'
-            self.target._lustre_check()
-
+        """Event callback when journal format ends."""
         if worker.did_timeout():
             # action timed out
-            self.target._action_timeout('format', comp=comp)
+            self.comp._action_timeout(self.NAME, 'journal')
         elif worker.retcode() == 0:
             # action succeeded
-            self.target._action_done('format', comp=comp)
-            if self.jformat:
-                # Journal is done, go to next step...
-                self.launch_format()
+            self.comp._action_done(self.NAME, 'journal')
+
+            # Journal is done, launch next step
+            # This is not pretty as we ignore the launch() method of nextaction.
+            FSAction.launch(self.nextaction)
         else:
             # action failure
-            self.target._action_failed('format', worker.retcode(), worker.read(), comp=comp)
+            self.comp._action_failed(self.NAME, worker.retcode(), worker.read(),
+                'journal')

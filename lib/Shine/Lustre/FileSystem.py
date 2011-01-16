@@ -470,6 +470,38 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], format_launched)
 
+
+    def tunefs(self, **kwargs):
+
+        # Remember launched actions, so we can check their status once all
+        # operations are done.
+        tunefs_launched = set()
+
+        # Get additional options for the FSProxyAction call
+        addopts = kwargs.get('addopts', None)
+        failover = kwargs.get('failover', None)
+
+        for server, iter_targets in self.managed_components(group_attr="server", supports='tunefs'):
+            e_targets = list(iter_targets)
+
+            if server.is_local():
+                # local server
+                for target in e_targets:
+                    target.tunefs(**kwargs)
+
+            else:
+                FSProxyAction(self, 'tunefs', NodeSet(server), self.debug,
+                              comps=e_targets, addopts=addopts,
+                              failover=failover).launch()
+
+            tunefs_launched.update(e_targets)
+
+        # Run local actions and FSProxyAction
+        self._run_actions()
+
+        # Check for errors and return OFFLINE or error code
+        return self._check_errors([OFFLINE], tunefs_launched)
+
     def fsck(self, **kwargs):
         # Remember fsck launched, so we can check their status once
         # all operations are done.

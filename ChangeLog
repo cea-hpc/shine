@@ -1,3 +1,6 @@
+2011-01-16 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Add support for 'tunefs' command (ticket #91).
+
 2010-12-20 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix scalability issue with very large cluster(ticket #87).
 

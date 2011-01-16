@@ -1,5 +1,5 @@
 # StartClient.py -- Mount client
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -19,65 +19,46 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+from Shine.Lustre.Actions.Action import FSAction
 
-class StartClient(Action):
+class StartClient(FSAction):
     """
     File system client start (ie. mount) action class.
     """
 
+    NAME = 'mount'
+
     def __init__(self, client, **kwargs):
-        Action.__init__(self)
-        self.client = client
-        assert self.client != None
+        FSAction.__init__(self, client)
         self.mount_options = kwargs.get('mount_options')
         self.addopts = kwargs.get('addopts')
-        self.abort_recovery = kwargs.get('abort_recovery')
 
-    def launch(self):
+    def _prepare_cmd(self):
         """
-        Mount file system client.
+        Prepare client file system mount command line.
         """
-        command = ["mkdir", "-p", "\"%s\"" % self.client.mount_path]
-        command += ["&&", "/sbin/modprobe", "lustre"]
-        command += ["&&", "/bin/mount", "-t", "lustre"]
+        command = ["mkdir -p \"%s\"" % self.comp.mount_path]
+        command += ["&& /sbin/modprobe lustre && /bin/mount -t lustre"]
 
-        # Other custom mount options
+        options = []
+
+        # Mount options from configuration
         if self.mount_options:
-            command.append("-o")
-            if self.addopts:
-                # Concatenate addtional mount option provide through
-                # Shine command line
-                command.append("%s,%s" %(self.mount_options, self.addopts))
-            else:
-                command.append(self.mount_options)
-        elif self.addopts:
-            command.append("-o")
-            command.append(self.addopts)
+            options += [ self.mount_options ]
+
+        # Mount options from command line
+        if self.addopts:
+            options += [ self.addopts ]
+
+        if len(options):
+            command.append("-o " + ','.join(options))
 
         # MGS NIDs
         # List of node nids ['foo1@tcp0,foo1@tcp1', 'foo2@tcp0,foo2@tcp1']
-        nodenids = [','.join(nids) for nids in self.client.fs.get_mgs_nids()]
+        nodenids = [','.join(nids) for nids in self.comp.fs.get_mgs_nids()]
         mgsfullnid = ':'.join(nodenids)
-        command.append("%s:/%s" % (mgsfullnid, self.client.fs.fs_name))
+        command.append("%s:/%s" % (mgsfullnid, self.comp.fs.fs_name))
 
-        command.append(self.client.mount_path)
+        command.append(self.comp.mount_path)
 
-        self.task.shell(' '.join(command), handler=self) ### timeout
-
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self.client._lustre_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self.client._action_timeout("mount")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self.client._action_done("mount")
-        else:
-            # action failure
-            self.client._action_failed("mount", worker.retcode(), worker.read())
-
+        return command

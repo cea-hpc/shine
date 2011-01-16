@@ -61,8 +61,10 @@ class Router(Component):
         """
         return "router on %s" % self.server
 
-    def _router_check(self):
+    def lustre_check(self):
         """
+        Check Router health at Lustre level.
+
         Check LNET routing capabilities and change object state
         based on the results.
         """
@@ -102,7 +104,7 @@ class Router(Component):
         self._action_start('status')
 
         try:
-            self._router_check()
+            self.lustre_check()
             self._action_done('status')
         except RouterError, error:
             self._action_failed('status', rc=None, message=str(error))
@@ -115,7 +117,7 @@ class Router(Component):
         self._action_start('start')
 
         try:
-            self._router_check()
+            self.lustre_check()
             if self.state == MOUNTED:
                 self.status_info = "router is already enabled"
                 self._action_done('start')
@@ -133,7 +135,7 @@ class Router(Component):
         self._action_start('stop')
 
         try:
-            self._router_check()
+            self.lustre_check()
             if self.state == OFFLINE:
                 self.status_info = "router is already disabled"
                 self._action_done('stop')

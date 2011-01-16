@@ -24,7 +24,7 @@ import glob
 from ClusterShell.Task import task_self
 from ClusterShell.NodeSet import NodeSet
 
-from Shine.Lustre.Actions.Format import Format
+from Shine.Lustre.Actions.Format import Format, Tunefs
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
@@ -72,6 +72,8 @@ class Target(Component, Disk):
         """
         Initialize a Lustre target object.
         """
+        Disk.__init__(self, dev, jdev)
+
         self.defaultserver = server   # Default server the target runs on
         self.failservers = [ ]        # All failover servers
 
@@ -80,9 +82,9 @@ class Target(Component, Disk):
         self.group = group
         self.tag = tag
         self.network = network
+        self.mntdev = self.dev
 
         Component.__init__(self, fs, server, enabled, mode)
-        Disk.__init__(self, dev, jdev)
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -204,9 +206,12 @@ class Target(Component, Disk):
             raise TargetDeviceError(self, str(error))
 
         # check for Lustre level status
-        self._lustre_check()
+        self.lustre_check()
 
-    def _lustre_check(self):
+    def lustre_check(self):
+        """
+        Check target health at Lustre level.
+        """
 
         self.state = None   # Unknown
 
@@ -323,6 +328,39 @@ class Target(Component, Disk):
 
         except TargetError, error:
             self._action_failed('format', rc=-1, message=str(error))
+
+
+    def tunefs(self, **kwargs):
+        """
+        Apply all on-disk metadata using Target description and tunefs.lustre
+        command.
+        """
+        self.state = INPROGRESS
+        self._action_start('tunefs')
+
+        try:
+            self._check_status()
+
+            if self.state == OFFLINE:
+                # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
+                if not self.dev_isblk:
+                    # configure one engine client max per task (sequential, bah.)
+                    task_self().set_info("fanout", 1)
+
+                self.state = INPROGRESS
+                Tunefs(self, **kwargs).launch()
+            else:
+                # Target state is not DOWN... cannot apply tunefs to device.
+                if self.state in [MOUNTED, RECOVERING]:
+                    reason = "Cannot tunefs: target %s (%s) is started"
+                else:
+                    reason = "Cannot tunefs: target %s (%s) is busy"
+                self.state = TARGET_ERROR
+                raise TargetDeviceError(self, reason % (self.label, self.dev))
+
+        except TargetError, error:
+            self._action_failed('tunefs', rc=-1, message=str(error))
+
 
     def fsck(self, **kwargs):
         """

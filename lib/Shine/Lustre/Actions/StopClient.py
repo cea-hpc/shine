@@ -1,5 +1,5 @@
-# StartClient.py -- Umount client
-# Copyright (C) 2009 CEA
+# StopClient.py -- Umount client
+# Copyright (C) 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -19,51 +19,33 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+"""
+Action class to stop Lustre client.
+"""
 
-class StopClient(Action):
+from Shine.Lustre.Actions.Action import FSAction
+
+class StopClient(FSAction):
     """
     File system client stop (ie. umount) action class.
     """
 
+    NAME = 'umount'
+
     def __init__(self, client, **kwargs):
-        Action.__init__(self)
-        self.client = client
-        assert self.client != None
-        self.failout = kwargs.get('failout')
+        FSAction.__init__(self, client)
         self.addopts = kwargs.get('addopts')
 
-    def launch(self):
+    def _prepare_cmd(self):
         """
         Unmount file system client.
         """
         command = ["umount"]
 
-        # Failout option
-        if self.failout:
-            command.append("-f")
-
         # Process additional option for umount command
         if self.addopts:
             command.append(self.addopts)
 
-        command.append(self.client.mount_path)
+        command.append(self.comp.mount_path)
 
-        self.task.shell(' '.join(command), handler=self) ### timeout
-
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self.client._lustre_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self.client._action_timeout("umount")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self.client._action_done("umount")
-        else:
-            # action failure
-            self.client._action_failed("umount", worker.retcode(), worker.read())
-
+        return command

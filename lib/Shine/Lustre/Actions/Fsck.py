@@ -1,5 +1,5 @@
-# Fsck.py -- Lustre action class : fsck
-# Copyright (C) 2010 BULL S.A.S
+# Fsck.py -- Lustre action class: fsck
+# Copyright (C) 2010 BULL S.A.S, CEA
 #
 # This file is part of shine
 #
@@ -19,41 +19,54 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+"""
+Action class to check (fsck) target filesystem coherency.
+"""
+
+from Shine.Lustre.Actions.Action import FSAction
 from Shine.Lustre.Component import TARGET_ERROR
 
-class Fsck(Action):
+class Fsck(FSAction):
     """
-    File system fsck action class.
+    File system check using 'e2fsck'.
     """
+
+    NAME = 'fsck'
 
     def __init__(self, target, **kwargs):
-        Action.__init__(self)
-        self.target = target
+        FSAction.__init__(self, target)
         self.addopts = kwargs.get('addopts')
-        assert self.target != None
 
-    def launch(self):
-        command = ["export PATH=/usr/lib/lustre:$PATH;", "e2fsck", '-y', self.target.dev]
+    def _prepare_cmd(self):
+        """
+        Create the command line to run 'e2fsck'.
+        """
+        command = ["e2fsck", '-y', self.comp.dev]
 
         # Process additional options
         if self.addopts:
             command.append(self.addopts)
 
-        self.task.shell(' '.join(command), handler=self)
+        return command
 
     def ev_close(self, worker):
-        self.target._lustre_check()
+        """
+        Check process termination status and generate appropriate events.
+
+        Note that if fsck has correctly fixed some errors, actions will be
+        considered as successful.
+        """
+        self.comp.lustre_check()
 
         if worker.did_timeout():
             # action timed out
-            self.target._action_timeout('fsck')
+            self.comp._action_timeout('fsck')
         # fsck returns 0=NOERROR, 1=OK_BUT_CORRECTION, 2=OK_BUT_REBOOT.
         # see man fsck.
         elif worker.retcode() in (0, 1, 2):
             # action succeeded
-            self.target._action_done('fsck')
+            self.comp._action_done('fsck')
         else:
             # action failure
-            self.target.state = TARGET_ERROR
-            self.target._action_failed('fsck', worker.retcode(), worker.read())
+            self.comp.state = TARGET_ERROR
+            self.comp._action_failed('fsck', worker.retcode(), worker.read())

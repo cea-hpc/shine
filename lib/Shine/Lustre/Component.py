@@ -134,6 +134,15 @@ class Component(object):
         """
         return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %s" % self.state)
 
+
+    #
+    def lustre_check(self):
+        """
+        Check component health at Lustre level.
+        """
+        raise NotImplemented("Component must implement this.")
+
+
     #
     # Inprogress action methods
     #

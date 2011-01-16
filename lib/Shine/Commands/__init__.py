@@ -52,7 +52,8 @@ for cmd in [ "Show",
              "Fsck",
              "Mount",
              "Umount",
-             "Tune"]:
+             "Tune",
+             "Tunefs"]:
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 

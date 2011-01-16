@@ -22,29 +22,28 @@
 import os
 import re
 
-from Shine.Lustre.Actions.Action import Action
+from Shine.Lustre.Actions.Action import FSAction
 
-class StartTarget(Action):
+class StartTarget(FSAction):
     """
     File system target start action class.
 
     Current version of Lustre (1.6) starts a target simply by mounting it.
     """
 
+    NAME = 'start'
+
     def __init__(self, target, **kwargs):
-        Action.__init__(self)
-        self.target = target
-        assert self.target != None
+        FSAction.__init__(self, target)
         self.mount_options = kwargs.get('mount_options')
         self.addopts = kwargs.get('addopts')
         self.mount_paths = kwargs.get('mount_paths')
-        self.abort_recovery = kwargs.get('abort_recovery')
 
     def _substitute(self, template, mapping):
         """
         Performs the template substitution, returning a new string.
         mapping is any dictionary-like object with keys that match
-        the placeholders in the template. 
+        the placeholders in the template.
 
         To get changed with Template.string.substitute in Python 2.4
         when the Python 2.3 compat constraint will be dropped.
@@ -60,18 +59,17 @@ class StartTarget(Action):
             m = re.search("\$([A-Za-z0-9_]+)", template)
         return template
 
-    def launch(self):
-        """
-        Mount file system target.
-        """
+    def _prepare_cmd(self):
+        """Mount file system target."""
 
         mount_path = None
         if self.mount_paths:
-            mount_path = self.mount_paths.get(self.target.TYPE)
+            mount_path = self.mount_paths.get(self.comp.TYPE)
 
-
-            var_map = { 'fs_name' : self.target.fs.fs_name,
-                        'index'   : str(self.target.index) }
+            var_map = { 'fs_name' : self.comp.fs.fs_name,
+                        'label'   : self.comp.label,
+                        'type'    : self.comp.TYPE,
+                        'index'   : str(self.comp.index) }
 
             try:
                 mount_path = self._substitute(mount_path, var_map)
@@ -81,30 +79,23 @@ class StartTarget(Action):
 
         if not mount_path:
             # fallback to defaut
-            mount_path = "/mnt/%s/%s/%d" % (self.target.fs.fs_name,
-                    self.target.TYPE, self.target.index)
+            mount_path = "/mnt/%s/%s/%d" % (self.comp.fs.fs_name,
+                    self.comp.TYPE, self.comp.index)
 
-        command = ["mkdir", "-p", "\"%s\"" % mount_path]
-        command += ["&&", "/sbin/modprobe", "lustre"]
-        command += ["&&", "/bin/mount", "-t", "lustre"]
+        command = ["mkdir -p \"%s\"" % mount_path]
+        command += ["&& /sbin/modprobe lustre && /bin/mount -t lustre"]
 
         # Loop devices handling
-        if not self.target.dev_isblk:
+        if not self.comp.dev_isblk:
             command.append("-o loop")
 
-        # Other custom mount options
-        if self.mount_options:
-            mnt_opts = self.mount_options.get(self.target.TYPE)
-            if mnt_opts:
-                command.append("-o")
-                if self.addopts:
-                    command.append("%s,%s" %(mnt_opts, self.addopts))
-                else:
-                    command.append(mnt_opts)
-
-        elif self.addopts:
-            command.append("-o")
-            command.append(self.addopts)
+        options = []
+        # Mount options from configuration
+        if self.mount_options and self.mount_options.get(self.comp.TYPE):
+            options += [ self.mount_options.get(self.comp.TYPE) ]
+        # Mount options from command line
+        if self.addopts:
+            options += [ self.addopts ]
 
         # When device detection order is variable, jdev could have a different
         # major/minor than the one it has on previous mount.
@@ -112,28 +103,14 @@ class StartTarget(Action):
         #
         # (Note: We can use `blkid' instead of jdev and extract the current
         # journal UUID if we have issue using directly jdev path.)
-        if self.target.jdev:
-            majorminor = os.stat(self.target.jdev).st_rdev
-            command.append("-o journal_dev=%#x" % majorminor)
+        if self.comp.jdev:
+            majorminor = os.stat(self.comp.jdev).st_rdev
+            options += [ "journal_dev=%#x" % majorminor ]
 
-        command.append(self.target.dev)
+        if len(options):
+            command.append('-o ' + ','.join(options))
+
+        command.append(self.comp.dev)
         command.append(mount_path)
 
-        self.task.shell(' '.join(command), handler=self)
-
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self.target._lustre_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self.target._action_timeout("start")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self.target._action_done("start")
-        else:
-            # action failure
-            self.target._action_failed("start", worker.retcode(), worker.read())
-
+        return command

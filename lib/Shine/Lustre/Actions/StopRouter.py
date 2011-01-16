@@ -19,41 +19,17 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+"""Action class to handle router stop command and event handling."""
 
-class StopRouter(Action):
+from Shine.Lustre.Actions.Action import FSAction
+
+class StopRouter(FSAction):
     """
-    File system router (ie: stop lnet) stop class
+    File system router (ie: stop lnet) stop class.
     """
 
-    def __init__(self, router):
-        Action.__init__(self)
-        self._router = router
-        assert self._router != None
+    NAME = 'stop'
 
-    def launch(self):
-        """
-        Stop LNET
-        """
-        command = [ "export PATH=/usr/lib/lustre:$PATH;" ]
-        command += ["lctl", "net", "down"]
-        command += ["&&", "lustre_rmmod"]
-
-        self.task.shell(' '.join(command), handler=self) ### timeout
-
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self._router._router_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self._router._action_timeout("stop")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self._router._action_done("stop")
-        else:
-            # action failure
-            self._router._action_failed("stop", worker.retcode(), 
-                                        worker.read())
+    def _prepare_cmd(self):
+        """Stop LNET."""
+        return [ "lctl net down", "&&", "lustre_rmmod" ]

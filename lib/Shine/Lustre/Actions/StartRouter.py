@@ -19,41 +19,18 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+"""Action class to handle router start command and event handling."""
 
-class StartRouter(Action):
+from Shine.Lustre.Actions.Action import FSAction
+
+class StartRouter(FSAction):
     """
     File system router (ie: start lnet) start class
     """
 
-    def __init__(self, router):
-        Action.__init__(self)
-        self._router = router
-        assert self._router != None
+    NAME = 'start'
 
-    def launch(self):
-        """
-        Start LNET
-        """
-        command = [ "export PATH=/usr/lib/lustre:$PATH;" ]
-        command += ["/sbin/modprobe", "lnet"]
-        command += ["&&", "lctl", "net", "up"]
+    def _prepare_cmd(self):
+        """Start LNET which will start router if properly configured."""
+        return [ "/sbin/modprobe lnet", "&&", "lctl net up" ]
 
-        self.task.shell(' '.join(command), handler=self) ### timeout
-
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self._router._router_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self._router._action_timeout("start")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self._router._action_done("start")
-        else:
-            # action failure
-            self._router._action_failed("start", worker.retcode(), 
-                                        worker.read())

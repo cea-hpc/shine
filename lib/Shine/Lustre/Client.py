@@ -88,9 +88,9 @@ class Client(Component):
         Component.update(self, other)
         self.mount_path = other.mount_path
 
-    def _lustre_check(self):
+    def lustre_check(self):
         """
-        Lustre client state check.
+        Check Client health at Lustre level.
         """
 
         self.state = None   # Undefined
@@ -144,7 +144,7 @@ class Client(Component):
         self._action_start('status')
 
         try:
-            self._lustre_check()
+            self.lustre_check()
             self._action_done('status')
         except ClientError, e:
             self._action_failed('status', rc=None, message=str(e))
@@ -157,7 +157,7 @@ class Client(Component):
         self._action_start('mount')
 
         try:
-            self._lustre_check()
+            self.lustre_check()
             if self.state == MOUNTED:
                 self.status_info = "%s is already mounted on %s" % \
                                    (self.fs.fs_name, self.status_info)
@@ -176,7 +176,7 @@ class Client(Component):
         self._action_start('umount')
 
         try:
-            self._lustre_check()
+            self.lustre_check()
             if self.state == OFFLINE:
                 self.status_info = "%s is not mounted" % (self.fs.fs_name)
                 self._action_done('umount')

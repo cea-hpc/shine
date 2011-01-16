@@ -19,8 +19,6 @@
 #
 # $Id$
 
-import os
-
 from Shine.Lustre.Actions.Action import Action
 
 class Install(Action):

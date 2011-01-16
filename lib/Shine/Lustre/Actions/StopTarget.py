@@ -1,5 +1,5 @@
-# StopTarget.py -- Lustre action class : stop (umount) target
-# Copyright (C) 2009 CEA
+# StopTarget.py -- Lustre action class: stop (umount) target
+# Copyright (C) 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -19,22 +19,24 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Action import Action
+"""
+Action class to stop Lustre target.
+"""
 
-class StopTarget(Action):
+from Shine.Lustre.Actions.Action import FSAction
+
+class StopTarget(FSAction):
     """
     File system target start action class.
-
-    Current version of Lustre (1.6) starts a target simply by mounting it.
     """
 
-    def __init__(self, target, **kwargs):
-        Action.__init__(self)
-        self.target = target
-        self.addopts = kwargs.get('addopts')
-        assert self.target != None
+    NAME = 'stop'
 
-    def launch(self):
+    def __init__(self, target, **kwargs):
+        FSAction.__init__(self, target)
+        self.addopts = kwargs.get('addopts')
+
+    def _prepare_cmd(self):
         """
         Unmount file system target.
         """
@@ -42,30 +44,13 @@ class StopTarget(Action):
         command = ["umount"]
 
         # Also free the loop device if needed
-        if not self.target.dev_isblk:
+        if not self.comp.dev_isblk:
             command.append("-d")
 
         # Process additional umount options
         if self.addopts:
             command.append(self.addopts)
-            
-        command.append(self.target.mntdev)
 
-        self.task.shell(' '.join(command), handler=self)
+        command.append(self.comp.mntdev)
 
-    def ev_close(self, worker):
-        """
-        Check process termination status and generate appropriate events.
-        """
-        self.target._lustre_check()
-
-        if worker.did_timeout():
-            # action timed out
-            self.target._action_timeout("stop")
-        elif worker.retcode() == 0:
-            # action succeeded
-            self.target._action_done("stop")
-        else:
-            # action failure
-            self.target._action_failed("stop", worker.retcode(), worker.read())
-
+        return command

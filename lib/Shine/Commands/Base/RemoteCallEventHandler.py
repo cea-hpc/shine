@@ -98,6 +98,15 @@ class RemoteCallEventHandler(EventHandler):
     def ev_stoptarget_failed(self, node, comp, rc, message):
         self._shine_pickle(comp=comp, rc=rc, message=message)
 
+    def ev_tunefstarget_start(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_tunefstarget_done(self, node, comp):
+        self._shine_pickle(comp=comp)
+
+    def ev_tunefstarget_failed(self, node, comp, rc, message):
+        self._shine_pickle(comp=comp, rc=rc, message=message)
+
     def ev_statusclient_start(self, node, comp):
         self._shine_pickle(comp=comp)
 
