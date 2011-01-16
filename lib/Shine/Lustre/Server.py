@@ -31,6 +31,7 @@ class Server(NodeSet):
 
     def __init__(self, node_name, nids):
         NodeSet.__init__(self, node_name)
+        assert type(nids) is list
         self.nids = nids
 
     def __str__(self):

@@ -35,31 +35,31 @@ class ServerTest(unittest.TestCase):
         shortname = socket.gethostname().split('.', 1)[0]
 
         # Test shortname is local()
-        srv = Server(shortname, '%s@tcp' % shortname)
+        srv = Server(shortname, ['%s@tcp' % shortname])
         self.assertTrue(srv.is_local())
 
         # Test fqdn is local()
-        srv = Server(fqdn, '%s@tcp' % fqdn)
+        srv = Server(fqdn, ['%s@tcp' % fqdn])
         self.assertTrue(srv.is_local())
 
         # Test a dummy shortname should not be local
         shortname = shortname + "-shine-false-suffix"
-        srv = Server(shortname, '%s@tcp' % shortname)
+        srv = Server(shortname, ['%s@tcp' % shortname])
         self.assertFalse(srv.is_local())
 
         # Test a false domain name with a good hostname
         othername = shortname + ".shine-false-tld"
-        srv = Server(othername, '%s@tcp' % othername)
+        srv = Server(othername, ['%s@tcp' % othername])
         self.assertFalse(srv.is_local())
 
         # Test something else should not be local
         othername = fqdn + ".shine-false-tld"
-        srv = Server(othername, '%s@tcp' % othername)
+        srv = Server(othername, ['%s@tcp' % othername])
         self.assertFalse(srv.is_local())
 
         # Check hostname methods are rightly seen as local
-        self.assertTrue(Server(Server.hostname_short(), 'foo').is_local())
-        self.assertTrue(Server(Server.hostname_long(), 'foo').is_local())
+        self.assertTrue(Server(Server.hostname_short(), ['foo']).is_local())
+        self.assertTrue(Server(Server.hostname_long(), ['foo']).is_local())
 
     def testDistantServers(self):
         """test distant_servers()"""

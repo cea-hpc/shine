@@ -52,7 +52,7 @@ class TargetTest(unittest.TestCase):
     def testHaNode(self):
         """test failover servers"""
         fs = FileSystem('nonreg')
-        srv = Server('foo1', 'foo1@tcp')
+        srv = Server('foo1', ['foo1@tcp'])
         tgt = Target(fs, srv, 0, '/dev/null')
         self.assertEqual(tgt.server, srv)
         self.assertEqual(tgt.failservers, [])
@@ -62,14 +62,14 @@ class TargetTest(unittest.TestCase):
         self.assertEqual(tgt.server, srv)
 
         # Add a failserver and switch to it
-        foo2 = Server('foo2', 'foo2@tcp')
+        foo2 = Server('foo2', ['foo2@tcp'])
         tgt.add_server(foo2)
         self.assertEqual(tgt.failservers, [ foo2 ])
         self.assertTrue(tgt.failover(NodeSet("foo2")))
         self.assertEqual(tgt.server, foo2)
 
         # Add a 2nd failserver and switch to it
-        foo3 = Server('foo3', 'foo3@tcp')
+        foo3 = Server('foo3', ['foo3@tcp'])
         tgt.add_server(foo3)
         self.assertEqual(tgt.failservers, [ foo2, foo3 ])
         self.assertTrue(tgt.failover(NodeSet("foo3")))
