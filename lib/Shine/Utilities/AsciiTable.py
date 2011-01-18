@@ -303,7 +303,7 @@ class AsciiTable:
         # Create the list of dict entries we need, for each item of the list,
         # create a dictionary with key=(column header name). If no header is
         # specified, we use dummy keys 0 and 1.
-        for k in sorted(dictionnay.iterkeys()):
+        for k in sorted(dictionary.iterkeys()):
             lst.append(dict([(head_key, k), (head_val, dictionary[k])]))
 
         # Create simple dict layout

@@ -66,7 +66,7 @@ class Show(Command):
         fslist = []
         for fsname in self.fs_support.iter_fsname():
             try:
-                fs_conf = Configuration(fsname)
+                fs_conf = Configuration.load_from_cache(fsname)
             except:
                 print "Error with FS ``%s'' configuration files." % fsname
                 raise
@@ -93,7 +93,7 @@ class Show(Command):
             fslist = []
             try:
                 # Get the file system configuration structure
-                fs_conf = Configuration(fsname)
+                fs_conf = Configuration.load_from_cache(fsname)
             except:
                 # We fail to get current file system configuration information.
                 # Display an error message.
