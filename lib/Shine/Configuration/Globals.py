@@ -21,7 +21,7 @@
 
 import os
 
-from Shine.Configuration.ModelFile import ModelFile
+from Shine.Configuration.ModelFile import ModelFile, SimpleElement
 
 
 class Globals(object):
@@ -84,6 +84,13 @@ class Globals(object):
             self.add_element('log_file',            check='path')
             self.add_element('log_level',           check='string')
 
+        def add_element(self, name, multiple=False, **kwargs):
+            """For this class, all elements are replaced by the local
+            DefaultElement class. 
+            
+            Only for convenience."""
+            self.add_custom(name, DefaultElement(**kwargs), multiple)
+
         def get_backend(self):
             return self.get('backend')
 
@@ -113,3 +120,21 @@ class Globals(object):
 
         def get_ssh_fanout(self):
             return self.get('ssh_fanout')
+
+class DefaultElement(SimpleElement):
+    """
+    SimpleElement with a special handling of default value.
+
+    Currently, SimpleElement does return the default value only when get() is
+    called. As I'm not sure it is a good idea to modify the global behaviour,
+    this class is here to fix this only for Globals().
+    """
+
+    def __iter__(self):
+        yield self.get()
+
+    def __str__(self):
+        return str(self.get())
+
+    def __len__(self):
+        return int(self.get() is not None)

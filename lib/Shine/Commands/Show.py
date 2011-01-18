@@ -57,7 +57,7 @@ class Show(Command):
 
     def cmd_show_conf(self):
         """Show shine.conf"""
-        AsciiTable().print_from_simple_dict(dict(list(Globals())))
+        AsciiTable().print_from_simple_dict(Globals().as_dict())
         return 0
     
     def cmd_show_fs(self):
