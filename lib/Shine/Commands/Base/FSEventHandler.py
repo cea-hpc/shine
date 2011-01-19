@@ -165,10 +165,13 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         target_servers = NodeSet.fromlist([t.server for t in targets])
         target_count = len(targets)
 
-        if target_count > 0:
-            if self.status_changed:
-                self.status_changed = False
-                now = datetime.datetime.now()
+        if target_count > 0 and self.status_changed:
+            self.status_changed = False
+            now = datetime.datetime.now()
+            if len(target_servers) > 8:
+                print "[%s] In progress for %d component(s) on %d servers ..." % \
+                        (now.strftime("%H:%M"), target_count, len(target_servers))
+            else:
                 print "[%s] In progress for %d component(s) on %s ..." % \
                         (now.strftime("%H:%M"), target_count, target_servers)
 
