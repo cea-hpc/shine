@@ -1,3 +1,6 @@
+2011-01-19 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Shorter progression messages (ticket #92).
+
 2011-01-16 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add support for 'tunefs' command (ticket #91).
 
