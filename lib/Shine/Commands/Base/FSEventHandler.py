@@ -31,7 +31,6 @@ import Shine.Lustre.EventHandler
 from Shine.Lustre.FileSystem import INPROGRESS
 
 from ClusterShell.Task import task_self
-from ClusterShell.NodeSet import NodeSet
 
 
 
@@ -138,10 +137,9 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         Default pre-handler. Display a single line.
         """
         header = self.ACTIONING.capitalize()
-        count = len(list(fs.managed_components(supports=self.ACTION)))
-        servers = fs.managed_component_servers(supports=self.ACTION)
-        self.log_verbose("%s %d component(s) of %s on %s" % (header, count,
-                            fs.fs_name, servers))
+        comps = fs.components.managed(supports=self.ACTION)
+        self.log_verbose("%s %d component(s) of %s on %s" % (header, len(comps),
+                            fs.fs_name, comps.servers()))
 
     def handle_post(self, fs):
         pass
@@ -161,16 +159,16 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         """
 
         filter_key = lambda t: t.state == INPROGRESS or t._list_action()
-        targets = list(self.fs.managed_components(filter_key=filter_key))
-        target_servers = NodeSet.fromlist([t.server for t in targets])
+        targets = self.fs.components.managed().filter(key=filter_key)
+        target_servers = targets.servers()
         target_count = len(targets)
 
         if target_count > 0 and self.status_changed:
             self.status_changed = False
             now = datetime.datetime.now()
             if len(target_servers) > 8:
-                print "[%s] In progress for %d component(s) on %d servers ..." % \
-                        (now.strftime("%H:%M"), target_count, len(target_servers))
+                print "[%s] In progress for %d component(s) on %d servers ..." \
+                    % (now.strftime("%H:%M"), target_count, len(target_servers))
             else:
                 print "[%s] In progress for %d component(s) on %s ..." % \
                         (now.strftime("%H:%M"), target_count, target_servers)

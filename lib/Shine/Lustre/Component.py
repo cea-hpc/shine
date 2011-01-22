@@ -19,6 +19,11 @@
 #
 # $Id$
 
+from itertools import ifilter, groupby, imap
+from operator import attrgetter
+
+from ClusterShell.NodeSet import NodeSet
+
 # Constants for component states
 (MOUNTED,    \
  EXTERNAL,   \
@@ -74,8 +79,6 @@ class Component(object):
 
         # Component behaviour change depending on its mode.
         self._mode = mode
-
-        self.fs._attach_component(self)
 
     @property
     def label(self):
@@ -201,3 +204,145 @@ class Component(object):
         self._del_action(act, comp)
         self.fs._invoke('ev_%s%s_failed' % (act, comp), comp=self, rc=rc, 
                         message=message)
+
+class ComponentGroup(object):
+    """
+    Gather and efficiently manipulate list of Components.
+    """
+
+    def __init__(self, iterable=None):
+        self._elems = {}
+        if iterable:
+            self._elems = dict([(comp.uniqueid(), comp) for comp in iterable])
+
+    def __len__(self):
+        return len(self._elems)
+
+    def __iter__(self):
+        return self._elems.itervalues()
+
+    def __contains__(self, comp):
+        return comp.uniqueid() in self._elems
+
+    def __getitem__(self, key):
+        return self._elems[key]
+
+    def __str__(self):
+        return str(self.labels())
+
+    def add(self, component):
+        """
+        Add a new component to the group. 
+        
+        Raises a KeyError if a component
+        with the same uniqueid() is already added.
+        """
+        if component in self:
+            raise KeyError("A component with id %s already exists.",
+                           component.uniqueid())
+        self._elems[component.uniqueid()] = component
+ 
+    def update(self, iterable):
+        """
+        Insert all components from iterable.
+        """
+        for comp in iterable:
+            self.add(comp)
+
+    def __or__(self, other):
+        """
+        Implements the | operator. So s | t returns a new group with
+        elements from both s and t.
+        """
+        if not isinstance(other, ComponentGroup):
+            return NotImplemented 
+        grp = ComponentGroup()
+        grp.update(iter(self))
+        grp.update(iter(other))
+        return grp
+
+    #
+    # Useful getters
+    #
+
+    def labels(self):
+        """Return a NodeSet containing all component label."""
+        return NodeSet.fromlist((comp.label for comp in self))
+
+    def servers(self):
+        """Return a NodeSet containing all component servers."""
+        return NodeSet.fromlist((comp.server for comp in self))
+
+    def allservers(self):
+        """Return a NodeSet containing all component servers and fail
+        servers."""
+        servers = self.servers()
+        for comp in self.filter(supports='failservers'):
+            servers.update(NodeSet.fromlist(comp.failservers))
+        return servers
+
+    #
+    # Filtering methods
+    #
+
+    def filter(self, supports=None, key=None):
+        """
+        Returns a new ComponentGroup instance containing only the component
+        that matches the filtering rules.
+
+        Your own filtering rule could be defined using the key argument.
+
+        Example: Return only the OST from the group
+        >>> group.filter(key=lambda t: t.TYPE == OST.TYPE)
+        """
+        if supports and not key:
+            filter_key = lambda x: x.capable(supports)
+        elif supports and key:
+            filter_key = lambda x: key(x) and x.capable(supports)
+        else:
+            filter_key = key
+
+        return ComponentGroup(ifilter(filter_key, iter(self)))
+
+    def enabled(self):
+        """Uses filter() to return only the enabled components."""
+        key = attrgetter('action_enabled')
+        return self.filter(key=key)
+
+    def managed(self, supports=None):
+        """Uses filter() to return only the enabled and managed components."""
+        key = lambda comp: not comp.is_external() and comp.action_enabled
+        return self.filter(supports, key=key)
+
+    #
+    # Grouping methods
+    #
+
+    def groupby(self, attr=None, key=None, reverse=False):
+        """Return an iterator over the group components. 
+        
+        The component will be grouped using one of their attribute or using a
+        custom key.
+        
+        Example #1: Group component by type
+        >>> for comp_type, comp_list in group.groupby(attr='TYPE'):
+        ...
+
+        Example #2: Group component first by type, then by server
+        >>> key = lambda t: (t.TYPE, t.server)
+        >>> for comp_type, comp_list in group.groupby(key=key):
+        ...
+        """
+        assert (not (attr and key)), "Unsupported: attr and supports"
+
+        if key is None and attr is not None:
+            key = attrgetter(attr)
+
+        # Sort the components using the key, and then group results 
+        # using the same key.
+        sortlist = sorted(iter(self), key=key, reverse=reverse)
+        return groupby(sortlist, key)
+
+    def groupbyserver(self):
+        """Uses groupby() to group component per server."""
+        return self.groupby(attr='server')

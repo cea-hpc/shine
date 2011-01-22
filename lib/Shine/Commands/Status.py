@@ -202,7 +202,9 @@ class Status(FSTargetLiveCommand):
 
         ldic = []
         group_key = lambda t: (t.DISPLAY_ORDER, t.index)
-        for (order, index), enabled_targets in fs.enabled_components(group_key=group_key, supports='index'):
+        for (order, index), enabled_targets in \
+            fs.components.managed(supports='index').groupby(key=group_key):
+
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
                     ["type", target.TYPE.upper()],
@@ -239,7 +241,7 @@ class Status(FSTargetLiveCommand):
 
         # Iterate over enabled TARGETS, grouped by display order and status
         key = lambda t: (t.DISPLAY_ORDER, t.text_status())
-        for (disp, status), e_comps in fs.enabled_components(group_key=key):
+        for (disp, status), e_comps in fs.components.enabled().groupby(key=key):
             comps = list(e_comps)
             # XXX: Do something better...
             if comps[0].TYPE == 'client' and not show_clients:
@@ -271,7 +273,9 @@ class Status(FSTargetLiveCommand):
         ldic = []
         jdev_col_enabled = False
         tag_col_enabled = False
-        for type, e_targets in fs.managed_components(group_attr="DISPLAY_ORDER", supports='dev'):
+        for type, e_targets in \
+            fs.components.managed(supports='dev').groupby('DISPLAY_ORDER'):
+
             for target in e_targets:
 
                 if target.dev_size >= TERA:

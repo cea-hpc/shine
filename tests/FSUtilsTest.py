@@ -68,7 +68,7 @@ mount_path: /param
     @classmethod
     def complist(cfs, fs):
         key = lambda comp: (comp.TYPE, getattr(comp, 'index', 0))
-        return list(sorted(fs.enabled_components(), key=key))
+        return list(sorted(fs.components.enabled(), key=key))
 
     def assert_comp(self, comp, tgt_type, index=None, dev=None):
         self.assertEqual(comp.TYPE, tgt_type)

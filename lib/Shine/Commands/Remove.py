@@ -61,7 +61,9 @@ class Remove(FSTargetLiveCriticalCommand):
             # Get first the status of any FS components and display some
             # warnings if filesystem is not OK.
             fs.status()
-            for state, targets in fs.managed_components(group_attr="state"):
+            for state, targets in \
+                fs.components.managed().groupby(attr='state'):
+
                 # Mounted filesystem!
                 if state in [MOUNTED, RECOVERING]:
                     labels = NodeSet.fromlist([t.server for t in targets])

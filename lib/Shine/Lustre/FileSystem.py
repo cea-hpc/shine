@@ -28,9 +28,6 @@ Represents a Lustre FS.
 import os
 import sys
 
-from itertools import ifilter, imap, groupby
-from operator import attrgetter
-
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self
 
@@ -39,6 +36,7 @@ from Shine.Configuration.Globals import Globals
 from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
+from Shine.Lustre.Component import ComponentGroup
 from Shine.Lustre.Server import Server
 from Shine.Lustre.Client import Client
 from Shine.Lustre.Router import Router
@@ -102,7 +100,7 @@ class FileSystem:
         self.proxy_errors = []
 
         # All FS components (MGT, MDT, OST, Clients, ...)
-        self._components = {}
+        self.components = ComponentGroup()
 
         # file system MGT
         self.mgt = None
@@ -144,7 +142,7 @@ class FileSystem:
             comp = params['comp']
             comp.fs = self
             try:
-                other = self._components[comp.uniqueid()]
+                other = self.components[comp.uniqueid()]
                 # update target from remote one
                 other.update(comp)
                 # substitute target parameter by local one
@@ -162,7 +160,7 @@ class FileSystem:
     #
 
     def _attach_component(self, comp):
-        self._components[comp.uniqueid()] = comp
+        self.components.add(comp)
         if comp.TYPE == MGT.TYPE:
             self.mgt = comp
 
@@ -183,91 +181,32 @@ class FileSystem:
                 index=index, dev=dev, jdev=jdev, group=group, tag=tag,
                 enabled=enabled, mode=mode, network=network)
         
+        self._attach_component(target)
+
         return target
 
     def new_client(self, server, mount_path, enabled=True):
         """
         Create a new attached client.
         """
-        return Client(self, server, mount_path, enabled)
+        client = Client(self, server, mount_path, enabled)
+        self._attach_component(client)
+        return client
 
     def new_router(self, server, enabled=True):
         """
         Create a new attached router.
         """
-        return Router(self, server, enabled)
-
-    #
-    # Iterators over filesystem components
-    #
-
-    def enabled_components(self, group_attr=None, group_key=None, supports=None,
-                           filter_key=None, reverse=False):
-        """This function returns an iterator over enabled components with 3 
-        additionnal possibilities:
-        - Filter them more precisely (using filter_key)
-        - Group results by attributes or key (using group_attr or group_key)
-        - Reverse results (using reverse)
-        All can be combined.
-
-        Example #1: Iterate over enabled OSTs only:
-         self.enabled_components(filter_key=lambda t: t.TYPE == OST.TYPE)
-
-        Example #2: Group component by server
-         self.enabled_components(group_attr="server")
-
-        Example #3: Group using 2 criterias, first type and then server
-         key = lambda t: (t.TYPE, t.server)
-         self.enabled_components(group_key=key)
-        """
-
-        # Try to construct a grouping key.
-        # If a groupping attribute is provided, use this name to build
-        # the group_key. If a group_key is provided, ignore group_attr.
-        #
-        # See: Python documentation about itertools.groupby and sorted()
-        if not group_key:
-            if group_attr:
-                group_key = attrgetter(group_attr)
-
-        if group_key:
-            # A grouping is needed, sort the target using this key,
-            # and then group results using the same key.
-            sortlist = sorted(self.enabled_components(filter_key=filter_key,
-                                                      supports=supports),
-                              key=group_key, reverse=reverse)
-            return groupby(sortlist, group_key)
-        else:
-            # As we do not group and sort, reverse has no meaning here
-            assert reverse == False
-
-            if not filter_key and not supports:
-                key = attrgetter("action_enabled")
-            elif not filter_key and supports:
-                key = lambda x: x.capable(supports)
-            elif filter_key and supports:
-                key = lambda x: filter_key(x) and x.capable(supports) \
-                                and attrgetter("action_enabled")(x)
-            else:
-                key = lambda x: filter_key(x) \
-                                and attrgetter("action_enabled")(x)
-            return ifilter(key, self._components.itervalues())
-
-    def managed_components(self, group_attr=None, group_key=None,
-                           supports=None, filter_key=None, reverse=False):
-        """Same method as enabled_components() but filters also external
-        components."""
-        if not filter_key:
-            key = lambda x: not x.is_external()
-        else:
-            key = lambda x: filter_key(x) and not x.is_external()
-        return self.enabled_components(group_attr, group_key, supports, key,
-                                       reverse)
+        router = Router(self, server, enabled)
+        self._attach_component(router)
+        return router
 
     def managed_component_servers(self, supports=None, filter_key=None):
-        return NodeSet.fromlist(imap(attrgetter("server"), \
-                                self.managed_components(supports=supports, \
-                                                       filter_key=filter_key)))
+        """
+        Return a NodeSet containing current server of each managed components.
+        """
+        filtered = self.components.managed().filter(supports, filter_key)
+        return filtered.servers()
 
     def disable_clients(self):
         """
@@ -276,7 +215,7 @@ class FileSystem:
         better solution will be available.
         """
         key = lambda c: c.TYPE == Client.TYPE
-        for comp in self.managed_components(filter_key=key):
+        for comp in self.components.managed().filter(key=key):
             comp.action_enabled = False
 
     #
@@ -390,12 +329,7 @@ class FileSystem:
         """
 
         # Get all possible servers 
-        servers = self.managed_component_servers()
-        # Do not forget to install also on failover servers
-        # XXX: This does not take -n/-x flag in account
-        for comp in self.managed_components(supports='failservers'):
-            if len(comp.failservers) > 0:
-                servers.update(NodeSet.fromlist(comp.failservers))
+        servers = self.components.managed().allservers()
 
         self._distant_action_by_server(Install, servers,
                                        config_file=fs_config_file)
@@ -408,12 +342,7 @@ class FileSystem:
         result = 0
 
         # Get all possible servers 
-        servers = self.managed_component_servers()
-        # Do not forget to install also on failover servers
-        # XXX: This does not take -n/-x flag in account
-        for comp in self.managed_components(supports='failservers'):
-            if len(comp.failservers) > 0:
-                servers.update(NodeSet.fromlist(comp.failservers))
+        servers = self.components.managed().allservers()
 
         # filter local server
         distant_servers = Server.distant_servers(servers)
@@ -440,6 +369,8 @@ class FileSystem:
 
     def format(self, **kwargs):
 
+        comps = self.components
+
         # Remember format launched, so we can check their status once
         # all operations are done.
         format_launched = set()
@@ -448,8 +379,9 @@ class FileSystem:
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
 
-        for server, iter_targets in self.managed_components(group_attr="server",
-                                                            supports='format'):
+        for server, iter_targets in \
+            comps.managed(supports='format').groupbyserver():
+
             e_targets = list(iter_targets)
 
             if server.is_local():
@@ -473,6 +405,8 @@ class FileSystem:
 
     def tunefs(self, **kwargs):
 
+        comps = self.components
+
         # Remember launched actions, so we can check their status once all
         # operations are done.
         tunefs_launched = set()
@@ -481,7 +415,9 @@ class FileSystem:
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
 
-        for server, iter_targets in self.managed_components(group_attr="server", supports='tunefs'):
+        for server, iter_targets in \
+            comps.managed(supports='tunefs').groupbyserver():
+
             e_targets = list(iter_targets)
 
             if server.is_local():
@@ -503,6 +439,9 @@ class FileSystem:
         return self._check_errors([OFFLINE], tunefs_launched)
 
     def fsck(self, **kwargs):
+
+        comps = self.components
+
         # Remember fsck launched, so we can check their status once
         # all operations are done.
         fsck_launched = set()
@@ -511,8 +450,9 @@ class FileSystem:
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
         
-        for server, iter_targets in self.managed_components(group_attr="server",
-                                                            supports="fsck"):
+        for server, iter_targets in \
+            comps.managed(supports='fsck').groupbyserver():
+
             e_targets = list(iter_targets)
 
             if server.is_local():
@@ -533,12 +473,14 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], fsck_launched)
 
-    def status(self, flags=STATUS_ANY, addopts=None, failover=None):
+    def status(self, flags=STATUS_ANY, addopts=None, failover=None, comps=None):
         """
         Get status of filesystem.
         """
-
         launched = set()
+
+        if comps is None:
+            comps = self.components
 
         # Filter components depending on flags
         # XXX: Ugly test, implement something cleaner.
@@ -546,9 +488,9 @@ class FileSystem:
                                                        c.TYPE == Router.TYPE)) \
                        or ((flags & STATUS_CLIENTS) and c.TYPE == Client.TYPE)
 
-        for server, iter_comps in self.managed_components(group_attr="server",
-                                                          supports='status',
-                                                          filter_key=key):
+        for server, iter_comps in \
+            comps.managed(supports='status').filter(key=key).groupbyserver():
+
             e_s_comps = list(iter_comps)
             if server.is_local():
                 for comp in e_s_comps:
@@ -591,6 +533,7 @@ class FileSystem:
         """
         Start Lustre file system servers.
         """
+        comps = self.components
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -598,7 +541,7 @@ class FileSystem:
 
         # What starting order to use?
         key = lambda t: t.TYPE == MDT.TYPE
-        for target in self.managed_components(filter_key=key):
+        for target in comps.managed().filter(key=key):
             # Found enabled MDT: perform writeconf check.
             self.status_target(target)
             if target.has_first_time_flag() or target.has_writeconf_flag():
@@ -606,11 +549,11 @@ class FileSystem:
                 MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
 
         # Iterate over targets, grouping them by start order and server.
-        for order, iter_targets in self.managed_components(group_attr="START_ORDER", 
-                                                           supports='start'):
+        for order, iter_targets in \
+            comps.managed(supports='start').groupby(attr='START_ORDER'):
 
-            targets = sorted(iter_targets, key=attrgetter("server"))
-            for server, iter_targets in groupby(targets, key=attrgetter("server")):
+            targets = ComponentGroup(iter_targets).groupbyserver()
+            for server, iter_targets in targets:
                 targets = list(iter_targets)
 
                 if server.is_local():
@@ -643,6 +586,7 @@ class FileSystem:
         """
         Stop file system.
         """
+        comps = self.components
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -650,12 +594,13 @@ class FileSystem:
 
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
-        for order, iter_targets in self.managed_components(
-                     group_attr="START_ORDER", supports='stop', reverse=True):
+        for order, iter_targets in \
+            comps.managed(supports='stop').groupby(attr='START_ORDER', 
+                                                    reverse=True):
 
-            targets = sorted(iter_targets, key=attrgetter("server"))
-            for server, iter_targets in groupby(targets, 
-                                                key=attrgetter("server")):
+            targets = ComponentGroup(iter_targets).groupbyserver()
+            for server, iter_targets in targets:
+
                 targets = list(iter_targets)
 
                 # iterate over lustre servers
@@ -682,11 +627,14 @@ class FileSystem:
         """
         Mount FS clients.
         """
+        comps = self.components
+        comps = comps.managed(supports='mount')
+
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        for server, iter_comps in self.managed_components(group_attr='server', 
-                                                          supports='mount'):
+        for server, iter_comps in comps.groupbyserver():
+
             if server.is_local():
                 # local client
                 for comp in iter_comps:
@@ -700,18 +648,20 @@ class FileSystem:
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        return self._check_errors([MOUNTED], 
-                                  self.managed_components(supports='mount'))
+        return self._check_errors([MOUNTED], comps)
 
-    def umount(self, **kwargs):
+    def umount(self, comps=None, **kwargs):
         """
         Unmount FS clients.
         """
+        if comps is None:
+            comps = self.components
+        comps = comps.managed(supports='umount')
+
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        for server, iter_comps in self.managed_components(group_attr='server', 
-                                                          supports='umount'):
+        for server, iter_comps in comps.groupbyserver():
             if server.is_local():
                 # local client
                 for comp in iter_comps:
@@ -725,13 +675,15 @@ class FileSystem:
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        return self._check_errors([OFFLINE], 
-                                  self.managed_components(supports='umount'))
+        return self._check_errors([OFFLINE], comps)
 
     def tune(self, tuning_model, addopts=None):
         """
         Tune server.
         """
+        comps = self.components
+        comps = comps.managed()
+
         tune_all = NodeSet()
         type_map = { 'mgt': 'mgs', 
                      'mdt': 'mds', 
@@ -741,7 +693,7 @@ class FileSystem:
 
         if Globals().get_tuning_file():
             # Install tuning.conf on enabled distant servers
-            for server, iter_comp in self.managed_components(group_attr="server"):
+            for server, iter_comp in comps.groupbyserver():
                 if not server.is_local():
                     tune_all.add(server)
 
@@ -750,8 +702,8 @@ class FileSystem:
                                       config_file=Globals().get_tuning_file())
 
         # Apply tunings
-        for server, iter_comp in self.managed_components(group_attr="server", 
-                                                         supports='label'):
+        for server, iter_comp in comps.filter(supports='label').groupbyserver():
+
             e_comps = list(iter_comp)
             if server.is_local():
                 types = set()
