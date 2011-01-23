@@ -22,7 +22,6 @@
 import glob
 
 from ClusterShell.Task import task_self
-from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.Actions.Format import Format, Tunefs
 from Shine.Lustre.Actions.StartTarget import StartTarget
@@ -33,7 +32,7 @@ from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
                                    INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
-from Shine.Lustre.Server import Server
+from Shine.Lustre.Server import Server, ServerGroup
 
 
 class TargetError(ComponentError):
@@ -74,8 +73,8 @@ class Target(Component, Disk):
         """
         Disk.__init__(self, dev, jdev)
 
-        self.defaultserver = server   # Default server the target runs on
-        self.failservers = [ ]        # All failover servers
+        self.defaultserver = server      # Default server the target runs on
+        self.failservers = ServerGroup() # All failover servers
 
         assert index is not None
         self.index = int(index)
@@ -128,7 +127,10 @@ class Target(Component, Disk):
         """
         #XXX: This method could be possibly dropped if the code in Status
         #     command is optimized.
-        return [self.defaultserver] + self.failservers
+        grp = ServerGroup([self.defaultserver])
+        for srv in self.failservers:
+            grp.append(srv)
+        return grp
 
     def failover(self, candidates):
         """
@@ -139,19 +141,15 @@ class Target(Component, Disk):
         raises an exception. If no server matches it returns False. If it has
         changes the current server, it returns true.
         """
-        intersec = candidates.intersection(NodeSet.fromlist(self.failservers))
+        intersec = self.failservers.select(candidates)
 
         # If we have more than one possible failover nodes, it is ambiguous
         if len(intersec) > 1:
             raise TargetError(self, "More than one failover server matches.")
 
         if len(intersec) == 1:
-            # XXX: We need to find intersec[0] in failservers.. we can do
-            # something better here...
-            for srv in self.failservers:
-                if NodeSet(intersec[0]) == srv:
-                    self.server = srv
-                    return True
+            self.server = intersec[0]
+            return True
 
         return False
 

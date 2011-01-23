@@ -76,7 +76,7 @@ class Tune(FSTargetLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        all_nodes = fs.managed_component_servers()
+        all_nodes = fs.components.managed().servers()
         if not self.nodes_support.check_valid_list(fs.fs_name, \
                 all_nodes, "tune"):
             return RC_FAILURE

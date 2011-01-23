@@ -19,7 +19,7 @@
 #
 # $Id$
 
-from itertools import ifilter, groupby, imap
+from itertools import ifilter, groupby
 from operator import attrgetter
 
 from ClusterShell.NodeSet import NodeSet
@@ -271,14 +271,14 @@ class ComponentGroup(object):
 
     def servers(self):
         """Return a NodeSet containing all component servers."""
-        return NodeSet.fromlist((comp.server for comp in self))
+        return NodeSet.fromlist((comp.server.hostname for comp in self))
 
     def allservers(self):
         """Return a NodeSet containing all component servers and fail
         servers."""
         servers = self.servers()
         for comp in self.filter(supports='failservers'):
-            servers.update(NodeSet.fromlist(comp.failservers))
+            servers.update(comp.failservers.nodeset())
         return servers
 
     #
@@ -341,7 +341,8 @@ class ComponentGroup(object):
         # Sort the components using the key, and then group results 
         # using the same key.
         sortlist = sorted(iter(self), key=key, reverse=reverse)
-        return groupby(sortlist, key)
+        grouped = groupby(sortlist, key)
+        return ((grpkey, ComponentGroup(comps)) for grpkey, comps in grouped)
 
     def groupbyserver(self):
         """Uses groupby() to group component per server."""

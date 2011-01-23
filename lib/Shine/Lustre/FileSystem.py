@@ -201,13 +201,6 @@ class FileSystem:
         self._attach_component(router)
         return router
 
-    def managed_component_servers(self, supports=None, filter_key=None):
-        """
-        Return a NodeSet containing current server of each managed components.
-        """
-        filtered = self.components.managed().filter(supports, filter_key)
-        return filtered.servers()
-
     def disable_clients(self):
         """
         Change all client components to disabled mode.
@@ -221,6 +214,15 @@ class FileSystem:
     #
     # Task management.
     #
+
+    def _proxy_action(self, action, servers, comps=None, 
+                      addopts=None, failover=None):
+        """Create a proxy action to remotely run a shine action."""
+        assert(isinstance(servers, NodeSet))
+        assert(comps is None or isinstance(comps, ComponentGroup))
+
+        FSProxyAction(self, action, servers, self.debug, comps=comps, 
+                      addopts=addopts, failover=failover).launch()
 
     def _run_actions(self):
         """
@@ -263,7 +265,7 @@ class FileSystem:
                 for comp in complist:
                     # This target/client has no defined state and is on an
                     # error node, so we consider there was an error
-                    if comp.server in error_nodes and comp.state is None:
+                    if comp.server.hostname in error_nodes and comp.state is None:
                         comp.state = RUNTIME_ERROR
 
         # If a component list is provided, check that all components from it
@@ -338,7 +340,6 @@ class FileSystem:
         """
         Remove FS config files.
         """
-
         result = 0
 
         # Get all possible servers 
@@ -352,12 +353,11 @@ class FileSystem:
             # remove local fs configuration file
             fs_file = os.path.join(Globals().get_conf_dir(), 
                                    "%s.xmf" % self.fs_name)
-            rc = os.unlink(fs_file)
-            result = max(result, rc)
+            result = os.unlink(fs_file)
 
         if len(distant_servers) > 0:
             # Perform the remove operations on all targets for these nodes.
-            FSProxyAction(self, 'remove', distant_servers, self.debug).launch()
+            self._proxy_action('remove', distant_servers)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -369,144 +369,108 @@ class FileSystem:
 
     def format(self, **kwargs):
 
-        comps = self.components
-
-        # Remember format launched, so we can check their status once
-        # all operations are done.
-        format_launched = set()
+        comps = self.components.managed(supports='format')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
 
-        for server, iter_targets in \
-            comps.managed(supports='format').groupbyserver():
-
-            e_targets = list(iter_targets)
+        for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
-                for target in e_targets:
+                for target in targets:
                     target.format(**kwargs)
 
             else:
-                FSProxyAction(self, 'format', NodeSet(server), self.debug,
-                              comps=e_targets, addopts=addopts,
-                              failover=failover).launch()
-
-            format_launched.update(e_targets)
+                self._proxy_action('format', server.hostname, targets, addopts,
+                                   failover)
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], format_launched)
+        return self._check_errors([OFFLINE], comps)
 
 
     def tunefs(self, **kwargs):
 
-        comps = self.components
-
-        # Remember launched actions, so we can check their status once all
-        # operations are done.
-        tunefs_launched = set()
+        comps = self.components.managed(supports='tunefs')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
 
-        for server, iter_targets in \
-            comps.managed(supports='tunefs').groupbyserver():
-
-            e_targets = list(iter_targets)
+        for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
-                for target in e_targets:
+                for target in targets:
                     target.tunefs(**kwargs)
 
             else:
-                FSProxyAction(self, 'tunefs', NodeSet(server), self.debug,
-                              comps=e_targets, addopts=addopts,
-                              failover=failover).launch()
-
-            tunefs_launched.update(e_targets)
+                self._proxy_action('tunefs', server.hostname, targets, addopts,
+                                   failover)
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], tunefs_launched)
+        return self._check_errors([OFFLINE], comps)
 
     def fsck(self, **kwargs):
 
-        comps = self.components
-
-        # Remember fsck launched, so we can check their status once
-        # all operations are done.
-        fsck_launched = set()
+        comps = self.components.managed(supports='fsck')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
         failover = kwargs.get('failover', None)
         
-        for server, iter_targets in \
-            comps.managed(supports='fsck').groupbyserver():
-
-            e_targets = list(iter_targets)
+        for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
-                for target in e_targets:
+                for target in targets:
                     target.fsck(**kwargs)
 
             else:
-                FSProxyAction(self, 'fsck', NodeSet(server), self.debug,
-                              comps=e_targets, addopts=addopts,
-                              failover=failover).launch()
-
-            fsck_launched.update(e_targets)
+                self._proxy_action('fsck', server.hostname, targets, addopts,
+                                   failover)
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], fsck_launched)
+        return self._check_errors([OFFLINE], comps)
 
     def status(self, flags=STATUS_ANY, addopts=None, failover=None, comps=None):
         """
         Get status of filesystem.
         """
-        launched = set()
-
-        if comps is None:
-            comps = self.components
-
         # Filter components depending on flags
         # XXX: Ugly test, implement something cleaner.
         key = lambda c: ((flags & STATUS_SERVERS) and (hasattr(c, 'index') or \
                                                        c.TYPE == Router.TYPE)) \
                        or ((flags & STATUS_CLIENTS) and c.TYPE == Client.TYPE)
 
-        for server, iter_comps in \
-            comps.managed(supports='status').filter(key=key).groupbyserver():
+        if comps is None:
+            comps = self.components
+        comps = comps.managed(supports='status').filter(key=key)
 
-            e_s_comps = list(iter_comps)
+        for server, comps in comps.groupbyserver():
+
             if server.is_local():
-                for comp in e_s_comps:
+                for comp in comps:
                     comp.status()
             else:
-                FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                              comps=e_s_comps, addopts=addopts, 
-                              failover=failover).launch()
+                self._proxy_action('status', server.hostname, comps, addopts,
+                                   failover)
 
-            launched.update(e_s_comps)
-
-        # Run local actions and FSProxyAction
+        # Run local and proxy actions
         self._run_actions()
         
         # Here we check MOUNTED but in fact, any status is OK.
-        return self._check_errors([MOUNTED], launched)
+        return self._check_errors([MOUNTED], comps)
 
     def status_target(self, target, addopts=None):
         """
@@ -522,8 +486,8 @@ class FileSystem:
             # Target is local
             target.status()
         else:
-            FSProxyAction(self, 'status', NodeSet(server), self.debug,
-                          comps=[target], addopts=addopts).launch()
+            comps = ComponentGroup([target])
+            self._proxy_action('status', server.hostname, comps, addopts)
 
         task_self().resume()
 
@@ -533,7 +497,7 @@ class FileSystem:
         """
         Start Lustre file system servers.
         """
-        comps = self.components
+        comps = self.components.managed(supports='start')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -541,7 +505,7 @@ class FileSystem:
 
         # What starting order to use?
         key = lambda t: t.TYPE == MDT.TYPE
-        for target in comps.managed().filter(key=key):
+        for target in comps.filter(key=key):
             # Found enabled MDT: perform writeconf check.
             self.status_target(target)
             if target.has_first_time_flag() or target.has_writeconf_flag():
@@ -549,25 +513,20 @@ class FileSystem:
                 MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
 
         # Iterate over targets, grouping them by start order and server.
-        for order, iter_targets in \
-            comps.managed(supports='start').groupby(attr='START_ORDER'):
-
-            targets = ComponentGroup(iter_targets).groupbyserver()
-            for server, iter_targets in targets:
-                targets = list(iter_targets)
+        for order, targets in comps.groupby(attr='START_ORDER'):
+            for server, subtargets in targets.groupbyserver():
 
                 if server.is_local():
                     # Start targets if we are on the good server.
-                    for target in targets:
+                    for target in subtargets:
                         # Note that target.start() should never block here:
                         # it will perform necessary non-blocking actions and
                         # (when needed) will start local ClusterShell workers.
                         target.start(**kwargs)
                 else:
                     # Start per selected targets on this server.
-                    FSProxyAction(self, 'start', NodeSet(server), self.debug,
-                                  comps=targets, addopts=addopts, 
-                                  failover=failover).launch()
+                    self._proxy_action('start', server.hostname, subtargets,
+                                       addopts, failover)
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -586,7 +545,7 @@ class FileSystem:
         """
         Stop file system.
         """
-        comps = self.components
+        comps = self.components.managed(supports='stop')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -594,25 +553,17 @@ class FileSystem:
 
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
-        for order, iter_targets in \
-            comps.managed(supports='stop').groupby(attr='START_ORDER', 
-                                                    reverse=True):
+        for order, targets in comps.groupby(attr='START_ORDER', reverse=True):
+            for server, subtargets in targets.groupbyserver():
 
-            targets = ComponentGroup(iter_targets).groupbyserver()
-            for server, iter_targets in targets:
-
-                targets = list(iter_targets)
-
-                # iterate over lustre servers
                 if server.is_local():
                     # Stop targets if we are on the good server.
-                    for target in targets:
+                    for target in subtargets:
                         target.stop(**kwargs)
                 else:
                     # Stop per selected targets on this server.
-                    FSProxyAction(self, 'stop', NodeSet(server), self.debug,
-                                  comps=targets, addopts=addopts,
-                                  failover=failover).launch()
+                    self._proxy_action('stop', server.hostname, subtargets,
+                                       addopts, failover)
 
             # Run local actions and FSProxyAction
             self._run_actions()
@@ -627,22 +578,20 @@ class FileSystem:
         """
         Mount FS clients.
         """
-        comps = self.components
-        comps = comps.managed(supports='mount')
+        comps = self.components.managed(supports='mount')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        for server, iter_comps in comps.groupbyserver():
+        for server, clients in comps.groupbyserver():
 
             if server.is_local():
                 # local client
-                for comp in iter_comps:
+                for comp in clients:
                     comp.mount(**kwargs)
             else:
                 # distant client
-                FSProxyAction(self, 'mount', NodeSet(server), self.debug,
-                              comps=list(iter_comps), addopts=addopts).launch()
+                self._proxy_action('mount', server.hostname, clients, addopts)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -661,15 +610,14 @@ class FileSystem:
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
 
-        for server, iter_comps in comps.groupbyserver():
+        for server, clients in comps.groupbyserver():
             if server.is_local():
-                # local client
-                for comp in iter_comps:
+                # local clients
+                for comp in clients:
                     comp.umount(**kwargs)
             else:
-                # distant client
-                FSProxyAction(self, 'umount', NodeSet(server), self.debug,
-                              comps=list(iter_comps), addopts=addopts).launch()
+                # distant clients
+                self._proxy_action('umount', server.hostname, clients, addopts)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -681,39 +629,27 @@ class FileSystem:
         """
         Tune server.
         """
-        comps = self.components
-        comps = comps.managed()
+        comps = self.components.managed()
 
-        tune_all = NodeSet()
         type_map = { 'mgt': 'mgs', 
                      'mdt': 'mds', 
                      'ost': 'oss', 
                      'client': 'client', 
                      'router': 'router' }
 
-        if Globals().get_tuning_file():
-            # Install tuning.conf on enabled distant servers
-            for server, iter_comp in comps.groupbyserver():
-                if not server.is_local():
-                    tune_all.add(server)
-
-            if len(tune_all) > 0:
-                self._distant_action_by_server(Install, tune_all, 
-                                      config_file=Globals().get_tuning_file())
+        # Copy tuning file on distant servers
+        tuning_conf = Globals().get_tuning_file()
+        if tuning_conf:
+            self._distant_action_by_server(Install, comps.servers(),
+                                           config_file=tuning_conf)
 
         # Apply tunings
-        for server, iter_comp in comps.filter(supports='label').groupbyserver():
-
-            e_comps = list(iter_comp)
+        for server, comps in comps.groupbyserver():
             if server.is_local():
-                types = set()
-                for tgt in e_comps:
-                    types.add(type_map[tgt.TYPE])
-
+                types = set([type_map[tgt.TYPE] for tgt in comps])
                 server.tune(tuning_model, types, self.fs_name)
             else:
-                FSProxyAction(self, 'tune', NodeSet(server), self.debug,
-                              comps=e_comps, addopts=addopts).launch()
+                self._proxy_action('tune', server.hostname, comps, addopts)
 
         # Run local actions and FSProxyAction
         self._run_actions()

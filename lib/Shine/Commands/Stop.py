@@ -141,8 +141,9 @@ class Stop(FSTargetLiveCommand):
         fs.disable_clients()
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(supports='stop'), "stop"):
+        servers = fs.components.managed(supports='stop').servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
+                                                   "stop"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.

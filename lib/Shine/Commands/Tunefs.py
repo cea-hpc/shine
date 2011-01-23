@@ -89,15 +89,16 @@ class Tunefs(FSTargetLiveCriticalCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(supports='tunefs'), "tunefs"):
+        servers = fs.components.managed(supports='tunefs').servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
+                                                   "tunefs"):
             return RC_FAILURE
 
         # Ignore all clients for this command
         fs.disable_clients()
 
         if not self.ask_confirm("Tunefs %s on %s: are you sure?" % (fs.fs_name,
-                fs.managed_component_servers(supports='tunefs'))):
+                                                                    servers)):
             return RC_FAILURE
 
         mkfs_options = {}
@@ -119,7 +120,7 @@ class Tunefs(FSTargetLiveCriticalCommand):
                     mkfs_options=mkfs_options,
                     quota=fs_conf.has_quota(),
                     quota_type=fs_conf.get_quota_type(),
-                    addopts = self.addopts.get_options(),
+                    addopts=self.addopts.get_options(),
                     failover=self.target_support.get_failover(),
                     writeconf=True)
 

@@ -98,8 +98,9 @@ class Umount(FSLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers('umount'), "unmount"):
+        comps = fs.components.managed(supports='umount')
+        if not self.nodes_support.check_valid_list(fs.fs_name, comps.servers(),
+                                                   "unmount"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
@@ -123,7 +124,7 @@ class Umount(FSLiveCommand):
                 if vlevel > 0:
                     key = lambda c: c.state == OFFLINE
                     print "Unmount successful on %s" % \
-                        fs.managed_component_servers('umount', filter_key=key)
+                        comps.filter(key=key).servers()
             elif rc == RC_RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
                     print "%s: %s" % (nodes, msg)

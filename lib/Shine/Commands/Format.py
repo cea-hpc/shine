@@ -125,15 +125,16 @@ class Format(FSTargetLiveCriticalCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(supports='format'), "format"):
+        servers = fs.components.managed(supports='format').servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
+                                                   'format'):
             return RC_FAILURE
 
         # Ignore all clients for this command
         fs.disable_clients()
 
         if not self.ask_confirm("Format %s on %s: are you sure?" % (fs.fs_name,
-                fs.managed_component_servers(supports='format'))):
+                                                                    servers)):
             return RC_FAILURE
 
         mkfs_options = {}

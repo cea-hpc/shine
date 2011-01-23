@@ -82,8 +82,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
             target.action_enabled = target.failover(failover)
 
         # Now that server is set, check explicit nodes and exclusion
-        if (nodes is not None and target.server not in nodes) or \
-           (excluded is not None and target.server in excluded):
+        if (nodes is not None and target.server.hostname not in nodes) or \
+           (excluded is not None and target.server.hostname in excluded):
             target.action_enabled = False
             
 
@@ -93,8 +93,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         # filter on nodes
         client_action_enabled = True
-        if (nodes is not None and server not in nodes) or \
-            (excluded is not None and server in excluded):
+        if (nodes is not None and server.hostname not in nodes) or \
+            (excluded is not None and server.hostname in excluded):
             client_action_enabled = False
         # if a target is specified, no client enabled
         if target_types is not None:
@@ -113,8 +113,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         # filter on target types and nodes
         router_action_enabled = True
         if (target_types is not None and 'router' not in target_types) or \
-            (nodes is not None and server not in nodes) or \
-            (excluded is not None and server in excluded):
+            (nodes is not None and server.hostname not in nodes) or \
+            (excluded is not None and server.hostname in excluded):
             router_action_enabled = False
 
         router = fs.new_router(server, router_action_enabled)

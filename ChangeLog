@@ -1,3 +1,6 @@
+2011-01-23 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix too many ssh connection error (ticket #89).
+
 2011-01-19 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Shorter progression messages (ticket #92).
 

@@ -101,8 +101,9 @@ class Mount(FSLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(supports='mount'), "mount"):
+        comps = fs.components.managed(supports='mount')
+        if not self.nodes_support.check_valid_list(fs.fs_name, comps.servers(),
+                                                   "mount"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
@@ -122,14 +123,13 @@ class Mount(FSLiveCommand):
                 if vlevel > 0:
                     key = lambda c: c.state == MOUNTED
                     print "Mount successful on %s" % \
-                        fs.managed_component_servers(supports='mount',filter_key=key)
+                        comps.filter(key=key).servers()
 
                 # Apply tuning after successful mount(s)
                 tuning = Tune.get_tuning(fs_conf)
                 status = fs.tune(tuning)
                 if status == MOUNTED:
-                    print "Filesystem tuning applied on %s" % \
-                        fs.managed_component_servers(supports='mount')
+                    print "Filesystem tuning applied on %s" % comps.servers()
                 elif status == RUNTIME_ERROR:
                     rc = RC_RUNTIME_ERROR
 

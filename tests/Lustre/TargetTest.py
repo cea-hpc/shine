@@ -49,6 +49,15 @@ class TargetTest(unittest.TestCase):
         print tgt2.uniqueid()
         self.assertEqual(tgt2.uniqueid(), tgt1.uniqueid())
 
+    def testAllServers(self):
+        """test Target.allservers()"""
+        fs1 = FileSystem('allsrvr')
+        srv1 = Server('foo1', ['foo1@tcp'])
+        srv2 = Server('foo2', ['foo2@tcp'])
+        tgt = fs1.new_target(srv1, 'ost', 0, '/dev/null')
+        tgt.add_server(srv2)
+        self.assertEqual(list(iter(tgt.allservers())), [srv1, srv2])
+
     def testHaNode(self):
         """test failover servers"""
         fs = FileSystem('nonreg')

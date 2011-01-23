@@ -22,8 +22,6 @@
 from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionUnpackError
 from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
 
-from ClusterShell.NodeSet import NodeSet
-
 
 class FSProxyAction(ProxyAction):
     """
@@ -36,7 +34,6 @@ class FSProxyAction(ProxyAction):
         ProxyAction.__init__(self)
         self.fs = fs
         self.action = action
-        assert isinstance(nodes, NodeSet)
         self.nodes = nodes
         self.debug = debug
 
@@ -61,8 +58,7 @@ class FSProxyAction(ProxyAction):
             command.append("-d")
 
         if self._comps:
-            labels = NodeSet.fromlist([ comp.label for comp in self._comps ])
-            command.append("-l %s" % labels)
+            command.append("-l %s" % self._comps.labels())
 
         if self.addopts:
             command.append("-o '%s'" % self.addopts)

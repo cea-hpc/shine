@@ -83,7 +83,7 @@ class Install(Command):
 
         # Helper message.
         # If user specified nodes which were not used, warn him about it.
-        actual_nodes = fs.managed_component_servers()
+        actual_nodes = fs.components.managed().servers()
         if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
                 actual_nodes, "install"):
             return RC_FAILURE
@@ -106,13 +106,13 @@ class Install(Command):
 
             # Display enabled components by display order
             key = lambda t: (t.DISPLAY_ORDER, t.TYPE)
-            for order, iter_targets in fs.components.managed().groupby(key=key):
-                target_list = list(iter_targets)
+            for order, targets in fs.components.managed().groupby(key=key):
                 # Get the target type in uppercase
+                target_list = list(targets)
                 type = target_list[0].TYPE.upper()[0:3]
                 # List of all servers for these targets
-                servers = NodeSet.fromlist([ t.server for t in target_list ])
-                print "\t%3d %3s on %s" % (len(target_list), type, servers)
+                servers = targets.servers()
+                print "\t%3d %3s on %s" % (len(targets), type, servers)
 
             print
 

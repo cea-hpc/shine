@@ -1,5 +1,5 @@
 # Server.py -- Lustre Server base class
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007, 2008, 2009, 2010 CEA
 #
 # This file is part of shine
 #
@@ -19,23 +19,58 @@
 #
 # $Id$
 
-from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Task import task_self
-
 import socket
 
-class Server(NodeSet):
+from ClusterShell.Task import task_self, NodeSet
+
+class ServerGroup(object):
+
+    def __init__(self, iterable=None):
+        self._list = []
+        if iterable is not None:
+            self._list = list(iterable)
+
+    def __len__(self):
+        return len(self._list)
+
+    def __getitem__(self, index):
+        return self._list[index]
+
+    def __iter__(self):
+        return iter(self._list)
+
+    def append(self, server):
+        """Append the provided server at the end of group."""
+        self._list.append(server)
+
+    def select(self, nodeset):
+        """
+        Return a ServerGroup containing only server which hostname are 
+        present in provided nodeset.
+        """
+        return ServerGroup((srv for srv in self if srv.hostname in nodeset))
+
+    def distant(self):
+        """Return a new ServerGroup with only distant servers."""
+        return ServerGroup((srv for srv in self if not srv.is_local()))
+
+    def nodeset(self):
+        """Return a NodeSet from server hostnames."""
+        return NodeSet.fromlist((srv.hostname for srv in self))
+
+
+class Server(object):
 
     _CACHE_HOSTNAME_SHORT = None
     _CACHE_HOSTNAME_LONG = None
 
-    def __init__(self, node_name, nids):
-        NodeSet.__init__(self, node_name)
+    def __init__(self, hostname, nids):
         assert type(nids) is list
         self.nids = nids
+        self.hostname = NodeSet(hostname)
 
     def __str__(self):
-        return "%s (%s)" % (NodeSet.__str__(self), ','.join(self.nids))
+        return "%s (%s)" % (self.hostname, ','.join(self.nids))
 
     @classmethod
     def hostname_long(cls):
@@ -76,8 +111,7 @@ class Server(NodeSet):
         This means node_name should either match the machine fully qualified
         domain name or machine short-name.
         """
-        assert len(self) == 1
-        srvname = NodeSet.__str__(self)
+        srvname = str(self.hostname)
 
         return self.hostname_long() == srvname or \
                self.hostname_short() == srvname
@@ -91,7 +125,7 @@ class Server(NodeSet):
         # Retrieve the list of tuning parameters that must be applied to
         # the current node
         tuning_parameters = tuning_model.get_params_for_name(
-                                                NodeSet.__str__(self), types)
+                                                    str(self.hostname), types)
         
         # Walk through the tuning parameters list and apply each one of them
         for tuning_parameter in tuning_parameters:

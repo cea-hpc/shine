@@ -211,11 +211,8 @@ class ComponentGroupTest(unittest.TestCase):
         comp4 = Component(fs, srv2)
         comp4.TYPE = 'D'
         grp.add(comp4)
-        results = [[mode, list(comps)] for mode, comps in grp.groupbyserver()]
+        key = lambda c: c.TYPE
+        results = [[srv, sorted(comps, key=key)] for srv, comps in grp.groupbyserver()]
         self.assertEqual(len(results), 2)
-        self.assertEqual(results[0][0], srv1)
-        self.assertTrue(comp1 in results[0][1])
-        self.assertTrue(comp3 in results[0][1])
-        self.assertEqual(results[1][0], srv2)
-        self.assertTrue(comp2 in results[1][1])
-        self.assertTrue(comp4 in results[1][1])
+        self.assertTrue([srv1, [comp1, comp3]] in results)
+        self.assertTrue([srv2, [comp2, comp4]] in results)

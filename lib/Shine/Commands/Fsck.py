@@ -108,12 +108,13 @@ class Fsck(FSTargetLiveCriticalCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(supports="fsck"), "fsck"):
+        servers = fs.components.managed(supports='fsck').servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
+                                                   "fsck"):
             return RC_FAILURE
 
         if not self.ask_confirm("Fsck %s on %s: are you sure?" % (fs.fs_name,
-                fs.managed_component_servers(supports='fsck'))):
+                                servers)):
             return RC_FAILURE
 
         # Call a pre_fsck method if defined by the event handler.
@@ -124,7 +125,7 @@ class Fsck(FSTargetLiveCriticalCommand):
         fs_conf.set_status_fs_checking()
 
         # Fsck really.
-        status = fs.fsck(addopts = self.addopts.get_options(),
+        status = fs.fsck(addopts=self.addopts.get_options(),
                          failover=self.target_support.get_failover())
 
         rc = self.fs_status_to_rc(status)

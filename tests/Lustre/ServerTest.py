@@ -12,7 +12,7 @@ import socket
 
 sys.path.insert(0, '../lib')
 
-from Shine.Lustre.Server import Server
+from Shine.Lustre.Server import Server, ServerGroup
 # No direct dependancies to NodeSet. This should be fixed.
 from ClusterShell.NodeSet import NodeSet
 
@@ -71,6 +71,53 @@ class ServerTest(unittest.TestCase):
 
         nodes_long = nodes | NodeSet(Server.hostname_long())
         self.assertEqual(Server.distant_servers(nodes_long), nodes)
+
+
+class ServerGroupTest(unittest.TestCase):
+
+    def testSimple(self):
+        """test ServerGroup simple tests"""
+        grp = ServerGroup()
+        self.assertEqual(len(grp), 0)
+
+        srv = Server('foo', ['foo@tcp'])
+        grp.append(srv)
+        self.assertEqual(len(grp), 1)
+        self.assertEqual(grp[0], srv)
+
+    def testIter(self):
+        """test ServerGroup.__iter__()"""
+        srv1 = Server('foo1', ['foo1@tcp'])
+        srv2 = Server('foo2', ['foo2@tcp'])
+        grp = ServerGroup([srv1, srv2])
+        self.assertEqual(list(iter(grp)), [srv1, srv2])
+
+    def testSelect(self):
+        """test ServerGroup.select()"""
+        srv1 = Server('foo1', ['foo1@tcp'])
+        srv2 = Server('foo2', ['foo2@tcp'])
+        srv3 = Server('foo3', ['foo3@tcp'])
+        grp = ServerGroup([srv1, srv2, srv3])
+        subgrp = grp.select(NodeSet("foo[1,3]"))
+        self.assertEqual(list(iter(subgrp)), [srv1, srv3])
+
+    def testNodeSet(self):
+        """test ServerGroup.nodeset()"""
+        srv1 = Server('foo1', ['foo1@tcp'])
+        srv2 = Server('foo2', ['foo2@tcp'])
+        grp = ServerGroup([srv1, srv2])
+        self.assertEqual(grp.nodeset(), NodeSet('foo[1-2]'))
+
+    def testDistant(self):
+        """test ServerGroup.nodeset()"""
+        fqdn = socket.getfqdn()
+        shortname = socket.gethostname().split('.', 1)[0]
+
+        srv1 = Server(shortname, ['%s@tcp' % shortname])
+        srv2 = Server('foo', ['foo@tcp'])
+        grp = ServerGroup([srv1, srv2])
+        subgrp = grp.distant()
+        self.assertEqual(list(iter(subgrp)), [ srv2 ])
 
 
 if __name__ == '__main__':

@@ -29,8 +29,6 @@ of the filesystem, or if needed, to enquire about filesystem components
 detailed states.
 """
 
-from ClusterShell.NodeSet import NodeSet
-
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
@@ -147,7 +145,7 @@ class Status(FSTargetLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        all_nodes = fs.managed_component_servers()
+        all_nodes = fs.components.managed().servers()
         if not self.nodes_support.check_valid_list(fs.fs_name, \
                 all_nodes, "check"):
             return RC_FAILURE
@@ -208,7 +206,7 @@ class Status(FSTargetLiveCommand):
             for target in enabled_targets:
                 ldic.append(dict([["target", target.get_id()],
                     ["type", target.TYPE.upper()],
-                    ["nodes", NodeSet.fromlist(target.allservers())],
+                    ["nodes", target.allservers().nodeset()],
                     ["device", target.dev],
                     ["index", target.index],
                     ["status", target.text_status()]]))
@@ -248,8 +246,8 @@ class Status(FSTargetLiveCommand):
                 continue
             ldic.append(dict([
                 ["type", comps[0].TYPE.upper()[0:3]],
-                ["count", len(comps)],
-                ["nodes", NodeSet.fromlist([c.server for c in comps])],
+                ["count", len(e_comps)],
+                ["nodes", e_comps.servers()],
                 ["status", status]]))
 
         layout = AsciiTableLayout()
@@ -318,7 +316,7 @@ class Status(FSTargetLiveCommand):
                     flags.append("conf_param")
 
                 ldic.append(dict([\
-                    ["nodes", NodeSet.fromlist(target.allservers())],
+                    ["nodes", target.allservers().nodeset()],
                     ["dev", target.dev],
                     ["size", dev_size],
                     ["jdev", jdev],

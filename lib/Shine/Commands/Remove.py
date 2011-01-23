@@ -28,8 +28,6 @@ This will interact with the backend and will remove local cached files.
 """
 
 
-from ClusterShell.NodeSet import NodeSet
-
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
 
@@ -51,8 +49,9 @@ class Remove(FSTargetLiveCriticalCommand):
         rc = RC_OK
 
         # Warn if trying to act on wrong nodes
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                fs.managed_component_servers(), "uninstall"):
+        servers = fs.components.managed().servers()
+        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
+                                                   'uninstall'):
             return RC_FAILURE
 
         # Admin mode
@@ -66,7 +65,7 @@ class Remove(FSTargetLiveCriticalCommand):
 
                 # Mounted filesystem!
                 if state in [MOUNTED, RECOVERING]:
-                    labels = NodeSet.fromlist([t.server for t in targets])
+                    labels = targets.labels()
                     print "WARNING: Some targets are started: %s" % labels
                 # Error, won't be able to remove on these nodes
                 elif state == RUNTIME_ERROR:
