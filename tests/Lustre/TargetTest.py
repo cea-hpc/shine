@@ -64,7 +64,7 @@ class TargetTest(unittest.TestCase):
         srv = Server('foo1', ['foo1@tcp'])
         tgt = Target(fs, srv, 0, '/dev/null')
         self.assertEqual(tgt.server, srv)
-        self.assertEqual(tgt.failservers, [])
+        self.assertEqual(len(tgt.failservers), 0)
 
         # Could not switch to an undefined failnode
         self.assertFalse(tgt.failover(NodeSet("foo1")))
@@ -73,14 +73,14 @@ class TargetTest(unittest.TestCase):
         # Add a failserver and switch to it
         foo2 = Server('foo2', ['foo2@tcp'])
         tgt.add_server(foo2)
-        self.assertEqual(tgt.failservers, [ foo2 ])
+        self.assertEqual(list(tgt.failservers), [ foo2 ])
         self.assertTrue(tgt.failover(NodeSet("foo2")))
         self.assertEqual(tgt.server, foo2)
 
         # Add a 2nd failserver and switch to it
         foo3 = Server('foo3', ['foo3@tcp'])
         tgt.add_server(foo3)
-        self.assertEqual(tgt.failservers, [ foo2, foo3 ])
+        self.assertEqual(list(tgt.failservers), [ foo2, foo3 ])
         self.assertTrue(tgt.failover(NodeSet("foo3")))
         self.assertEqual(tgt.server, foo3)
 
