@@ -306,6 +306,15 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd_format(action, '--mdt --index=0 ' +
                               '"--mgsnode=localhost@tcp" /dev/root')
 
+    def test_format_target_mdt_options(self):
+        """test command line format (MDT with addl options)"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
+        tgt._check_status(mountdata=False)
+        action = Format(tgt, addopts='-v')
+        self.check_cmd_format(action, '--mdt --index=0 ' +
+             '"--mgsnode=localhost@tcp" -v /dev/root')
+
     def test_format_target_mdt_quota(self):
         """test command line format (MDT with quota)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
@@ -406,6 +415,12 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Tunefs(tgt, writeconf=True)
         self.check_cmd_tunefs(action, '--writeconf /dev/root')
+
+    def test_tunefs_mgs(self):
+        """test command line tunefs addl options (MGT)"""
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = Tunefs(tgt, addopts='-v')
+        self.check_cmd_tunefs(action, '-v /dev/root')
 
     def test_tunefs_mdt(self):
         """test command line tunefs (MDT)"""

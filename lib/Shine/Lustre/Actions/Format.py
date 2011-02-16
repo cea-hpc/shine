@@ -41,6 +41,7 @@ class CommonFormat(FSAction):
         self.stripesize = kwargs.get('stripesize')
         self.format_params = kwargs.get('format_params')
         self.mkfs_options = kwargs.get('mkfs_options')
+        self.addopts = kwargs.get('addopts')
 
         # Quota
         if kwargs.get('quota', False):
@@ -99,6 +100,10 @@ class CommonFormat(FSAction):
         if self.format_params and self.format_params.get(self.comp.TYPE):
             command.append('"--param=%s"' %
                     self.format_params.get(self.comp.TYPE))
+
+        # Mount options from command line
+        if self.addopts:
+            command.append(self.addopts)
 
         return command
 

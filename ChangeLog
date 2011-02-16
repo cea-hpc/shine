@@ -1,3 +1,6 @@
+2011-02-16 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix ignored additional options for format command (ticket #93).
+
 2011-01-23 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix too many ssh connection error (ticket #89).
 
