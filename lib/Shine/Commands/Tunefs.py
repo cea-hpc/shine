@@ -101,13 +101,10 @@ class Tunefs(FSTargetLiveCriticalCommand):
                                                                     servers)):
             return RC_FAILURE
 
-        mkfs_options = {}
         format_params = {}
         for target_type in [ 'mgt', 'mdt', 'ost' ]:
             format_params[target_type] = \
                     fs_conf.get_target_format_params(target_type)
-            mkfs_options[target_type] = \
-                    fs_conf.get_target_mkfs_options(target_type)
 
         # Call a pre_format method if defined by the event handler.
         if hasattr(eh, 'pre'):
@@ -117,7 +114,6 @@ class Tunefs(FSTargetLiveCriticalCommand):
         status = fs.tunefs(stripecount=fs_conf.get_stripecount(),
                     stripesize=fs_conf.get_stripesize(),
                     format_params=format_params,
-                    mkfs_options=mkfs_options,
                     quota=fs_conf.has_quota(),
                     quota_type=fs_conf.get_quota_type(),
                     addopts=self.addopts.get_options(),

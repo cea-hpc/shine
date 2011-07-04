@@ -40,7 +40,6 @@ class CommonFormat(FSAction):
         self.stripecount = kwargs.get('stripecount')
         self.stripesize = kwargs.get('stripesize')
         self.format_params = kwargs.get('format_params')
-        self.mkfs_options = kwargs.get('mkfs_options')
         self.addopts = kwargs.get('addopts')
 
         # Quota
@@ -128,11 +127,6 @@ class Tunefs(CommonFormat):
 
         command += CommonFormat._prepare_cmd(self)
 
-        # Generic --mkfsoptions
-        if self.mkfs_options and self.comp.TYPE in self.mkfs_options:
-            command.append('"--mkfsoptions=%s"' %
-                           self.mkfs_options.get(self.comp.TYPE))
-
         # Writeconf flag
         if self.writeconf:
             command.append('--writeconf')
@@ -148,6 +142,10 @@ class Format(CommonFormat):
     """
 
     NAME = 'format'
+
+    def __init__(self, target, **kwargs):
+        CommonFormat.__init__(self, target, **kwargs)
+        self.mkfs_options = kwargs.get('mkfs_options')
 
     def _prepare_cmd(self):
         """Return target format command line."""

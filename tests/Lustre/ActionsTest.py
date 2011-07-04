@@ -483,11 +483,3 @@ class ActionsTest(unittest.TestCase):
         action = Tunefs(ost, format_params={'ost': 'foo'})
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
                               '"--param=foo" /dev/root')
-
-    def test_tunefs_target_mkfsoptions(self):
-        """test command line tunefs mkfsoptions"""
-        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root')
-        action = Tunefs(ost, mkfs_options={'ost': '-m 2'})
-        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
-                              '"--mkfsoptions=-m 2" /dev/root')
