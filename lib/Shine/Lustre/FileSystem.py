@@ -336,14 +336,15 @@ class FileSystem:
         self._distant_action_by_server(Install, servers,
                                        config_file=fs_config_file)
         
-    def remove(self):
+    def remove(self, servers=None):
         """
         Remove FS config files.
         """
         result = 0
 
-        # Get all possible servers 
-        servers = self.components.managed().allservers()
+        if servers is None:
+            # Get all possible servers 
+            servers = self.components.managed().allservers()
 
         # filter local server
         distant_servers = Server.distant_servers(servers)
@@ -353,7 +354,8 @@ class FileSystem:
             # remove local fs configuration file
             fs_file = os.path.join(Globals().get_conf_dir(), 
                                    "%s.xmf" % self.fs_name)
-            result = os.unlink(fs_file)
+            if os.path.exists(fs_file):
+                result = os.remove(fs_file)
 
         if len(distant_servers) > 0:
             # Perform the remove operations on all targets for these nodes.
@@ -367,9 +369,9 @@ class FileSystem:
         
         return result
 
-    def format(self, **kwargs):
+    def format(self, comps=None, **kwargs):
 
-        comps = self.components.managed(supports='format')
+        comps = (comps or self.components).managed(supports='format')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -393,9 +395,9 @@ class FileSystem:
         return self._check_errors([OFFLINE], comps)
 
 
-    def tunefs(self, **kwargs):
+    def tunefs(self, comps=None, **kwargs):
 
-        comps = self.components.managed(supports='tunefs')
+        comps = (comps or self.components).managed(supports='tunefs')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -418,9 +420,9 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], comps)
 
-    def fsck(self, **kwargs):
+    def fsck(self, comps=None, **kwargs):
 
-        comps = self.components.managed(supports='fsck')
+        comps = (comps or self.components).managed(supports='fsck')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -453,9 +455,7 @@ class FileSystem:
                                                        c.TYPE == Router.TYPE)) \
                        or ((flags & STATUS_CLIENTS) and c.TYPE == Client.TYPE)
 
-        if comps is None:
-            comps = self.components
-        comps = comps.managed(supports='status').filter(key=key)
+        comps = (comps or self.components).managed('status').filter(key=key)
 
         for server, comps in comps.groupbyserver():
 
@@ -472,32 +472,11 @@ class FileSystem:
         # Here we check MOUNTED but in fact, any status is OK.
         return self._check_errors([MOUNTED], comps)
 
-    def status_target(self, target, addopts=None):
-        """
-        Launch a status request for a specific local or remote target.
-        """
-
-        # Don't call me if the target itself is not enabled.
-        assert target.action_enabled
-
-        server = target.server
-
-        if server.is_local():
-            # Target is local
-            target.status()
-        else:
-            comps = ComponentGroup([target])
-            self._proxy_action('status', server.hostname, comps, addopts)
-
-        task_self().resume()
-
-        # XXX: No error check?
-
-    def start(self, **kwargs):
+    def start(self, comps=None, **kwargs):
         """
         Start Lustre file system servers.
         """
-        comps = self.components.managed(supports='start')
+        comps = (comps or self.components).managed(supports='start')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -507,7 +486,7 @@ class FileSystem:
         key = lambda t: t.TYPE == MDT.TYPE
         for target in comps.filter(key=key):
             # Found enabled MDT: perform writeconf check.
-            self.status_target(target)
+            self.status(comps=ComponentGroup([target]))
             if target.has_first_time_flag() or target.has_writeconf_flag():
                 # first_time or writeconf flag found, start MDT before OSTs
                 MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
@@ -541,11 +520,11 @@ class FileSystem:
         return MOUNTED
 
 
-    def stop(self, **kwargs):
+    def stop(self, comps=None, **kwargs):
         """
         Stop file system.
         """
-        comps = self.components.managed(supports='stop')
+        comps = (comps or self.components).managed(supports='stop')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -574,11 +553,11 @@ class FileSystem:
 
         return OFFLINE
 
-    def mount(self, **kwargs):
+    def mount(self, comps=None, **kwargs):
         """
         Mount FS clients.
         """
-        comps = self.components.managed(supports='mount')
+        comps = (comps or self.components).managed(supports='mount')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -603,9 +582,7 @@ class FileSystem:
         """
         Unmount FS clients.
         """
-        if comps is None:
-            comps = self.components
-        comps = comps.managed(supports='umount')
+        comps = (comps or self.components).managed(supports='umount')
 
         # Get additional options for the FSProxyAction call
         addopts = kwargs.get('addopts', None)
@@ -625,11 +602,11 @@ class FileSystem:
         # Ok, workers have completed, perform late status check...
         return self._check_errors([OFFLINE], comps)
 
-    def tune(self, tuning_model, addopts=None):
+    def tune(self, tuning_model, addopts=None, comps=None):
         """
         Tune server.
         """
-        comps = self.components.managed()
+        comps = (comps or self.components).managed()
 
         type_map = { 'mgt': 'mgs', 
                      'mdt': 'mds', 
