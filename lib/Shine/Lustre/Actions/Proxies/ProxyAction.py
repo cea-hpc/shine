@@ -59,8 +59,8 @@ class ProxyAction(Action):
             if int(version) != SHINE_MSG_VERSION:
                 raise ProxyActionUnpackError("Shine message version mismatch")
             return event, pickle.loads(binascii.a2b_base64(data))
-        except:
-            raise ProxyActionUnpackError("Unknown error")
+        except Exception, exp:
+            raise ProxyActionUnpackError("Unknown error: %s" % exp)
 
     def _shine_msg_unpack2(self, fs, node, buf):
         """
