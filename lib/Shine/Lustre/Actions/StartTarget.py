@@ -20,7 +20,6 @@
 # $Id$
 
 import os
-from string import Template
 
 from Shine.Lustre.Actions.Action import FSAction
 
@@ -39,29 +38,44 @@ class StartTarget(FSAction):
         self.addopts = kwargs.get('addopts')
         self.mount_paths = kwargs.get('mount_paths')
 
+    def _vars_substitute(self, txt, suppl_vars=None):
+        """
+        Replace symbolic variable from the provided text.
+
+        This function extends FSAction._var_substitute. It adds:
+         $index
+         $dev:     Replaced by the basename of the device.
+         $jdev:    Same as 'dev' for the journal device.
+        """
+        var_map = {
+                    'index'   : str(self.comp.index),
+                    'dev'     : os.path.basename(self.comp.dev),
+                  }
+
+        if self.comp.jdev:
+            var_map['jdev'] = os.path.basename(self.comp.jdev)
+
+        if suppl_vars:
+            var_map.update(suppl_vars)
+
+        return FSAction._vars_substitute(self, txt, var_map)
+
     def _prepare_cmd(self):
         """Mount file system target."""
 
-        mount_path = None
-        if self.mount_paths:
-            mount_path = self.mount_paths.get(self.comp.TYPE)
+        # If there is a user-defined path
+        if self.mount_paths and self.comp.TYPE in self.mount_paths:
+            mount_path = self.mount_paths[self.comp.TYPE]
+        else:
+            # Default mount path
+            mount_path = "/mnt/$fs_name/$type/$index"
 
-            var_map = { 'fs_name' : self.comp.fs.fs_name,
-                        'label'   : self.comp.label,
-                        'type'    : self.comp.TYPE,
-                        'index'   : str(self.comp.index) }
+        # Replace variables
+        mount_path = self._vars_substitute(mount_path)
 
-            try:
-                mount_path = Template(mount_path).substitute(var_map)
-            except KeyError:
-                # Unknown variable in mount_path: failback to default
-                pass
-
-        if not mount_path:
-            # fallback to defaut
-            mount_path = "/mnt/%s/%s/%d" % (self.comp.fs.fs_name,
-                    self.comp.TYPE, self.comp.index)
-
+        #
+        # Build command
+        #
         command = ["mkdir -p \"%s\"" % mount_path]
         command += ["&& /bin/mount -t lustre"]
 

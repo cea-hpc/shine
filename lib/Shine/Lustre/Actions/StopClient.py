@@ -46,6 +46,7 @@ class StopClient(FSAction):
         if self.addopts:
             command.append(self.addopts)
 
-        command.append(self.comp.mount_path)
+        mount_path = self._vars_substitute(self.comp.mount_path)
+        command.append(mount_path)
 
         return command

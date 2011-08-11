@@ -37,7 +37,10 @@ class StartClient(FSAction):
         """
         Prepare client file system mount command line.
         """
-        command = ["mkdir -p \"%s\"" % self.comp.mount_path]
+
+        mount_path = self._vars_substitute(self.comp.mount_path)
+
+        command = ["mkdir -p \"%s\"" % mount_path]
         command += ["&& /bin/mount -t lustre"]
 
         options = []
@@ -59,6 +62,6 @@ class StartClient(FSAction):
         mgsfullnid = ':'.join(nodenids)
         command.append("%s:/%s" % (mgsfullnid, self.comp.fs.fs_name))
 
-        command.append(self.comp.mount_path)
+        command.append(mount_path)
 
         return command

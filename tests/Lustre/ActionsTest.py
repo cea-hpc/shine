@@ -101,6 +101,34 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
            '/bin/mount -t lustre -o acl,user_xattr localhost@tcp:/action /foo')
 
+    def test_startstop_client_custom_vars(self):
+        """test command line start/stop client (custom vars)"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        # fs_name
+        mtpt = '/action'
+        client = self.fs.new_client(self.srv1, "/$fs_name")
+        action = StartClient(client)
+        self.check_cmd(action, 'mkdir -p "%s" && ' \
+               '/bin/mount -t lustre localhost@tcp:/action %s' % (mtpt, mtpt))
+        action = StopClient(client)
+        self.check_cmd(action, 'umount %s' % mtpt)
+        # label
+        mtpt = '/action-client'
+        client = self.fs.new_client(self.srv1, "/$label")
+        action = StartClient(client)
+        self.check_cmd(action, 'mkdir -p "%s" && ' \
+               '/bin/mount -t lustre localhost@tcp:/action %s' % (mtpt, mtpt))
+        action = StopClient(client)
+        self.check_cmd(action, 'umount %s' % mtpt)
+        # type
+        mtpt = '/client'
+        client = self.fs.new_client(self.srv1, "/client")
+        action = StartClient(client)
+        self.check_cmd(action, 'mkdir -p "%s" && ' \
+               '/bin/mount -t lustre localhost@tcp:/action %s' % (mtpt, mtpt))
+        action = StopClient(client)
+        self.check_cmd(action, 'umount %s' % mtpt)
+
     def test_stop_client_simple(self):
         """test command line stop client (simple)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
@@ -217,6 +245,7 @@ class ActionsTest(unittest.TestCase):
         """test command line start target (custom mount paths)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt._check_status(mountdata=False)
+
         # fs_name
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name/mgt'})
         self.check_cmd(action,
@@ -236,12 +265,27 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$label'})
         self.check_cmd(action, 'mkdir -p "/mnt/MGS"' +
                                ' && /bin/mount -t lustre /dev/root /mnt/MGS')
+        # dev
+        action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name-$dev'})
+        self.check_cmd(action, 'mkdir -p "/mnt/action-root"' +
+                        ' && /bin/mount -t lustre /dev/root /mnt/action-root')
+        # No jdev
+        action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name-$jdev'})
+        self.check_cmd(action, 'mkdir -p "/mnt/action-$jdev"' +
+                        ' && /bin/mount -t lustre /dev/root /mnt/action-$jdev')
 
         # Bad variable, leave it as-is
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$bad'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/$bad" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/$bad')
+
+        # jdev
+        tgt = self.fs.new_target(self.srv1, 'mdt', 0, '/dev/root', '/dev/loop0')
+        tgt._check_status(mountdata=False)
+        action = StartTarget(tgt, mount_paths={'mdt': '/mnt/$jdev'})
+        self.check_cmd(action, 'mkdir -p "/mnt/loop0" && ' +
+              '/bin/mount -t lustre -o journal_dev=0x700 /dev/root /mnt/loop0')
 
     # Stop
     def test_stop_target(self):
@@ -410,13 +454,13 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd(action,
                  'tunefs.lustre --erase-params --quiet ' + cmdline)
 
-    def test_tunefs_mgs(self):
+    def test_tunefs_mgs_writeconf(self):
         """test command line tunefs writeconf (MGT)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Tunefs(tgt, writeconf=True)
         self.check_cmd_tunefs(action, '--writeconf /dev/root')
 
-    def test_tunefs_mgs(self):
+    def test_tunefs_mgs_addl(self):
         """test command line tunefs addl options (MGT)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Tunefs(tgt, addopts='-v')

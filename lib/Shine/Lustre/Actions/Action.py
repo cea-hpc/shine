@@ -26,6 +26,8 @@ action.
 An action must inherits from one of the base Action class.
 """
 
+from string import Template
+
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
 
@@ -55,6 +57,26 @@ class FSAction(Action):
     def __init__(self, comp, task=task_self(), **kwargs):
         Action.__init__(self, task)
         self.comp = comp
+
+    def _vars_substitute(self, txt, suppl_vars=None):
+        """
+        Replace symbolic variable from the provided text.
+
+        Supported variables are:
+         $fs_name
+         $label
+         $type
+        """
+        var_map = { 'fs_name' : self.comp.fs.fs_name,
+                    'label'   : self.comp.label,
+                    'type'    : self.comp.TYPE,
+                  }
+
+        if suppl_vars:
+            var_map.update(suppl_vars)
+
+        # Unknown variable in mount_path: failback to default
+        return Template(txt).safe_substitute(var_map)
 
     def _prepare_cmd(self):
         """
