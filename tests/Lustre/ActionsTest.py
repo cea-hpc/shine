@@ -56,7 +56,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client)
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
                              '/bin/mount -t lustre localhost@tcp:/action /foo')
 
     def test_start_client_two_nids(self):
@@ -65,7 +65,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(srv, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client)
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
               '/bin/mount -t lustre localhost@tcp,localhost@o2ib:/action /foo')
 
     def test_start_client_mgs_failover(self):
@@ -74,7 +74,7 @@ class ActionsTest(unittest.TestCase):
         mgt.add_server(self.srv2)
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client)
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
               '/bin/mount -t lustre localhost@tcp:localhost2@tcp:/action /foo')
 
     def test_start_client_mount_options(self):
@@ -82,7 +82,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client, mount_options='acl')
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
                       '/bin/mount -t lustre -o acl localhost@tcp:/action /foo')
 
     def test_start_client_addl_options(self):
@@ -90,7 +90,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client, addopts='user_xattr')
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
                '/bin/mount -t lustre -o user_xattr localhost@tcp:/action /foo')
 
     def test_start_client_both_options(self):
@@ -98,7 +98,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client, mount_options='acl', addopts='user_xattr')
-        self.check_cmd(action, 'mkdir -p "/foo" && /sbin/modprobe lustre && ' +
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
            '/bin/mount -t lustre -o acl,user_xattr localhost@tcp:/action /foo')
 
     def test_stop_client_simple(self):
@@ -141,7 +141,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
-                'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/action/mgt/0" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/action/mgt/0')
 
     def test_start_target_addopts(self):
@@ -150,7 +150,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt, addopts='abort_recov')
         self.check_cmd(action,
-               'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+               'mkdir -p "/mnt/action/mgt/0" && ' +
                '/bin/mount -t lustre -o abort_recov /dev/root /mnt/action/mgt/0')
 
     def test_start_target_mount_options(self):
@@ -159,7 +159,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt, mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
-               'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+               'mkdir -p "/mnt/action/mgt/0" && ' +
                '/bin/mount -t lustre -o abort_recov /dev/root /mnt/action/mgt/0')
 
     def test_start_target_mount_options_none(self):
@@ -168,12 +168,12 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt, mount_options={'mdt': 'abort_recov'})
         self.check_cmd(action,
-               'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+               'mkdir -p "/mnt/action/mgt/0" && ' +
                '/bin/mount -t lustre /dev/root /mnt/action/mgt/0')
 
         action = StartTarget(tgt, mount_options={'mgt': None})
         self.check_cmd(action,
-               'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+               'mkdir -p "/mnt/action/mgt/0" && ' +
                '/bin/mount -t lustre /dev/root /mnt/action/mgt/0')
 
     def test_start_target_both_options(self):
@@ -183,7 +183,7 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, addopts='ro',
                              mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
-             'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+             'mkdir -p "/mnt/action/mgt/0" && ' +
              '/bin/mount -t lustre -o abort_recov,ro /dev/root /mnt/action/mgt/0')
 
     def test_start_target_jdev(self):
@@ -192,7 +192,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
-          'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+          'mkdir -p "/mnt/action/mgt/0" && ' +
           '/bin/mount -t lustre -o journal_dev=0x301 /dev/hda /mnt/action/mgt/0')
 
     def test_start_target_file_device(self):
@@ -201,7 +201,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
-                'mkdir -p "/mnt/action/mgt/0" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/action/mgt/0" && ' +
                 '/bin/mount -t lustre -o loop /etc/passwd /mnt/action/mgt/0')
 
     def test_start_target_mount_paths(self):
@@ -210,7 +210,7 @@ class ActionsTest(unittest.TestCase):
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/mypath'})
         self.check_cmd(action,
-                'mkdir -p "/mnt/mypath" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/mypath" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/mypath')
 
     def test_start_target_custom_mount_paths(self):
@@ -220,27 +220,27 @@ class ActionsTest(unittest.TestCase):
         # fs_name
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name/mgt'})
         self.check_cmd(action,
-                'mkdir -p "/mnt/action/mgt" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/action/mgt" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/action/mgt')
         # index
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/mgt/$index'})
         self.check_cmd(action,
-                'mkdir -p "/mnt/mgt/0" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/mgt/0" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/mgt/0')
         # type
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$type/$index'})
         self.check_cmd(action,
-                'mkdir -p "/mnt/mgt/0" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/mgt/0" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/mgt/0')
         # label
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$label'})
-        self.check_cmd(action, 'mkdir -p "/mnt/MGS" && /sbin/modprobe lustre' +
+        self.check_cmd(action, 'mkdir -p "/mnt/MGS"' +
                                ' && /bin/mount -t lustre /dev/root /mnt/MGS')
 
         # Bad variable, leave it as-is
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$bad'})
         self.check_cmd(action,
-                'mkdir -p "/mnt/$bad" && /sbin/modprobe lustre && ' +
+                'mkdir -p "/mnt/$bad" && ' +
                 '/bin/mount -t lustre /dev/root /mnt/$bad')
 
     # Stop

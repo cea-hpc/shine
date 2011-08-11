@@ -38,7 +38,7 @@ class StartClient(FSAction):
         Prepare client file system mount command line.
         """
         command = ["mkdir -p \"%s\"" % self.comp.mount_path]
-        command += ["&& /sbin/modprobe lustre && /bin/mount -t lustre"]
+        command += ["&& /bin/mount -t lustre"]
 
         options = []
 

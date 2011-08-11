@@ -63,7 +63,7 @@ class StartTarget(FSAction):
                     self.comp.TYPE, self.comp.index)
 
         command = ["mkdir -p \"%s\"" % mount_path]
-        command += ["&& /sbin/modprobe lustre && /bin/mount -t lustre"]
+        command += ["&& /bin/mount -t lustre"]
 
         # Loop devices handling
         if not self.comp.dev_isblk:

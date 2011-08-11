@@ -1,3 +1,6 @@
+2011-08-11 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Do not explicitly call 'modprobe lustre' in parallel (ticket #97).
+
 2011-02-16 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix ignored additional options for format command (ticket #93).
 
