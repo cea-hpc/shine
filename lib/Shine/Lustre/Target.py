@@ -225,8 +225,8 @@ class Target(Component, Disk):
             self.state = OFFLINE
         elif len(mntdev_path) == 0:
             self.state = TARGET_ERROR
-            raise TargetDeviceError(self, "incoherent state in /proc/fs/lustre for %s" % \
-                    self.label)
+            raise TargetDeviceError(self, "incoherent state in " \
+                                    "/proc/fs/lustre for %s" % self.label)
         else:
             # get target's real device
             fproc = open(mntdev_path[0])
@@ -247,8 +247,8 @@ class Target(Component, Disk):
                                 self.state = MOUNTED
                             else:
                                 self.state = TARGET_ERROR
-                                raise TargetDeviceError(self, "multiple mounts detected for %s" % \
-                                        self.label)
+                                raise TargetDeviceError(self, "multiple " \
+                                        " mounts detected for %s" % self.label)
             finally:
                 f_proc_mounts.close()
 
@@ -256,8 +256,15 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 # up but not mounted = incoherent state
                 # check for loaded state: ST, UP...
-                raise TargetDeviceError(self, "incoherent state for %s (started but not mounted?)" % \
-                       self.label)
+                raise TargetDeviceError(self, "incoherent state for %s " \
+                                     "(started but not mounted?)" % self.label)
+
+            if self.state == MOUNTED and not loaded:
+                self.state = TARGET_ERROR
+                # mounted but not up = incoherent state
+                # /etc/fstab was not correctly cleaned
+                raise TargetDeviceError(self, "incoherent state for %s " \
+                                     "(mounted but not started?)" % self.label)
 
             if self.state == MOUNTED and self.TYPE != MGT.TYPE:
                 # check for MDT or OST recovery (MGS doesn't make any recovery)
@@ -265,30 +272,35 @@ class Target(Component, Disk):
                     fproc = open(recov_path[0], 'r')
                 except (IOError, IndexError):
                     self.state = TARGET_ERROR
-                    raise TargetDeviceError(self, "recovery_state file not found for %s" % \
-                            self.label)
+                    raise TargetDeviceError(self, "recovery_state file not " \
+                                                  "found for %s" % self.label)
 
                 try:
-                    recovery_duration = -1
-                    completed_clients = -1
-                    time_remaining = -1
 
                     for line in fproc:
                         if line.startswith("status:"):
-                            key, status = line.rstrip().split(' ', 2)
+                            status = line.rstrip().split(' ', 2)[1]
                             break
-                    if status == "COMPLETE":
-                        for line in fproc:
-                            if line.startswith("recovery_duration:"):
-                                key, recovery_duration = line.rstrip().split(' ', 2) 
-                            if line.startswith("completed_clients:"):
-                                key, completed_clients = line.rstrip().split(' ', 2)
+#                            
+# This is not used currently.
+#
+#                   if status == "COMPLETE":
+#                     recovery_duration = -1
+#                     completed_clients = -1
+#                     for line in fproc:
+#                        if line.startswith("recovery_duration:"):
+#                            recovery_duration = line.rstrip().split(' ', 2)[1]
+#                        if line.startswith("completed_clients:"):
+#                            completed_clients = line.rstrip().split(' ', 2)[1]
+#
                     if status == "RECOVERING":
+                        completed_clients = -1
+                        time_remaining = -1
                         for line in fproc:
                             if line.startswith("time_remaining:"):
-                                key, time_remaining = line.rstrip().split(' ', 2)
+                                time_remaining = line.rstrip().split(' ', 2)[1]
                             if line.startswith("completed_clients:"):
-                                key, completed_clients = line.rstrip().split(' ', 2)
+                                completed_clients = line.rstrip().split(' ', 2)[1]
                         self.state = RECOVERING
                         self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
                 finally:

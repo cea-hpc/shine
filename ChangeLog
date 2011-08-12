@@ -1,3 +1,6 @@
+2011-08-12 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Handle "mounted but not loaded" state (ticket #63).
+
 2011-08-11 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Do not explicitly call 'modprobe lustre' in parallel (ticket #97).
 	* Add more variables for paths in model file (ticket #68).
