@@ -19,6 +19,7 @@ nid_map: nodes=nova[0-39] nids=nova[0-39]@tcp0
 
 # mount_path
 # Default clients mount point path.
+# Some variables could be used in 'mount_path', see -Path Variables- below.
 mount_path: /example
 
 
@@ -58,6 +59,8 @@ client: node=nova[33-34]
 # Sometimes it is needed for some nodes to mount this FS on a different
 # mount point (not the default mount_path). In that case, use the
 # optional client parameter mount_path.
+# 
+# Some variables could be used in 'mount_path', see -Path Variables- below.
 client: node=nova[35-39] mount_path=/my/specific/example
 
 
@@ -131,7 +134,16 @@ quota: no
 # quota_itune:    <percentage>
 # quota_btune:    <percentage>
 
-# target mount path patterns
+# Target Mount Path patterns
+#
+# -Path Variables-
+# Several variables could be used within these paths:
+#  $fs_name:  Filesystem name defined in 'fs_name:'
+#  $label:    Component label (ie: foo-OST0002)
+#  $type:     Component type ('mdt', 'mgt', 'ost', 'router', 'client')
+#  $index:    Target index, in decimal (ie: 1, 2, 36, ...)
+#  $dev:      Base name of target device path (ie: sdc)
+#  $jdev:     Base name of target journal device path
 mgt_mount_path: /mnt/$fs_name/mgt
 mdt_mount_path: /mnt/$fs_name/mdt/$index
 ost_mount_path: /mnt/$fs_name/ost/$index
