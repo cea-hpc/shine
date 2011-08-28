@@ -24,3 +24,11 @@ class GlobalsTest(unittest.TestCase):
         self.assertEqual(Globals().get('storage_file'),
                 '/etc/shine/storage.conf')
         Globals.DEFAULT_CONF_FILE = backup
+
+    def test_lustre_version(self):
+        conf = Globals()
+        self.assertFalse(conf.lustre_version_is_smaller('1.6.5'))
+
+        conf.add('lustre_version', '1.8.5')
+        self.assertFalse(conf.lustre_version_is_smaller('1.6.7'))
+        self.assertTrue(conf.lustre_version_is_smaller('2.0.0.1'))

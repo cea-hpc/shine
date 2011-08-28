@@ -9,6 +9,7 @@
 import os
 import unittest
 
+from Shine.Configuration.Globals import Globals
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
 from Shine.Lustre.Actions.StartRouter import StartRouter
@@ -359,14 +360,25 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" -v /dev/root')
 
-    def test_format_target_mdt_quota(self):
-        """test command line format (MDT with quota)"""
+    def test_format_target_mdt_quota_v1x(self):
+        """test command line format v1.x (MDT with quota)"""
+        Globals().replace('lustre_version', '1.6')
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
         tgt._check_status(mountdata=False)
         action = Format(tgt, quota=True, quota_type='ug')
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=mdt.quota_type=ug" /dev/root')
+
+    def test_format_target_mdt_quota_v2x(self):
+        """test command line format v2.x (MDT with quota)"""
+        Globals().replace('lustre_version', '2.0.0.1')
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
+        tgt._check_status(mountdata=False)
+        action = Format(tgt, quota=True, quota_type='ug')
+        self.check_cmd_format(action, '--mdt --index=0 ' +
+             '"--mgsnode=localhost@tcp" "--param=mdd.quota_type=ug" /dev/root')
 
     def test_format_target_mdt_striping(self):
         """test command line format (MDT with striping)"""
@@ -489,13 +501,27 @@ class ActionsTest(unittest.TestCase):
                               '--param=lov.stripecount=2 ' +
                               '--param=lov.stripesize=2097152 /dev/root')
 
-    def test_tunefs_target_quota(self):
-        """test command line tunefs quota"""
+    def test_tunefs_target_quota_v1x(self):
+        """test command line tunefs quota (v1.x)"""
+        Globals().replace('lustre_version', '1.6')
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         mdt = self.fs.new_target(self.srv1, 'mdt', 0, '/dev/root')
         action = Tunefs(mdt, quota=True, quota_type='ug')
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
                               '"--param=mdt.quota_type=ug" /dev/root')
+        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/sdb')
+        action = Tunefs(ost, quota=True, quota_type='ug')
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                              '"--param=ost.quota_type=ug" /dev/sdb')
+
+    def test_tunefs_target_quota_v2x(self):
+        """test command line tunefs quota (v2.x)"""
+        Globals().replace('lustre_version', '2.0.0.1')
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        mdt = self.fs.new_target(self.srv1, 'mdt', 0, '/dev/root')
+        action = Tunefs(mdt, quota=True, quota_type='ug')
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                              '"--param=mdd.quota_type=ug" /dev/root')
         ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/sdb')
         action = Tunefs(ost, quota=True, quota_type='ug')
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +

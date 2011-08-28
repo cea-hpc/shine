@@ -76,6 +76,9 @@ class Globals(object):
             self.add_element('default_fanout',      check='digit',
                     default=30)
 
+            # Lustre version
+            self.add_element('lustre_version',      check='string')
+
             # TO BE IMPLEMENTED
             self.add_element('start_timeout',       check='digit')
             self.add_element('mount_timeout',       check='digit')
@@ -90,6 +93,18 @@ class Globals(object):
             
             Only for convenience."""
             self.add_custom(name, DefaultElement(**kwargs), multiple)
+
+        def lustre_version_is_smaller(self, version):
+            """
+            Return true if the Lustre version defined in configuration
+            is smaller than the one provided.
+            If no version is speficied in configuration, it always returns 
+            False.
+            """
+            if 'lustre_version' in self:
+                return self['lustre_version'].split('.') < version.split('.')
+            else:
+                return False
 
         def get_backend(self):
             return self.get('backend')

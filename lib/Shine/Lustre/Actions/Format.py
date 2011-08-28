@@ -19,6 +19,8 @@
 #
 # $Id$
 
+from Shine.Configuration.Globals import Globals
+
 from Shine.Lustre.Actions.Action import FSAction
 # take care of cross-dependency
 import Shine.Lustre.Target
@@ -70,7 +72,11 @@ class CommonFormat(FSAction):
             if self.stripesize:
                 command.append('--param=lov.stripesize=%d' % self.stripesize)
             if self.quota_type is not None:
-                command.append('"--param=mdt.quota_type=%s"' % self.quota_type)
+                if Globals().lustre_version_is_smaller('2'):
+                    option = 'mdt.quota_type'
+                else:
+                    option = 'mdd.quota_type'
+                command.append('"--param=%s=%s"' % (option, self.quota_type))
 
         elif self.comp.TYPE == self.OST_TYPE:
             command += self._mgsnids()
