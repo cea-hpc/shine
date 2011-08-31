@@ -28,10 +28,11 @@ class ConfigException(Exception):
         return self.message
 
 class ConfigDeviceNotFoundError(ConfigException):
+    """A target, described in a model file, cannot be found."""
     def __init__(self, model_dev):
-        ConfigException.__init__(self)
+        msg = "No matching device found for \"%s\"" % model_dev
+        ConfigException.__init__(self, msg)
         self.model_dev = model_dev
-        self.message = "No matching device found for \"%s\"" % model_dev
 
 class ConfigInvalidFileSystem(ConfigException):
     """Error indicating the filesystem configuration is not correct."""

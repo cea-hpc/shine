@@ -1,3 +1,6 @@
+2011-08-31 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix exception bug when loading a model file (ticket #100).
+
 2011-08-28 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Support quota options for Lustre 1.x and 2.x (ticket #90).
 
