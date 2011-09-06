@@ -119,7 +119,7 @@ class Command(object):
         Return True when the user confirms the action, False otherwise.
         """
         i = raw_input("%s (y)es/(N)o: " % prompt)
-        return i == 'y' or i == 'Y'
+        return i.lower() in ('y', 'yes')
 
 
     def filter_rc(self, rc):
