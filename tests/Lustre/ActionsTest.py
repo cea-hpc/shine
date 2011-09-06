@@ -46,7 +46,7 @@ class ActionsTest(unittest.TestCase):
         """test command line stop router"""
         rtr = self.fs.new_router(self.srv1)
         action = StopRouter(rtr)
-        self.check_cmd(action, "lctl net down && lustre_rmmod")
+        self.check_cmd(action, "lctl net down ; lustre_rmmod")
 
     #
     # Client

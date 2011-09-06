@@ -1,5 +1,5 @@
 # StopRouter.py -- Stop router
-# Copyright (C) 2010 CEA
+# Copyright (C) 2010, 2011 CEA
 #
 # This file is part of shine
 #
@@ -32,4 +32,11 @@ class StopRouter(FSAction):
 
     def _prepare_cmd(self):
         """Stop LNET."""
-        return [ "lctl net down", "&&", "lustre_rmmod" ]
+        # XXX: Commands are joined with a simple ';' to workaround ab issue
+        # when a target or a client is started on a router node.
+        # All lustre modules will be loaded, and, when stopping, 
+        # 'lctl net down' will cry, but it has done the required work.
+        # So, lustre_rmmod is the final check to be sure the router is stopped.
+        # This will be cleaned when a real module management will be done
+        # directly by Shine.
+        return [ "lctl net down", ";", "lustre_rmmod" ]
