@@ -27,6 +27,7 @@ The remove command aims to uninstall a Lustre filesystem setup with Shine.
 This will interact with the backend and will remove local cached files.
 """
 
+from Shine.Configuration.FileSystem import ModelFileIOError
 
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
@@ -43,6 +44,14 @@ class Remove(FSTargetLiveCriticalCommand):
  
     NAME = "remove"
     DESCRIPTION = "Remove a previously installed file system"
+
+    def execute(self):
+        try:
+            return FSTargetLiveCriticalCommand.execute(self)
+        except ModelFileIOError:
+            if self.has_local_flag():
+                return 0
+            raise
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 

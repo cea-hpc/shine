@@ -34,6 +34,10 @@ from Shine.Configuration.NidMap import NidMap
 from Shine.Configuration.Backend.Backend import Backend
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
+
+class ModelFileIOError(ConfigException):
+    """Malformed or unfound model file or XML file."""
+
 class FileSystem(object):
     """
     Lustre File System Configuration class.
@@ -48,7 +52,7 @@ class FileSystem(object):
         try:
             self.model.load(filename)
         except IOError:
-            raise ConfigException("Could not read %s" % filename)
+            raise ModelFileIOError("Could not read %s" % filename)
 
         # Set nodes to nids mapping using the NidMap helper class
         self.nid_map = NidMap.fromlist(self.get('nid_map'))

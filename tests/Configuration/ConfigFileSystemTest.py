@@ -9,7 +9,7 @@
 import unittest
 
 from Utils import makeTempFile, setup_tempdirs, clean_tempdirs
-from Shine.Configuration.FileSystem import FileSystem
+from Shine.Configuration.FileSystem import FileSystem, ModelFileIOError
 from Shine.Configuration.Exceptions import ConfigException, ConfigInvalidFileSystem
 
 class FileSystemTest(unittest.TestCase):
@@ -38,6 +38,10 @@ class FileSystemTest(unittest.TestCase):
         """create a FileSystem from model example.lmf"""
         fs = FileSystem(filename="../conf/models/example.lmf")
         self.assertEqual(len(fs.model), 20)
+
+    def test_missing_config_file(self):
+        """test missing config file detection"""
+        self.assertRaises(ModelFileIOError, FileSystem, filename="/bad/file")
 
     def testMGSOnly(self):
         """filesystem with only a MGS"""
