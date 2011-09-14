@@ -126,3 +126,47 @@ client: node=foo[2-3]
 client: node=foo[3-5] mount_path=/foo2
         """)
         self.assertRaises(ConfigException, self._conf.get_client_mounts)
+
+    def test_has_quota_old_style(self):
+        """Configuration has_quota (old style)"""
+
+        # Old style quota mode value is 'yes' or 'no'
+        self._conf = self.make_config("""
+fs_name: hasquota
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+quota: no
+client: node=foo[2-3]
+        """)
+        self.assertFalse(self._conf.has_quota())
+
+        self._conf = self.make_config("""
+fs_name: hasquota
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+quota: yes
+client: node=foo[2-3]
+        """)
+        self.assertTrue(self._conf.has_quota())
+
+    def test_has_quota_new_style(self):
+        """Configuration has_quota (new style)"""
+
+        # New style quota mode value is 'True' or 'False'
+        self._conf = self.make_config("""
+fs_name: hasquota
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+quota: False
+client: node=foo[2-3]
+        """)
+        self.assertFalse(self._conf.has_quota())
+
+        self._conf = self.make_config("""
+fs_name: hasquota
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+quota: True
+client: node=foo[2-3]
+        """)
+        self.assertTrue(self._conf.has_quota())

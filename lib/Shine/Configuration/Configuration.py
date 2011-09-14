@@ -265,7 +265,7 @@ class Configuration:
         """
         Return if quota has been enabled in the configuration file.
         """
-        return self._fs.get('quota') == 'yes'
+        return self._fs.get('quota')
 
     def get_quota_type(self):
         return self._fs.get('quota_type')
