@@ -61,6 +61,12 @@ is the directory where model files are looked for, in
 .Ic install Ns 
  command. Default is
 .Pa /etc/shine/models .
+.It Ic lustre_version Ns = Ns Ar x.y.z
+The Lustre version of the filesystem Shine is managing. This is used to 
+handle incompatibilities between several Lustre releases. By example,
+set it to 
+.Pa 1.8 Ns
+ if you are using any of 1.8 Lustre version.
 .El
 
 .Ss Storage backend
@@ -108,8 +114,7 @@ Default directory is
 .Bl -tag -width Ds -compact
 .It Ic tuning_file Ns = Ns Ar pathname
 is the file describing Lustre tuning parameters applicable for all installed filesystems.
-Default is
-.Pa /etc/shine/tuning.conf
+If not set, no tuning is applied.
 .El
 .Ss Advanced settings 
 .Bl -tag -width Ds -compact
