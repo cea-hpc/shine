@@ -186,7 +186,7 @@ class Tune(FSTargetLiveCommand):
 
             need_convertion = False
 
-            if not quota_bunit_value == '':
+            if quota_bunit_value:
                 # The bunit size value must be converted in KBs
                 quota_bunit_value = str( int(quota_bunit_value) * 1048576)
 
@@ -198,7 +198,7 @@ class Tune(FSTargetLiveCommand):
 
                 need_convertion = True
 
-            if not quota_btune_value == '' and not quota_bunit_value == '':
+            if quota_btune_value and quota_bunit_value:
                 # Convert the values to the right units
                 quota_btune_value = \
                         str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
@@ -211,7 +211,7 @@ class Tune(FSTargetLiveCommand):
 
                 need_convertion = True
 
-            if not quota_iunit_value == '':
+            if quota_iunit_value:
                 # Create the quota tuning parameters with the right values
                 tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
                         ['mds'], None)
@@ -220,7 +220,7 @@ class Tune(FSTargetLiveCommand):
 
                 need_convertion = True
                     
-            if not quota_itune_value == '' and not quota_iunit_value == '':
+            if quota_itune_value and quota_iunit_value:
                 # Convert the values to the right units
                 quota_itune_value = \
                         str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
