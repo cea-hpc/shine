@@ -81,14 +81,11 @@ Show configuration parameters. Supported \fIshow\fP keywords are detailed below:
 .IP \(bu 2
 .
 \fIstorage\fP: Show File backend storage configuration.
-.IP \(bu 2
-.
-\fItuning\fP: Show defined tuning configuration.
 .UNINDENT
 .UNINDENT
 .UNINDENT
 .TP
-.B \fIinstall\fP
+.B \fIinstall\fP -m <MODEL.LMF>
 .sp
 Install  a  filesystem  from a model file. The model file may describe
 the entire Lustre filesystem or only target patterns  that  will  match
@@ -96,17 +93,24 @@ Shine backend entries.  By installing, we mean that shine will generate
 a filesystem configuration  and  will spread it to the concerned nodes
 (MGS, MDS, OSS, LNET routers and clients).
 .TP
-.B \fIremove\fP
+.B \fIupdate\fP -m <MODEL.LMF>
+.sp
+Update an installed file system. This command applies the changes you made
+to an installed filesystem model and copy the filesystem and tuning 
+configuration files. This is useful to change default striping, ost options,
+add/remove clients and more, or simply update the configuration files.
+.TP
+.B \fIremove\fP -f <FSNAME>
 .sp
 Remove an installed file system. This command removes the filesystem
 description but nothing is done on the various targets involved in
 the considered filesystem (no reformatting of freed target is done).
 .TP
-.B \fIformat\fP
+.B \fIformat\fP -f <FSNAME>
 .sp
 Format an installed filesystem.
 .TP
-.B \fIfsck\fP
+.B \fIfsck\fP -f <FSNAME>
 .sp
 Perform a "check and repair" \fIfsck\fP on specified targets backend file system in parallel.
 .TP

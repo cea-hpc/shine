@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -37,6 +37,84 @@ from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 class ModelFileIOError(ConfigException):
     """Malformed or unfound model file or XML file."""
+
+class Target:
+    def __init__(self, type, cf_target):
+        self.type = type
+        self.dic = cf_target.as_dict()
+
+    def get_type(self):
+        return self.type
+
+    def get_tag(self):
+        return self.dic.get('tag')
+        
+    def get_nodename(self):
+        return self.dic.get('node')
+
+    def ha_nodes(self):
+        """
+        Return ha_nodes list (failover hosts). An empty list is
+        returned when no ha_nodes are provided.
+        """
+        nodes = self.dic.get('ha_node')
+        if not nodes:
+            nodes = []
+        elif type(nodes) is not list:
+            nodes = [nodes]
+        return nodes
+
+    def get_dev(self):
+        return self.dic.get('dev')
+
+    def get_dev_size(self):
+        return self.dic.get('size')
+
+    def get_jdev(self):
+        return self.dic.get('jdev')
+
+    def get_jdev_size(self):
+        return self.dic.get('jsize')
+
+    def get_index(self):
+        return int(self.dic.get('index', 0))
+
+    def get_group(self):
+        return self.dic.get('group')
+    
+    def get_mode(self):
+        return self.dic.get('mode', 'managed')
+
+    def get_network(self):
+        return self.dic.get('network')
+
+class Clients:
+    def __init__(self, cf_client):
+        self.dic = cf_client.as_dict()
+
+    def get_nodes(self):
+        return self.dic.get('node')
+
+    def get_mount_path(self):
+        return self.dic.get('mount_path')
+
+    def get_type(self):
+        return 'client'
+        
+
+class Routers:
+    def __init__(self, cf_router):
+        self.dic = cf_router.as_dict()
+
+    def get_nodes(self):
+        return self.dic.get('node')
+
+    def get_nodename(self):
+        # To be compatible with Target
+        return self.get_nodes()
+
+    def get_type(self):
+        return 'router'
 
 class FileSystem(object):
     """
@@ -79,16 +157,19 @@ class FileSystem(object):
         return "%s/%s.xmf" % (os.path.normpath(fs_conf_dir), fsname)
 
     @classmethod
-    def create_from_model(cls, lmf):
+    def create_from_model(cls, lmf, update_mode=False):
         """Save to cache."""
-        model = FileSystem(lmf)
+        fsmodel = FileSystem(lmf)
         # xmf_path could be set later if setup_target_devices do not need it
-        model.xmf_path = cls._cache_path(model.fs_name)
-        # This will create the XMF 
-        model._setup_target_devices()
+        fsmodel.xmf_path = cls._cache_path(fsmodel.fs_name)
+        fsmodel.setup_target_devices(update_mode=update_mode)
+        # Save XMF
+        fsmodel.model.save(fsmodel.xmf_path,
+                  "# Shine Lustre file system config file for %s" % \
+                  fsmodel.fs_name)
 
-        # Reload from content saved in _setup_target_devices()
-        return cls.load_from_fsname(model.fs_name)
+        # Reload from content saved previously
+        return cls.load_from_fsname(fsmodel.fs_name)
 
     @classmethod
     def load_from_fsname(cls, fsname):
@@ -112,9 +193,9 @@ class FileSystem(object):
 
         return self.backend
 
-    def _setup_target_devices(self):
-        """ Generate the eXtended Model File XMF
-        """
+    def setup_target_devices(self, update_mode=False):
+        """ Generate the eXtended Model File XMF """
+
         self._start_backend()
 
         # We have to setup the possible targets, which are: MGT, MDT and OST.
@@ -130,7 +211,10 @@ class FileSystem(object):
             if self.backend:
 
                 # Returns a list of TargetDevices
-                candidates = self.backend.get_target_devices(target)
+                fs_name = None
+                if update_mode == True:
+                    fs_name = self.fs_name
+                candidates = self.backend.get_target_devices(target, fs_name=fs_name, update_mode=update_mode)
 
                 # Save the model target selection
                 target_models = copy.copy(self.model.get(target))
@@ -207,10 +291,6 @@ class FileSystem(object):
 
         self._check_coherency()
 
-        # Save XMF
-        self.model.save(self.xmf_path,
-                  "# Shine Lustre file system config file for %s" % \
-                  self.fs_name)
 
     def _check_coherency(self):
         """Verify that the declared components make a coherent filesystem."""
@@ -227,8 +307,10 @@ class FileSystem(object):
                      "You must declare both MDT and OST or neither.")
 
     def compare(self, otherfs):
-        """Compare the FileSystem model with another FileSystem and 
-        return a dictionnary describing the needed actions."""
+        """
+        Compare the FileSystem model with another FileSystem and return
+        a dictionnary describing the needed actions.
+        """
         
         actions = {}
         added, changed, removed = self.model.diff(otherfs.model)
@@ -259,6 +341,7 @@ class FileSystem(object):
         # Need a writeconf
         writeconfkeys = set(['nid_map'])
         if writeconfkeys & anyset:
+            # Note: Target removal could also set this flag.
             actions['writeconf'] = True
 
         # Need to remount clients
@@ -281,29 +364,32 @@ class FileSystem(object):
 
         # Clients have changed
         if 'client' in removed:
-            actions['unmount'] = removed.elements('client')
+            actions['unmount'] = [ Clients(elem) for elem in removed.elements('client')]
         if 'client' in added:
-            actions['mount'] = added.elements('client')
-        if 'client' in changed:
-            assert True, 'Client change is not supported'
+            actions['mount'] = [ Clients(elem) for elem in added.elements('client')]
+        assert 'client' not in changed, 'Client change is not supported'
 
         # Router has changed
         if 'router' in removed:
-            actions.setdefault('stop', []).append(removed.elements('router'))
+            actions.setdefault('stop', []).extend(
+                         [Routers(elem) for elem in removed.elements('router')])
         if 'router' in added:
-            actions.setdefault('start', []).append(added.elements('router'))
-        if 'router' in changed:
-            assert True, 'Router change is not supported'
+            actions.setdefault('start', []).extend(
+                         [Routers(elem) for elem in added.elements('router')])
+        assert 'router' not in changed, 'Router change is not supported'
 
         # Some targets have changed
         for tgt in [ 'mgt', 'mdt', 'ost']:
             if tgt in removed:
-                actions.setdefault('stop', []).append(removed.elements(tgt))
+                actions['writeconf'] = True
+                actions.setdefault('stop', []).extend(
+                        [Target(tgt, elem) for elem in removed.elements(tgt)])
             if tgt in added:
-                actions.setdefault('format', []).append(added.elements(tgt))
-                actions.setdefault('start', []).append(added.elements(tgt))
-            if tgt in changed:    
-                assert True, '%s change is not supported' % tgt.upper()
+                actions.setdefault('format', []).extend(
+                        [Target(tgt, elem) for elem in added.elements(tgt)])
+                actions.setdefault('start', []).extend(
+                        [Target(tgt, elem) for elem in added.elements(tgt)])
+            assert tgt not in changed, '%s change is not supported' % tgt.upper()
 
         # If some actions is required, we need to update config files.
         if len(actions) > 0:

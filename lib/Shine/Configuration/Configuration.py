@@ -1,5 +1,5 @@
 # Configuration.py -- Configuration container
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -23,77 +23,9 @@ import socket
 
 from ClusterShell.NodeSet import NodeSet
 
-from Shine.Configuration.FileSystem import FileSystem
+from Shine.Configuration.FileSystem import FileSystem, Target, Routers, Clients
 from Shine.Configuration.Exceptions import ConfigException
 
-
-class Target:
-    def __init__(self, type, cf_target):
-        self.type = type
-        self.dic = cf_target.as_dict()
-
-    def get_type(self):
-        return self.type
-
-    def get_tag(self):
-        return self.dic.get('tag')
-        
-    def get_nodename(self):
-        return self.dic.get('node')
-
-    def ha_nodes(self):
-        """
-        Return ha_nodes list (failover hosts). An empty list is
-        returned when no ha_nodes are provided.
-        """
-        nodes = self.dic.get('ha_node')
-        if not nodes:
-            nodes = []
-        elif type(nodes) is not list:
-            nodes = [nodes]
-        return nodes
-
-    def get_dev(self):
-        return self.dic.get('dev')
-
-    def get_dev_size(self):
-        return self.dic.get('size')
-
-    def get_jdev(self):
-        return self.dic.get('jdev')
-
-    def get_jdev_size(self):
-        return self.dic.get('jsize')
-
-    def get_index(self):
-        return int(self.dic.get('index', 0))
-
-    def get_group(self):
-        return self.dic.get('group')
-    
-    def get_mode(self):
-        return self.dic.get('mode', 'managed')
-
-    def get_network(self):
-        return self.dic.get('network')
-
-class Clients:
-    def __init__(self, cf_client):
-        self.dic = cf_client.as_dict()
-
-    def get_nodes(self):
-        return self.dic.get('node')
-
-    def get_mount_path(self):
-        return self.dic.get('mount_path')
-        
-
-class Routers:
-    def __init__(self, cf_router):
-        self.dic = cf_router.as_dict()
-
-    def get_nodes(self):
-        return self.dic.get('node')
 
 class Configuration:
     def __init__(self):
@@ -108,9 +40,15 @@ class Configuration:
         return conf
 
     @classmethod
-    def create_from_model(cls, lmf):
+    def load_from_model(cls, lmf):
         conf = Configuration()
-        conf._fs = FileSystem.create_from_model(lmf)
+        conf._fs = FileSystem(lmf)
+        return conf
+
+    @classmethod
+    def create_from_model(cls, lmf, update_mode=False):
+        conf = Configuration()
+        conf._fs = FileSystem.create_from_model(lmf, update_mode=update_mode)
         return conf
 
     def close(self):

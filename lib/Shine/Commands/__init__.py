@@ -1,5 +1,5 @@
 # Commands/__init__.py -- Commands module initialization
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -44,6 +44,7 @@ commandList = []
 #             "Tune"]:
 for cmd in [ "Show",
              "Install",
+             "Update",
              "Remove",
              "Format",
              "Status",

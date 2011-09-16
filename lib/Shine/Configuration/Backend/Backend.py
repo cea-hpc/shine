@@ -90,7 +90,7 @@ class Backend:
         """
         raise NotImplementedError(NIEXC)
 
-    def get_target_devices(self, target):
+    def get_target_devices(self, target, update_mode=False):
         """
         Get the targets configuration, as a TargetDevice list (for mgt, mdt, ost).
         """

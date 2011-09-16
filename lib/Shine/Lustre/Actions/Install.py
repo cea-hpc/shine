@@ -1,5 +1,5 @@
 # Install.py -- Install Lustre FS configuration
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # $Id$
+
+import os.path
 
 from Shine.Lustre.Actions.Action import Action
 
@@ -40,4 +42,10 @@ class Install(Action):
                 nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
-        print "Updating file system configuration files on %s" % self.nodes
+        name = os.path.basename(self.config_file)
+        if len(self.nodes) > 8:
+            print "Updating file system configuration file `%s' on %d " \
+                "server(s)" % (name, len(self.nodes))
+        else:
+            print "Updating file system configuration file `%s' on %s" \
+                % (name, self.nodes)

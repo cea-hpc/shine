@@ -254,6 +254,26 @@ ost: node=foo4 dev=/dev/sda
         self.assertTrue(actions.get('format', False))
         self.assertTrue(actions.get('start', False))
 
+    def test_remove_target(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda
+ost: node=foo4 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('writeconf', False))
+        self.assertTrue(actions.get('stop', False))
+
     def test_remove_router(self):
         actions = self._compare(
 """fs_name: compare
@@ -268,3 +288,81 @@ router: node=foo2
         self.assertTrue(actions.get('copyconf', False))
         self.assertTrue(actions.get('stop', False))
         self.assertTrue(actions.get('start', False))
+
+    def test_mkfs_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt_mkfs_options: -m0
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('reformat', False))
+
+    def test_quota_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+quota: no
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+quota: yes
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('tunefs', False))
+
+    def test_stripping_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+stripe_count: 1
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+stripe_count: 2
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('tunefs', False))
+
+    def test_target_mount_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt_mount_options: ro
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('restart', False))
+
+    def test_client_mount_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /foo
+mgt: node=foo1 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /bar
+mgt: node=foo1 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('remount', False))

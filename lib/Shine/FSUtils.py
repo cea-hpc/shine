@@ -1,5 +1,5 @@
 # FSUtils.py -- Useful shine FS utility functions
-# Copyright (C) 2009, 2010 CEA
+# Copyright (C) 2009, 2010, 2011 CEA
 #
 # This file is part of shine
 #
@@ -23,8 +23,42 @@
 from ClusterShell.NodeSet import NodeSet, RangeSet
 
 from Shine.Configuration.Configuration import Configuration
-from Shine.Lustre.FileSystem import FileSystem
+
+from Shine.Lustre.FileSystem import FileSystem, MGT, MDT, OST, Client, Router
+from Shine.Lustre.Component import ComponentGroup
 from Shine.Lustre.Server import Server
+
+
+def _create_comp(fs_conf, fs, comp):
+
+    comp_type = comp.get_type()
+    newcomp = None
+    if comp_type == 'client':
+        newcomp = Client(fs, Server(comp.get_nodes(),
+               fs_conf.get_nid(comp.get_nodes())), comp.get_mount_path() or fs_conf.get_default_mount_path())
+    elif comp_type == 'mgt':
+        newcomp = MGT(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
+                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+    elif comp_type == 'mdt':
+        newcomp = MDT(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
+                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+    elif comp_type == 'ost':
+        newcomp = OST(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
+                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+    elif comp_type == 'router':
+        newcomp = Router(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())))
+    else:
+        assert False, "Unknown component type: %s" % comp_type
+
+    return fs.components[newcomp.uniqueid()]
+
+def convert_comparison(fsconf, fs, actions):
+    """
+    This will transform configuration element that are present in action list
+    to reference to FileSystem Component.
+    """
+
+    return ComponentGroup((_create_comp(fsconf, fs, elem) for elem in actions))
 
 
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
@@ -126,11 +160,15 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     return fs
 
 
+def open_model(fs_model_file):
+    """Only load a model file"""
+    return Configuration.load_from_model(fs_model_file)
+
 def create_lustrefs(fs_model_file, event_handler=None, nodes=None, 
-                    excluded=None):
+                    excluded=None, update_mode=False):
     """Create a FileSystem instance from configuration file and save in on
     disk."""
-    fs_conf = Configuration.create_from_model(fs_model_file)
+    fs_conf = Configuration.create_from_model(fs_model_file, update_mode=update_mode)
     
     fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \
                               nodes=nodes, excluded=excluded)
