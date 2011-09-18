@@ -84,7 +84,7 @@ class ClusterDB(Backend):
         # Create a new ClusterMgmtDB connection
         self.__db_cnx = ClusterMgmtDB()
 
-    def get_target_devices(self, target, update_mode=False):
+    def get_target_devices(self, target, fs_name=None, update_mode=False):
         """
         Return a list of TargetDevice's
         """

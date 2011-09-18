@@ -94,7 +94,7 @@ class File(Backend):
 
         self.status_clients[fs_name] = shelve.open(status_file)
 
-    def get_target_devices(self, target):
+    def get_target_devices(self, target, fs_name=None, update_mode=None):
         """
         Get target storage devices.
         """
