@@ -457,14 +457,14 @@ class FileSystem:
 
         comps = (comps or self.components).managed('status').filter(key=key)
 
-        for server, comps in comps.groupbyserver():
+        for server, srvcomps in comps.groupbyserver():
 
             if server.is_local():
-                for comp in comps:
+                for comp in srvcomps:
                     comp.status()
             else:
-                self._proxy_action('status', server.hostname, comps, addopts,
-                                   failover)
+                self._proxy_action('status', server.hostname, srvcomps,
+                                   addopts, failover)
 
         # Run local and proxy actions
         self._run_actions()
@@ -621,12 +621,12 @@ class FileSystem:
                                            config_file=tuning_conf)
 
         # Apply tunings
-        for server, comps in comps.groupbyserver():
+        for server, srvcomps in comps.groupbyserver():
             if server.is_local():
-                types = set([type_map[tgt.TYPE] for tgt in comps])
+                types = set([type_map[tgt.TYPE] for tgt in srvcomps])
                 server.tune(tuning_model, types, self.fs_name)
             else:
-                self._proxy_action('tune', server.hostname, comps, addopts)
+                self._proxy_action('tune', server.hostname, srvcomps, addopts)
 
         # Run local actions and FSProxyAction
         self._run_actions()
