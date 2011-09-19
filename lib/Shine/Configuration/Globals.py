@@ -73,7 +73,7 @@ class Globals(object):
                     default=30)
             self.add_element('ssh_fanout',          check='digit',
                     default=0)
-            self.add_element('default_fanout',      check='digit',
+            self.add_element('default_timeout',     check='digit',
                     default=30)
 
             # Lustre version
