@@ -579,5 +579,5 @@ class ModelFile(object):
         modelfd = open(filename, 'w+')
         if header:
             modelfd.write("%s\n" % header)
-        modelfd.write("%s" % self)
+        modelfd.write("%s\n" % self)
         modelfd.close()
