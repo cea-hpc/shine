@@ -415,7 +415,7 @@ class Update(Command):
 
         # Tunefs if needed
         if 'tunefs' in actions or 'writeconf' in actions:
-            next_actions.append("Need to run `tunefs' on some components.")
+            next_actions.append("Need to run `tunefs' on all components.")
             next_actions.append(self._next_action_cmd('tunefs', newfs)) 
 
         # Reformat if needed
