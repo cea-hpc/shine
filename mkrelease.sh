@@ -1,20 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 # Script to release shine RPMS
-# $Id$
 
 TMPDIR=${TMPDIR:-/tmp}
 TOPDIR=$TMPDIR/shine
 VERSIONFILE="lib/Shine/__init__.py"
 
+clean() {
+    # Regenerate MANIFEST each time (from setup.py + MANIFEST.in)
+    rm -f $PWD/MANIFEST
+    rm -rf $TOPDIR/BUILD/shine*
+}
 
 # check usage
-if [ -z $2 ]; then
-    echo "$0 <version> <el5|fc11|fc12>"
+if [ -z $1 ]; then
+    echo "$0 <version>"
     exit 1
 fi
 
 version=$1
-DIST=".$2"
 
 # check version
 if [ `grep -c "^public_version = \"$version\"" $VERSIONFILE` -eq 0 ]; then
@@ -28,30 +31,20 @@ if [ `grep -c "^public_version = \"$version\"" $VERSIONFILE` -eq 0 ]; then
     fi
 fi
 
-mkdir -p $TOPDIR/{SOURCES,BUILD,SPECS}
-
-# Regenerate MANIFEST each time (from setup.py + MANIFEST.in)
-rm -f $PWD/MANIFEST
+clean
 
 # build a source distribution
-SHINEVERSION=$version
-export SHINEVERSION
+export SHINEVERSION=$version
+python setup.py sdist || exit 1
 
-python setup.py sdist
-
-if [ $? -ne 0 ]; then
-    echo "Build source distribution failed."
-    exit 1
-fi
-
-mv -v dist/shine-$SHINEVERSION.tar.gz $TOPDIR/SOURCES/
-
+# build RPMs
+mkdir -p $TOPDIR/BUILD
 rpmbuild -ba \
-    --define "dist $DIST" \
     --define "_topdir $TOPDIR" \
     --define "version $SHINEVERSION" \
     --define "_rpmdir $PWD/dist" \
     --define "_srcrpmdir $PWD/dist" \
+    --define "_sourcedir $PWD/dist" \
     --clean dist/shine.spec
 
-rm -rf TOPDIR/BUILD/shine*
+clean
