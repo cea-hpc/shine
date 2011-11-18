@@ -1,5 +1,5 @@
 # Client.py -- Lustre Client
-# Copyright (C) 2008, 2009 CEA
+# Copyright (C) 2008-2011 CEA
 #
 # This file is part of shine
 #
@@ -130,8 +130,9 @@ class Client(Component):
             if loaded and self.state != MOUNTED:
                 # up but not mounted = incoherent state
                 self.state = CLIENT_ERROR
-                raise ClientError(self, "incoherent client state for FS '%s' (not mounted but still loaded)" % \
-                        self.fs.fs_name)
+                raise ClientError(self, "incoherent client state for FS '%s'"
+                                        " (not mounted but loaded. Mount in "
+                                        "progress?)" % self.fs.fs_name)
 
     #
     # Client actions
