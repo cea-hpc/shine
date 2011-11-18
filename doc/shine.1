@@ -114,6 +114,10 @@ Format an installed filesystem.
 .sp
 Perform a "check and repair" \fIfsck\fP on specified targets backend file system in parallel.
 .TP
+.B \fItunefs\fP -f <FSNAME>
+.sp
+Reapply the format options and regenerate MGS config file at next filesystem start. This command should be apply on all targets.
+.TP
 .B \fIstatus\fP
 .sp
 Get filesystem current status. See \-V option below to specify a status view.

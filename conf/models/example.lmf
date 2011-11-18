@@ -76,8 +76,8 @@ stripe_size: 1048576
 
 # stripe_count
 # Specify the number of OSTs each file should be stripped on.
-# Default value is 0 and means to stripe on all available OSTs.
-stripe_count: 2
+# If not defined, no explicit value is used and Lustre will apply its default behaviour.
+#stripe_count: 1
 
 #
 # mgt_format_params:
