@@ -34,7 +34,7 @@ class ConfigurationTest(unittest.TestCase):
     def test_accessors(self):
         """Configuration get_* accessors."""
         self._conf = Configuration.create_from_model("../conf/models/example.lmf")
-        self.assertEqual(self._conf.get_stripecount(), 2)
+        self.assertEqual(self._conf.get_stripecount(), 1)
         self.assertEqual(self._conf.get_stripesize(), 1048576)
         self.assertTrue(self._conf.get_cfg_filename())
 

@@ -31,7 +31,7 @@ class ModelTest(unittest.TestCase):
         """Load example.lmf and checks it."""
         m = Model()
         m.load('../conf/models/example.lmf')
-        self.assertEqual(len(m), 20)
+        self.assertEqual(len(m), 19)
 
     def testTooLongFSName(self):
         """Model with a too long fsname"""
