@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.Model test suite
-# Written by A. Degremont 2009-07-16
+# Copyright (C) 2009-2011 CEA
 # $Id$
 
 
@@ -45,18 +45,24 @@ class ModelTest(unittest.TestCase):
 mgt: node=foo1 dev=/dev/sda ha_node=foo2 ha_node=foo3""")
         self.assertEqual(model.get('mgt')[0].get('ha_node'), ['foo2', 'foo3'])
 
+    def test_unbalanced_nid_map(self):
+        """Model with nid_map with several ranges."""
+        model = self.makeTempModel("""fs_name: nids
+nid_map: nodes=foo[1-2],bar[1-9] nids=foo[1-2],bar[1-9]@tcp""")
+        self.assertEqual(len(model.elements('nid_map')), 1)
+        self.assertEqual(model.elements('nid_map')[0].as_dict(),
+             { 'nodes': 'foo[1-2],bar[1-9]', 'nids': 'foo[1-2],bar[1-9]@tcp' })
+
     def testSeveralNidMap(self):
         """Model with several nid_map lines."""
         model = self.makeTempModel("""fs_name: nids
 nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp
 nid_map: nodes=foo[7] nids=foo[7]@tcp""")
-        self.assertEqual(len(model.elements('nid_map')), 3)
+        self.assertEqual(len(model.elements('nid_map')), 2)
         self.assertEqual(model.elements('nid_map')[0].as_dict(),
-                { 'nodes': 'foo1', 'nids': 'foo1@tcp' })
+                { 'nodes': 'foo[1-2]', 'nids': 'foo[1-2]@tcp' })
         self.assertEqual(model.elements('nid_map')[1].as_dict(),
-                { 'nodes': 'foo2', 'nids': 'foo2@tcp' })
-        self.assertEqual(model.elements('nid_map')[2].as_dict(),
-                { 'nodes': 'foo7', 'nids': 'foo7@tcp' })
+                { 'nodes': 'foo[7]', 'nids': 'foo[7]@tcp' })
 
     def testMatchDevice(self):
         model = self.makeTempModel("""fs_name: nids

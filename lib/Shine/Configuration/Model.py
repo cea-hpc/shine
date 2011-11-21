@@ -1,4 +1,4 @@
-# Copyright (C) 2007, 2008, 2009, 2010 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -25,7 +25,7 @@ Provides classes to load/read and save Shine model files or cache files.
 import re
 
 from Shine.Configuration.ModelFile import ModelFile, SimpleElement, \
-                                          ModelFileValueError
+                                          MultipleElement, ModelFileValueError
 
 class Model(ModelFile):
     """Represent a Shine model file.
@@ -68,7 +68,7 @@ class Model(ModelFile):
         self.add_element('quota_itune',       check='digit')
 
         # NidMapping
-        self.add_custom('nid_map', NidMap(), multiple=True)
+        self.add_custom('nid_map', NidMaps())
 
         # Targets
         self.add_custom('mgt', Target(), multiple=True)
@@ -104,6 +104,21 @@ class NidMap(ModelFile):
         ModelFile.__init__(self, sep, linesep)
         self.add_element('nodes', check='string')
         self.add_element('nids',  check='string')
+
+
+class NidMaps(MultipleElement):
+    """Group all 'nid_map' declarations."""
+
+    def __init__(self, orig_elem=None):
+        MultipleElement.__init__(self, NidMap())
+
+    def _expand_range(self, data):
+        """
+        This function is a no-op for NidMaps.
+
+        NidMaps declaration should not be expanded like target.
+        """
+        return iter([data])
 
 
 class Target(ModelFile):

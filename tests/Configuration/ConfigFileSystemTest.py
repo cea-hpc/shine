@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.FileSystem class
-# Written by A. Degremont 2009-07-17
+# Copyright (C) 2009-2011 CEA
 # $Id$
 
 
@@ -108,6 +108,18 @@ mgt: node=foo1 ha_node=foo2
         self.assertEqual(len(self._fs.model), 3)
         self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp0', 'foo1-bone@tcp1'])
         self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp0', 'foo2-bone@tcp1'])
+
+    def test_unbalanced_nid_map(self):
+        """filesystem with nids with several ranges."""
+        self._fs = self.makeConfFileSystem("""
+fs_name: nids
+nid_map: nodes=foo[1-2],bar[1-3] nids=foo[1-2]@tcp,bar[1-3]@tcp
+""")
+        self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp'])
+        self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp'])
+        self.assertEqual(self._fs.get_nid('bar1'), ['bar1@tcp'])
+        self.assertEqual(self._fs.get_nid('bar2'), ['bar2@tcp'])
+        self.assertEqual(self._fs.get_nid('bar3'), ['bar3@tcp'])
 
     def testNoIndexDefined(self):
         """filesystem with no index set"""

@@ -1,3 +1,6 @@
+2011-11-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* 'nid_map' declaration supports multiple ranges (ticket #108).
+
 2011-11-19 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Improve client error message (ticket #102).
 
