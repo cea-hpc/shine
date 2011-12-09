@@ -7,8 +7,11 @@
 """Unit test for Model"""
 
 import unittest
+import time
 
 from Utils import makeTempFile
+
+from Shine.Configuration.NidMap import NidMap
 from Shine.Configuration.Model import Model, ModelFileValueError
 
 class ModelTest(unittest.TestCase):
@@ -52,6 +55,14 @@ nid_map: nodes=foo[1-2],bar[1-9] nids=foo[1-2],bar[1-9]@tcp""")
         self.assertEqual(len(model.elements('nid_map')), 1)
         self.assertEqual(model.elements('nid_map')[0].as_dict(),
              { 'nodes': 'foo[1-2],bar[1-9]', 'nids': 'foo[1-2],bar[1-9]@tcp' })
+
+    def test_big_nid_map_scalable(self):
+        """check big nid mapping is scalable."""
+        model = Model()
+        model.parse("nid_map: nodes=foo[1-9999] nids=bar[1-9999]@tcp")
+        before = time.time()
+        NidMap.fromlist(model.get('nid_map'))
+        self.assertTrue(time.time() - before < .5)
 
     def testSeveralNidMap(self):
         """Model with several nid_map lines."""
