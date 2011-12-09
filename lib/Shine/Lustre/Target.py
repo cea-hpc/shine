@@ -1,5 +1,5 @@
 # Target.py -- Lustre Target base class
-# Copyright (C) 2007, 2008 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -281,28 +281,38 @@ class Target(Component, Disk):
                         if line.startswith("status:"):
                             status = line.rstrip().split(' ', 2)[1]
                             break
-#                            
-# This is not used currently.
+
 #
-#                   if status == "COMPLETE":
-#                     recovery_duration = -1
-#                     completed_clients = -1
-#                     for line in fproc:
-#                        if line.startswith("recovery_duration:"):
-#                            recovery_duration = line.rstrip().split(' ', 2)[1]
-#                        if line.startswith("completed_clients:"):
-#                            completed_clients = line.rstrip().split(' ', 2)[1]
+# Recovering information depends on Lustre version.
+#
+# VERSION:                2.0            1.8                     1.6
+#
+# connected_clients:  connect/TOTAL   connect/TOTAL            connect/TOTAL
+# req_replay:         req_replay      ---                      ---
+# lock_repay:         lock_replay     ---                      ---
+# delayed_client:     ---             delay/TOTAL              ---
+# completed_clients:  connect-replay  TOTAL-recov-delay/TOTAL  TOTAL-recov/TOTAL
+# evicted_clients:    stale           ---                      ---
 #
                     if status == "RECOVERING":
-                        completed_clients = -1
-                        time_remaining = -1
+                        time_remaining = "??"
+                        completed = -1
+                        evicted = 0
+                        total = 0
                         for line in fproc:
+                            line = line.strip()
                             if line.startswith("time_remaining:"):
-                                time_remaining = line.rstrip().split(' ', 2)[1]
-                            if line.startswith("completed_clients:"):
-                                completed_clients = line.rstrip().split(' ', 2)[1]
+                                time_remaining = line.split(' ', 1)[1]
+                            elif line.startswith("connected_clients:"):
+                                total = int(line.split('/', 1)[1])
+                            elif line.startswith("evicted_clients:"):
+                                evicted = int(line.split(' ', 1)[1])
+                            elif line.startswith("completed_clients:"):
+                                completed = line.split(' ', 1)[1]
+                                completed = int(completed.split('/', 1)[0])
                         self.state = RECOVERING
-                        self.status_info = "%ss (%s)" % (time_remaining, completed_clients)
+                        self.status_info = "%ss (%s/%s)" % (time_remaining,
+                                                    completed + evicted, total)
                 finally:
                     fproc.close()
 

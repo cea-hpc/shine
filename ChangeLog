@@ -1,3 +1,6 @@
+2011-12-09 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Correctly reports recovery information in status (ticket #106).
+
 2011-11-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* 'nid_map' declaration supports multiple ranges (ticket #108).
 
