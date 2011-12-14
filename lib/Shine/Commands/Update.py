@@ -383,6 +383,7 @@ class Update(Command):
                 tgtlist = [oldconf.get_target_from_tag_and_type(
                                  comp.tag, comp.TYPE.upper())]
                 oldconf.set_status_targets_available(tgtlist)
+                oldconf.unregister_targets(tgtlist)
 
         #
         # NewFS
@@ -398,6 +399,16 @@ class Update(Command):
                                     event_handler=neweh,
                                     update_mode=True)
         newfs.set_debug(self.debug_support.has_debug())
+
+        # Register the new targets in backend
+        if 'format' in actions:
+            self.__verbose("Register target(s) %s into backend." %
+                           actions['format'].labels())
+            for comp in actions['format']:
+                tgtlist = [newconf.get_target_from_tag_and_type(comp.tag,
+                                                            comp.TYPE.upper())]
+                newconf.set_status_targets_formated(tgtlist)
+                oldconf.register_targets(tgtlist)
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(neweh, 'pre'):

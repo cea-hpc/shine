@@ -43,6 +43,9 @@ class Target:
         self.type = type
         self.dic = cf_target.as_dict()
 
+    def get(self, key, default=None):
+        return self.dic.get(key, default)
+
     def get_type(self):
         return self.type
 
@@ -92,6 +95,9 @@ class Clients:
     def __init__(self, cf_client):
         self.dic = cf_client.as_dict()
 
+    def get(self, key, default=None):
+        return self.dic.get(key, default)
+
     def get_nodes(self):
         return self.dic.get('node')
 
@@ -105,6 +111,9 @@ class Clients:
 class Routers:
     def __init__(self, cf_router):
         self.dic = cf_router.as_dict()
+
+    def get(self, key, default=None):
+        return self.dic.get(key, default)
 
     def get_nodes(self):
         return self.dic.get('node')
@@ -622,6 +631,24 @@ class FileSystem(object):
             os.unlink(self.xmf_path)
 
         return result
+
+    def register_target(self, target):
+        """
+        Set the specified target as 'in use'.
+
+        This target could not be use anymore for other filesystems.
+        """
+        if self._start_backend():
+            return self.backend.register_target(self, target)
+
+    def unregister_target(self, target):
+        """
+        Set the specified target as available in the backend.
+
+        This target could be now reuse.
+        """
+        if self._start_backend():
+            return self.backend.unregister_target(self, target)
 
     def _set_status(self, status, options):
         """

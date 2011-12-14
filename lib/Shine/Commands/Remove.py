@@ -136,5 +136,7 @@ class Remove(FSTargetLiveCriticalCommand):
         nodes = fs_conf.get_client_nodes()
         fs_conf.unregister_clients(nodes)
 
+        fs_conf.unregister_targets()
+
         # Unregister file system configuration from the backend
         fs_conf.unregister_fs()

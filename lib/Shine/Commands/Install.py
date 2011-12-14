@@ -130,6 +130,8 @@ class Install(Command):
         # register file system configuration to the backend
         fs_conf.register_fs()
 
+        fs_conf.register_targets()
+
         nodes = NodeSet()
         
         for node, path in fs_conf.iter_clients():

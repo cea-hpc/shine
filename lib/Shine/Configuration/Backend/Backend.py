@@ -158,3 +158,20 @@ class Backend:
         This function is used to remove a filesystem client from the backend
         """
         raise NotImplementedError(NIEXC)
+
+    def register_target(self, fs, target):
+        """
+        Set the specified `target', used by `fs', as 'in use' in the backend.
+
+        This target could not be use anymore for other filesystems.
+        """
+        raise NotImplementedError(NIEXC)
+
+    def unregister_target(self, fs, target):
+        """
+        Set the specified `target', used by `fs', as available in the backend.
+
+        This target could be now reuse, for other targets of the same
+        filesystem or any other one.
+        """
+        raise NotImplementedError(NIEXC)

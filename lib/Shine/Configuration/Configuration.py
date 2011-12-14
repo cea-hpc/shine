@@ -270,6 +270,48 @@ class Configuration:
         for node in nodes:
             self._fs.unregister_client(node)
 
+    def register_targets(self, targets=None):
+        """
+        Set filesystem targets as 'in use'.
+
+        If `targets' is not specified, all managed targets from the
+        filesystem will be used.
+
+        These targets could not be use anymore for other filesystems.
+        """
+        if not targets:
+            targets = []
+            for tgttype in ('mgt', 'mdt', 'ost'):
+                if tgttype not in self._fs.model:
+                    continue
+                for target in self._fs.get(tgttype):
+                    if target.get('mode') == 'managed':
+                        targets.append(Target(tgttype, target))
+
+        for target in targets:
+            self._fs.register_target(target)
+
+    def unregister_targets(self, targets=None):
+        """
+        Set filesystem targets as available in the backend.
+
+        If `targets' is not specified, all managed targets from the
+        filesystem will be used.
+
+        These targets could be now reuse.
+        """
+        if not targets:
+            targets = []
+            for tgttype in ('mgt', 'mdt', 'ost'):
+                if tgttype not in self._fs.model:
+                    continue
+                for target in self._fs.get(tgttype):
+                    if target.get('mode') == 'managed':
+                        targets.append(Target(tgttype, target))
+
+        for target in targets:
+            self._fs.unregister_target(target)
+
     def set_status_clients_mount_complete(self, nodes, options=None):
         for node in nodes:
             self._fs.set_status_client_mount_complete(node, options)

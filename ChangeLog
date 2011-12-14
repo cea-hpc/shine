@@ -1,3 +1,6 @@
+2011-12-14 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Target registration in backend is ok when using update (ticket #110).
+
 2011-12-09 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Correctly reports recovery information in status (ticket #106).
 
