@@ -58,64 +58,10 @@ class GlobalStatusEventHandler(FSGlobalEventHandler):
     ACTION = 'status'
     ACTIONING = 'checking'
 
-    def ev_statustarget_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statustarget_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statustarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_statusclient_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statusclient_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statusclient_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_statusrouter_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statusrouter_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statusrouter_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
 class LocalStatusEventHandler(FSLocalEventHandler):
 
     ACTION = 'status'
     ACTIONING = 'checking'
-
-    def ev_statustarget_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statustarget_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statustarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_statusclient_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statusclient_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statusclient_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_statusrouter_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_statusrouter_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_statusrouter_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
 
 
 class Status(FSTargetLiveCommand):

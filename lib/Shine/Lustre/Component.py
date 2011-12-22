@@ -181,29 +181,29 @@ class Component(object):
         if not comp:
             comp = self.TYPE
         self._add_action(act, comp)
-        self.fs._invoke('ev_%s%s_start' % (act, comp), comp=self)
+        self.fs.local_event(comp, act, 'start', comp=self)
 
     def _action_done(self, act, comp=None):
         """Called by Actions.* when done"""
         if not comp:
             comp = self.TYPE
         self._del_action(act, comp)
-        self.fs._invoke('ev_%s%s_done' % (act, comp), comp=self)
+        self.fs.local_event(comp, act, 'done', comp=self)
 
     def _action_timeout(self, act, comp=None):
         """Called by Actions.* on timeout"""
         if not comp:
             comp = self.TYPE
         self._del_action(act, comp)
-        self.fs._invoke('ev_%s%s_timeout' % (act, comp), comp=self)
+        self.fs.local_event(comp, act, 'timeout', comp=self)
 
     def _action_failed(self, act, rc, message, comp=None):
         """Called by Actions.* on failure"""
         if not comp:
             comp = self.TYPE
         self._del_action(act, comp)
-        self.fs._invoke('ev_%s%s_failed' % (act, comp), comp=self, rc=rc, 
-                        message=message)
+        self.fs.local_event(comp, act, 'failed', comp=self, rc=rc, 
+                            message=message)
 
 class ComponentGroup(object):
     """

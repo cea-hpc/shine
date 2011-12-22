@@ -1,5 +1,5 @@
 # ProxyAction.py -- Abstract class for shine command proxy
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -19,19 +19,17 @@
 #
 # $Id$
 
-from ClusterShell.Task import task_self
 
 import os
 import sys
-
 import binascii, pickle
 
+from ClusterShell.Task import task_self
 from Shine.Lustre.Actions.Action import Action
 
 # SHINE PROXY PROTOCOL CONSTANTS
-
-SHINE_MSG_VERSION = 2
-
+SHINE_MSG_MAGIC = "SHINE:"
+SHINE_MSG_VERSION = 3
 
 class ProxyActionUnpackError(Exception):
     """
@@ -40,7 +38,7 @@ class ProxyActionUnpackError(Exception):
 
 class ProxyAction(Action):
     """
-    Astract shine proxy action class.
+    Abstract shine proxy action class.
     """
 
     def __init__(self, task=task_self()):
@@ -48,31 +46,37 @@ class ProxyAction(Action):
         self.progpath = os.path.abspath(sys.argv[0])
 
     def _shine_msg_unpack(self, msg):
+        """
+        Parse a raw string from a remote shine command.
+        Return a dict containing the information put by
+         RemoteCallEventHandler._shine_msg_pack()
+        """
         # check for any shine msg
         if not msg.startswith("SHINE:"):
             raise ProxyActionUnpackError("Missing shine message prefix")
 
-        # Identified shine msg of the form SHINE:<version>:<event>:<pickle>
+        # Identified shine msg of the form SHINE:<version>:<pickle>
         try:
-            # unpack event and pickle object
-            version, event, data = msg[6:].split(':', 3)
-            if int(version) != SHINE_MSG_VERSION:
+            # unpack pickle object
+            version, data = msg[6:].split(':', 1)
+            if int(version) == SHINE_MSG_VERSION:
+                return pickle.loads(binascii.a2b_base64(data))
+            elif int(version) == 2:
+                return self._shine_msg_unpack_v2(data)
+            else:
                 raise ProxyActionUnpackError("Shine message version mismatch")
-            return event, pickle.loads(binascii.a2b_base64(data))
         except Exception, exp:
             raise ProxyActionUnpackError("Unknown error: %s" % exp)
 
-    def _shine_msg_unpack2(self, fs, node, buf):
-        """
-        Check and handle any shine file system event.
-        """
-        # check for any shine msg
-        shine_msg = self._read_shine_msg(buf)
-        if shine_msg is None:
-            return False
-        # unpack event and pickle object
-        event, params = shine_msg
-        # invoke file system event handler
-        self.fs._invoke(event, node, **params)
-        return True
-
+    @classmethod
+    def _shine_msg_unpack_v2(cls, msg):
+        """Compatibility function to unpack old-style v2 messages."""
+        event, msg = msg.split(':', 1)
+        data = pickle.loads(binascii.a2b_base64(msg))
+        dummy, actioncomp, data['status'] = event.split('_', 3)
+        for name in ('router', 'client', 'target', 'journal'):
+            if actioncomp.endswith(name):
+                data['action'] = actioncomp[:-len(name)]
+                data['compname'] = name
+                break
+        return data

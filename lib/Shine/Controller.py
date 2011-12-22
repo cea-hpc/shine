@@ -41,7 +41,7 @@ import traceback
 
 
 def print_csdebug(task, s):
-    m = re.search("(\w+): SHINE:\d:(\w+):", s)
+    m = re.search("(\w+): SHINE:\d:", s)
     if m:
         print "%s<pickle>" % m.group(0)
     else:

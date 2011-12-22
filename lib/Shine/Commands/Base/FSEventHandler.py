@@ -65,6 +65,19 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
         else:
             return comp.longtext()
 
+    def event_callback(self, compname, action, status, node, **kwargs):
+        comp = kwargs['comp']
+        if status == 'start':
+            self.action_start(node, comp, compname)
+        elif status == 'done':
+            self.action_done(node, comp, compname)
+        elif status == 'timeout':
+            self.action_timeout(node, comp, compname)
+        elif status == 'failed':
+            rc = kwargs['rc']
+            message = kwargs['message']
+            self.action_failed(node, comp, rc, message, compname)
+
     def action_start(self, node, comp, comp_name=None):
         header = self.ACTIONING.capitalize()
         comp_id = self._id_for_comp(comp_name, comp)

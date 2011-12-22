@@ -20,8 +20,6 @@
 # $Id$
 
 
-#EV_START=1
-
 
 class EventHandler(object):
     """
@@ -29,158 +27,26 @@ class EventHandler(object):
     should override this class and handle events of their choice.
     """
 
-    def __init__(self):
-        pass
+    def event_callback(self, compname, action, status, **kwargs):
+        """
+        Base event handler. It is called for each event received.
 
-    def ev_formatjournal_start(self, node, comp):
-        pass
+        This event handler could be overload to implement your own event
+        management.
 
-    def ev_formatjournal_done(self, node, comp):
-        pass
+        This default handler will dispatch event based on the existing methods
+        in the class.
 
-    def ev_formatjournal_failed(self, node, comp, rc, message):
-        pass
-
-    def ev_formattarget_start(self, node, comp):
-        pass
-
-    def ev_formattarget_done(self, node, comp):
-        pass
-
-    def ev_formattarget_failed(self, node, comp, rc, message):
-        pass
-
-    def ev_statustarget_start(self, node, comp):
+        It first checks for a method named ev_xxxyyy_zzz. 
+        Else, it does nothing.
+        
+        Where:
+         - xxx is the component name.
+         - yyy is the action name.
+         - zzz is the action status.
         """
-        Target status request is starting on node.
-        """
-
-    def ev_statustarget_done(self, node, comp):
-        """
-        Target status has been updated.
-        """
-
-    def ev_statustarget_failed(self, node, comp, rc, message):
-        """
-        A target status request has failed.
-        """
-
-    def ev_starttarget_start(self, node, comp):
-        """
-        A Lustre target is being started.
-        """
-
-    def ev_starttarget_failed(self, node, comp, rc, message):
-        """
-        A Lustre target has failed to start.
-        """
-
-    def ev_starttarget_done(self, node, comp):
-        """
-        A Lustre target has started successfully.
-        """
-
-    def ev_stoptarget_start(self, node, comp):
-        """
-        A Lustre target is being stopped.
-        """
-
-    def ev_stoptarget_failed(self, node, comp, rc, message):
-        """
-        A Lustre target has failed to stop.
-        """
-
-    def ev_stoptarget_done(self, node, comp):
-        """
-        A Lustre target has been stopped successfully.
-        """
-
-    def ev_statusclient_start(self, node, comp):
-        """
-        Client status request is starting on node.
-        """
-
-    def ev_statusclient_done(self, node, comp):
-        """
-        Client status has been updated.
-        """
-
-    def ev_statusclient_failed(self, node, comp, rc, message):
-        """
-        A client status request has failed.
-        """
-
-    def ev_mountclient_start(self, node, comp):
-        """
-        A Lustre FS client is being started.
-        """
-
-    def ev_mountclient_failed(self, node, comp, rc, message):
-        """
-        A Lustre FS client has failed to start/mount.
-        """
-
-    def ev_mountclient_done(self, node, comp):
-        """
-        A Lustre FS client has started successfully.
-        """
-
-    def ev_umountclient_start(self, node, comp):
-        """
-        A Lustre FS client is being stopped.
-        """
-
-    def ev_umountclient_failed(self, node, comp, rc, message):
-        """
-        A Lustre FS client has failed to stop.
-        """
-
-    def ev_umountclient_done(self, node, comp):
-        """
-        A Lustre FS client has been stopped successfully.
-        """
-
-    def ev_statusrouter_start(self, node, comp):
-        """
-        A Lustre FS router status is starting
-        """
-
-    def ev_statusrouter_failed(self, node, comp, rc, message):
-        """
-        A Lustre FS router status has failed
-        """
-
-    def ev_statusrouter_done(self, node, comp):
-        """
-        A Lustre FS router status is completed successfully.
-        """
-
-    def ev_startrouter_start(self, node, comp):
-        """
-        A Lustre FS router is starting
-        """
-
-    def ev_startrouter_failed(self, node, comp, rc, message):
-        """
-        A Lustre FS router has failed to start
-        """
-
-    def ev_startrouter_done(self, node, comp):
-        """
-        A Lustre FS router has started successfully.
-        """
-
-    def ev_stoprouter_start(self, node, comp):
-        """
-        A Lustre FS router is stopping
-        """
-
-    def ev_stoprouter_failed(self, node, comp, rc, message):
-        """
-        A Lustre FS router has failed to stop
-        """
-
-    def ev_stoprouter_done(self, node, comp):
-        """
-        A Lustre FS router has stopped successfully.
-        """
+ 
+        # Looks for a old-style event handler
+        event = "ev_%s%s_%s" % (action, compname, status)
+        if hasattr(self, event):
+            getattr(self, event)(**kwargs)

@@ -115,7 +115,7 @@ class FileSystem:
     # file system event handling
     #
 
-    def _invoke(self, event, **kwargs):
+    def _invoke(self, compname, action, status, **kwargs):
         """
         Inform the filesystem the provided event happened.
         If an event handler is set, the associated callback will be called.
@@ -123,18 +123,22 @@ class FileSystem:
         if not self.event_handler:
             return
 
-        # XXX: Temporary, to be sure all are removed
-        assert('client' not in kwargs)
-        assert('target' not in kwargs)
-
+        # New style event handling: One global handler
+        if hasattr(self.event_handler, 'event_callback'):
+            self.event_handler.event_callback(compname, action, status, **kwargs)
+        # Compat mode: Old-style event handling
+        else:
+            event = "ev_%s%s_%s" % (action, compname, status)
+            getattr(self.event_handler, event)(**kwargs)
+ 
+    def local_event(self, compname, action, status, **params):
         # Currently, all event callbacks need a node.
-        # When localy called, _invoke do not pass a node.
-        # XXX: When events v3 will be there, this could be cleaned
-        kwargs.setdefault('node', Server.hostname_short())
+        # When localy called, add the current node
+        node = Server.hostname_short()
 
-        getattr(self.event_handler, event)(**kwargs)
+        self._invoke(compname, action, status, node=node, **params)
 
-    def _handle_shine_event(self, event, node, **params):
+    def distant_event(self, compname, action, status, node, **params):
         
         # Update the local component instance with the provided instance
         # if one is available in params.
@@ -150,7 +154,7 @@ class FileSystem:
             except KeyError:
                 print "ERROR: Component update failed (%s)" % comp
 
-        self._invoke(event, node=node, **params)
+        self._invoke(compname, action, status, node=node, **params)
 
     def _handle_shine_proxy_error(self, nodes, message):
         self.proxy_errors.append((NodeSet(nodes), message))

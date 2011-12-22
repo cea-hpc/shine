@@ -82,9 +82,12 @@ class FSProxyAction(ProxyAction):
     def ev_read(self, worker):
         node, buf = worker.last_read()
         try:
-            event, params = self._shine_msg_unpack(buf)
-            self.fs._handle_shine_event(event, node, **params)
-        except ProxyActionUnpackError, e:
+            data = self._shine_msg_unpack(buf)
+            compname = data.pop('compname')
+            action = data.pop('action')
+            status = data.pop('status')
+            self.fs.distant_event(compname, action, status, node=node, **data)
+        except ProxyActionUnpackError:
             # ignore any non shine messages
             pass
 
