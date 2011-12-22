@@ -19,11 +19,13 @@
 #
 # $Id$
 
+import os
+import stat
 import glob
 
 from ClusterShell.Task import task_self
 
-from Shine.Lustre.Actions.Format import Format, Tunefs
+from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
@@ -71,7 +73,8 @@ class Target(Component, Disk):
         """
         Initialize a Lustre target object.
         """
-        Disk.__init__(self, dev, jdev)
+        Disk.__init__(self, dev)
+        Component.__init__(self, fs, server, enabled, mode)
 
         self.defaultserver = server      # Default server the target runs on
         self.failservers = ServerGroup() # All failover servers
@@ -83,7 +86,10 @@ class Target(Component, Disk):
         self.network = network
         self.mntdev = self.dev
 
-        Component.__init__(self, fs, server, enabled, mode)
+        if jdev:
+            self.journal = Journal(self, jdev)
+        else:
+            self.journal = None
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -199,7 +205,11 @@ class Target(Component, Disk):
             self._device_check()
             if mountdata:
                 self._mountdata_check(self.fs.fs_name, self.label)
-        except DiskDeviceError, error:
+
+            if self.journal:
+                self.journal.disk_check()
+
+        except (JournalError, DiskDeviceError), error:
             self.state = TARGET_ERROR
             raise TargetDeviceError(self, str(error))
 
@@ -478,30 +488,6 @@ class Target(Component, Disk):
         except TargetError, error:
             self._action_failed('stop', rc=None, message=str(error))
 
-    #
-    # Event raising methods
-    #
-
-    # Those methods are overload due to the generic name 'target' used.
-    # When EventHandlers will be updated and refactorized, check if this is
-    # still useful.
-
-    def _action_start(self, act, comp='target'):
-        """Called by Actions.* when starting"""
-        Component._action_start(self, act, comp)
-
-    def _action_done(self, act, comp='target'):
-        """Called by Actions.* when done"""
-        Component._action_done(self, act, comp)
-
-    def _action_timeout(self, act, comp='target'):
-        """Called by Actions.* on timeout"""
-        Component._action_timeout(self, act, comp)
-
-    def _action_failed(self, act, rc, message, comp='target'):
-        """Called by Actions.* on failure"""
-        Component._action_failed(self, act, rc, message, comp)
-
 
 class MGT(Target):
 
@@ -537,3 +523,68 @@ class OST(Target):
 # This is declared here due to cycling-dependencies.
 # See MDT class.
 MDT.START_ORDER = OST.START_ORDER + 1
+
+class JournalError(TargetError):
+    """Journal target error."""
+
+    def __init__(self, journal, message):
+        TargetError.__init__(self, journal.target, message)
+
+
+class Journal(Component):
+    """
+    Manage a target external journal device.
+    """
+
+    TYPE = 'journal'
+
+    def __init__(self, target, device):
+        Component.__init__(self, target.fs, target.server,
+                           target.action_enabled, target._mode)
+        self.target = target
+        self.dev = device
+
+    @property
+    def label(self):
+        return self.uniqueid()
+
+    def uniqueid(self):
+        return "%s_jdev" % self.target.uniqueid()
+
+    def longtext(self):
+        return "%s journal (%s)" % (self.target.get_id(), self.dev)
+
+    def disk_check(self):
+        """Device type check."""
+
+        try:
+            info = os.stat(self.dev)
+        except OSError, exp:
+            raise JournalError(self, str(exp))
+
+        if not stat.S_ISBLK(info[stat.ST_MODE]):
+            raise JournalError(self, "bad journal device")
+
+    def lustre_check(self):
+        pass
+
+    def format(self, **kwargs):
+        """
+        Check the journal device is correct and format it to be used as an
+        external journal.
+        """
+
+        self.state = INPROGRESS
+        self._action_start('format')
+
+        try:
+            self.disk_check()
+
+            self.state = INPROGRESS
+            # Warning: kwargs is used to pass 'nextaction'. See JournalFormat.
+            action = JournalFormat(self, **kwargs)
+            action.launch()
+
+        except JournalError, error:
+            self._action_failed('format', rc=-1, message=str(error))
+

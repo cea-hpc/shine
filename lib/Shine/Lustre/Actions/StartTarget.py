@@ -52,8 +52,8 @@ class StartTarget(FSAction):
                     'dev'     : os.path.basename(self.comp.dev),
                   }
 
-        if self.comp.jdev:
-            var_map['jdev'] = os.path.basename(self.comp.jdev)
+        if self.comp.journal:
+            var_map['jdev'] = os.path.basename(self.comp.journal.dev)
 
         if suppl_vars:
             var_map.update(suppl_vars)
@@ -97,8 +97,8 @@ class StartTarget(FSAction):
         #
         # (Note: We can use `blkid' instead of jdev and extract the current
         # journal UUID if we have issue using directly jdev path.)
-        if self.comp.jdev:
-            majorminor = os.stat(self.comp.jdev).st_rdev
+        if self.comp.journal:
+            majorminor = os.stat(self.comp.journal.dev).st_rdev
             options += [ "journal_dev=%#x" % majorminor ]
 
         if len(options):

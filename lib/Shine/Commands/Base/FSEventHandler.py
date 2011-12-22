@@ -58,49 +58,40 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
         if self.verbose > 1:
             print msg
     
-    def _id_for_comp(self, comp_name, comp):
-        # Ourgh, ugly hack to handle journal display!
-        if comp_name == 'journal':
-            return "%s journal (%s)" % (comp.get_id(), comp.jdev)
-        else:
-            return comp.longtext()
-
     def event_callback(self, compname, action, status, node, **kwargs):
         comp = kwargs['comp']
         if status == 'start':
-            self.action_start(node, comp, compname)
+            self.action_start(node, comp)
         elif status == 'done':
-            self.action_done(node, comp, compname)
+            self.action_done(node, comp)
         elif status == 'timeout':
-            self.action_timeout(node, comp, compname)
+            self.action_timeout(node, comp)
         elif status == 'failed':
             rc = kwargs['rc']
             message = kwargs['message']
-            self.action_failed(node, comp, rc, message, compname)
+            self.action_failed(node, comp, rc, message)
 
-    def action_start(self, node, comp, comp_name=None):
+    def action_start(self, node, comp):
         header = self.ACTIONING.capitalize()
-        comp_id = self._id_for_comp(comp_name, comp)
-        txt = "%s %s" % (header, comp_id)
+        txt = "%s %s" % (header, comp.longtext())
         self.log_info(txt)
 
-    def action_done(self, node, comp, comp_name=None):
+    def action_done(self, node, comp):
         header = self.ACTION.capitalize()
-        comp_id = self._id_for_comp(comp_name, comp)
+        comp_id = comp.longtext()
         if comp.status_info:
             self.log_info("%s of %s: %s" % \
-                   (header, comp_id, comp.status_info))
+                          (header, comp_id, comp.status_info))
         else:
             self.log_info("%s of %s succeeded" % (header, comp_id))
 
-    def action_failed(self, node, comp, rc, message, comp_name=None):
-        comp_id = self._id_for_comp(comp_name, comp)
+    def action_failed(self, node, comp, rc, message):
         if rc > 0 and not message:
             strerr = os.strerror(rc)
         else:
             strerr = message
         txt = "Failed to %s %s\n>> %s" % \
-                 (self.ACTION, comp_id, strerr)
+                 (self.ACTION, comp.longtext(), strerr)
         self.log_warning(txt)
 
 
@@ -116,16 +107,15 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         self.last_target_count = 0
         self.status_changed = False
 
-    def action_start(self, node, comp, comp_name=None):
+    def action_start(self, node, comp):
         header = self.ACTIONING.capitalize()
-        comp_id = self._id_for_comp(comp_name, comp)
-        txt = "%s: %s %s" % (node, header, comp_id)
+        txt = "%s: %s %s" % (node, header, comp.longtext())
         self.log_verbose(txt)
         self.__update()
 
-    def action_done(self, node, comp, comp_name=None):
+    def action_done(self, node, comp):
         header = self.ACTION.capitalize()
-        comp_id = self._id_for_comp(comp_name, comp)
+        comp_id = comp.longtext()
         if comp.status_info:
             self.log_verbose("%s: %s of %s: %s" % \
                    (node, header, comp_id, comp.status_info))
@@ -133,14 +123,13 @@ class FSGlobalEventHandler(FSLocalEventHandler,
             self.log_verbose("%s: %s of %s succeeded" % (node, header, comp_id))
         self.__update()
 
-    def action_failed(self, node, comp, rc, message, comp_name=None):
-        comp_id = self._id_for_comp(comp_name, comp)
+    def action_failed(self, node, comp, rc, message):
         if rc > 0 and not message:
             strerr = os.strerror(rc)
         else:
             strerr = message
         txt = "%s: Failed to %s %s\n>> %s" % \
-                 (node, self.ACTION, comp_id, strerr)
+                 (node, self.ACTION, comp.longtext(), strerr)
         self.log_warning(txt)
         self.__update()
 

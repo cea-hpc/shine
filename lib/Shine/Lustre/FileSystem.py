@@ -40,7 +40,7 @@ from Shine.Lustre.Component import ComponentGroup
 from Shine.Lustre.Server import Server
 from Shine.Lustre.Client import Client
 from Shine.Lustre.Router import Router
-from Shine.Lustre.Target import MGT, MDT, OST
+from Shine.Lustre.Target import MGT, MDT, OST, Journal
 # FileSystem class needs to re-export all Target status, they are used in
 # Shine.Commands.*
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, \
@@ -146,9 +146,18 @@ class FileSystem:
             comp = params['comp']
             comp.fs = self
             try:
-                other = self.components[comp.uniqueid()]
-                # update target from remote one
-                other.update(comp)
+                # Special hack for Journal object as they are not put in
+                # components list.
+                if comp.TYPE == Journal.TYPE:
+                    comp.target.fs = self
+                    target = self.components[comp.target.uniqueid()]
+                    target.journal.update(comp)
+                    other = target.journal
+                else:
+                    other = self.components[comp.uniqueid()]
+                    # update target from remote one
+                    other.update(comp)
+
                 # substitute target parameter by local one
                 params['comp'] = other
             except KeyError:

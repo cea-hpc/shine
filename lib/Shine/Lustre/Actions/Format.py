@@ -175,9 +175,9 @@ class Format(CommonFormat):
 
         # --mkfsoptions
         mkfsopts = []
-        if self.comp.jdev:
+        if self.comp.journal:
             # Declare the external journal
-            mkfsopts += ["-j -J device=%s" % self.comp.jdev]
+            mkfsopts += ["-j -J device=%s" % self.comp.journal.dev]
         if self.mkfs_options and self.mkfs_options.get(self.comp.TYPE):
             mkfsopts.append(self.mkfs_options.get(self.comp.TYPE))
         if len(mkfsopts) > 0:
@@ -200,8 +200,8 @@ class Format(CommonFormat):
         """
 
         # Format first the journal if it exists
-        if self.comp.jdev:
-            JournalFormat(self.comp, nextaction=self).launch()
+        if self.comp.journal:
+            self.comp.journal.format(nextaction=self)
             # It is ok to not launch current action here. In JournalFormat 
             # ev_close(), FSAction.launch(self) will be called to run
             # the normal launch method.
@@ -225,25 +225,13 @@ class JournalFormat(FSAction):
 
     def _prepare_cmd(self):
         """Return target journal device format command line."""
-        return [ "mke2fs -q -F -O journal_dev -b 4096 %s" % self.comp.jdev ]
-
-    def ev_start(self, worker):
-        """Event callback when journal format start."""
-        self.comp._action_start('format', comp='journal')
+        return [ "mke2fs -q -F -O journal_dev -b 4096 %s" % self.comp.dev ]
 
     def ev_close(self, worker):
         """Event callback when journal format ends."""
-        if worker.did_timeout():
-            # action timed out
-            self.comp._action_timeout(self.NAME, 'journal')
-        elif worker.retcode() == 0:
-            # action succeeded
-            self.comp._action_done(self.NAME, 'journal')
-
+        FSAction.ev_close(self, worker)
+        # action succeeded
+        if worker.retcode() == 0:
             # Journal is done, launch next step
             # This is not pretty as we ignore the launch() method of nextaction.
             FSAction.launch(self.nextaction)
-        else:
-            # action failure
-            self.comp._action_failed(self.NAME, worker.retcode(), worker.read(),
-                'journal')

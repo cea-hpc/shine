@@ -1,4 +1,5 @@
 2011-12-22 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Code refactoring ables to check journal device (ticket #85).
 	* Add new v3 event mechanism with v2 compatibility (ticket #54).
 
 2011-12-14 Aurelien Degremont  <aurelien.degremont@cea.fr>

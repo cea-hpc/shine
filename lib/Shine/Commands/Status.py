@@ -233,9 +233,9 @@ class Status(FSTargetLiveCommand):
                 else:
                     dev_size = "%d" % target.dev_size
 
-                if target.jdev:
+                if target.journal:
                     jdev_col_enabled = True
-                    jdev = target.jdev
+                    jdev = target.journal.dev
                 else:
                     jdev = ""
 

@@ -107,9 +107,8 @@ class Disk:
     lustre_disk.h. Base class for Lustre Target (see Target.py).
     """
 
-    def __init__(self, dev, jdev=None):
+    def __init__(self, dev):
         self.dev = dev
-        self.jdev = jdev
 
         # filled by _device_check
         self.dev_isblk = False

@@ -53,10 +53,6 @@ class GlobalUpdateEventHandler(FSGlobalEventHandler):
         FSGlobalEventHandler.__init__(self, verbose, fs_conf)
 
         for event in ('start', 'done', 'failed'):
-            # Journal
-            funcname = "ev_formatjournal_%s" % event
-            currname = "ev_actionjournal_%s" % event
-            setattr(self, funcname, getattr(self, currname))
             # Target
             for action in ('start', 'format', 'fsck', 
                            'status', 'stop', 'tunefs'):
@@ -77,13 +73,6 @@ class GlobalUpdateEventHandler(FSGlobalEventHandler):
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
-
-    def ev_actionjournal_start(self, node, comp):
-        self.action_start(node, comp, 'journal')
-    def ev_actionjournal_done(self, node, comp):
-        self.action_done(node, comp, 'journal')
-    def ev_actionjournal_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message, 'journal')
 
     def ev_actiontarget_start(self, node, comp):
         self.action_start(node, comp)

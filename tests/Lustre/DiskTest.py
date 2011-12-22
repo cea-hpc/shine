@@ -37,13 +37,10 @@ class DiskLoopbackTest(unittest.TestCase):
 
     def setUp(self):
         self.size = 450 * 1024 * 1024
-        self.jsize = 450 * 1024 * 1024
         self.dev = self.makeFileDevice(self.size)
-        self.jdev = self.makeFileDevice(self.jsize)
 
     def tearDown(self):
         os.unlink(self.dev)
-        os.unlink(self.jdev)
 
     def testLoopbackDevCheck(self):
         """test device check with a loopback device"""
@@ -142,10 +139,10 @@ class DiskOtherTest(unittest.TestCase):
     def testUpdate(self):
         """test update a Disk instance with another one"""
 
-        d1 = Disk(dev='a_dev', jdev='a_jdev')
+        d1 = Disk(dev='a_dev')
         d1.dev_size = 1234
         d1.ldd_fsname = "fsname"
-        d2 = Disk(dev='b_dev', jdev='b_jdev')
+        d2 = Disk(dev='b_dev')
         d2.dev_size = 5678
         d2.ldd_fsname = "other"
         d1.update(d2)

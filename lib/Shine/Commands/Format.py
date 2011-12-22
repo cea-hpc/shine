@@ -43,15 +43,6 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_formatjournal_start(self, node, comp):
-        self.action_start(node, comp, 'journal')
-
-    def ev_formatjournal_done(self, node, comp):
-        self.action_done(node, comp, 'journal')
-
-    def ev_formatjournal_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message, 'journal')
-
     def ev_formattarget_start(self, node, comp):
         self.update_config_status(comp, "start")
         self.action_start(node, comp)
@@ -83,15 +74,6 @@ class LocalFormatEventHandler(FSLocalEventHandler):
 
     ACTION = 'format'
     ACTIONING = 'formating'
-
-    def ev_formatjournal_start(self, node, comp):
-        self.action_start(node, comp, 'journal')
-
-    def ev_formatjournal_done(self, node, comp):
-        self.action_done(node, comp, 'journal')
-
-    def ev_formatjournal_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message, 'journal')
 
     def ev_formattarget_start(self, node, comp):
         self.action_start(node, comp)

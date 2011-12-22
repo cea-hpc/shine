@@ -334,13 +334,13 @@ class ActionsTest(unittest.TestCase):
 
     def test_format_target_jdev(self):
         """test command line format (MGT with jdev and mkfsoptions)"""
-        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', '/dev/root1')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', '/dev/ram0')
         tgt._check_status(mountdata=False)
         action = Format(tgt, mkfs_options={'mgt': '-m 2'})
-        jaction = JournalFormat(tgt, action)
-        self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 /dev/root1')
+        jaction = JournalFormat(tgt.journal, action)
+        self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 /dev/ram0')
         self.check_cmd_format(action, '--mgs ' +
-                         '"--mkfsoptions=-j -J device=/dev/root1 -m 2" /dev/root')
+                         '"--mkfsoptions=-j -J device=/dev/ram0 -m 2" /dev/root')
 
     def test_format_target_mdt(self):
         """test command line format (MDT)"""

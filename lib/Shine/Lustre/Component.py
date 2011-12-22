@@ -110,8 +110,8 @@ class Component(object):
         del odict['fs']
         return odict
 
-    def __setstate__(self, dict):
-        self.__dict__.update(dict)
+    def __setstate__(self, state):
+        self.__dict__.update(state)
         self.fs = None
 
     #
@@ -149,22 +149,18 @@ class Component(object):
     #
     # Inprogress action methods
     #
-    def _add_action(self, act, comp=None):
+    def _add_action(self, act):
         """
         Add the named action to the running action list.
         """
-        if not comp:
-            comp = self.TYPE
-        assert((act, comp) not in self.__running_actions)
-        self.__running_actions.append((act, comp))
+        assert((act, self.TYPE) not in self.__running_actions)
+        self.__running_actions.append((act, self.TYPE))
 
-    def _del_action(self, act, comp=None):
+    def _del_action(self, act):
         """
         Remove the named action from the running action list.
         """
-        if not comp:
-            comp = self.TYPE
-        self.__running_actions.remove((act, comp))
+        self.__running_actions.remove((act, self.TYPE))
 
     def _list_action(self):
         """
@@ -176,33 +172,25 @@ class Component(object):
     # Event raising methods
     #
 
-    def _action_start(self, act, comp=None):
+    def _action_start(self, act):
         """Called by Actions.* when starting"""
-        if not comp:
-            comp = self.TYPE
-        self._add_action(act, comp)
-        self.fs.local_event(comp, act, 'start', comp=self)
+        self._add_action(act)
+        self.fs.local_event(self.TYPE, act, 'start', comp=self)
 
-    def _action_done(self, act, comp=None):
+    def _action_done(self, act):
         """Called by Actions.* when done"""
-        if not comp:
-            comp = self.TYPE
-        self._del_action(act, comp)
-        self.fs.local_event(comp, act, 'done', comp=self)
+        self._del_action(act)
+        self.fs.local_event(self.TYPE, act, 'done', comp=self)
 
-    def _action_timeout(self, act, comp=None):
+    def _action_timeout(self, act):
         """Called by Actions.* on timeout"""
-        if not comp:
-            comp = self.TYPE
-        self._del_action(act, comp)
-        self.fs.local_event(comp, act, 'timeout', comp=self)
+        self._del_action(act)
+        self.fs.local_event(self.TYPE, act, 'timeout', comp=self)
 
-    def _action_failed(self, act, rc, message, comp=None):
+    def _action_failed(self, act, rc, message):
         """Called by Actions.* on failure"""
-        if not comp:
-            comp = self.TYPE
-        self._del_action(act, comp)
-        self.fs.local_event(comp, act, 'failed', comp=self, rc=rc, 
+        self._del_action(act)
+        self.fs.local_event(self.TYPE, act, 'failed', comp=self, rc=rc,
                             message=message)
 
 class ComponentGroup(object):
