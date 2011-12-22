@@ -1,5 +1,5 @@
 # EventHandler.py -- Lustre event handling
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2011 CEA
 #
 # This file is part of shine
 #
@@ -33,20 +33,5 @@ class EventHandler(object):
 
         This event handler could be overload to implement your own event
         management.
-
-        This default handler will dispatch event based on the existing methods
-        in the class.
-
-        It first checks for a method named ev_xxxyyy_zzz. 
-        Else, it does nothing.
-        
-        Where:
-         - xxx is the component name.
-         - yyy is the action name.
-         - zzz is the action status.
         """
- 
-        # Looks for a old-style event handler
-        event = "ev_%s%s_%s" % (action, compname, status)
-        if hasattr(self, event):
-            getattr(self, event)(**kwargs)
+        raise NotImplementedError

@@ -43,19 +43,23 @@ class GlobalFormatEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_formattarget_start(self, node, comp):
+    def action_start(self, node, comp):
         self.update_config_status(comp, "start")
-        self.action_start(node, comp)
+        FSGlobalEventHandler.action_start(self, node, comp)
 
-    def ev_formattarget_done(self, node, comp):
+    def action_done(self, node, comp):
         self.update_config_status(comp, "done")
-        self.action_done(node, comp)
+        FSGlobalEventHandler.action_done(self, node, comp)
 
-    def ev_formattarget_failed(self, node, comp, rc, message):
+    def action_failed(self, node, comp, result):
         self.update_config_status(comp, "failed")
-        self.action_failed(node, comp, rc, message)
+        FSGlobalEventHandler.action_failed(self, node, comp, result)
 
     def update_config_status(self, target, status):
+        # Journal is not managed in DB
+        if target.TYPE == 'journal':
+            return
+
         # Retrieve the right target from the configuration
         target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
             target.TYPE.upper())]
@@ -75,14 +79,6 @@ class LocalFormatEventHandler(FSLocalEventHandler):
     ACTION = 'format'
     ACTIONING = 'formating'
 
-    def ev_formattarget_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_formattarget_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_formattarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
 
 class Format(FSTargetLiveCriticalCommand):
     """

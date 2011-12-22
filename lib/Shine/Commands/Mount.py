@@ -46,16 +46,13 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
     ACTION = 'mount'
     ACTIONING = 'mounting'
 
-    def ev_mountclient_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_mountclient_done(self, node, comp):
+    def action_done(self, node, comp)
         self.update_client_status(node, "done")
-        self.action_done(node, comp)
+        FSGlobalEventHandler.action_done(self, node, comp)
 
-    def ev_mountclient_failed(self, node, comp, rc, message):
+    def action_failed(self, node, comp, rc, message):
         self.update_client_status(node, "failed")
-        self.action_failed(node, comp, rc, message)
+        FSGlobalEventHandler.action_failed(self, node, comp, rc, message)
 
     def update_client_status(self, client_name, status):
         # Change the status of client 
@@ -68,15 +65,6 @@ class LocalMountEventHandler(FSLocalEventHandler):
 
     ACTION = 'mount'
     ACTIONING = 'mounting'
-
-    def ev_mountclient_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_mountclient_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_mountclient_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
 
 
 class Mount(FSLiveCommand):

@@ -120,16 +120,10 @@ class FileSystem:
         Inform the filesystem the provided event happened.
         If an event handler is set, the associated callback will be called.
         """
-        if not self.event_handler:
-            return
-
         # New style event handling: One global handler
-        if hasattr(self.event_handler, 'event_callback'):
-            self.event_handler.event_callback(compname, action, status, **kwargs)
-        # Compat mode: Old-style event handling
-        else:
-            event = "ev_%s%s_%s" % (action, compname, status)
-            getattr(self.event_handler, event)(**kwargs)
+        if self.event_handler:
+            self.event_handler.event_callback(compname, action, status,
+                                              **kwargs)
  
     def local_event(self, compname, action, status, **params):
         # Currently, all event callbacks need a node.

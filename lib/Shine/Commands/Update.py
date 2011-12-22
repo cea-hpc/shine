@@ -49,51 +49,9 @@ class GlobalUpdateEventHandler(FSGlobalEventHandler):
     ACTION = 'update'
     ACTIONING = 'updating'
 
-    def __init__(self, verbose=1, fs_conf=None):
-        FSGlobalEventHandler.__init__(self, verbose, fs_conf)
-
-        for event in ('start', 'done', 'failed'):
-            # Target
-            for action in ('start', 'format', 'fsck', 
-                           'status', 'stop', 'tunefs'):
-                funcname = "ev_%starget_%s" % (action, event)
-                currname = "ev_actiontarget_%s" % event
-                setattr(self, funcname, getattr(self, currname))
-            # Router
-            for action in ('start', 'status', 'stop'):
-                funcname = "ev_%srouter_%s" % (action, event)
-                currname = "ev_actionrouter_%s" % event
-                setattr(self, funcname, getattr(self, currname))
-            # Client
-            for action in ('mount', 'status', 'umount'):
-                funcname = "ev_%sclient_%s" % (action, event)
-                currname = "ev_actionclient_%s" % event
-                setattr(self, funcname, getattr(self, currname))
-
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
-
-    def ev_actiontarget_start(self, node, comp):
-        self.action_start(node, comp)
-    def ev_actiontarget_done(self, node, comp):
-        self.action_done(node, comp)
-    def ev_actiontarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_actionrouter_start(self, node, comp):
-        self.action_start(node, comp)
-    def ev_actionrouter_done(self, node, comp):
-        self.action_done(node, comp)
-    def ev_actionrouter_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
-    def ev_actionclient_start(self, node, comp):
-        self.action_start(node, comp)
-    def ev_actionclient_done(self, node, comp):
-        self.action_done(node, comp)
-    def ev_actionclient_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
 
 class CannotApplyError(Exception):
     """Filesystem cannot be uninstall for update."""

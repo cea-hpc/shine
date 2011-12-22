@@ -43,28 +43,11 @@ class GlobalTunefsEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def ev_tunefstarget_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_tunefstarget_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_tunefstarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
-
 class LocalTunefsEventHandler(FSLocalEventHandler):
 
     ACTION = 'tunefs'
     ACTIONING = 'tuning'
 
-    def ev_tunefstarget_start(self, node, comp):
-        self.action_start(node, comp)
-
-    def ev_tunefstarget_done(self, node, comp):
-        self.action_done(node, comp)
-
-    def ev_tunefstarget_failed(self, node, comp, rc, message):
-        self.action_failed(node, comp, rc, message)
 
 class Tunefs(FSTargetLiveCriticalCommand):
     """
