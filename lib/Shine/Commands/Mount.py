@@ -46,7 +46,7 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
     ACTION = 'mount'
     ACTIONING = 'mounting'
 
-    def action_done(self, node, comp)
+    def action_done(self, node, comp):
         self.update_client_status(node, "done")
         FSGlobalEventHandler.action_done(self, node, comp)
 
