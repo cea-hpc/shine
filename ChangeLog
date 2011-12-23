@@ -1,3 +1,6 @@
+2011-12-23 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix bad hash method for ModelFile (ticket #112).
+
 2011-12-22 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Code refactoring ables to check journal device (ticket #85).
 	* Add new v3 event mechanism with v2 compatibility (ticket #54).

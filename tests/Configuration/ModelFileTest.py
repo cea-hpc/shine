@@ -238,6 +238,23 @@ class ModelFileTest(unittest.TestCase):
         model = ModelFile()
         self.assertRaises(KeyError, model.get, 'foo')
 
+    def test_hash_model_element(self):
+        """check 2 different model element have different hashes."""
+        model = ModelFile()
+        model.add_element('foo', check='string')
+        model.add_element('bar', check='string')
+
+        model2 = model.emptycopy()
+
+        model.parse('foo: foo1')
+        model.parse('bar: bar1')
+        model2.parse('foo: foofoo')
+        model2.parse('bar: barbar')
+
+        self.assertEqual(hash(model), hash(model))
+        self.assertEqual(hash(model2), hash(model2))
+        self.assertNotEqual(hash(model), hash(model2))
+
     def testModelElementManagement(self):
         """add/del elements to a model file"""
         model = ModelFile()

@@ -253,6 +253,12 @@ class MultipleElement(object):
         return self._origelem == other._origelem \
                 and self.elements() == other.elements()
 
+    def __hash__(self):
+        value = hash(self.__class__) ^ hash(self._origelem)
+        for elem in self._elements:
+            value = value ^ hash(elem)
+        return value
+
     def as_dict(self):
         """Helper method for ModelFile.as_dict().
 
@@ -502,8 +508,8 @@ class ModelFile(object):
 
     def __hash__(self):
         value = hash(self.__class__)
-        for elem in self._elements:
-            value = value ^ hash(elem)
+        for key, elem in self._elements.iteritems():
+            value = value ^ hash(key) ^ hash(elem)
         return value
 
     def diff(self, other):
