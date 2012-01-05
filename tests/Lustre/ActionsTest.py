@@ -81,8 +81,8 @@ class ActionsTest(unittest.TestCase):
     def test_start_client_mount_options(self):
         """test command line start client (mount options)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        client = self.fs.new_client(self.srv1, "/foo")
-        action = StartClient(client, mount_options='acl')
+        client = self.fs.new_client(self.srv1, "/foo", mount_options="acl")
+        action = StartClient(client)
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
                       '/bin/mount -t lustre -o acl localhost@tcp:/action /foo')
 
@@ -97,8 +97,8 @@ class ActionsTest(unittest.TestCase):
     def test_start_client_both_options(self):
         """test command line start client (both options)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        client = self.fs.new_client(self.srv1, "/foo")
-        action = StartClient(client, mount_options='acl', addopts='user_xattr')
+        client = self.fs.new_client(self.srv1, "/foo", mount_options="acl")
+        action = StartClient(client, addopts='user_xattr')
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
            '/bin/mount -t lustre -o acl,user_xattr localhost@tcp:/action /foo')
 

@@ -1,5 +1,5 @@
 # StartClient.py -- Mount client
-# Copyright (C) 2009, 2010 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -30,7 +30,6 @@ class StartClient(FSAction):
 
     def __init__(self, client, **kwargs):
         FSAction.__init__(self, client)
-        self.mount_options = kwargs.get('mount_options')
         self.addopts = kwargs.get('addopts')
 
     def _prepare_cmd(self):
@@ -46,8 +45,8 @@ class StartClient(FSAction):
         options = []
 
         # Mount options from configuration
-        if self.mount_options:
-            options += [ self.mount_options ]
+        if self.comp.mount_options:
+            options += [ self.comp.mount_options ]
 
         # Mount options from command line
         if self.addopts:

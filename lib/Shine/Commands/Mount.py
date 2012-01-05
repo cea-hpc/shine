@@ -1,5 +1,5 @@
 # Mount.py -- Mount file system on clients
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -98,8 +98,7 @@ class Mount(FSLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        status = fs.mount(mount_options=fs_conf.get_mount_options(), 
-                          addopts=self.addopts.get_options())
+        status = fs.mount(addopts=self.addopts.get_options())
 
         rc = self.fs_status_to_rc(status)
 

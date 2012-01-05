@@ -1,4 +1,4 @@
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -181,5 +181,7 @@ class Client(ModelFile):
 
     def __init__(self, sep='=', linesep=' '):
         ModelFile.__init__(self, sep, linesep)
-        self.add_element('node',        check='string')
-        self.add_element('mount_path',  check='path')
+        self.add_element('node',          check='string')
+        self.add_element('mount_options', check='string')
+        self.add_element('mount_path',    check='path')
+

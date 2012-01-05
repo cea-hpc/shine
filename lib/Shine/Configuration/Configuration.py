@@ -128,47 +128,18 @@ class Configuration:
             raise ConfigException("mount_path not specified")
         return self._fs.get('mount_path')
 
-    def get_client_mounts(self, select_nodes=None):
-        """
-        Get clients different mount paths. Returns a dict where keys are
-        mount paths and values are nodes.
-        Optional argument select_nodes makes the result with these nodes only.
-        """
-        # build a dict where keys are mount paths
-        mounts = {}
-        # no client defined?
-        if not 'client' in self._fs.model:
-            return mounts
-
-        remain_nodes = None
-        if select_nodes:
-            remain_nodes = NodeSet(select_nodes)
-
-        for clients in [Clients(cli) for cli in self._fs.get('client')]:
-            concern_nodes = NodeSet(clients.get_nodes())
-            if remain_nodes:
-                concern_nodes.intersection_update(remain_nodes)
-                remain_nodes.difference_update(concern_nodes)
-            if len(concern_nodes) > 0:
-                path = clients.get_mount_path() or \
-                       self.get_default_mount_path()
-                mounts.setdefault(path, NodeSet()).update(concern_nodes)
-        
-        # Fill unknown nodes with default mount point
-        if remain_nodes:
-            default_path = self.get_default_mount_path()
-            mounts.setdefault(default_path, NodeSet()).update(remain_nodes)
-
-        return mounts
-
     def iter_clients(self):
         """
-        Iterate over (node, mount_path)
+        Iterate over (node, mount_path, mount_options)
         """
-        mounts = self.get_client_mounts()
-        for path, nodes in mounts.iteritems():
-            for node in nodes:
-                yield node, path
+        if not 'client' in self._fs.model:
+            return
+
+        for clients in [Clients(cli) for cli in self._fs.get('client')]:
+            for node in NodeSet(clients.get_nodes()):
+                path = clients.get_mount_path() or self.get_default_mount_path()
+                opts = clients.get_mount_options() or self.get_default_mount_options()
+                yield node, path, opts
 
     def iter_routers(self):
         """
@@ -223,7 +194,7 @@ class Configuration:
     def get_mount_path(self):
         return self._fs.get('mount_path')
 
-    def get_mount_options(self):
+    def get_default_mount_options(self):
         return self._fs.get('mount_options')
 
     def get_target_mount_options(self, target):

@@ -1,5 +1,5 @@
 # Show.py -- Show command
-# Copyright (C) 2008, 2009 CEA
+# Copyright (C) 2008-2012 CEA
 #
 # This file is part of shine
 #
@@ -138,7 +138,7 @@ class Show(Command):
             fslist.append(dict([['name', 'device path'],
                                 ['value', device_path]]))
             fslist.append(dict([['name', 'mount options'],
-                                ['value', fs_conf.get_mount_options()]]))
+                                ['value', fs_conf.get_default_mount_options()]]))
             fslist.append(dict([['name', 'quotas'],
                                 ['value', quota_info]]))
             fslist.append(dict([['name', 'stripping'],

@@ -58,8 +58,8 @@ client: node=foo[5-7]
         """)
         self.assertEqual(str(self._conf.get_client_nodes()), "foo[1-3,5-7]")
 
-    def test_empty_get_client_mounts(self):
-        """Configuration get_client_mounts (no clients)"""
+    def test_empty_iter_clients(self):
+        """Configuration iter_clients (no clients)"""
         self._conf = self.make_config("""
 fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -67,11 +67,11 @@ mgt: mode=external
         """)
 
         # Simplest conf, using global mount_path
-        mountpaths = self._conf.get_client_mounts()
+        mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 0)
 
-    def test_simple_get_client_mounts(self):
-        """Configuration get_client_mounts (global)"""
+    def test_simple_iter_clients(self):
+        """Configuration iter_clients (global)"""
         self._conf = self.make_config("""
 fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -81,12 +81,30 @@ client: node=foo[2-3]
         """)
 
         # Simplest conf, using global mount_path
-        mountpaths = self._conf.get_client_mounts()
-        self.assertEqual(len(mountpaths), 1)
-        self.assertEqual(str(mountpaths['/foo']), 'foo[2-3]')
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 2)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', None))
 
-    def test_several_get_client_mounts(self):
-        """Configuration get_client_mounts (several)"""
+    def test_simple_iter_clients_options(self):
+        """Configuration iter_clients (global options)"""
+        self._conf = self.make_config("""
+fs_name: climount
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+mount_path: /foo
+mount_options: acl
+client: node=foo[2-3]
+        """)
+
+        # Simplest conf, using global mount_path
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 2)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl'))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl'))
+
+    def test_several_iter_clients(self):
+        """Configuration iter_clients (several)"""
         self._conf = self.make_config("""
 fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -96,13 +114,36 @@ client: node=foo[2-3]
 client: node=foo[3-5] mount_path=/foo2
         """)
 
-        mountpaths = self._conf.get_client_mounts()
-        self.assertEqual(len(mountpaths), 2)
-        self.assertEqual(str(mountpaths['/foo']), 'foo[2-3]')
-        self.assertEqual(str(mountpaths['/foo2']), 'foo[3-5]')
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 5)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', None))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None))
 
-    def test_specific_get_client_mounts(self):
-        """Configuration get_client_mounts (no global)"""
+    def test_several_iter_clients_options(self):
+        """Configuration iter_clients (several options)"""
+        self._conf = self.make_config("""
+fs_name: climount
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+mount_path: /foo
+mount_options: acl
+client: node=foo[2-3]
+client: node=foo[3-5] mount_path=/foo2 mount_options=noatime
+        """)
+
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 5)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl'))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl'))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', 'noatime'))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', 'noatime'))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', 'noatime'))
+
+    def test_specific_iter_clients(self):
+        """Configuration iter_clients (no global)"""
         self._conf = self.make_config("""
 fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -111,13 +152,34 @@ client: node=foo[2-3] mount_path=/foo1
 client: node=foo[3-5] mount_path=/foo2
         """)
 
-        mountpaths = self._conf.get_client_mounts()
-        self.assertEqual(len(mountpaths), 2)
-        self.assertEqual(str(mountpaths['/foo1']), 'foo[2-3]')
-        self.assertEqual(str(mountpaths['/foo2']), 'foo[3-5]')
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 5)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo1', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo1', None))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None))
 
-    def test_missing_get_client_mounts(self):
-        """Configuration get_client_mounts (missing path)"""
+    def test_specific_iter_clients_options(self):
+        """Configuration iter_clients (no global mount_options)"""
+        self._conf = self.make_config("""
+fs_name: climount
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: mode=external
+mount_path: /foo
+client: node=foo[2-3] mount_options=acl,noatime
+client: node=foo[4-5]
+        """)
+
+        mountpaths = list(self._conf.iter_clients())
+        self.assertEqual(len(mountpaths), 4)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl,noatime'))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl,noatime'))
+        self.assertEqual(mountpaths[2], ('foo4', '/foo', None))
+        self.assertEqual(mountpaths[3], ('foo5', '/foo', None))
+
+    def test_missing_iter_clients(self):
+        """Configuration iter_clients (missing path)"""
         self._conf = self.make_config("""
 fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -125,7 +187,9 @@ mgt: mode=external
 client: node=foo[2-3]
 client: node=foo[3-5] mount_path=/foo2
         """)
-        self.assertRaises(ConfigException, self._conf.get_client_mounts)
+        def listclients():
+            list(self._conf.iter_clients())
+        self.assertRaises(ConfigException, listclients)
 
     def test_has_quota_old_style(self):
         """Configuration has_quota (old style)"""

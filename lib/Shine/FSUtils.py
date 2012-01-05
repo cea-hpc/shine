@@ -1,5 +1,5 @@
 # FSUtils.py -- Useful shine FS utility functions
-# Copyright (C) 2009, 2010, 2011 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -35,7 +35,9 @@ def _create_comp(fs_conf, fs, comp):
     newcomp = None
     if comp_type == 'client':
         newcomp = Client(fs, Server(comp.get_nodes(),
-               fs_conf.get_nid(comp.get_nodes())), comp.get_mount_path() or fs_conf.get_default_mount_path())
+               fs_conf.get_nid(comp.get_nodes())),
+               comp.get_mount_path() or fs_conf.get_default_mount_path(),
+               comp.get_mount_options() or fs_conf.get_default_mount_options())
     elif comp_type == 'mgt':
         newcomp = MGT(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
                     comp.get_index(), comp.get_dev(), comp.get_jdev()) 
@@ -122,8 +124,10 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
             
 
     # Create attached file system clients...
-    for client_node, mount_path in fs_conf.iter_clients():
-        server = servers.setdefault(client_node, Server(client_node, fs_conf.get_nid(client_node)))
+    for client_node, mount_path, mount_options in fs_conf.iter_clients():
+        server = servers.setdefault(client_node, \
+                                    Server(client_node, \
+                                           fs_conf.get_nid(client_node)))
 
         # filter on nodes
         client_action_enabled = True
@@ -134,7 +138,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         if target_types is not None:
             client_action_enabled = False
 
-        client = fs.new_client(server, mount_path, client_action_enabled)
+        client = fs.new_client(server, mount_path, mount_options, \
+                               client_action_enabled)
 
         # Now the device is instanciated, we could check label name
         if (labels is not None and client.label not in labels):
@@ -142,7 +147,9 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system routers...
     for router_node in fs_conf.iter_routers():
-        server = servers.setdefault(router_node, Server(router_node, fs_conf.get_nid(router_node)))
+        server = servers.setdefault(router_node, \
+                                    Server(router_node, \
+                                           fs_conf.get_nid(router_node)))
 
         # filter on target types and nodes
         router_action_enabled = True

@@ -1,5 +1,5 @@
 # Install.py -- File system installation commands
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -134,7 +134,7 @@ class Install(Command):
 
         nodes = NodeSet()
         
-        for node, path in fs_conf.iter_clients():
+        for node, path, opts in fs_conf.iter_clients():
             nodes.add(node)
             
         # register all the file system client

@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -100,6 +100,9 @@ class Clients:
 
     def get_nodes(self):
         return self.dic.get('node')
+
+    def get_mount_options(self):
+        return self.dic.get('mount_options')
 
     def get_mount_path(self):
         return self.dic.get('mount_path')

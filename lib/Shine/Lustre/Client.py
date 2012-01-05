@@ -1,5 +1,5 @@
 # Client.py -- Lustre Client
-# Copyright (C) 2008-2011 CEA
+# Copyright (C) 2008-2012 CEA
 #
 # This file is part of shine
 #
@@ -58,10 +58,11 @@ class Client(Component):
     }
 
 
-    def __init__(self, fs, server, mount_path, enabled=True):
+    def __init__(self, fs, server, mount_path, mount_options=None, enabled=True):
         """
         Initialize a Lustre client object.
         """
+        self.mount_options = mount_options
         self.mount_path = mount_path
 
         Component.__init__(self, fs, server, enabled)
@@ -86,6 +87,7 @@ class Client(Component):
         Update my serializable fields from other/distant object.
         """
         Component.update(self, other)
+        self.mount_options = other.mount_options
         self.mount_path = other.mount_path
 
     def lustre_check(self):
