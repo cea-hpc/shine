@@ -58,7 +58,8 @@ class Client(Component):
     }
 
 
-    def __init__(self, fs, server, mount_path, mount_options=None, enabled=True):
+    def __init__(self, fs, server, mount_path, mount_options=None,
+                 enabled=True):
         """
         Initialize a Lustre client object.
         """
@@ -87,8 +88,10 @@ class Client(Component):
         Update my serializable fields from other/distant object.
         """
         Component.update(self, other)
-        self.mount_options = other.mount_options
         self.mount_path = other.mount_path
+
+        # Compat v0.910: 'mount_path' value depends on remote version
+        self.mount_options = getattr(other, 'mount_options', None)
 
     def lustre_check(self):
         """
