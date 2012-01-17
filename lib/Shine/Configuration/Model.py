@@ -148,7 +148,7 @@ class Target(ModelFile):
         for target in candidates:
 
             # Verify my keys match its attributes
-            for key, regexp in self.iteritems():
+            for key, regexp in self.as_dict().iteritems():
                 # Index as a special meaning and should not be considered
                 if key == 'index':
                     continue
@@ -157,8 +157,22 @@ class Target(ModelFile):
                     break
 
                 try:
-                    if not re.match('^' + regexp + '$', target.get(key)):
+                    # If this is a list
+                    if type(regexp) is list:
+                        bknds = target.get(key)
+                        # If there's more criteria in model, it does not match
+                        if len(regexp) > len(bknds):
+                            break
+                        # Match each criteria with its equivalent in backend
+                        # definition. Break at first that differs.
+                        if [ True for bk, rgexp in zip(bknds, regexp)
+                                      if not re.match('^' + rgexp + '$', bk) ]:
+                            break
+
+                    # Or a simple element
+                    elif not re.match('^' + regexp + '$', target.get(key)):
                         break
+
                 except re.error:
                     raise ModelFileValueError("Bad syntax: %s" % regexp)
 

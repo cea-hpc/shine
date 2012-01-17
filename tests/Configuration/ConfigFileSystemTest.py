@@ -9,8 +9,10 @@
 import unittest
 
 from Utils import makeTempFile, setup_tempdirs, clean_tempdirs
-from Shine.Configuration.FileSystem import FileSystem, ModelFileIOError
+from Shine.Configuration.FileSystem import FileSystem, ModelFileIOError, ConfigDeviceNotFoundError
 from Shine.Configuration.Exceptions import ConfigException, ConfigInvalidFileSystem
+from Shine.Configuration.TargetDevice import TargetDevice
+from Shine.Configuration.Backend.Backend import Backend
 
 class FileSystemTest(unittest.TestCase):
 
@@ -163,6 +165,95 @@ mdt: node=foo2
 ost: node=foo2 index=0
 ost: node=foo1 index=0
 """)
+
+    def make_fs_with_backend(self, backend, text):
+        """
+        Create a FileSystem instance from text with a specific backend
+        instance.
+        """
+        self._testfile = makeTempFile(text)
+        fs = FileSystem(self._testfile.name)
+        fs.backend = backend
+        fs.setup_target_devices()
+        return fs
+
+    def test_match_device_simple_ha_node(self):
+        """test target.match_device() with a simple ha_node"""
+
+        # Dummy backend
+        class DummyBackend(Backend):
+            def start(self):
+                pass
+            def get_target_devices(self, target, fs_name=None, update_mode=None):
+                return [TargetDevice('mgt', {'node': 'foo1', 'ha_node': ['foo2']}),
+                        TargetDevice('mgt', {'node': 'foo1', 'ha_node': ['foo3']})]
+
+        # Test with 1 matching ha_node
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp0
+mgt: node=foo1 ha_node=foo2
+""")
+        self.assertEqual(len(fs.get('mgt')), 1)
+
+        # Test with 1 matching ha_node (bis)
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp0
+mgt: node=foo1 ha_node=foo3
+""")
+        self.assertEqual(len(fs.get('mgt')), 1)
+
+        # Test without ha_node
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp0
+mgt: node=foo1
+""")
+        fs.setup_target_devices()
+
+        # Test with no matching ha_node
+        self.assertRaises(ConfigDeviceNotFoundError, self.make_fs_with_backend,
+                          DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-4] nids=foo[1-4]@tcp0
+mgt: node=foo1 ha_node=foo4
+""")
+
+    def test_match_device_multiple_ha_node(self):
+        """test target.match_device() with a several ha_node"""
+
+        # Dummy backend
+        class DummyBackend(Backend):
+            def start(self):
+                pass
+            def get_target_devices(self, target, fs_name=None, update_mode=None):
+                return [TargetDevice('mgt', {'node': 'foo1', 'ha_node': ['foo2', 'foo3']}),
+                        TargetDevice('mgt', {'node': 'foo1', 'ha_node': ['foo2', 'foo4']})]
+
+        # Test with 2 matching ha_nodes
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-4] nids=foo[1-4]@tcp0
+mgt: node=foo1 ha_node=foo2 ha_node=foo3
+""")
+        self.assertEqual(len(fs.get('mgt')), 1)
+
+        # Test with 1 matching ha_node
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp0
+mgt: node=foo1 ha_node=foo2
+""")
+        self.assertEqual(len(fs.get('mgt')), 2)
+
+        # Test without ha_node
+        fs = self.make_fs_with_backend(DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp0
+mgt: node=foo1
+""")
+        self.assertEqual(len(fs.get('mgt')), 2)
 
 
 class FileSystemCompareTest(unittest.TestCase):
