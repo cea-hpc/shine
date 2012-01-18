@@ -231,6 +231,12 @@ class FileSystem(object):
                 # Save the model target selection
                 target_models = copy.copy(self.model.get(target))
 
+                # Reduce entropy from backend.
+                # (node, dev) should point to a unique device, so this should
+                # be enough for sorting. This is not perfect but enough to have
+                # a very low entropy in result order.
+                candidates.sort(key=lambda x: (x.get('node'), x.get('dev')))
+
                 # Delete it (to be replaced... see below)
                 self.model.elements(target).clear()
 
