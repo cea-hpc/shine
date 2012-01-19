@@ -1,5 +1,5 @@
 # Exceptions.py -- Configuration exception classes
-# Copyright (C) 2008 CEA
+# Copyright (C) 2008-2011 CEA
 #
 # This file is part of shine
 #
@@ -21,11 +21,7 @@
 
 
 class CommandException(Exception):
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return self.message
+    """Generic exception for Shine.Commands."""
 
 class CommandHelpException(CommandException):
     """
@@ -37,17 +33,13 @@ class CommandHelpException(CommandException):
 
 class CommandNotFoundError(CommandException):
     def __init__(self, cmd_name):
+        CommandException.__init__(self, "Command \"%s\" not found" % cmd_name)
         self.cmd = cmd_name
-        self.message = "Command \"%s\" not found" % cmd_name
-
-class CommandXMFNotFoundError(CommandException):
-    def __init__(self, fsname):
-        self.fsname = fsname
-        self.message = "File system \"%s\" is not installed" % fsname
 
 class CommandBadParameterError(CommandException):
     def __init__(self, param, valid_params=None):
-        self.message = "parameter \"%s\" not recognized" % param
+        msg = "parameter \"%s\" not recognized" % param
         if valid_params:
-            self.message += ", valid parameters are: %s" % valid_params
+            msg += ", valid parameters are: %s" % valid_params
+        CommandException.__init__(self, msg)
 

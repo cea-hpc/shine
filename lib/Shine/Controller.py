@@ -1,5 +1,5 @@
 # Controller.py -- Controller class
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -108,10 +108,10 @@ class Controller:
             return self.cmds.execute(cmd_args)
         except getopt.GetoptError, e:
             print "Syntax error: %s" % e
-        except CommandHelpException, e:
-            self.print_help(e.message, e.cmd)
-        except CommandException, e:
-            self.print_error(e.message)
+        except CommandHelpException, error:
+            self.print_help(str(error), error.cmd)
+        except CommandException, error:
+            self.print_error(str(error))
         except ConfigException, e:
             print "Configuration: %s" % e
         except ModelFileValueError, error:

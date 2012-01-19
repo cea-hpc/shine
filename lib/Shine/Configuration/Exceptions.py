@@ -1,5 +1,5 @@
 # Exceptions.py -- Configuration exception classes
-# Copyright (C) 2007-2010 CEA
+# Copyright (C) 2007-2011 CEA
 #
 # This file is part of shine
 #
@@ -20,12 +20,7 @@
 # $Id$
 
 class ConfigException(Exception):
-    def __init__(self, message):
-        Exception.__init__(self)
-        self.message = message
-
-    def __str__(self):
-        return self.message
+    """Generic exception for Shine.Configuration."""
 
 class ConfigDeviceNotFoundError(ConfigException):
     """A target, described in a model file, cannot be found."""
