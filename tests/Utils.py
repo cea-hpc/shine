@@ -5,6 +5,9 @@
 
 import os
 import tempfile
+import ConfigParser
+
+TESTS_CONFIG='tests.conf'
 
 from Shine.Configuration.Globals import Globals
 
@@ -33,3 +36,11 @@ def setup_tempdirs():
 
 def clean_tempdirs():
     clean_tempdir(Globals().get('conf_dir'))
+
+def config_options(optname, section="general"):
+    conf_file = TESTS_CONFIG
+
+    config = ConfigParser.ConfigParser()
+    config.read(conf_file)
+
+    return config.get(section, optname)

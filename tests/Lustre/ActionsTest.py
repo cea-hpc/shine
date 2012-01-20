@@ -8,6 +8,7 @@
 
 import os
 import unittest
+import Utils
 
 from Shine.Configuration.Globals import Globals
 from Shine.Lustre.Server import Server
@@ -217,12 +218,17 @@ class ActionsTest(unittest.TestCase):
 
     def test_start_target_jdev(self):
         """test command line start target (with journal)"""
-        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/hda', '/dev/hda1')
+        dev = Utils.config_options('noformat_dev')
+        jdev = Utils.config_options('noformat_jdev')
+        majorminor = os.stat(jdev).st_rdev
+
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev, jdev)
         tgt._check_status(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
           'mkdir -p "/mnt/action/mgt/0" && ' +
-          '/bin/mount -t lustre -o journal_dev=0x301 /dev/hda /mnt/action/mgt/0')
+          '/bin/mount -t lustre -o journal_dev=%#x %s /mnt/action/mgt/0' %
+          (majorminor, dev))
 
     def test_start_target_file_device(self):
         """test command line start target (file device)"""
@@ -291,17 +297,19 @@ class ActionsTest(unittest.TestCase):
     # Stop
     def test_stop_target(self):
         """test command line stop target"""
-        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        dev = Utils.config_options('noformat_dev')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev)
         tgt._check_status(mountdata=False)
         action = StopTarget(tgt)
-        self.check_cmd(action, 'umount /dev/root')
+        self.check_cmd(action, 'umount %s' % dev)
 
     def test_stop_target_addopts(self):
         """test command line stop target (addl options)"""
-        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        dev = Utils.config_options('noformat_dev')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev)
         tgt._check_status(mountdata=False)
         action = StopTarget(tgt, addopts='-l')
-        self.check_cmd(action, 'umount -l /dev/root')
+        self.check_cmd(action, 'umount -l %s' % dev)
 
     def test_stop_target_file_device(self):
         """test command line stop target (file device)"""

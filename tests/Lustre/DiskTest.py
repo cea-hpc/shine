@@ -14,6 +14,7 @@ from subprocess import Popen, PIPE, STDOUT
 
 sys.path.insert(0, '../lib')
 
+import Utils
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 
 class DiskLoopbackTest(unittest.TestCase):
@@ -124,17 +125,13 @@ class DiskOtherTest(unittest.TestCase):
         d = Disk(dev='/dev/tty0')
         self.assertRaises(DiskDeviceError, d._device_check)
 
-    ### XXX: /dev/sda and /dev/hda is hardcoded
     ### XXX: This does not check the device size
     def testBlockDevCheck(self):
         """test device check with a block device"""
-        if os.path.exists('/dev/sda'):
-            d = Disk(dev='/dev/sda')
-        else:
-            d = Disk(dev='/dev/hda')
-        d._device_check()
-        self.assertEqual(d.dev_isblk, True)
-        self.assertNotEqual(d.dev_size, 0)
+        disk = Disk(Utils.config_options('noformat_dev'))
+        disk._device_check()
+        self.assertEqual(disk.dev_isblk, True)
+        self.assertNotEqual(disk.dev_size, 0)
 
     def testUpdate(self):
         """test update a Disk instance with another one"""
