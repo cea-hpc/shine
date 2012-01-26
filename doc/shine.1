@@ -57,7 +57,7 @@ start, stop, mount, format (and more) your filesystem from an unique machine, th
 .UNINDENT
 .UNINDENT
 .sp
-Supported versions of Lustre are 1.6.x, 1.8.x and 2.x. It is still in beta stage (feedbacks are welcomed).
+Supported versions of Lustre are 1.6.x, 1.8.x and 2.x.
 .SH INVOCATION
 .sp
 Here is the description of the supported commands:
@@ -150,6 +150,18 @@ and on the client nodes at the end of the mount phase.
 .BI \-f \ <FSNAME>
 .
 Name of the installed filesystem that will be processed by the command.
+.TP
+.BI \-F \ <FAILOVER_NODES>
+.
+Apply a failover action on the provided nodes. The action will be run for the
+related targets, not using their master node, but one of the failover nodes
+specified with -F.
+A target should have only one of its ha_node matching those in FAILOVER_NODES.
+
+For example, to start targets on foo42, which have \fIfoo42\fP in their \fIha_node\fP
+list, use:
+  # shine start -f bar -F foo42
+
 .TP
 .BI \-i \ <INDEXES>
 .

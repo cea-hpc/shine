@@ -1,3 +1,6 @@
+2012-01-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* -F failover flag behave correctly when use remotely (ticket #117).
+
 2012-01-19 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Remove last code which raises DeprecationWarning (ticket #22).
 

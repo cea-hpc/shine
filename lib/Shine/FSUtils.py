@@ -111,7 +111,10 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         # add failover hosts
         for ha_node in cf_target.ha_nodes():
-            target.add_server(Server(ha_node, fs_conf.get_nid(ha_node)))
+            server = servers.setdefault(ha_node, \
+                                        Server(ha_node, \
+                                               fs_conf.get_nid(ha_node)))
+            target.add_server(server)
 
         # Change current server if failover nodes are used.
         if failover and len(failover) and target.action_enabled:
