@@ -50,35 +50,6 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
 
-    def action_start(self, node, comp):
-        self.update_config_status(comp, "start")
-        FSGlobalEventHandler.action_start(self, node, comp)
-
-    def action_done(self, node, comp):
-        self.update_config_status(comp, "done")
-        FSGlobalEventHandler.action_done(self, node, comp)
-
-    def action_failed(self, node, comp, result):
-        self.update_config_status(comp, "failed")
-        FSGlobalEventHandler.action_failed(self, node, comp, result)
-
-    def update_config_status(self, target, status):
-        # Router is not managed in DB
-        if target.TYPE == 'router':
-            return
-
-        # Retrieve the right target from the configuration
-        target_list = [self.fs_conf.get_target_from_tag_and_type(target.tag,
-            target.TYPE.upper())]
-
-        # Change the status of targets to register their running state
-        if status == "done":
-            self.fs_conf.set_status_targets_offline(target_list, None)
-        elif status == "failed":
-            self.fs_conf.set_status_targets_unreachable(target_list, None)
-        else:
-            self.fs_conf.set_status_targets_stopping(target_list, None)
-
 class LocalStopEventHandler(FSLocalEventHandler):
 
     ACTION = 'stop'

@@ -319,17 +319,12 @@ class Update(Command):
             
 
         # Unregister from backend
-        if 'unmount' in actions:
-            servers = actions['unmount'].servers()
-            self.__verbose("Remove client(s) %s from backend." % servers)
-            oldconf.unregister_clients(servers)
         if 'stop' in actions:
             self.__verbose("Remove target(s) %s from backend." % 
                            actions['stop'].labels())
             for comp in actions['stop'].filter(supports='dev'):
                 tgtlist = [oldconf.get_target_from_tag_and_type(
                                  comp.tag, comp.TYPE.upper())]
-                oldconf.set_status_targets_available(tgtlist)
                 oldconf.unregister_targets(tgtlist)
 
         #
@@ -354,7 +349,6 @@ class Update(Command):
             for comp in actions['format']:
                 tgtlist = [newconf.get_target_from_tag_and_type(comp.tag,
                                                             comp.TYPE.upper())]
-                newconf.set_status_targets_formated(tgtlist)
                 oldconf.register_targets(tgtlist)
 
         # Will call the handle_pre() method defined by the event handler.

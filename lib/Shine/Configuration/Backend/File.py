@@ -102,55 +102,6 @@ class File(Backend):
             self._start_storage()
         return self.storage_file.get_target_devices(target)
 
-    def set_status_client(self, fs_name, node, status, options):
-        """
-        Set status of file system client.
-        if not self.status_clients.has_key(fs_name):
-            self._start_status_client(fs_name)
-
-        sta = { Backend.MOUNT_COMPLETE  : "m_complete",
-                Backend.MOUNT_FAILED    : "m_failed",
-                Backend.MOUNT_WARNING   : "m_warning",
-                Backend.UMOUNT_COMPLETE : "u_complete",
-                Backend.UMOUNT_FAILED   : "u_failed",
-                Backend.UMOUNT_WARNING  : "u_warning"
-              }
-
-        if not sta.has_key(status):
-            raise BackendInvalidParameterError()
-
-        d = self.status_clients[fs_name]
-
-        d[node] = { 'options' : options,
-                    'status' : sta[status],
-                    'date' : datetime.now() }
-
-        #print "status: %s" % d
-        d.close()
-        """
-
-    def get_status_clients(self, fs_name):
-        """
-        Get all client's status of the form { node1 : { 'status' : status,
-        'date' : datetime, 'options' : None }, node2 : ... }
-        """
-        if not self.status_clients.has_key(fs_name):
-            self._start_status_client(fs_name)
-        return self.status_clients[fs_name]
-
-    def set_status_target(self, fs_name, targets, status, options):
-        """
-        Set status of file system target.
-        """
-        pass
-
-    def get_status_target(self, fs_name):
-        """
-        Get all target status of the form { target1 : { 'status' : status,
-        'date' : datetime, 'options' : None }, target2 : ... }
-        """
-        pass
-
     def register_fs(self, fs):
         """
         This function is used to register a a filesystem configuration to the backend
@@ -175,18 +126,6 @@ class File(Backend):
         'date' : datetime, 'options' : None } }
         """
         pass
-
-    def register_client(self, fs, node):
-        """
-        This function is used to register a filesystem client to the backend
-        """
-        print "backend register_client %s/%s" % (fs, node)
-
-    def unregister_client(self, fs, node):
-        """
-        This function is used to remove a filesystem client from the backend
-        """
-        print "backend un_register_client %s/%s" % (fs, node)
 
     def register_target(self, fs, target):
         """

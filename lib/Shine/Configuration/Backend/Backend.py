@@ -96,32 +96,6 @@ class Backend:
         """
         raise NotImplementedError(NIEXC)
 
-    def set_status_client(self, fs_name, node, status, options):
-        """
-        Set status of file system client.
-        """
-        raise NotImplementedError(NIEXC)
-
-    def get_status_clients(self, fs_name):
-        """
-        Get all client's status of the form { node1 : { 'status' : status,
-        'date' : datetime, 'options' : None }, node2 : ... }
-        """
-        raise NotImplementedError(NIEXC)
-    
-    def set_status_target(self, fs_name, targets, status, options):
-        """
-        Set status of file system target.
-        """
-        raise NotImplementedError(NIEXC)
-
-    def get_status_target(self, fs_name):
-        """
-        Get all target status of the form { target1 : { 'status' : status, 
-        'date' : datetime, 'options' : None }, target2 : ... }
-        """
-        raise NotImplementedError(NIEXC)
-
     def register_fs(self, fs):
         """
         This function is used to register a a filesystem configuration to the backend
@@ -144,18 +118,6 @@ class Backend:
         """
         Get all target status of the form { fs : { 'status' : status,
         'date' : datetime, 'options' : None } }
-        """
-        raise NotImplementedError(NIEXC)
-
-    def register_client(self, fs, node):
-        """
-        This function is used to register a filesystem client to the backend
-        """
-        raise NotImplementedError(NIEXC)
-
-    def unregister_client(self, fs, node):
-        """
-        This function is used to remove a filesystem client from the backend
         """
         raise NotImplementedError(NIEXC)
 

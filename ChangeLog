@@ -1,3 +1,6 @@
+2012-02-06 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Do not maintain client and target status in backend (ticket #118).
+
 2012-01-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* -F failover flag behave correctly when use remotely (ticket #117).
 

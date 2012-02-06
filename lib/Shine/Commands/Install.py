@@ -131,11 +131,3 @@ class Install(Command):
         fs_conf.register_fs()
 
         fs_conf.register_targets()
-
-        nodes = NodeSet()
-        
-        for node, path, opts in fs_conf.iter_clients():
-            nodes.add(node)
-            
-        # register all the file system client
-        fs_conf.register_clients(nodes)

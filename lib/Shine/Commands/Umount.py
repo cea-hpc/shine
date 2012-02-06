@@ -43,20 +43,6 @@ class GlobalUmountEventHandler(FSGlobalEventHandler):
     ACTION = 'umount'
     ACTIONING = 'unmounting'
 
-    def action_done(self, node, comp):
-        self.update_client_status(node, "done")
-        FSGlobalEventHandler.action_done(self, node, comp)
-
-    def action_failed(self, node, comp, rc, message):
-        self.update_client_status(node, "failed")
-        FSGlobalEventHandler.action_failed(self, node, comp, rc, message)
-
-    def update_client_status(self, client_name, status):
-        # Change the status of client 
-        if status == "done":
-            self.fs_conf.set_status_clients_umount_complete([client_name], None)
-        elif status == "failed":
-            self.fs_conf.set_status_clients_umount_failed([client_name], None)
 
 class LocalUmountEventHandler(FSLocalEventHandler):
 
@@ -102,13 +88,7 @@ class Umount(FSLiveCommand):
         if not self.remote_call:
             if rc == RC_OK:
                 
-                # Is there mounted clients ?
-                client_status_dict = fs_conf.get_status_clients()
-                nb_mounted_clients = len([ node_name for node_name in client_status_dict if client_status_dict[node_name]['status'] == 'm_complete'])
-                if nb_mounted_clients == 0:
-                    # No
-                    # all client nodes have been umounted successfuly
-                    fs_conf.set_status_fs_online()
+                fs_conf.set_status_fs_online()
                 if vlevel > 0:
                     key = lambda c: c.state == OFFLINE
                     print "Unmount successful on %s" % \

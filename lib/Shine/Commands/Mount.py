@@ -46,20 +46,6 @@ class GlobalMountEventHandler(FSGlobalEventHandler):
     ACTION = 'mount'
     ACTIONING = 'mounting'
 
-    def action_done(self, node, comp):
-        self.update_client_status(node, "done")
-        FSGlobalEventHandler.action_done(self, node, comp)
-
-    def action_failed(self, node, comp, rc, message):
-        self.update_client_status(node, "failed")
-        FSGlobalEventHandler.action_failed(self, node, comp, rc, message)
-
-    def update_client_status(self, client_name, status):
-        # Change the status of client 
-        if status == "done":
-            self.fs_conf.set_status_clients_mount_complete([client_name], None)
-        elif status == "failed":
-            self.fs_conf.set_status_clients_mount_failed([client_name], None)
 
 class LocalMountEventHandler(FSLocalEventHandler):
 

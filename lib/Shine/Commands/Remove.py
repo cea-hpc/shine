@@ -131,11 +131,6 @@ class Remove(FSTargetLiveCriticalCommand):
         """
         Unregister all client nodes and the filesystem from the backend.
         """
-        
-        # Unregister all the file system client
-        nodes = fs_conf.get_client_nodes()
-        fs_conf.unregister_clients(nodes)
-
         fs_conf.unregister_targets()
 
         # Unregister file system configuration from the backend

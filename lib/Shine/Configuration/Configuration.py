@@ -19,8 +19,6 @@
 #
 # $Id$
 
-import socket
-
 from ClusterShell.NodeSet import NodeSet
 
 from Shine.Configuration.FileSystem import FileSystem, Target, Routers, Clients
@@ -219,28 +217,6 @@ class Configuration:
 
     # Target status setters
     #
-    def register_clients(self, nodes):
-        """
-        Call the file system new client registration function for each
-        nodes given as parameters.
-        Parameters:
-        @type nodes: List
-        @param nodes : list of nodes to register as new file system client
-        """
-        for node in nodes:
-            self._fs.register_client(node)
-
-    def unregister_clients(self, nodes):
-        """
-        Call the file system client unregistration function for each
-        nodes given as parameters.
-        Parameters:
-        @type nodes: List
-        @param nodes : list of nodes to unregister from file system client list
-        """
-        for node in nodes:
-            self._fs.unregister_client(node)
-
     def register_targets(self, targets=None):
         """
         Set filesystem targets as 'in use'.
@@ -283,143 +259,8 @@ class Configuration:
         for target in targets:
             self._fs.unregister_target(target)
 
-    def set_status_clients_mount_complete(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_mount_complete(node, options)
-
-    def set_status_clients_mount_failed(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_mount_failed(node, options)
-
-    def set_status_clients_mount_warning(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_mount_warning(node, options)
-
-    def set_status_clients_umount_complete(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_umount_complete(node, options)
-
-    def set_status_clients_umount_failed(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_umount_failed(node, options)
-
-    def set_status_clients_umount_warning(self, nodes, options=None):
-        for node in nodes:
-            self._fs.set_status_client_umount_warning(node, options)
-
     def set_debug(self, debug):
         self.debug = debug
-
-    def set_status_targets_unknown(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to UNKNOWN
-        """
-        for target in targets:
-            self._fs.set_status_target_unknown(target, options)
-            
-    def set_status_targets_ko(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to KO
-        """
-        for target in targets:
-            self._fs.set_status_target_ko(target, options)
-         
-    def set_status_targets_available(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to AVAILABLE
-        """
-        for target in targets:
-            self._fs.set_status_target_available(target, options)
-
-    def set_status_targets_formating(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to FORMATING
-        """
-        for target in targets:
-            self._fs.set_status_target_formating(target, options)
-
-    def set_status_targets_format_failed(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to FORMAT_FAILED
-        """
-        for target in targets:
-            self._fs.set_status_target_format_failed(target, options)
-
-    def set_status_targets_formated(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to FORMATED
-        """
-        for target in targets:
-            self._fs.set_status_target_formated(target, options)
-
-    def set_status_targets_offline(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to OFFLINE
-        """
-        for target in targets:
-            self._fs.set_status_target_offline(target, options)
-
-    def set_status_targets_starting(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to STARTING
-        """
-        for target in targets:
-            self._fs.set_status_target_starting(target, options)
-
-    def set_status_targets_online(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to ONLINE
-        """
-        for target in targets:
-            self._fs.set_status_target_online(target, options)
-
-    def set_status_targets_critical(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to CRITICAL
-        """
-        for target in targets:
-            self._fs.set_status_target_critical(target, options)
-
-    def set_status_targets_stopping(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to STOPPING
-        """
-        for target in targets:
-            self._fs.set_status_target_stopping(target, options)
-
-    def set_status_targets_unreachable(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to UNREACHABLE
-        """
-        for target in targets:
-            self._fs.set_status_target_unreachable(target, options)
-            
-    def set_status_targets_checking(self, targets, options=None):
-        """
-        This function is used to set the status of specified targets
-        to CHECKING
-        """
-        for target in targets:
-            self._fs.set_status_target_checking(target, options)
-            
-    def get_status_clients(self):
-        """
-        This function returns the status of each clients
-        using the current file system.
-        """
-        return self._fs.get_status_clients()
 
     def register_fs(self):
         """
