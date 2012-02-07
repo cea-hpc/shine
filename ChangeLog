@@ -1,3 +1,6 @@
+2012-02-07 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix incorrect device size when using a symlink (ticket #119).
+
 2012-02-06 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Do not maintain client and target status in backend (ticket #118).
 

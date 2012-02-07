@@ -1,5 +1,5 @@
 # Disk.py -- Pythonized Lustre Disk
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -156,7 +156,7 @@ class Disk:
             # get dev size
             partitions = open("/proc/partitions", 'r')
             try:
-                dev = os.path.basename(self.dev)
+                dev = os.path.basename(os.path.realpath(self.dev))
                 for line in partitions:
                     d_info = line.rstrip('\n').split(' ')
                     if len(d_info) > 1 and d_info[-1] == dev:
