@@ -1,5 +1,6 @@
 # Fsck.py -- Check backend file system for each target
-# Copyright (C) 2010 BULL S.A.S
+# Copyright (C) 2010 BULL S.A.S, CEA
+# Copyright (C) 2012 CEA
 #
 # This file is part of shine
 #

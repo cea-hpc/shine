@@ -1,5 +1,5 @@
 # Fsck.py -- Lustre action class: fsck
-# Copyright (C) 2010 BULL S.A.S, CEA
+# Copyright (C) 2010-2012 CEA
 #
 # This file is part of shine
 #
@@ -23,7 +23,7 @@
 Action class to check (fsck) target filesystem coherency.
 """
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import Action, FSAction, Result, ErrorResult
 from Shine.Lustre.Component import TARGET_ERROR
 
 class Fsck(FSAction):
@@ -56,6 +56,9 @@ class Fsck(FSAction):
         Note that if fsck has correctly fixed some errors, actions will be
         considered as successful.
         """
+        # We want to skiping FSAction.ev_close(), just call the upper layer.
+        Action.ev_close(self, worker)
+
         self.comp.lustre_check()
 
         if worker.did_timeout():
@@ -65,8 +68,12 @@ class Fsck(FSAction):
         # see man fsck.
         elif worker.retcode() in (0, 1, 2):
             # action succeeded
-            self.comp._action_done('fsck')
+            result = Result(duration=self.duration, retcode=worker.retcode())
+            if worker.retcode() in (1, 2):
+                self.comp.status_info = "Errors corrected"
+            self.comp._action_done('fsck', result)
         else:
             # action failure
             self.comp.state = TARGET_ERROR
-            self.comp._action_failed('fsck', worker.retcode(), worker.read())
+            result = ErrorResult(worker.read(), self.duration, worker.retcode())
+            self.comp._action_failed('fsck', result)

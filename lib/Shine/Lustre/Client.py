@@ -25,6 +25,7 @@ import os
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
 
+from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
@@ -152,8 +153,8 @@ class Client(Component):
         try:
             self.lustre_check()
             self._action_done('status')
-        except ClientError, e:
-            self._action_failed('status', rc=None, message=str(e))
+        except ClientError, error:
+            self._action_failed('status', Result(str(error)))
 
 
     def mount(self, **kwargs):
@@ -172,8 +173,8 @@ class Client(Component):
                 action = StartClient(self, **kwargs)
                 action.launch()
 
-        except ClientError, e:
-            self._action_failed('mount', rc=None, message=str(e))
+        except ClientError, error:
+            self._action_failed('mount', Result(str(error)))
 
     def umount(self, **kwargs):
         """
@@ -190,5 +191,5 @@ class Client(Component):
                 action = StopClient(self, **kwargs)
                 action.launch()
 
-        except ClientError, e:
-            self._action_failed('umount', rc=None, message=str(e))
+        except ClientError, error:
+            self._action_failed('umount', Result(str(error)))

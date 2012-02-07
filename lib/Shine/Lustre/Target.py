@@ -25,6 +25,7 @@ import glob
 
 from ClusterShell.Task import task_self
 
+from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
@@ -357,7 +358,7 @@ class Target(Component, Disk):
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetError, error:
-            self._action_failed('format', rc=-1, message=str(error))
+            self._action_failed('format', Result(str(error)))
 
 
     def tunefs(self, **kwargs):
@@ -389,7 +390,7 @@ class Target(Component, Disk):
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetError, error:
-            self._action_failed('tunefs', rc=-1, message=str(error))
+            self._action_failed('tunefs', Result(str(error)))
 
 
     def fsck(self, **kwargs):
@@ -418,7 +419,7 @@ class Target(Component, Disk):
                 raise TargetDeviceError(self, reason % (self.label, self.dev))
 
         except TargetError, error:
-            self._action_failed('fsck', rc=-1, message=str(error))
+            self._action_failed('fsck', Result(str(error)))
 
     def status(self):
         """
@@ -430,7 +431,7 @@ class Target(Component, Disk):
             self._check_status()
             self._action_done('status')
         except TargetError, error:
-            self._action_failed('status', rc=None, message=str(error))
+            self._action_failed('status', Result(str(error)))
 
 
     def start(self, **kwargs):
@@ -461,7 +462,7 @@ class Target(Component, Disk):
             action.launch()
 
         except TargetError, error:
-            self._action_failed('start', rc=None, message=str(error))
+            self._action_failed('start', Result(str(error)))
 
     def stop(self, **kwargs):
         """
@@ -486,7 +487,7 @@ class Target(Component, Disk):
             action.launch()
 
         except TargetError, error:
-            self._action_failed('stop', rc=None, message=str(error))
+            self._action_failed('stop', Result(str(error)))
 
 
 class MGT(Target):
@@ -586,5 +587,5 @@ class Journal(Component):
             action.launch()
 
         except JournalError, error:
-            self._action_failed('format', rc=-1, message=str(error))
+            self._action_failed('format', Result(str(error)))
 

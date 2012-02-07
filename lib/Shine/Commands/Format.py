@@ -1,5 +1,5 @@
 # Format.py -- Format file system targets
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #

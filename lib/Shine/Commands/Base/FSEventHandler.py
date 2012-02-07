@@ -1,5 +1,5 @@
 # FSEventHandler.py -- Base Command Event Handler
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -19,7 +19,6 @@
 #
 # $Id$
 
-import os
 import datetime
 
 # timer events
@@ -63,35 +62,39 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
         if status == 'start':
             self.action_start(node, comp)
         elif status == 'done':
-            self.action_done(node, comp)
+            result = kwargs.get('result', None)
+            self.action_done(node, comp, result)
         elif status == 'timeout':
             self.action_timeout(node, comp)
         elif status == 'failed':
-            rc = kwargs['rc']
-            message = kwargs['message']
-            self.action_failed(node, comp, rc, message)
+            result = kwargs['result']
+            self.action_failed(node, comp, result)
 
     def action_start(self, node, comp):
         header = self.ACTIONING.capitalize()
         txt = "%s %s" % (header, comp.longtext())
         self.log_info(txt)
 
-    def action_done(self, node, comp):
+    def action_done(self, node, comp, result):
         header = self.ACTION.capitalize()
         comp_id = comp.longtext()
-        if comp.status_info:
-            self.log_info("%s of %s: %s" % \
-                          (header, comp_id, comp.status_info))
-        else:
-            self.log_info("%s of %s succeeded" % (header, comp_id))
 
-    def action_failed(self, node, comp, rc, message):
-        if rc > 0 and not message:
-            strerr = os.strerror(rc)
+        if result and result.duration >= 100:
+            duration = "(%.1f min)" % (result.duration / 60.0)
+        elif result:
+            duration = "(%.1f sec)" % result.duration
         else:
-            strerr = message
+            duration = ""
+
+        if comp.status_info:
+            self.log_info("%s of %s %s: %s" % \
+                          (header, comp_id, duration, comp.status_info))
+        else:
+            self.log_info("%s of %s succeeded %s" % (header, comp_id, duration))
+
+    def action_failed(self, node, comp, result):
         txt = "Failed to %s %s\n>> %s" % \
-                 (self.ACTION, comp.longtext(), strerr)
+                                    (self.ACTION, comp.longtext(), str(result))
         self.log_warning(txt)
 
 
@@ -113,23 +116,28 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         self.log_verbose(txt)
         self.__update()
 
-    def action_done(self, node, comp):
+    def action_done(self, node, comp, result):
         header = self.ACTION.capitalize()
         comp_id = comp.longtext()
-        if comp.status_info:
-            self.log_verbose("%s: %s of %s: %s" % \
-                   (node, header, comp_id, comp.status_info))
+
+        if result and result.duration >= 100:
+            duration = "(%.1f min)" % (result.duration / 60.0)
+        elif result:
+            duration = "(%.1f sec)" % result.duration
         else:
-            self.log_verbose("%s: %s of %s succeeded" % (node, header, comp_id))
+            duration = ""
+
+        if comp.status_info:
+            self.log_verbose("%s: %s of %s %s: %s" %
+                            (node, header, comp_id, duration, comp.status_info))
+        else:
+            self.log_verbose("%s: %s of %s succeeded %s" %
+                            (node, header, comp_id, duration))
         self.__update()
 
-    def action_failed(self, node, comp, rc, message):
-        if rc > 0 and not message:
-            strerr = os.strerror(rc)
-        else:
-            strerr = message
-        txt = "%s: Failed to %s %s\n>> %s" % \
-                 (node, self.ACTION, comp.longtext(), strerr)
+    def action_failed(self, node, comp, result):
+        txt = "Failed to %s %s\n>> %s" % \
+                                    (self.ACTION, comp.longtext(), str(result))
         self.log_warning(txt)
         self.__update()
 

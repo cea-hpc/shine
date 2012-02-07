@@ -42,6 +42,7 @@ class Install(Action):
                 nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
+        Action.ev_start(self, worker)
         name = os.path.basename(self.config_file)
         if len(self.nodes) > 8:
             print "Updating file system configuration file `%s' on %d " \

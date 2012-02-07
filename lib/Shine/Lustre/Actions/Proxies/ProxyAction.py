@@ -27,6 +27,9 @@ import binascii, pickle
 from ClusterShell.Task import task_self
 from Shine.Lustre.Actions.Action import Action
 
+# For V2 Compat
+from Shine.Lustre.Actions.Action import ErrorResult
+
 # SHINE PROXY PROTOCOL CONSTANTS
 SHINE_MSG_MAGIC = "SHINE:"
 SHINE_MSG_VERSION = 3
@@ -71,6 +74,9 @@ class ProxyAction(Action):
     @classmethod
     def _shine_msg_unpack_v2(cls, msg):
         """Compatibility function to unpack old-style v2 messages."""
+        # v2 message looks like:
+        # SHINE:2:ev_starttarget_done:{node:, comp:, rc:, message:}
+
         event, msg = msg.split(':', 1)
         data = pickle.loads(binascii.a2b_base64(msg))
         dummy, actioncomp, data['status'] = event.split('_', 3)
@@ -79,4 +85,9 @@ class ProxyAction(Action):
                 data['action'] = actioncomp[:-len(name)]
                 data['compname'] = name
                 break
+
+        # Result is only possible for 'failed' event in v2.
+        if data['status'] == 'failed':
+            data['result'] = ErrorResult(message=data.get('message'),
+                                         retcode=data.get('rc'))
         return data

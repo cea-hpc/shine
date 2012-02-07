@@ -1,5 +1,5 @@
 # Components.py - Abstract class for any Lustre filesystem components.
-# Copyright (C) 2010 CEA
+# Copyright (C) 2010-2012 CEA
 #
 # This file is part of shine
 #
@@ -177,21 +177,20 @@ class Component(object):
         self._add_action(act)
         self.fs.local_event(self.TYPE, act, 'start', comp=self)
 
-    def _action_done(self, act):
+    def _action_done(self, act, result=None):
         """Called by Actions.* when done"""
         self._del_action(act)
-        self.fs.local_event(self.TYPE, act, 'done', comp=self)
+        self.fs.local_event(self.TYPE, act, 'done', comp=self, result=result)
 
     def _action_timeout(self, act):
         """Called by Actions.* on timeout"""
         self._del_action(act)
         self.fs.local_event(self.TYPE, act, 'timeout', comp=self)
 
-    def _action_failed(self, act, rc, message):
+    def _action_failed(self, act, result):
         """Called by Actions.* on failure"""
         self._del_action(act)
-        self.fs.local_event(self.TYPE, act, 'failed', comp=self, rc=rc,
-                            message=message)
+        self.fs.local_event(self.TYPE, act, 'failed', comp=self, result=result)
 
 class ComponentGroup(object):
     """

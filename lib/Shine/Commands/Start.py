@@ -1,5 +1,5 @@
 # Start.py -- Start file system
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #

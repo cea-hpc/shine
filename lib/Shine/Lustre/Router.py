@@ -1,5 +1,5 @@
 # Router.py -- Shine Lustre Router
-# Copyright (C) 2010 CEA
+# Copyright (C) 2010-2012 CEA
 #
 # This file is part of shine
 #
@@ -24,6 +24,7 @@ import os
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
 
+from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.StartRouter import StartRouter
 from Shine.Lustre.Actions.StopRouter import StopRouter
 
@@ -107,7 +108,7 @@ class Router(Component):
             self.lustre_check()
             self._action_done('status')
         except RouterError, error:
-            self._action_failed('status', rc=None, message=str(error))
+            self._action_failed('status', Result(str(error)))
 
 
     def start(self, **kwargs):
@@ -126,7 +127,7 @@ class Router(Component):
                 action.launch()
 
         except RouterError, error:
-            self._action_failed('start', rc=None, message=str(error))
+            self._action_failed('start', Result(str(error)))
 
     def stop(self, **kwargs):
         """
@@ -144,4 +145,4 @@ class Router(Component):
                 action.launch()
 
         except RouterError, error:
-            self._action_failed('stop', rc=None, message=str(error))
+            self._action_failed('stop', Result(str(error)))

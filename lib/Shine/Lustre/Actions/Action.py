@@ -1,5 +1,5 @@
 # Action.py -- Abstract class for shine lustre action
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -26,10 +26,36 @@ action.
 An action must inherits from one of the base Action class.
 """
 
+import os
+import time
 from string import Template
 
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
+
+class Result(object):
+    """
+    Data associated to an Event.
+    """
+
+    def __init__(self, message=None, duration=None, retcode=None):
+        self.message = message
+        self.duration = duration
+        self.retcode = retcode
+
+    def __str__(self):
+        return str(self.message)
+
+class ErrorResult(Result):
+    """
+    Result for an error event. Contains the command return code.
+    """
+
+    def __str__(self):
+        if not self.message and self.retcode is not None:
+            return os.strerror(self.retcode)
+        else:
+            return Result.__str__(self)
 
 class Action(EventHandler):
     """
@@ -40,11 +66,21 @@ class Action(EventHandler):
         EventHandler.__init__(self)
         self.task = task
 
+        # Action duration
+        self.start = None
+        self.duration = None
+
     def launch(self):
-        """
-        Run the action.
-        """
+        """Run the action."""
         raise NotImplementedError("Derived classes must implement.")
+
+    def ev_start(self, worker):
+        """Store the start time."""
+        self.start = time.time()
+
+    def ev_close(self, worker):
+        """Compute the action whole duration."""
+        self.duration = time.time() - self.start
 
 
 class FSAction(Action):
@@ -106,6 +142,8 @@ class FSAction(Action):
         """
         Check process termination status and generate appropriate events.
         """
+        Action.ev_close(self, worker)
+
         self.comp.lustre_check()
 
         # Action timed out
@@ -114,8 +152,10 @@ class FSAction(Action):
 
         # Action succeeded
         elif worker.retcode() == 0:
-            self.comp._action_done(self.NAME)
+            result = Result(duration=self.duration, retcode=worker.retcode())
+            self.comp._action_done(self.NAME, result)
 
         # Action failed
         else:
-            self.comp._action_failed(self.NAME, worker.retcode(), worker.read())
+            result = ErrorResult(worker.read(), self.duration, worker.retcode())
+            self.comp._action_failed(self.NAME, result)
