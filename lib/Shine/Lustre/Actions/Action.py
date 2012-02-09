@@ -62,6 +62,8 @@ class Action(EventHandler):
     Generic abstract Shine action.
     """
 
+    NAME = "(to be changed)"
+
     def __init__(self, task=task_self()):
         EventHandler.__init__(self)
         self.task = task

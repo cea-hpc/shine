@@ -149,14 +149,14 @@ class Component(object):
         """
         Add the named action to the running action list.
         """
-        assert((act, self.TYPE) not in self.__running_actions)
-        self.__running_actions.append((act, self.TYPE))
+        assert(act not in self.__running_actions)
+        self.__running_actions.append(act)
 
     def _del_action(self, act):
         """
         Remove the named action from the running action list.
         """
-        self.__running_actions.remove((act, self.TYPE))
+        self.__running_actions.remove(act)
 
     def _list_action(self):
         """

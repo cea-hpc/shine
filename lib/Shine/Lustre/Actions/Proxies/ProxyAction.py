@@ -44,6 +44,8 @@ class ProxyAction(Action):
     Abstract shine proxy action class.
     """
 
+    NAME = 'proxy'
+
     def __init__(self, task=task_self()):
         Action.__init__(self, task)
         self.progpath = os.path.abspath(sys.argv[0])
