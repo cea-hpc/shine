@@ -70,7 +70,7 @@ class Fsck(FSAction):
             # action succeeded
             result = Result(duration=self.duration, retcode=worker.retcode())
             if worker.retcode() in (1, 2):
-                self.comp.status_info = "Errors corrected"
+                result.message = "Errors corrected"
             self.comp._action_done('fsck', result)
         else:
             # action failure

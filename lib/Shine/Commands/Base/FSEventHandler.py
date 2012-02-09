@@ -80,17 +80,18 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
         comp_id = comp.longtext()
 
         if result and result.duration >= 100:
-            duration = "(%.1f min)" % (result.duration / 60.0)
-        elif result:
-            duration = "(%.1f sec)" % result.duration
+            duration = " (%.1f min)" % (result.duration / 60.0)
+        # start and stop sent Result message without duration when already done
+        elif result and result.duration is not None:
+            duration = " (%.1f sec)" % result.duration
         else:
             duration = ""
 
-        if comp.status_info:
-            self.log_info("%s of %s %s: %s" % \
-                          (header, comp_id, duration, comp.status_info))
+        if result and result.message:
+            self.log_info("%s of %s%s: %s" % \
+                          (header, comp_id, duration, result.message))
         else:
-            self.log_info("%s of %s succeeded %s" % (header, comp_id, duration))
+            self.log_info("%s of %s succeeded%s" % (header, comp_id, duration))
 
     def action_failed(self, node, comp, result):
         txt = "Failed to %s %s\n>> %s" % \
@@ -121,18 +122,19 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         comp_id = comp.longtext()
 
         if result and result.duration >= 100:
-            duration = "(%.1f min)" % (result.duration / 60.0)
-        elif result:
-            duration = "(%.1f sec)" % result.duration
+            duration = " (%.1f min)" % (result.duration / 60.0)
+        # start and stop sent Result message without duration when already done
+        elif result and result.duration is not None:
+            duration = " (%.1f sec)" % result.duration
         else:
             duration = ""
 
-        if comp.status_info:
-            self.log_verbose("%s: %s of %s %s: %s" %
-                            (node, header, comp_id, duration, comp.status_info))
+        if result and result.message:
+            self.log_verbose("%s: %s of %s%s: %s" % \
+                             (node, header, comp_id, duration, result.message))
         else:
-            self.log_verbose("%s: %s of %s succeeded %s" %
-                            (node, header, comp_id, duration))
+            self.log_verbose("%s: %s of %s succeeded%s" %
+                             (node, header, comp_id, duration))
         self.__update()
 
     def action_failed(self, node, comp, result):

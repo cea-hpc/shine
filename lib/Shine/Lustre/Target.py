@@ -86,6 +86,7 @@ class Target(Component, Disk):
         self.tag = tag
         self.network = network
         self.mntdev = self.dev
+        self.recov_info = None
 
         if jdev:
             self.journal = Journal(self, jdev)
@@ -122,6 +123,10 @@ class Target(Component, Disk):
         Disk.update(self, other)
         Component.update(self, other)
         self.index = other.index
+
+        # Compat v0.910: 'recov_info' value depends on remote version
+        self.recov_info = getattr(other, 'recov_info',
+                                  getattr(other, 'status_info', None))
 
     def add_server(self, server):
         assert isinstance(server, Server)
@@ -187,7 +192,8 @@ class Target(Component, Disk):
         Return a human text form for the target state.
         """
         if self.state == RECOVERING:
-            return "%s for %s" % (self.STATE_TEXT_MAP.get(RECOVERING), self.status_info)
+            return "%s for %s" % (self.STATE_TEXT_MAP.get(RECOVERING),
+                                  self.recov_info)
         else:
             return Component.text_status(self)
 
@@ -322,7 +328,7 @@ class Target(Component, Disk):
                                 completed = line.split(' ', 1)[1]
                                 completed = int(completed.split('/', 1)[0])
                         self.state = RECOVERING
-                        self.status_info = "%ss (%s/%s)" % (time_remaining,
+                        self.recov_info = "%ss (%s/%s)" % (time_remaining,
                                                     completed + evicted, total)
                 finally:
                     fproc.close()
@@ -448,8 +454,8 @@ class Target(Component, Disk):
             if self.state != OFFLINE:
                 # already mounted ?
                 if  self.state == RECOVERING or self.state == MOUNTED:
-                    self.status_info = "%s is already started" % self.label
-                    self._action_done('start')
+                    result = Result("%s is already started" % self.label)
+                    self._action_done('start', result)
                     return
                 raise TargetDeviceError(self, "bad state `%s' for %s" % \
                         (self.state, self.label))
@@ -475,8 +481,8 @@ class Target(Component, Disk):
             self._check_status()
 
             if self.state == OFFLINE:
-                self.status_info = "%s is already stopped" % self.label
-                self._action_done('stop')
+                result = Result(message="%s is already stopped" % self.label)
+                self._action_done('stop', result)
                 return
 
             # LBUG #18624

@@ -68,9 +68,6 @@ class Component(object):
         # Status
         self.state = None
 
-        # Text hint of component status
-        self.status_info = None
-
         # Enabled or not
         self.action_enabled = enabled
 
@@ -103,7 +100,6 @@ class Component(object):
         Update my serializable fields from other/distant object.
         """
         self.state = other.state
-        self.status_info = other.status_info
 
     def __getstate__(self):
         odict = self.__dict__.copy()

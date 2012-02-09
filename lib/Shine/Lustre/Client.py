@@ -69,6 +69,7 @@ class Client(Component):
 
         Component.__init__(self, fs, server, enabled)
         self.lnetdev = None
+        self.mtpt = None
 
     def longtext(self):
         """
@@ -91,8 +92,9 @@ class Client(Component):
         Component.update(self, other)
         self.mount_path = other.mount_path
 
-        # Compat v0.910: 'mount_path' value depends on remote version
+        # Compat v0.910: 'mount_path' and 'mtpt' values depend on remote version
         self.mount_options = getattr(other, 'mount_options', None)
+        self.mtpt = getattr(other, 'mtpt', getattr(other, 'status_info', None))
 
     def lustre_check(self):
         """
@@ -121,7 +123,7 @@ class Client(Component):
                         if loaded:
                             self.lnetdev = lnetdev
                             self.state = MOUNTED
-                            self.status_info = "%s" % mntp
+                            self.mtpt = mntp
                         else:
                             self.state = CLIENT_ERROR
                             if lnetdev != self.lnetdev:
@@ -166,9 +168,9 @@ class Client(Component):
         try:
             self.lustre_check()
             if self.state == MOUNTED:
-                self.status_info = "%s is already mounted on %s" % \
-                                   (self.fs.fs_name, self.status_info)
-                self._action_done('mount')
+                result = Result("%s is already mounted on %s" % \
+                                (self.fs.fs_name, self.mtpt))
+                self._action_done('mount', result=result)
             else:
                 action = StartClient(self, **kwargs)
                 action.launch()
@@ -185,8 +187,8 @@ class Client(Component):
         try:
             self.lustre_check()
             if self.state == OFFLINE:
-                self.status_info = "%s is not mounted" % (self.fs.fs_name)
-                self._action_done('umount')
+                result = Result("%s is not mounted" % self.fs.fs_name)
+                self._action_done('umount', result=result)
             else:
                 action = StopClient(self, **kwargs)
                 action.launch()
