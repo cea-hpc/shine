@@ -27,6 +27,8 @@ Represents a Lustre FS.
 
 import os
 import sys
+import logging
+import logging.handlers
 
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self
@@ -95,7 +97,6 @@ class FileSystem:
 
     def __init__(self, fs_name, event_handler=None):
         self.fs_name = fs_name
-        self.debug = False
         self.event_handler = event_handler
         self.proxy_errors = []
 
@@ -105,8 +106,34 @@ class FileSystem:
         # file system MGT
         self.mgt = None
 
+        self.debug = False
+        self.logger = self._setup_logging()
+
     def set_debug(self, debug):
         self.debug = debug
+
+    def _setup_logging(self):
+        """Setup logging configuration for the whole filesystem."""
+        # XXX: This is only here for fsck, currently.
+
+        logger = logging.getLogger('Shine.Lustre')
+
+        # Level
+        if self.debug:
+            logger.setLevel(logging.DEBUG)
+        else:
+            logger.setLevel(logging.INFO)
+
+        # Handler
+        handler = logging.handlers.SysLogHandler(address='/dev/log')
+        logger.addHandler(handler)
+        # Formatter
+        formatter = logging.Formatter(datefmt="%Y-%m-%d %X",
+                      fmt='%(name)s %(levelname)s  %(message)s')
+        handler.setFormatter(formatter)
+
+        return logger
+
 
     def get_mgs_nids(self):
         return self.mgt.get_nids()

@@ -60,7 +60,7 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
     def event_callback(self, compname, action, status, node, **kwargs):
         comp = kwargs['comp']
         if status == 'start':
-            self.action_start(node, comp)
+            self.action_start(node, action, comp)
         elif status == 'done':
             result = kwargs.get('result', None)
             self.action_done(node, comp, result)
@@ -69,14 +69,19 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
         elif status == 'failed':
             result = kwargs['result']
             self.action_failed(node, comp, result)
+        elif status == 'progress':
+            result = kwargs['result']
+            self.action_progress(node, comp, result)
 
-    def action_start(self, node, comp):
+    def log(self, txt):
         header = self.ACTIONING.capitalize()
-        txt = "%s %s" % (header, comp.longtext())
-        self.log_info(txt)
+        self.log_info("%s %s" % (header, txt))
+
+    def action_start(self, node, action, comp):
+        if action != 'proxy':
+            self.log(comp.longtext())
 
     def action_done(self, node, comp, result):
-        header = self.ACTION.capitalize()
         comp_id = comp.longtext()
 
         if result and result.duration >= 100:
@@ -88,10 +93,9 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
             duration = ""
 
         if result and result.message:
-            self.log_info("%s of %s%s: %s" % \
-                          (header, comp_id, duration, result.message))
+            self.log("of %s%s: %s" % (comp_id, duration, result.message))
         else:
-            self.log_info("%s of %s succeeded%s" % (header, comp_id, duration))
+            self.log("of %s succeeded%s" % (comp_id, duration))
 
     def action_failed(self, node, comp, result):
         txt = "Failed to %s %s\n>> %s" % \
@@ -111,10 +115,13 @@ class FSGlobalEventHandler(FSLocalEventHandler,
         self.last_target_count = 0
         self.status_changed = False
 
-    def action_start(self, node, comp):
+    def log(self, node, txt):
         header = self.ACTIONING.capitalize()
-        txt = "%s: %s %s" % (node, header, comp.longtext())
-        self.log_verbose(txt)
+        self.log_verbose("%s: %s %s" % (node, header, txt))
+
+    def action_start(self, node, action, comp):
+        if action != 'proxy':
+            self.log(node, comp.longtext())
         self.__update()
 
     def action_done(self, node, comp, result):

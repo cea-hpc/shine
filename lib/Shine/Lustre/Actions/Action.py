@@ -96,6 +96,9 @@ class FSAction(Action):
         Action.__init__(self, task)
         self.comp = comp
 
+        # Command should have a separate stderr?
+        self.stderr = False
+
     def _vars_substitute(self, txt, suppl_vars=None):
         """
         Replace symbolic variable from the provided text.
@@ -138,7 +141,7 @@ class FSAction(Action):
         cmdline = ' '.join(command)
 
         # XXX: Add timeout
-        self.task.shell(cmdline, handler=self)
+        self.task.shell(cmdline, handler=self, stderr=self.stderr)
 
     def ev_close(self, worker):
         """

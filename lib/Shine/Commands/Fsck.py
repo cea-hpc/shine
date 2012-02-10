@@ -20,6 +20,8 @@
 #
 # $Id$
 
+import sys
+
 from Shine.Commands.Status import Status
 
 # Command base class
@@ -39,14 +41,43 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
     ACTION = 'fsck'
     ACTIONING = 'checking'
 
+    def __init__(self, verbose=1, fs_conf=None):
+        FSGlobalEventHandler.__init__(self, verbose, fs_conf)
+        self._comps = {}
+        self._current = 0
+
     def handle_post(self, fs):
         if self.verbose > 0:
             Status.status_view_fs(fs, show_clients=False)
+
+    def action_start(self, node, action, comp):
+        self._comps[comp] = 0
+
+    def action_progress(self, node, comp, result):
+        self._comps[comp] = result.progress
+        self._current = sum(self._comps.values()) / len(self._comps)
+        header = self.ACTIONING.capitalize()
+        sys.stdout.write("%s in progress: %d %%\r" % (header, self._current))
+        sys.stdout.flush()
+        if self._current == 100:
+            sys.stdout.write("\n")
+
 
 class LocalFsckEventHandler(FSLocalEventHandler):
 
     ACTION = 'fsck'
     ACTIONING = 'checking'
+
+    def __init__(self, verbose=1):
+        FSLocalEventHandler.__init__(self, verbose)
+        self._comps = {}
+
+    def action_start(self, node, action, comp):
+        self._comps[comp] = 0
+
+    def action_progress(self, node, comp, result):
+        self._comps[comp] = result.progress
+        current = sum(self._comps.values()) / len(self._comps)
 
 
 class Fsck(FSTargetLiveCriticalCommand):

@@ -173,6 +173,11 @@ class Component(object):
         self._add_action(act)
         self.fs.local_event(self.TYPE, act, 'start', comp=self)
 
+    def _action_progress(self, act, result):
+        """Called by Actions.* when some progress info should be sent."""
+        self.fs.local_event(self.TYPE, act, 'progress',
+                            comp=self, result=result)
+
     def _action_done(self, act, result=None):
         """Called by Actions.* when done"""
         self._del_action(act)

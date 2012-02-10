@@ -69,15 +69,19 @@ class FSProxyAction(ProxyAction):
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
 
-    def ev_start(self, worker):
+        # Launch events
+        self._actions_start()
+
+    def _actions_start(self):
         """
-        Proxy command is starting.
+        Raise 'proxy' events for all components related to this ProxyAction.
         """
         # Add a 'proxy' running action for each component.
-        # XXX: This should be changed using a real event for proxy.
         if self._comps:
             for comp in self._comps:
-                comp._add_action('proxy')
+                # Warning: there is no clean call at the end of the action.
+                # cleaning is done by hand.
+                comp._action_start('proxy')
 
     def ev_read(self, worker):
         node, buf = worker.last_read()
