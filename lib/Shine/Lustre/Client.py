@@ -41,6 +41,15 @@ class ClientError(ComponentError):
 
 
 class Client(Component):
+    """
+    Manage a Lustre client mount for a specific node.
+
+    Client have a specific mount point and optionally some mount options.
+    >>> client.mount_path
+    >>> client.mount_options
+
+    It can be started, stopped and check for status.
+    """
 
     TYPE = 'client'
     DISPLAY_ORDER = max(MDT.DISPLAY_ORDER, OST.DISPLAY_ORDER) + 1 
@@ -68,7 +77,6 @@ class Client(Component):
         self.mount_path = mount_path
 
         Component.__init__(self, fs, server, enabled)
-        self.lnetdev = None
         self.mtpt = None
 
     def longtext(self):
@@ -106,41 +114,46 @@ class Client(Component):
         proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % \
                                    self.fs.fs_name)
 
-        if len(proc_lov_match) == 0:
+        if not proc_lov_match:
             self.state = OFFLINE
-        else:
-            loaded = False
-            proc_lov = proc_lov_match[0]
-            if os.path.isdir(proc_lov):
-                loaded = True
+            return
 
-            # check for presence in /proc/mounts
-            f_proc_mounts = open("/proc/mounts", 'r')
-            try:
-                for line in f_proc_mounts:
-                    if line.find(" %s lustre " % self.mount_path) > 0:
-                        lnetdev, mntp = line.split(' ', 2)[0:2]
-                        if loaded:
-                            self.lnetdev = lnetdev
-                            self.state = MOUNTED
-                            self.mtpt = mntp
+        #
+        # There is at least one clilov declared. Check for coherence.
+        #
+        loaded = os.path.isdir(proc_lov_match[0])
+
+        # check for presence in /proc/mounts
+        f_proc_mounts = open("/proc/mounts", 'r')
+        try:
+            curr_lnetdev = None
+            for line in f_proc_mounts:
+                if line.find(" %s lustre " % self.mount_path) > 0:
+                    lnetdev, mntp = line.split(' ', 2)[0:2]
+                    if loaded:
+                        curr_lnetdev = lnetdev
+                        self.state = MOUNTED
+                        self.mtpt = mntp
+                    else:
+                        self.state = CLIENT_ERROR
+                        if lnetdev != curr_lnetdev:
+                            raise ClientError(self, "conflicting mounts "
+                                              "detected for %s and %s on %s" %
+                                              (lnetdev, curr_lnetdev,
+                                               self.mount_path))
                         else:
-                            self.state = CLIENT_ERROR
-                            if lnetdev != self.lnetdev:
-                                raise ClientError(self, "conflicting mounts detected for %s and %s on %s" % \
-                                        (lnetdev, self.lnetdev, self.mount_path))
-                            else:
-                                raise ClientError(self, "multiple mounts detected for %s (%s)" % \
-                                        (lnetdev, self.mount_path))
-            finally:
-                f_proc_mounts.close()
+                            raise ClientError(self, "multiple mounts detected"
+                                                    "for %s (%s)" % (lnetdev,
+                                                              self.mount_path))
+        finally:
+            f_proc_mounts.close()
 
-            if loaded and self.state != MOUNTED:
-                # up but not mounted = incoherent state
-                self.state = CLIENT_ERROR
-                raise ClientError(self, "incoherent client state for FS '%s'"
-                                        " (not mounted but loaded. Mount in "
-                                        "progress?)" % self.fs.fs_name)
+        if loaded and self.state != MOUNTED:
+            # up but not mounted = incoherent state
+            self.state = CLIENT_ERROR
+            raise ClientError(self, "incoherent client state for FS '%s'"
+                                    " (not mounted but loaded. Mount in "
+                                    "progress?)" % self.fs.fs_name)
 
     #
     # Client actions
