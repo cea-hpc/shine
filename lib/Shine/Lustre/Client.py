@@ -19,7 +19,7 @@
 #
 # $Id$
 
-import glob
+from glob import glob
 import os 
 
 from Shine.Lustre.Component import Component, ComponentError, \
@@ -78,6 +78,7 @@ class Client(Component):
 
         Component.__init__(self, fs, server, enabled)
         self.mtpt = None
+        self.proc_states = {}
 
     def longtext(self):
         """
@@ -100,9 +101,10 @@ class Client(Component):
         Component.update(self, other)
         self.mount_path = other.mount_path
 
-        # Compat v0.910: 'mount_path' and 'mtpt' values depend on remote version
+        # Compat v0.910: Following values depend on Shine remote version
         self.mount_options = getattr(other, 'mount_options', None)
         self.mtpt = getattr(other, 'mtpt', getattr(other, 'status_info', None))
+        self.proc_states = getattr(other, 'proc_states', {})
 
     def lustre_check(self):
         """
@@ -111,8 +113,8 @@ class Client(Component):
 
         self.state = None   # Undefined
 
-        proc_lov_match = glob.glob("/proc/fs/lustre/lov/%s-clilov-*" % \
-                                   self.fs.fs_name)
+        proc_lov_match = glob("/proc/fs/lustre/lov/%s-clilov-*" %
+                              self.fs.fs_name)
 
         if not proc_lov_match:
             self.state = OFFLINE
@@ -154,6 +156,46 @@ class Client(Component):
             raise ClientError(self, "incoherent client state for FS '%s'"
                                     " (not mounted but loaded. Mount in "
                                     "progress?)" % self.fs.fs_name)
+
+        # Look for some evictions
+        self._lustre_check_proc_state()
+
+
+    def _lustre_check_proc_state(self):
+        """Check current target status in /proc/fs/lustre/*/*/state"""
+
+        self.proc_states = {}
+        for entry in glob("/proc/fs/lustre/??c/%s-*/state" % self.fs.fs_name):
+            f_state = open(entry, 'r')
+            for line in f_state:
+                if line.startswith('current_state:'):
+                    state_name = line.split(None, 1)[1].strip()
+                    self.proc_states.setdefault(state_name, 0)
+                    self.proc_states[state_name] += 1
+                    break
+            f_state.close()
+
+        if 'EVICTED' in self.proc_states:
+            self.state = CLIENT_ERROR
+            raise ClientError(self, 'client connection error (%d evictions)' %
+                                    len(self.proc_states['EVICTED']))
+
+    def text_status(self):
+        """
+        Return a human text form for the client state, displaying the various
+        connection states if there are not FULL.
+        """
+
+        text = Component.text_status(self)
+        states = []
+        for state, total in self.proc_states.iteritems():
+            if state != 'FULL':
+                states.append("%s=%d" % (state.lower(), total))
+        if states:
+            text += ' (%s)' % ' '.join(states)
+
+        return text
+
 
     #
     # Client actions

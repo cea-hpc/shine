@@ -1,3 +1,6 @@
+2012-02-13 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Detect and display client connection states (ticket #114).
+
 2012-02-10 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add fsck completion progress tracking and fsck is always run in 
 	  -f mode (ticket #107).
