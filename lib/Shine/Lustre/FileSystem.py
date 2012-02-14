@@ -35,7 +35,7 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Lustre.Actions.Proxies.FSProxyAction import FSProxyAction
+from Shine.Lustre.Actions.Proxy import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
 from Shine.Lustre.Component import ComponentGroup

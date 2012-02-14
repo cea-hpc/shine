@@ -21,7 +21,7 @@
 
 
 from Shine.Lustre.EventHandler import EventHandler
-from Shine.Lustre.Actions.Proxies.ProxyAction import SHINE_MSG_VERSION, SHINE_MSG_MAGIC
+from Shine.Lustre.Actions.Proxy import SHINE_MSG_VERSION, SHINE_MSG_MAGIC
 
 import binascii, pickle
 import sys

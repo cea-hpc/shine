@@ -1,5 +1,5 @@
-# FSProxyAction.py -- Lustre generic FS proxy action class
-# Copyright (C) 2009 CEA
+# Proxy.py -- Lustre generic FS proxy action class
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -19,9 +19,80 @@
 #
 # $Id$
 
-from Shine.Lustre.Actions.Proxies.ProxyAction import ProxyAction, ProxyActionUnpackError
-from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
+import os
+import sys
+import binascii, pickle
 
+from ClusterShell.Task import task_self
+from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
+from Shine.Lustre.Actions.Action import Action
+
+# For V2 Compat
+from Shine.Lustre.Actions.Action import ErrorResult
+
+# SHINE PROXY PROTOCOL CONSTANTS
+SHINE_MSG_MAGIC = "SHINE:"
+SHINE_MSG_VERSION = 3
+
+class ProxyActionUnpackError(Exception):
+    """
+    An error occured while trying to unpack a shine event message.
+    """
+
+class ProxyAction(Action):
+    """
+    Abstract shine proxy action class.
+    """
+
+    NAME = 'proxy'
+
+    def __init__(self, task=task_self()):
+        Action.__init__(self, task)
+        self.progpath = os.path.abspath(sys.argv[0])
+
+    def _shine_msg_unpack(self, msg):
+        """
+        Parse a raw string from a remote shine command.
+        Return a dict containing the information put by
+         RemoteCallEventHandler._shine_msg_pack()
+        """
+        # check for any shine msg
+        if not msg.startswith("SHINE:"):
+            raise ProxyActionUnpackError("Missing shine message prefix")
+
+        # Identified shine msg of the form SHINE:<version>:<pickle>
+        try:
+            # unpack pickle object
+            version, data = msg[6:].split(':', 1)
+            if int(version) == SHINE_MSG_VERSION:
+                return pickle.loads(binascii.a2b_base64(data))
+            elif int(version) == 2:
+                return self._shine_msg_unpack_v2(data)
+            else:
+                raise ProxyActionUnpackError("Shine message version mismatch")
+        except Exception, exp:
+            raise ProxyActionUnpackError("Unknown error: %s" % exp)
+
+    @classmethod
+    def _shine_msg_unpack_v2(cls, msg):
+        """Compatibility function to unpack old-style v2 messages."""
+        # v2 message looks like:
+        # SHINE:2:ev_starttarget_done:{node:, comp:, rc:, message:}
+
+        event, msg = msg.split(':', 1)
+        data = pickle.loads(binascii.a2b_base64(msg))
+        dummy, actioncomp, data['status'] = event.split('_', 3)
+        for name in ('router', 'client', 'target', 'journal'):
+            if actioncomp.endswith(name):
+                data['action'] = actioncomp[:-len(name)]
+                data['compname'] = name
+                break
+
+        # Result is only possible for 'failed' event in v2.
+        if data['status'] == 'failed':
+            data['result'] = ErrorResult(message=data.get('message'),
+                                         retcode=data.get('rc'))
+        return data
 
 class FSProxyAction(ProxyAction):
     """
@@ -150,8 +221,9 @@ class FSProxyAction(ProxyAction):
                             buf += "%s\n" % line 
 
                     # Handle proxy command error which rc >= 127 and 
-                    self.fs._handle_shine_proxy_error(nodes, "Remote action %s failed: %s" % \
-                            (self.action, buf))
+                    self.fs._handle_shine_proxy_error(nodes, "Remote action "
+                                                      "%s failed: %s" %
+                                                      (self.action, buf))
 
                 # Raise an error for nodes without outputs
                 if len(nobuffer_nodes) > 0:
