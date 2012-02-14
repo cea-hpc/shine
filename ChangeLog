@@ -1,3 +1,6 @@
+2012-02-14 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Model files accept several spaces as separator (ticket #121).
+
 2012-02-13 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Detect and display client connection states (ticket #114).
 

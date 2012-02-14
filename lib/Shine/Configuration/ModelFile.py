@@ -557,11 +557,12 @@ class ModelFile(object):
     def parse(self, data):
         """Parse @data based on separators and declared elements."""
         for line in data.split(self._linesep):
-            try:
-                key, value = line.split(self._sep, 1)
-            except ValueError:
-                raise ModelFileValueError("Wrong syntax '%s'" % line)
-            self._elements[key.strip()].parse(value.strip())
+            if line:
+                try:
+                    key, value = line.split(self._sep, 1)
+                except ValueError:
+                    raise ModelFileValueError("Wrong syntax '%s'" % line)
+                self._elements[key.strip()].parse(value.strip())
 
     # File handling
     def load(self, filename):

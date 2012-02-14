@@ -91,3 +91,12 @@ mgt: node=(\<badregexp>""")
         candidate = [ {'node': 'foo7', 'dev': '/dev/sda'} ]
         self.assertRaises(ModelFileValueError, model.get('mgt')[0].match_device,
                 candidate)
+
+    def test_several_spaces(self):
+        model = self.makeTempModel("""fs_name:  spaces 
+nid_map:  nodes=foo[7]  nids=foo[7]@tcp
+mgt:  node=foo7 """)
+        self.assertEqual(model.get('fs_name'), 'spaces')
+        self.assertEqual(len(model.elements('nid_map')), 1)
+        self.assertEqual(model.elements('nid_map')[0].as_dict(),
+                { 'nodes': 'foo[7]', 'nids': 'foo[7]@tcp' })
