@@ -22,8 +22,6 @@
 import copy
 import os
 
-from ClusterShell.NodeSet import RangeSet
-
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Model import Model
 from Shine.Configuration.Exceptions import ConfigInvalidFileSystem, \
@@ -218,7 +216,7 @@ class FileSystem(object):
                 continue
 
             # Lustre supports up to FFFF targets per type.
-            indexes = RangeSet("0-65535")
+            indexes = range(0, 65535)
 
             if self.backend:
 
@@ -245,7 +243,12 @@ class FileSystem(object):
                     # Remove already used index from candidate list.
                     for target_model in target_models:
                         if 'index' in target_model:
-                            indexes.remove(target_model.get('index'))
+                            idx = target_model.get('index')
+                            # List raises ValueError and we need to know the
+                            # missing indexes here, so we had this hack.
+                            if idx not in indexes:
+                                raise KeyError(idx)
+                            indexes.remove(idx)
 
                     # Iterates on each Model.Target
                     for target_model in target_models:
@@ -270,7 +273,13 @@ class FileSystem(object):
                             # Manage index, mandatoy in XMF files
                             if not matching.has_index():
                                 matching.add_index(indexes[0])
-                                indexes.remove(matching.index())
+                                idx = matching.index()
+                                # List raises ValueError and we need to know
+                                # the missing indexes here, so we had this
+                                # hack.
+                                if idx not in indexes:
+                                    raise KeyError(idx)
+                                indexes.remove(idx)
 
                             # `matching' is a TargetDevice, we want to add it
                             # to the underlying Model object. The current way
@@ -294,7 +303,12 @@ class FileSystem(object):
                     # Remove already used indexes from candidate list.
                     for params in self.model.elements(target):
                         if 'index' in params:
-                            indexes.remove(params.get('index'))
+                            idx = params.get('index')
+                            # List raises ValueError and we need to know the
+                            # missing indexes here, so we had this hack.
+                            if idx not in indexes:
+                                raise KeyError(idx)
+                            indexes.remove(idx)
 
                     # Manage index
                     for params in self.model.elements(target):
