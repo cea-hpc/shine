@@ -23,7 +23,7 @@
 Base class for live filesystem commands (start, stop, status, etc.).
 """
 
-from Shine.Commands.Base.RemoteCommand import RemoteCommand
+from Shine.Commands.Base.Command import RemoteCommand
 
 # Command helper
 from Shine.FSUtils import open_lustrefs
