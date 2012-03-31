@@ -203,19 +203,3 @@ class RemoteCommand(Command):
 
         return Command.filter_rc(self, rc)
 
-
-class RemoteCriticalCommand(RemoteCommand):
-
-    def __init__(self):
-        RemoteCommand.__init__(self)
-        self.yes_support = Yes(self)
-
-    def ask_confirm(self, prompt):
-        """
-        Ask user for confirmation if -y not specified.
-
-        Return True when the user confirms the action, False otherwise.
-        """
-        return self.yes_support.has_yes() or RemoteCommand.ask_confirm(self, prompt)
-
-
