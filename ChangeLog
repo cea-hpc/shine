@@ -1,3 +1,6 @@
+2012-04-30 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Add TextTable class as first step for new outputs (ticket #105).
+
 2012-02-14 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Release: 0.911
 

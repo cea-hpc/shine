@@ -1,0 +1,172 @@
+# Copyright or (c) or Copr. 2012, CEA
+#
+# This file is part of shine
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+# $Id$
+
+"""
+Table formatting classes for text-based interface.
+"""
+
+import re
+
+COLORS = {
+        'header': '\033[34m',
+        'stop': '\033[0m',
+    }
+
+class TextTable(object):
+    """
+    Display a list of dict into a ASCII table, based an a printf-like format.
+
+    >>> tbl = TextTable("%title %desc")
+    >>> tbl.header_labels = {'desc': 'description'}
+    >>> tbl.append({'title': "Winter hearts", 'desc': "A borring one"})
+    >>> tbl.append({'title': "Storm gathering", 'desc': "Thrilling!"})
+    >>> print tbl
+    TITLE           DESCRIPTION
+    -----           -----------
+    Winter hearts   A borring one
+    Storm gathering Thrilling!
+    >>>
+
+    It support header display, field place holder and aliases.
+    Column are kept aligned base on the larger value or header name.
+
+    Behaviour properties:
+        ignore_bad_keys   Unknown key are displayed as-is (default: False)
+
+    Display properties:
+        fmt               Format used to display each row and header.
+        show_header       If True, display a uppercase header a the top of 
+                          the table (default: True)
+        header_labels     Mapping of key to header text. 
+                          Default is to use the key as the header value.
+        color             Display table using colors.
+    """
+
+    def __init__(self, fmt=""):
+        self._rows = []
+        self._max_width = {}
+        
+        # Behavior
+        self.ignore_bad_keys = False
+        self.aliases = {}
+
+        # Display control
+        self.fmt = fmt
+        self.show_header = True
+        self.header_labels = {}
+        self.color = False
+        self.title = None
+
+    def __iter__(self):
+        return iter(self._rows)
+
+    def __len__(self):
+        return len(self._rows)
+
+    def _header(self, name):
+        """
+        Get the header string for the specified field name.
+
+        The value is read in `header_labels' dict or `name' is used as-is if
+        not present.
+        """
+        return self.header_labels.get(name, name)
+
+    def append(self, row):
+        """Append a new row to be displayed. `row' should be a dict."""
+        # Keep track of wider value for each field
+        for key, value in row.iteritems():
+            header_length = len(self._header(key))
+            self._max_width[key] = max(self._max_width.get(key, header_length),
+                                       len(str(value or '')))
+
+        self._rows.append(row)
+
+    def _str_common(self, getter):
+        """Generic function to build a table row using the table properties."""
+
+        def replacer(matchobj):
+            """Helper method for re.sub() to replace a place-holder."""
+            key = self.aliases.get(matchobj.group(3), matchobj.group(3))
+            length = 0
+            value = ""
+            try:
+                length = matchobj.group(2) or self._max_width[key]
+                length = int(length)
+                value = getter(key) or ""
+            except KeyError, ex:
+                if self.ignore_bad_keys:
+                    value = "%%%s" % key
+                    length = len(value)
+                else:
+                    raise ex
+
+            # If the value is too long, cut it
+            if len(value) > length:
+                length = max(4, length)
+                value = "%s..." % value[:length - 3]
+            if matchobj.group(1):
+                return "%*s" % (length, value)
+            else:
+                return "%-*s" % (length, value)
+
+        replacement = re.sub("%(>)?(\d+)?([a-z]+)", replacer, self.fmt)
+
+        return re.sub("%%", "%", replacement)
+
+    def _str_header(self):
+        """Build the header string"""
+        headline = self._str_common(self._header).upper().rstrip()
+        underline = re.sub("[^ ]", '-', headline)
+        if self.color:
+            headline = "%s%s%s" % (COLORS['header'], headline, COLORS['stop'])
+        if underline:
+            headline = "%s\n%s" % (headline, underline)
+        return headline
+
+    def _str_row(self, row):
+        """Build the string for the specified row (should be a dict)"""
+        return self._str_common(row.__getitem__)
+
+    def _str_title(self):
+        """Build a title string"""
+        width = len(self._str_common(self._header))
+        title = " %s " % self.title
+        left = (width - len(title)) / 2
+        right = width - len(title) - left
+        if self.color:
+            title = "%s%s%s" % (COLORS['header'], title, COLORS['stop'])
+        title = "%s%s%s" % ('=' * left, title, '=' * right)
+        return title
+
+    def __str__(self):
+        output = []
+        # Add header line if wanted
+        if self.show_header:
+            # Add title if defined
+            if self.title:
+                output.append(self._str_title())
+            # Column headers
+            output.append(self._str_header())
+        # Then add each row
+        for row in self:
+            output.append(self._str_row(row).rstrip())
+
+        return "\n".join(output)
