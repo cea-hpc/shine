@@ -121,6 +121,15 @@ class SimpleElementTest(unittest.TestCase):
         self.common_checking(elem, '/mnt/lustre', '/mnt/lustre', '/mnt/foo')
         self.assertRaises(ModelFileValueError, elem.add, 'not a path')
 
+    def testComplexPathSimpleElement(self):
+        """test SimpleElement(check='path') (complex)"""
+        elem = SimpleElement('path')
+        self.common_checking(elem,
+                             '/dev/disk/by-path/pci-0000:00:04.0-virtio-pci-virtio1-part3',
+                             '/dev/disk/by-path/pci-0000:00:04.0-virtio-pci-virtio1-part3',
+                             '/dev/disk/by-path/pci-0000:00:14.0-virtio-pci-virtio9-part8')
+        self.assertRaises(ModelFileValueError, elem.add, 'not a path')
+
     def testWrongSimpleElement(self):
         """test SimpleElement with a wrong check"""
         elem = SimpleElement('wrong')

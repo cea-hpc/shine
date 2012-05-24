@@ -1,3 +1,6 @@
+2012-05-24 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix path syntax checking in ModelFile (ticket #127).
+
 2012-04-30 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add TextTable class as first step for new outputs (ticket #105).
 

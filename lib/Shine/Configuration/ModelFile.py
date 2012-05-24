@@ -172,7 +172,7 @@ class SimpleElement(object):
             return [val for val in self._values if str(val) == str(value)].pop()
 
         elif self._check == 'path':
-            if not re.match("^\/([\.\w-]+/)*[\.\w-]+/?$", value):
+            if not re.match("^\/([\.\w:-]+/)*[\.\w:-]+/?$", value):
                 raise ModelFileValueError("'%s' is not a valid path" % value)
             return value
 
