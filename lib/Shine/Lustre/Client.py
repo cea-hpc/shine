@@ -178,7 +178,7 @@ class Client(Component):
         if 'EVICTED' in self.proc_states:
             self.state = CLIENT_ERROR
             raise ClientError(self, 'client connection error (%d evictions)' %
-                                    len(self.proc_states['EVICTED']))
+                                    self.proc_states['EVICTED'])
 
     def text_status(self):
         """

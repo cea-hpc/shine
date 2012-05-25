@@ -1,3 +1,6 @@
+2012-05-25 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix exception when checking status on an evicted client (ticket #126).
+
 2012-05-24 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix path syntax checking in ModelFile (ticket #127).
 
