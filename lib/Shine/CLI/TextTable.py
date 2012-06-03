@@ -49,6 +49,7 @@ class TextTable(object):
 
     Behaviour properties:
         ignore_bad_keys   Unknown key are displayed as-is (default: False)
+        aliases           Dictionnary of aliases for format keys.
 
     Display properties:
         fmt               Format used to display each row and header.
@@ -56,12 +57,15 @@ class TextTable(object):
                           the table (default: True)
         header_labels     Mapping of key to header text. 
                           Default is to use the key as the header value.
-        color             Display table using colors.
+        color             if True, displays table using colors.
+        title             A title to display on top of the table
+        optional_cols     Column list to not display if they are empty.
     """
 
     def __init__(self, fmt=""):
         self._rows = []
         self._max_width = {}
+        self._non_empty_cols = set()
         
         # Behavior
         self.ignore_bad_keys = False
@@ -73,6 +77,7 @@ class TextTable(object):
         self.header_labels = {}
         self.color = False
         self.title = None
+        self.optional_cols = []
 
     def __iter__(self):
         return iter(self._rows)
@@ -89,13 +94,21 @@ class TextTable(object):
         """
         return self.header_labels.get(name, name)
 
+
     def append(self, row):
         """Append a new row to be displayed. `row' should be a dict."""
         # Keep track of wider value for each field
         for key, value in row.iteritems():
             header_length = len(self._header(key))
+            real_value_len = len(str(value or ''))
+
+            # Keep track of the wider value in each col (header or value)
             self._max_width[key] = max(self._max_width.get(key, header_length),
-                                       len(str(value or '')))
+                                       real_value_len)
+
+            # Keep track of cols with at least one non empty row
+            if real_value_len > 0 and key not in self._non_empty_cols:
+                self._non_empty_cols.add(key)
 
         self._rows.append(row)
 
@@ -117,6 +130,10 @@ class TextTable(object):
                     length = len(value)
                 else:
                     raise ex
+
+            # Optional columns which are empty are simply skipped
+            if key in self.optional_cols and key not in self._non_empty_cols:
+                return ""
 
             # If the value is too long, cut it
             if len(value) > length:

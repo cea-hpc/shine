@@ -152,3 +152,17 @@ foofoo2 barbar2""")
 \033[34mFILESYSTEM TWO\033[0m
 ---------- ---
 foo        bar""")
+
+    def test_optional_colum_empty(self):
+        """an empty optional column should not be displayed"""
+        tbl = TextTable("%foo %bar")
+        tbl.optional_cols = [ 'bar' ]
+        tbl.append({'foo': 'zap', 'bar': None })
+        self.assertEqual(str(tbl), """FOO\n---\nzap""")
+
+    def test_optional_colum_non_empty(self):
+        """an non-empty optional column shoud be displayed"""
+        tbl = TextTable("%foo %bar")
+        tbl.optional_cols = [ 'bar' ]
+        tbl.append({'foo': 'zap', 'bar': 'zop' })
+        self.assertEqual(str(tbl), """FOO BAR\n--- ---\nzap zop""")
