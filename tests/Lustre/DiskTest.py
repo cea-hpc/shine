@@ -73,6 +73,8 @@ class DiskLoopbackTest(unittest.TestCase):
         # param FALSE
         self.assertFalse(d.has_param_flag())
 
+        self.assertEqual(d.flags(), ['need_index', 'first_time', 'update'])
+
     def testMountDataLabel(self):
         """test mountdata check with fsname and MGS as label"""
 
@@ -95,6 +97,8 @@ class DiskLoopbackTest(unittest.TestCase):
         self.assertFalse(d.has_upgrade14_flag())
         # param FALSE
         self.assertFalse(d.has_param_flag())
+
+        self.assertEqual(d.flags(), ['need_index', 'first_time', 'update'])
 
     def testMountDataBadLabel(self):
         """test mountdata check with wrong fsname and label"""

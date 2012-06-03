@@ -245,22 +245,6 @@ class Status(FSTargetLiveCommand):
                 else:
                     tag = ""
 
-                flags = []
-                if target.has_need_index_flag():
-                    flags.append("need_index")
-                if target.has_first_time_flag():
-                    flags.append("first_time")
-                if target.has_update_flag():
-                    flags.append("update")
-                if target.has_rewrite_ldd_flag():
-                    flags.append("rewrite_ldd")
-                if target.has_writeconf_flag():
-                    flags.append("writeconf")
-                if target.has_upgrade14_flag():
-                    flags.append("upgrade14")
-                if target.has_param_flag():
-                    flags.append("conf_param")
-
                 ldic.append(dict([\
                     ["nodes", target.allservers().nodeset()],
                     ["dev", target.dev],
@@ -270,7 +254,7 @@ class Status(FSTargetLiveCommand):
                     ["index", target.index],
                     ["tag", tag],
                     ["label", target.label],
-                    ["flags", ' '.join(flags)],
+                    ["flags", ' '.join(target.flags())],
                     ["fsname", target.fs.fs_name],
                     ["status", target.text_status()]]))
 

@@ -245,6 +245,25 @@ class Disk:
         finally:
             tmp_mountdata.close()
 
+    def flags(self):
+        """Return a list of text flags set on this disk."""
+        lst = []
+        if self.has_need_index_flag():
+            lst.append("need_index")
+        if self.has_first_time_flag():
+            lst.append("first_time")
+        if self.has_update_flag():
+            lst.append("update")
+        if self.has_rewrite_ldd_flag():
+            lst.append("rewrite_ldd")
+        if self.has_writeconf_flag():
+            lst.append("writeconf")
+        if self.has_upgrade14_flag():
+            lst.append("upgrade14")
+        if self.has_param_flag():
+            lst.append("conf_param")
+        return lst
+
     def has_need_index_flag(self):
         """LDD flag: need an index assignment"""
         return self._ldd_flags & LDD_F_NEED_INDEX
