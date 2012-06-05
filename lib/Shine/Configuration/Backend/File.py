@@ -51,7 +51,7 @@ class FileDevice(ModelFile):
         ModelFile.__init__(self, sep, linesep)
         self.add_element('tag',     check='string')
         self.add_element('node',    check='string')
-        self.add_element('ha_node', check='string')
+        self.add_element('ha_node', check='string', multiple=True)
         self.add_element('dev',     check='path')
         self.add_element('size',    check='digit')
         self.add_element('jdev',    check='path')

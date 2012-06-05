@@ -42,6 +42,22 @@ nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp0
 mgt: node=foo1""")
         self.assertEqual(self._model.get('mgt')[0].get('dev'), '/dev/sda')
 
+    def test_ha_node(self):
+        """target with ha_node"""
+        self.make_temp_conf("mgt: node=foo1 dev=/dev/sda ha_node=foo1")
+        self.make_temp_fs("""fs_name: example
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp0
+mgt: node=foo1""")
+        self.assertEqual(self._model.get('mgt')[0].get('ha_node'), ['foo1'])
+
+    def test_ha_nodes(self):
+        """target with several ha_nodes"""
+        self.make_temp_conf("mgt: node=foo1 dev=/dev/sda ha_node=foo1 ha_node=foo2")
+        self.make_temp_fs("""fs_name: example
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp0
+mgt: node=foo1 ha_node=foo1""")
+        self.assertEqual(self._model.get('mgt')[0].get('ha_node'), ['foo1', 'foo2'])
+
     def test_multiple_matches(self):
         self.make_temp_conf(
 """mgt: node=foo1 dev=/dev/sda
