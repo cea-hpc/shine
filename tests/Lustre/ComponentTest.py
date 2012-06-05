@@ -36,7 +36,11 @@ class ComponentGroupTest(unittest.TestCase):
         # __iter__
         self.assertEqual(list(iter(grp)), [ comp ])
         # Could not add() twice the same component
-        self.assertRaises(KeyError, grp.add, comp)
+        try:
+            grp.add(comp)
+        except KeyError, error:
+            txt = "'A component with id comp-A-foo@tcp already exists.'"
+            self.assertEqual(str(error), txt)
 
     def testServers(self):
         """test ComponentGroup.servers()"""

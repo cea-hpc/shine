@@ -226,7 +226,7 @@ class ComponentGroup(object):
         with the same uniqueid() is already added.
         """
         if component in self:
-            raise KeyError("A component with id %s already exists.",
+            raise KeyError("A component with id %s already exists." %
                            component.uniqueid())
         self._elems[component.uniqueid()] = component
  
