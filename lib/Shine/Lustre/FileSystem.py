@@ -181,8 +181,8 @@ class FileSystem:
 
                 # substitute target parameter by local one
                 params['comp'] = other
-            except KeyError:
-                print "ERROR: Component update failed (%s)" % comp
+            except KeyError, error:
+                print "ERROR: Component update failed (%s)" % str(error)
 
         self._invoke(compname, action, status, node=node, **params)
 
