@@ -267,6 +267,7 @@ class FileSystem:
         """
         self.proxy_errors = []
         # XXX: Warning, also update _distant_action_by_server()
+        task_self().set_default("stderr_msgtree", False)
         task_self().set_info('connect_timeout', 
                              Globals().get_ssh_connect_timeout())
         task_self().resume()
@@ -331,6 +332,7 @@ class FileSystem:
         if len(distant_servers) > 0:
             action_class(nodes=distant_servers, fs=self, **kwargs).launch()
             # XXX: merge with _run_actions()
+            task_self().set_default("stderr_msgtree", False)
             task_self().set_info('connect_timeout', 
                                  Globals().get_ssh_connect_timeout())
             task_self().resume()
