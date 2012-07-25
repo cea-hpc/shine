@@ -1,5 +1,5 @@
 # Controller.py -- Controller class
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -19,72 +19,58 @@
 #
 # $Id$
 
+import re
+import sys
+import datetime
+import traceback
+import copy
+
+from optparse import OptionParser, OptionGroup, Option, OptionValueError, \
+                     check_choice, SUPPRESS_HELP, IndentedHelpFormatter
+
+from Shine import public_version
 from Shine.Configuration.Globals import Globals
 from Shine.Configuration.ModelFile import ModelFileValueError
 from Shine.Configuration.Exceptions import ConfigException
 
-from Shine.Commands.CommandRegistry import CommandRegistry
-from Shine.Commands.Exceptions import CommandHelpException, CommandException
+from Shine.Commands import COMMAND_LIST
+from Shine.Commands.Base.Command import CommandHelpException, CommandException
 from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
 
 from Shine.Lustre.FileSystem import FSRemoteError
 from Shine.Lustre.Component import ComponentError
 
 from ClusterShell.Task import task_self
-from ClusterShell.NodeSet import NodeSetParseError, RangeSetParseError
-
-import getopt
-import re
-import sys
-import datetime
-import traceback
+from ClusterShell.NodeSet import NodeSet, NodeSetException, NodeSetParseError, \
+                                 RangeSet, RangeSetParseError
 
 
-def print_csdebug(task, s):
-    m = re.search("(\w+): SHINE:\d:", s)
+def print_csdebug(task, msg):
+    m = re.search("(\w+): SHINE:\d:", msg)
     if m:
         print "%s<pickle>" % m.group(0)
     else:
-        print s
+        print msg
 
 
 class Controller:
 
     def __init__(self):
-        self.cmds = CommandRegistry()
 
         task = task_self()
 
-        #task.set_info("debug", True)
         task.set_info("print_debug", print_csdebug)
         fanout = Globals().get_ssh_fanout()
         if fanout > 0:
             task.set_info("fanout", fanout)
 
-    def usage(self):
-        cmd_maxlen = 0
-
-        for cmd in self.cmds:
-            if not cmd.is_hidden():
-                if len(cmd.NAME) > cmd_maxlen:
-                    cmd_maxlen = len(cmd.NAME)
-        for cmd in self.cmds:
-            if not cmd.is_hidden():
-                print "  %-*s %s" % (cmd_maxlen, cmd.NAME,
-                    cmd.get_params_desc())
-
     def print_error(self, errmsg):
         print >> sys.stderr, "Error:", errmsg
 
     def print_help(self, msg, cmd):
-        if msg:
-            print msg
-            print
-        print "Usage: %s %s" % (cmd.NAME, cmd.get_params_desc())
-        print
-        print cmd.DESCRIPTION
+        print >> sys.stderr, "Error: %s" % msg
 
-    def save_exception(self, error, cmd_args):
+    def save_exception(self, error):
         """
         Save the provided exception with its traceback in a file
         for latter analysis or bug report.
@@ -92,52 +78,197 @@ class Controller:
         now = datetime.datetime.today().replace(microsecond=0)
 
         filename = '/tmp/shine-error-%s' % (now.isoformat('_'))
-        f = open(filename, 'w')
-        f.write("#\n# Shine error report - %s\n#\n\n" % now)
-        f.write("Command was: 'shine %s'\n\n" % " ".join(cmd_args))
-        traceback.print_exc(file=f)
-        f.write("\n")
-        f.write("Exception: %s\n\n" % error)
-        f.close()
+        trx = open(filename, 'w')
+        trx.write("#\n# Shine error report - %s\n#\n\n" % now)
+        trx.write("Command was: '%s'\n\n" % " ".join(sys.argv))
+        traceback.print_exc(file=trx)
+        trx.write("\n")
+        trx.write("Exception: %s\n\n" % error)
+        trx.close()
 
         return filename
 
-    def run_command(self, cmd_args):
+    @classmethod
+    def handle_options(cls):
+
+        def check_nodeset(option, opt, value):
+            try:
+                return NodeSet(value)
+            except NodeSetException:
+                raise OptionValueError(
+                    "option %s: invalid nodeset value: %s" % (opt, value))
+
+        def check_rangeset(option, opt, value):
+            try:
+                return RangeSet(value)
+            except RangeSetParseError:
+                raise OptionValueError(
+                    "option %s: invalid rangeset value: %s" % (opt, value))
+
+        def check_mulchoices(option, opt, value):
+            if value not in option.choices:
+                for val in value.split(","):
+                    if val not in option.choices:
+                        # Will raises OptionValueError
+                        check_choice(option, opt, value)
+            return value
+
+        class ShineOption(Option):
+            TYPES = Option.TYPES + ("nodeset", "rangeset")
+            TYPE_CHECKER = copy.copy(Option.TYPE_CHECKER)
+            TYPE_CHECKER["nodeset"] = check_nodeset
+            TYPE_CHECKER["rangeset"] = check_rangeset
+            TYPE_CHECKER["choice"] = check_mulchoices
+
+            ACTIONS = Option.ACTIONS + ("extend",)
+            STORE_ACTIONS = Option.STORE_ACTIONS + ("extend",)
+            TYPED_ACTIONS = Option.TYPED_ACTIONS + ("extend",)
+            ALWAYS_TYPED_ACTIONS = Option.ALWAYS_TYPED_ACTIONS + ("extend",)
+
+            def take_action(self, action, dest, opt, value, values, parser):
+                if action == "extend":
+                    lvalue = value.split(",")
+                    values.ensure_value(dest, []).extend(lvalue)
+                else:
+                    Option.take_action(
+                                self, action, dest, opt, value, values, parser)
+
+        class ShineHelpFormatter(IndentedHelpFormatter):
+            def format_description(self, description):
+                output = ["Commands:"]
+                for cmdname in sorted(COMMAND_LIST):
+                    cmd = COMMAND_LIST[cmdname]
+                    output.append("  %-14s %s" % (cmd.NAME, cmd.DESCRIPTION))
+                return "\n".join(output) + "\n"
+
+        class ShineParser(OptionParser):
+
+            def error(self, msg):
+                # XXX: sys.exit() if error on command line (optparse behaviour)
+                # rc=2
+                self.exit(2, "Error: %s\n" % msg)
+
+        # XXX: Add support for -V view for all commands.
+        # XXX: Add support for client to -t flag
+        parser = ShineParser(usage="%prog [options] COMMAND [options]",
+                             version="Shine v%s" % public_version,
+                             option_class=ShineOption,
+                             description="something",
+                             formatter=ShineHelpFormatter())
+
+        parser.add_option("-R", dest="remote", action="store_true",
+                          help=SUPPRESS_HELP)
+        parser.add_option("-L", dest="local", action="store_true",
+                          help=SUPPRESS_HELP)
+
+        view_grp = OptionGroup(parser, "Display options")
+        view_grp.add_option("-v", dest="verbose", action="store_const",
+                            const=2, help="enable verbose output", default=1)
+        view_grp.add_option("-q", dest="verbose", action="store_const",
+                            const=0, help="quiet output")
+        view_grp.add_option("-d", dest="debug", action="store_true",
+                            help="enable debugging")
+        view_grp.add_option("-V", dest="view", type="choice", default='fs',
+                            choices=['fs', 'target', 'disk'],
+                            help="change displayed filesystem information")
+        parser.add_option_group(view_grp)
+
+        comp_grp = OptionGroup(parser, "Component selection")
+        comp_grp.add_option("-i", dest="indexes", type="rangeset",
+                            help="specify target index ranges, eg. 0-6/2")
+        comp_grp.add_option("-l", dest="labels", type="nodeset",
+                            help="specify component by label (ie: foo-OST0000)")
+        comp_grp.add_option("-t", dest="targets", action="extend",
+                            choices=['mgt','mdt','ost','router'],
+                            help="specify components (mgt, mdt, ost, router)")
+        parser.add_option_group(comp_grp)
+
+        node_grp = OptionGroup(parser, "Node restriction")
+        node_grp.add_option("-n", dest="nodes", type="nodeset",
+                            help="only use this nodes or nodeset,"
+                                 " eg. red[2-10/2]")
+        node_grp.add_option("-x", dest="excludes", type="nodeset",
+                            metavar="NODES",
+                            help="exclude nodes or nodeset,"
+                                 " eg. red[2-10/2]")
+        node_grp.add_option("-F", dest="failover", type="nodeset",
+                            metavar="NODES",
+                            help="Nodes to use to fail over")
+        parser.add_option_group(node_grp)
+
+        parser.add_option("-o", dest="additional", metavar="OPTIONS",
+                           help="additional options for final command")
+        parser.add_option("-f", dest="fsnames", action="extend", metavar="NAME",
+                          help="apply command to this file system")
+        parser.add_option("-m", dest="model",
+                          help="path of the Lustre Model File")
+        parser.add_option("-y", dest="yes", action="store_true",
+                          help="assume a \"yes\" response to all prompts")
+
+        # Parse command line
+        (options, args) = parser.parse_args()
+
+        # A command is mandatory
+        if not args:
+            parser.error("No command was specified")
+
+        cmdname = args.pop(0)
+
+        # Special command handling
+        if cmdname == 'help':
+            parser.print_help()
+            parser.exit()
+        elif cmdname == 'version':
+            parser.print_version()
+            parser.exit()
+        elif cmdname not in COMMAND_LIST:
+            parser.error('Command "%s" not found' % cmdname)
+        # XXX: Special handling for 'show' commands
+        elif cmdname == 'show':
+            if len(args) > 1:
+                parser.error('Too many arguments "%s"' % ' '.join(args[1:]))
+        elif args:
+            parser.error('Too many arguments "%s"' % ' '.join(args))
+
+        return (options, args, cmdname)
+
+
+    def run_command(self):
+        # sys.exit() if error on command line (optparse behaviour)
+        # rc=2
+
+        (options, args, cmdname) = self.handle_options()
 
         try:
-            return self.cmds.execute(cmd_args)
-        except getopt.GetoptError, e:
-            print "Syntax error: %s" % e
+
+            # Execute and filter rc
+            command = COMMAND_LIST[cmdname](options, args)
+            return command.filter_rc(command.execute())
+
         except CommandHelpException, error:
             self.print_help(str(error), error.cmd)
+
+        # Command exceptions
         except CommandException, error:
             self.print_error(str(error))
-        except ConfigException, e:
-            print "Configuration: %s" % e
+
+        # Configuration exceptions
+        except ConfigException, exp:
+            self.print_error("Configuration - %s" % exp)
         except ModelFileValueError, error:
             self.print_error(str(error))
-        # file system
-        except FSRemoteError, e:
-            self.print_error(e)
-            return e.rc
-        except ComponentError, e:
-            self.print_error("%s" % e)
-        except NodeSetParseError, e:
-            self.print_error("%s" % e)
-        except RangeSetParseError, e:
-            self.print_error("%s" % e)
 
-        #
-        # Global catchall for all other errors
-        # except KeyboardInterrupt and SystemExit
-        #
-        except (KeyboardInterrupt, SystemExit), e:
-            raise e
-        except Exception, e:
-            print "Unknown error: %s" % e
-            f = self.save_exception(e, cmd_args)
-            print "(details in %s)" % f
-        
+        # File system exceptions
+        except FSRemoteError, exp:
+            self.print_error(exp)
+            return exp.rc
+        except [ComponentError, NodeSetParseError, RangeSetParseError], exp:
+            self.print_error(str(exp))
+
+        # Special error
+        except KeyboardInterrupt:
+            print >> sys.stderr, "Exiting."
+            return 0
+
         return RC_RUNTIME_ERROR
-
 

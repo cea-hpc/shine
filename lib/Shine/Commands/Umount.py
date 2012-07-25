@@ -1,5 +1,5 @@
 # Umount.py -- Unmount file system on clients
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -73,19 +73,18 @@ class Umount(FSLiveCommand):
 
         # Warn if trying to act on wrong nodes
         comps = fs.components.managed(supports='umount')
-        if not self.nodes_support.check_valid_list(fs.fs_name, comps.servers(),
-                                                   "unmount"):
+        if not self.check_valid_list(fs.fs_name, comps.servers(), "unmount"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        status = fs.umount(addopts=self.addopts.get_options())
+        status = fs.umount(addopts=self.options.additional)
 
         rc = self.fs_status_to_rc(status)
 
-        if not self.remote_call:
+        if not self.options.remote:
             if rc == RC_OK:
                 
                 fs_conf.set_status_fs_online()

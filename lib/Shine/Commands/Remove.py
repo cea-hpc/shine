@@ -1,6 +1,6 @@
 # Remove.py -- File system removing commands
 # Copyright (C) 2007, 2008 BULL S.A.S
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -46,6 +46,10 @@ class Remove(FSTargetLiveCriticalCommand):
     DESCRIPTION = "Remove a previously installed file system"
 
     def execute(self):
+
+        # Option sanity check
+        self.forbidden(self.options.model, "-m, use -f")
+
         try:
             return FSTargetLiveCriticalCommand.execute(self)
         except ModelFileIOError:
@@ -59,8 +63,7 @@ class Remove(FSTargetLiveCriticalCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed().servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   'uninstall'):
+        if not self.check_valid_list(fs.fs_name, servers, 'uninstall'):
             return RC_FAILURE
 
         # Admin mode
@@ -98,12 +101,12 @@ class Remove(FSTargetLiveCriticalCommand):
                 return RC_FAILURE
 
             # XXX: This is not really nice. Need to find a better way.
-            if not self.nodes_support.get_nodeset() \
-               and not self.nodes_support.get_excludes() \
-               and not self.target_support.get_target() \
-               and not self.label_support.get_labels() \
-               and not self.target_support.get_failover() \
-               and not self.indexes_support.get_rangeset():
+            if not self.options.nodes \
+               and not self.options.excludes \
+               and not self.options.targets \
+               and not self.options.labels \
+               and not self.options.failover \
+               and not self.options.indexes:
 
                 print "Unregistering FS %s from backend..." % fs.fs_name
                 retcode = self.unregister_fs(fs_conf)
@@ -117,12 +120,12 @@ class Remove(FSTargetLiveCriticalCommand):
         # Local mode (either -R or -L)
         else:
             if fs.remove():
-                if self.local_flag:
+                if self.options.local:
                     print "Error: failed to remove filesystem ```%s'' " \
                           "configuration files" % fs.fs_name
                 return RC_FAILURE
 
-            elif self.local_flag:
+            elif self.options.local:
                 print "Filesystem %s removed." % fs.fs_name
         
         return rc

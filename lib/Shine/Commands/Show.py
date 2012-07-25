@@ -28,17 +28,14 @@ The show command aims to show various shine configuration parameters.
 # Configuration
 from Shine.Configuration.Configuration import Configuration
 from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 # Command base class
-from Shine.Commands.Base.Command import Command
-from Shine.Commands.Base.Support.FS import FS
-from Shine.Commands.Base.Support.Verbose import Verbose
-from Shine.Commands.Exceptions import CommandHelpException
+from Shine.Commands.Base.Command import Command, CommandHelpException
 
 # Utilities
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
 
-from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 
 class Show(Command):
@@ -50,11 +47,6 @@ class Show(Command):
     DESCRIPTION = "Show configuration parameters."
     SUBCOMMANDS = [ "conf", "fs", "info", "storage" ]
 
-    def __init__(self):
-        Command.__init__(self)
-        self.fs_support = FS(self, optional=True)
-        self.verbose_support = Verbose(self, with_quiet=False)
-
     def cmd_show_conf(self):
         """Show shine.conf"""
         AsciiTable().print_from_simple_dict(Globals().as_dict())
@@ -62,9 +54,10 @@ class Show(Command):
     
     def cmd_show_fs(self):
         """Show filesystems"""
-        verb = self.verbose_support.has_verbose()
+        # XXX: Use a constant here
+        verb = self.options.verbose >= 2
         fslist = []
-        for fsname in self.fs_support.iter_fsname():
+        for fsname in self.iter_fsname():
             try:
                 fs_conf = Configuration.load_from_cache(fsname)
             except:
@@ -88,7 +81,7 @@ class Show(Command):
         """Show filesystem info"""
         # Walk through the list of file system managed 
         # by the current node and specified by the user.
-        for fsname in self.fs_support.iter_fsname():
+        for fsname in self.iter_fsname():
 
             fslist = []
             try:
@@ -179,6 +172,11 @@ class Show(Command):
 
     def execute(self):
 
+        # Option sanity check
+        self.forbidden(self.options.fsnames, "-m, see -f")
+
+        # This check is already done when parsing argument.
+        # If this is modified, optparse code should also be fixed.
         if len(self.arguments) != 1:
             raise CommandHelpException("Invalid command usage.", self)
 

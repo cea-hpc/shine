@@ -90,8 +90,7 @@ class Stop(FSTargetLiveCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='stop').servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   "stop"):
+        if not self.check_valid_list(fs.fs_name, servers, "stop"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
@@ -101,8 +100,8 @@ class Stop(FSTargetLiveCommand):
         # Notify backend of file system status mofication
         fs_conf.set_status_fs_stopping()
 
-        status = fs.stop(addopts=self.addopts.get_options(),
-                         failover=self.target_support.get_failover())
+        status = fs.stop(addopts=self.options.additional,
+                         failover=self.options.failover)
 
         rc = self.fs_status_to_rc(status)
 

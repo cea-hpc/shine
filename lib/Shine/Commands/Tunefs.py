@@ -1,5 +1,5 @@
 # Tunefs.py -- Tune file system targets
-# Copyright (C) 2011 CEA
+# Copyright (C) 2011-2012 CEA
 #
 # This file is part of shine
 #
@@ -73,8 +73,7 @@ class Tunefs(FSTargetLiveCriticalCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='tunefs').servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   "tunefs"):
+        if not self.check_valid_list(fs.fs_name, servers, "tunefs"):
             return RC_FAILURE
 
         # Ignore all clients for this command
@@ -99,8 +98,8 @@ class Tunefs(FSTargetLiveCriticalCommand):
                     format_params=format_params,
                     quota=fs_conf.has_quota(),
                     quota_type=fs_conf.get_quota_type(),
-                    addopts=self.addopts.get_options(),
-                    failover=self.target_support.get_failover(),
+                    addopts=self.options.additional,
+                    failover=self.options.failover,
                     writeconf=True)
 
         rc = self.fs_status_to_rc(status)

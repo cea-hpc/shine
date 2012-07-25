@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -34,7 +34,6 @@ setup(name='shine',
       packages=['Shine',
                'Shine.Commands',
                'Shine.Commands.Base',
-               'Shine.Commands.Base.Support',
                'Shine.Configuration',
                'Shine.Configuration.Backend',
                'Shine.Lustre',

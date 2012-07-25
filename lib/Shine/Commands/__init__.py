@@ -1,5 +1,5 @@
 # Commands/__init__.py -- Commands module initialization
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -24,24 +24,8 @@
 # List of enabled commands classes.
 # ----------------------------------------------------------------------
 
-commandList = []
+COMMAND_LIST = {}
 
-#for cmd in [ "ShowConf",
-#             "Show",
-#             "Install",
-#             "Edit",
-#             "Format",
-#             "List",
-#             "Start",
-#             "Stop",
-#             "Info",
-#             "Status",
-#             "Mount",
-#             "Umount",
-#             "Test",
-#             "Cache",
-#             "Remove",
-#             "Tune"]:
 for cmd in [ "Show",
              "Install",
              "Update",
@@ -55,9 +39,10 @@ for cmd in [ "Show",
              "Umount",
              "Tune",
              "Tunefs"]:
+
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])
 
     # Add class to global command list
-    commandList.append(getattr(mod, cmd))
-
+    cls = getattr(mod, cmd)
+    COMMAND_LIST[cls.NAME] = cls

@@ -196,9 +196,6 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
     # Create file system configuration
     fs_conf = Configuration.load_from_cache(fs_name)
 
-    if target_types:
-        target_types = target_types.split(',')
-
     fs = instantiate_lustrefs(fs_conf, target_types, nodes, excluded,
                               failover, indexes, labels, groups,
                               event_handler)

@@ -1,5 +1,5 @@
 # Status.py -- Check remote filesystem servers and targets status
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -35,9 +35,6 @@ from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
                                               RC_ST_ONLINE, RC_ST_RECOVERING, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
-
-# Additional options
-from Shine.Commands.Base.Support.View import View
 
 # Command output formatting
 from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
@@ -84,26 +81,15 @@ class Status(FSTargetLiveCommand):
             CLIENT_ERROR : RC_CLIENT_ERROR,
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
-    def __init__(self):
-        FSTargetLiveCommand.__init__(self)
-        self.view_support = View(self)
-
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
         all_nodes = fs.components.managed().servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                all_nodes, "check"):
+        if not self.check_valid_list(fs.fs_name, all_nodes, "check"):
             return RC_FAILURE
 
         status_flags = STATUS_ANY
-        view = self.view_support.get_view()
-
-        # default view
-        if view is None:
-            view = "fs"
-        else:
-            view = view.lower()
+        view = self.options.view
 
         # disable client checks when not requested
         if view.startswith("disk") or view.startswith("target"):
@@ -117,7 +103,7 @@ class Status(FSTargetLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        fs_result = fs.status(status_flags, failover=self.target_support.get_failover())
+        fs_result = fs.status(status_flags, failover=self.options.failover)
 
         if fs_result == RUNTIME_ERROR:
             for nodes, msg in fs.proxy_errors:
@@ -128,7 +114,7 @@ class Status(FSTargetLiveCommand):
 
         result = self.fs_status_to_rc(fs_result)
 
-        if not self.remote_call and vlevel > 0:
+        if not self.options.remote and vlevel > 0:
             if view == "fs":
                 self.status_view_fs(fs)
             elif view.startswith("target"):

@@ -19,18 +19,13 @@
 #
 # $Id$
 
-from ClusterShell.NodeSet import NodeSet
-
 from Shine.Configuration.Globals import Globals 
 
 from Shine.FSUtils import create_lustrefs
 from Shine.Lustre.FileSystem import FSRemoteError
 
-from Shine.Commands.Base.Command import Command
+from Shine.Commands.Base.Command import Command, CommandHelpException
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
-from Shine.Commands.Base.Support.LMF import LMF
-from Shine.Commands.Base.Support.Nodes import Nodes
-from Shine.Commands.Exceptions import CommandHelpException
 
 
 
@@ -42,34 +37,34 @@ class Install(Command):
     NAME = "install"
     DESCRIPTION = "Install a new file system."
 
-    def __init__(self):
-        Command.__init__(self)
-
-        self.lmf_support = LMF(self)
-        self.nodes_support = Nodes(self)
-
     def execute(self):
+
+        # Option sanity check
+        self.forbidden(self.options.fsnames, "-f, see -m")
+        self.forbidden(self.options.labels, "-l")
+        self.forbidden(self.options.indexes, "-i")
+        self.forbidden(self.options.failover, "-F")
 
         rc = RC_OK
 
-        if not self.opt_m:
+        if not self.options.model:
             raise CommandHelpException("Lustre model file path (-m <model_file>) " \
                     "argument required.", self)
 
         # Use this Shine.FSUtils convenience function.
-        lmf = self.lmf_support.get_lmf_path()
+        lmf = self.get_lmf_path()
         if lmf:
             print "Using Lustre model file %s" % lmf
         else:
             raise CommandHelpException("Lustre model file for ``%s'' not found: " \
                     "please use filename or full LMF path.\n" \
                     "Your default model files directory (lmf_dir) " \
-                    "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
+                    "is: %s" % (self.options.model, Globals().get_lmf_dir()), self)
 
-        install_nodes = self.nodes_support.get_nodeset()
-        excluded_nodes = self.nodes_support.get_excludes()
+        install_nodes = self.options.nodes
+        excluded_nodes = self.options.excludes
 
-        fs_conf, fs = create_lustrefs(self.lmf_support.get_lmf_path(),
+        fs_conf, fs = create_lustrefs(self.get_lmf_path(),
                 event_handler=self, nodes=install_nodes, 
                 excluded=excluded_nodes)
 
@@ -84,7 +79,7 @@ class Install(Command):
         # Helper message.
         # If user specified nodes which were not used, warn him about it.
         actual_nodes = fs.components.managed().servers()
-        if not self.nodes_support.check_valid_list(fs_conf.get_fs_name(), \
+        if not self.check_valid_list(fs_conf.get_fs_name(), \
                 actual_nodes, "install"):
             return RC_FAILURE
 

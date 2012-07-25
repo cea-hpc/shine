@@ -1,5 +1,5 @@
 # Update.py -- Update a file system with a new model file
-# Copyright (C) 2011 CEA
+# Copyright (C) 2011-2012 CEA
 #
 # This file is part of shine
 #
@@ -27,13 +27,8 @@ from Shine.Commands.Status import Status
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Commands.Exceptions import CommandHelpException
-from Shine.Commands.Base.Command import Command
+from Shine.Commands.Base.Command import Command, CommandHelpException
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
-from Shine.Commands.Base.Support.LMF import LMF
-from Shine.Commands.Base.Support.Yes import Yes
-from Shine.Commands.Base.Support.Nodes import Nodes
-from Shine.Commands.Base.Support.Verbose import Verbose
 
 from Shine.FSUtils import open_model, open_lustrefs, create_lustrefs, \
                           convert_comparison, instantiate_lustrefs
@@ -67,42 +62,23 @@ class Update(Command):
 
     GLOBAL_EH = GlobalUpdateEventHandler
 
-    def __init__(self):
-        Command.__init__(self)
-
-        self.verbose_support = Verbose(self)
-
-        self.lmf_support = LMF(self)
-        self.nodes_support = Nodes(self)
-
-        self.yes_support = Yes(self)
-
     def lmfpath(self):
         """Check LMF value and return a full LMF path"""
 
-        if not self.opt_m:
+        if not self.options.model:
             raise CommandHelpException("Lustre model file path "
                                        "(-m <model_file>) "
                                        "argument required.", self)
 
-        lmf = self.lmf_support.get_lmf_path()
+        lmf = self.get_lmf_path()
         if lmf:
             print "Using Lustre model file %s" % lmf
         else:
             raise CommandHelpException("Lustre model file for ``%s'' not " \
                     "found: please use filename or full LMF path.\n" \
                     "Your default model files directory (lmf_dir) " \
-                    "is: %s" % (self.opt_m, Globals().get_lmf_dir()), self)
+                    "is: %s" % (self.options.model, Globals().get_lmf_dir()), self)
         return lmf
-
-    def ask_confirm(self, prompt):
-        """
-        Ask user for confirmation if -y not specified.
-
-        Return True when the user confirms the action, False otherwise.
-        """
-        return self.yes_support.has_yes() or Command.ask_confirm(self, prompt)
-
 
     def __warning(self, message):
         """Helper to display a warning message."""
@@ -110,12 +86,13 @@ class Update(Command):
 
     def __verbose(self, message):
         """Helper to display a verbose message, if enabled."""
-        if self.verbose_support.has_verbose():
+        # XXX: Should use a constant here
+        if self.options.verbose > 0:
             print message
 
     def __debug(self, message):
         """Helper to display a debug message, if enabled."""
-        if self.debug_support.has_debug():
+        if self.options.debug:
             print "DEBUG ", message
 
     @classmethod
@@ -227,6 +204,12 @@ class Update(Command):
 
     def execute(self):
 
+        # Option sanity check
+        self.forbidden(self.options.fsnames, "-f, see -m")
+        self.forbidden(self.options.labels, "-l")
+        self.forbidden(self.options.indexes, "-i")
+        self.forbidden(self.options.failover, "-F")
+
         rc = RC_OK
 
         # Check
@@ -236,20 +219,20 @@ class Update(Command):
         newconf = open_model(lmf)
         newfsconf = newconf._fs
         newfsconf.setup_target_devices(update_mode=True)
-        neweh = self.GLOBAL_EH(self.verbose_support.get_verbose_level())
+        neweh = self.GLOBAL_EH(self.options.verbose)
         newfs = instantiate_lustrefs(newconf, 
-                                   nodes=self.nodes_support.get_nodeset(),
-                                   excluded=self.nodes_support.get_excludes(),
+                                   nodes=self.options.nodes,
+                                   excluded=self.options.excludes,
                                    event_handler=neweh)
-        newfs.set_debug(self.debug_support.has_debug())
+        newfs.set_debug(self.options.debug)
 
         # Load current registered FS
-        oldeh = self.GLOBAL_EH(self.verbose_support.get_verbose_level())
+        oldeh = self.GLOBAL_EH(self.options.verbose)
         oldconf, oldfs = open_lustrefs(newfsconf.fs_name, 
-                                     nodes=self.nodes_support.get_nodeset(),
-                                     excluded=self.nodes_support.get_excludes(),
+                                     nodes=self.options.nodes,
+                                     excluded=self.options.excludes,
                                      event_handler=oldeh)
-        oldfs.set_debug(self.debug_support.has_debug())
+        oldfs.set_debug(self.options.debug)
 
         # Compare them
         actions = oldconf._fs.compare(newfsconf)
@@ -336,11 +319,11 @@ class Update(Command):
 
         # XXX: Replace that with a simple fs save.
         newconf, newfs = create_lustrefs(lmf, 
-                                    nodes=self.nodes_support.get_nodeset(),
-                                    excluded=self.nodes_support.get_excludes(),
-                                    event_handler=neweh,
-                                    update_mode=True)
-        newfs.set_debug(self.debug_support.has_debug())
+                                         nodes=self.options.nodes,
+                                         excluded=self.options.excludes,
+                                         event_handler=neweh,
+                                         update_mode=True)
+        newfs.set_debug(self.options.debug)
 
         # Register the new targets in backend
         if 'format' in actions:

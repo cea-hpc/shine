@@ -104,8 +104,7 @@ class Fsck(FSTargetLiveCriticalCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='fsck').servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   "fsck"):
+        if not self.check_valid_list(fs.fs_name, servers, "fsck"):
             return RC_FAILURE
 
         if not self.ask_confirm("Fsck %s on %s: are you sure?" % (fs.fs_name,
@@ -120,8 +119,8 @@ class Fsck(FSTargetLiveCriticalCommand):
         fs_conf.set_status_fs_checking()
 
         # Fsck really.
-        status = fs.fsck(addopts=self.addopts.get_options(),
-                         failover=self.target_support.get_failover())
+        status = fs.fsck(addopts=self.options.additional,
+                         failover=self.options.failover)
 
         rc = self.fs_status_to_rc(status)
 

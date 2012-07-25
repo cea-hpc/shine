@@ -1,5 +1,6 @@
 # Tune.py -- Tune file system
 # Copyright (C) 2007 BULL S.A.S
+# Copyright (C) 2012 CEA
 #
 # This file is part of shine
 #
@@ -77,8 +78,7 @@ class Tune(FSTargetLiveCommand):
 
         # Warn if trying to act on wrong nodes
         all_nodes = fs.components.managed().servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, \
-                all_nodes, "tune"):
+        if not self.check_valid_list(fs.fs_name, all_nodes, "tune"):
             return RC_FAILURE
 
         tuning = self.get_tuning(fs_conf)
@@ -89,10 +89,10 @@ class Tune(FSTargetLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
             
-        if not self.remote_call and (vlevel > 1):
+        if not self.options.remote and (vlevel > 1):
             print tuning
 
-        status = fs.tune(tuning, addopts=self.addopts.get_options())
+        status = fs.tune(tuning, addopts=self.options.additional)
         if status == RUNTIME_ERROR:
             for nodes, msg in fs.proxy_errors:
                 print nodes

@@ -73,8 +73,7 @@ class Format(FSTargetLiveCriticalCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='format').servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   'format'):
+        if not self.check_valid_list(fs.fs_name, servers, 'format'):
             return RC_FAILURE
 
         # Ignore all clients for this command
@@ -106,8 +105,8 @@ class Format(FSTargetLiveCriticalCommand):
                     mkfs_options=mkfs_options,
                     quota=fs_conf.has_quota(),
                     quota_type=fs_conf.get_quota_type(),
-                    addopts = self.addopts.get_options(),
-                    failover=self.target_support.get_failover())
+                    addopts=self.options.additional,
+                    failover=self.options.failover)
 
         rc = self.fs_status_to_rc(status)
 

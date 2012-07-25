@@ -91,8 +91,7 @@ class Start(FSTargetLiveCommand):
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='start').servers()
-        if not self.nodes_support.check_valid_list(fs.fs_name, servers,
-                                                   'start'):
+        if not self.check_valid_list(fs.fs_name, servers, 'start'):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
@@ -104,8 +103,8 @@ class Start(FSTargetLiveCommand):
 
         status = fs.start(mount_options=mount_options,
                           mount_paths=mount_paths,
-                          addopts=self.addopts.get_options(),
-                          failover=self.target_support.get_failover())
+                          addopts=self.options.additional,
+                          failover=self.options.failover)
 
         rc = self.fs_status_to_rc(status)
 

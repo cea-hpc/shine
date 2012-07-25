@@ -1,5 +1,5 @@
 # Command.py -- Base command class
-# Copyright (C) 2007, 2008, 2009, 2012 CEA
+# Copyright (C) 2007-2012 CEA
 #
 # This file is part of shine
 #
@@ -19,20 +19,28 @@
 #
 # $Id$
 
+import os
 
-import getopt
+from ClusterShell.NodeSet import NodeSet
+
+from Shine.Configuration.Globals import Globals
 
 from Shine.Lustre.Server import Server
 
 from Shine.Commands.Base.CommandRCDefs import RC_FLAG_RUNTIME_ERROR
 from Shine.Commands.Base.RemoteCallEventHandler import RemoteCallEventHandler
-from Shine.Commands.Base.Support.Debug import Debug
-from Shine.Commands.Base.Support.Nodes import Nodes
-from Shine.Commands.Base.Support.Yes import Yes
 
-#
-# Command exceptions are defined in Shine.Command.Exceptions
-#
+class CommandException(Exception):
+    """Generic exception for Shine.Commands.Base.Command"""
+
+class CommandHelpException(CommandException):
+    """
+    Raised when help on this command should be printed.
+    """
+    def __init__(self, message, cmd):
+        CommandException.__init__(self, message)
+        self.cmd = cmd
+
 
 class Command(object):
     """
@@ -44,89 +52,33 @@ class Command(object):
     DESCRIPTION = "Undocumented"
     SUBCOMMANDS = None
 
-    def __init__(self):
-        self.options = {}
-        self.getopt_string = ""
+    def __init__(self, options=None, args=None):
+        self.options = options
+        self.arguments = args
         self.params_desc = ""
-        self.last_optional = 0
-        self.arguments = None
 
-        # All commands have debug support.
-        self.debug_support = Debug(self)
+    def forbidden(self, options, txt):
+        if options:
+            fulltxt = "'%s' command does not accept %s" % (self.NAME, txt)
+            raise CommandHelpException(fulltxt, self)
 
-    def is_hidden(self):
-        """Return whether the command should not be displayed to user."""
-        return False
-    
     def get_params_desc(self):
         pdesc = self.params_desc.strip()
         if self.SUBCOMMANDS:
             return "%s %s" % ('|'.join(self.SUBCOMMANDS), pdesc)
         return pdesc
 
-    def add_option(self, flag, arg, attr, cb=None):
-        """
-        Add an option for getopt with optional argument.
-        """
-        assert flag not in self.options
-
-        optional = attr.get('optional', False)
-        hidden = attr.get('hidden', False)
-
-        if cb:
-            self.options[flag] = cb
-
-        object.__setattr__(self, "opt_%s" % flag, None)
-            
-        self.getopt_string += flag
-        if optional:
-            leftmark = '['
-            rightmark = ']'
-        else:
-            leftmark = ''
-            rightmark = ''
-
-        if arg:
-            self.getopt_string += ":"
-            if not hidden:
-                self.params_desc += "%s-%s <%s>%s " % (leftmark,
-                    flag, arg, rightmark)
-                self.last_optional = 0
-        elif not hidden:
-            if self.last_optional == 0:
-                self.params_desc += "%s-%s%s " % (leftmark, flag, rightmark)
-            else:
-                self.params_desc = self.params_desc[:-2] + "%s%s " % (flag,
-                    rightmark)
-            
-            if optional:
-                self.last_optional = 1
-            else:
-                self.last_optional = 2
-
-    def parse(self, args):
-        """
-        Parse command arguments.
-        """
-        options, arguments = getopt.gnu_getopt(args, self.getopt_string)
-        self.arguments = arguments
-
-        for opt, arg in options:
-            trim_opt = opt[1:]
-            callback = self.options.get(trim_opt)
-            if callback:
-                callback(trim_opt, arg)
-            object.__setattr__(self, "opt_%s" % trim_opt, arg or True)
-
     def ask_confirm(self, prompt):
         """
-        Ask user for confirmation.
+        Ask user for confirmation if -y not specified.
         
         Return True when the user confirms the action, False otherwise.
         """
+        if self.options.yes:
+            return True
+
         i = raw_input("%s (y)es/(N)o: " % prompt)
         return i.lower() in ('y', 'yes')
-
 
     def filter_rc(self, rc):
         """
@@ -135,27 +87,85 @@ class Command(object):
         # default is to not filter return code
         return rc
 
+    def iter_fsname(self):
+
+        # Build a default filesystem list based on all fs in cache directory.
+        if not self.options.fsnames:
+            self.options.fsnames = []
+            xmfdir = Globals().get_conf_dir()
+            if os.path.isdir(xmfdir):
+                for filename in os.listdir(xmfdir):
+                    name, ext = os.path.splitext(filename)
+                    if name and ext == '.xmf':
+                        self.options.fsnames.append(name)
+
+        return iter(self.options.fsnames)
+
+    def get_lmf_path(self):
+        """
+        Return the LMF file path. Perform some basic checks and add (if needed)
+        the path of the base directory.
+        """
+        # First check if a file exists at the specified location, if so, just
+        # return it.
+        if os.path.isfile(self.options.model):
+            return self.options.model
+
+        # If not, check for configuration's default LMF directory.
+        lmf_dir = Globals().get_lmf_dir()
+        if not os.path.isabs(self.options.model) and os.path.isdir(lmf_dir):
+            # Directory path is valid, add supposed LMF file.
+            file_path = os.path.join(lmf_dir, self.options.model)
+            if os.path.isfile(file_path):
+                return file_path
+            else:
+                # At last, check for missing extension.
+                f_name, f_ext = os.path.splitext(self.options.model)
+                if not f_ext:
+                    file_path = os.path.join(lmf_dir, "%s.lmf" % f_name)
+                    if os.path.isfile(file_path):
+                        return file_path
+        # Failed
+        return None
+
+    def check_valid_list(self, fs_name, fs_nodes, action_txt="do"):
+        """
+        This helper method verifies, for the provided filesystem, that the
+        nodesets possibly set on command line, to restrain the node list, did
+        not:
+         - disabled all nodes
+         - specified nodes which are not in filesystem configuration.
+        Return False if nothing was done.
+        """
+
+        selected_nodes = self.options.nodes
+        excluded_nodes = self.options.excludes
+
+        # Is there unknown host?
+        if selected_nodes:
+            if excluded_nodes:
+                selected_nodes = selected_nodes - excluded_nodes
+            if fs_nodes:
+                selected_nodes = selected_nodes - fs_nodes
+            if selected_nodes:
+                print "WARNING: Nothing to %s on %s for `%s'." % \
+                    (action_txt, selected_nodes, fs_name)
+
+        # All nodes were disabled?
+        if len(fs_nodes) == 0:
+            print "WARNING: Nothing was done for `%s'." % fs_name
+            return False
+
+        return True
 
 class RemoteCommand(Command):
     
-    def __init__(self):
-        Command.__init__(self)
-        self.remote_call = False
-        self.local_flag = False
-        attr = { 'optional' : True, 'hidden' : True }
-        self.add_option('L', None, attr, cb=self.parse_L)
-        self.add_option('R', None, attr, cb=self.parse_R)
-        self.nodes_support = Nodes(self)
+    def __init__(self, options=None, args=None):
+        Command.__init__(self, options, args)
         self.eventhandler = None
 
-    def parse_L(self, opt, arg):
-        self.local_flag = True
-
-    def parse_R(self, opt, arg):
-        self.remote_call = True
-
     def has_local_flag(self):
-        return self.local_flag or self.remote_call
+        return self.options.local or self.options.remote
 
     def init_execute(self):
         """
@@ -165,17 +175,17 @@ class RemoteCommand(Command):
         # Limit the scope of the command if called with local flag (-L) or
         # called remotely (-R).
         if self.has_local_flag():
-            self.opt_n = Server.hostname_short()
+            self.options.nodes = NodeSet(Server.hostname_short())
 
     def install_eventhandler(self, local_eventhandler, global_eventhandler):
         """
         Select and install the appropriate event handler.
         """
-        if self.remote_call:
+        if self.options.remote:
             # When called remotely (-R), install a special event handler
             # that knows how to speak the Shine Proxy Protocol using pickle.
             self.eventhandler = RemoteCallEventHandler()
-        elif self.local_flag:
+        elif self.options.local:
             self.eventhandler = local_eventhandler
         else:
             self.eventhandler = global_eventhandler
@@ -189,7 +199,7 @@ class RemoteCommand(Command):
 
         Return True when the user confirms the action, False otherwise.
         """
-        return self.remote_call or Command.ask_confirm(self, prompt)
+        return self.options.remote or Command.ask_confirm(self, prompt)
 
     def filter_rc(self, rc):
         """
@@ -197,7 +207,7 @@ class RemoteCommand(Command):
         success or failure, nor for status info. To properly detect ssh or remote
         shine installation failures, we filter the return code here.
         """
-        if self.remote_call:
+        if self.options.remote:
             # Only errors of type RUNTIME ERROR are allowed to go up.
             rc &= RC_FLAG_RUNTIME_ERROR
 

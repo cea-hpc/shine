@@ -147,86 +147,56 @@ and on the client nodes at the end of the mount phase.
 .SH OPTIONS
 .INDENT 0.0
 .TP
-.BI \-f \ <FSNAME>
+.B \-\-version
 .
-Name of the installed filesystem that will be processed by the command.
+show Shine version number and exit
 .TP
-.BI \-F \ <FAILOVER_NODES>
+.B \-h, \-\-help
 .
-Apply a failover action on the provided nodes. The action will be run for the
-related targets, not using their master node, but one of the failover nodes
-specified with -F.
-A target should have only one of its ha_node matching those in FAILOVER_NODES.
-
-For example, to start targets on foo42, which have \fIfoo42\fP in their \fIha_node\fP
-list, use:
-  # shine start -f bar -F foo42
-
+show command line help options and exit
 .TP
-.BI \-i \ <INDEXES>
+.BI \-o \ <OPTIONS>
 .
-Select specified Lustre target numeric index(es). Ranges like \fI4\-8,10\fP
-are allowed here.
+Used to specify additional underlying command line options.
 .TP
-.BI \-l \ <LABELS>
-.
-Select specified Lustre target by label(s).
-.TP
-.BI \-n \ <NODES>
-.
-Select specified nodes that will be processed (comma\-separated list of
-nodes or nodeset, eg. cluster[2\-10/2]).
-.TP
-.BI \-m \ <LMF_FILE_PATH>
+.BI \-m \ <MODEL>
 .
 Path to the Lustre model  file  (LMF)  that  describes  the  new filesystem
 that will be installed. If only the name of the LMF file is provided, the
 \fCshine\fP command assumes that the file is located in the
 \fI/etc/shine/models\fP directory.
 .TP
-.BI \-o \ <Additional_options>
+.BI \-f \ <FSNAME>
 .
-Used to specify additional underlying command line options.
+Comma-separated list of name of the installed filesystem that will be processed
+by the command. This option could be used several times.
+.TP
+.B \-y
+.
+Answer \fIYes\fP to confirmation prompt (for example, on format).
+
+.UNINDENT
+.B Display options
+.
+.INDENT 5.0
+.TP
+.B \-v
+.
+Enable verbose mode.
 .TP
 .B \-q
 .
 Quiet mode.
 .TP
-.BI \-t \ <TARGETS>
+.B \-d
 .
-Process only specified target list (comma\-separated). Valid targets are:
-.INDENT 7.0
-.INDENT 3.5
-.INDENT 0.0
-.IP \(bu 2
-.
-mgt
-.IP \(bu 2
-.
-mdt
-.IP \(bu 2
-.
-ost
-.IP \(bu 2
-.
-router
-.UNINDENT
-.UNINDENT
-.UNINDENT
+Turn on debug mode. Display debugging messages.
 .TP
-.B \-v
+.B \-V {fs|target|disk}
 .
-Enable verbose mode.
-.UNINDENT
-.INDENT 0.0
-.TP
-.B \-V {disk|fs|target}
-.
-Option used to specify the type of information that will be displayed.
-Current available views are:
+Option used to specify the type of information that will be displayed in tables. Default view is
+\fBfs\fP. Current available views are:
 .INDENT 7.0
-.INDENT 3.5
-.INDENT 0.0
 .IP \(bu 2
 .
 \fIdisk\fP: information related to physical storage device status
@@ -238,18 +208,57 @@ Current available views are:
 \fItarget\fP: information related to target status
 .UNINDENT
 .UNINDENT
-.UNINDENT
-.UNINDENT
+
 .INDENT 0.0
+.
+.B Component selection
+.
+.INDENT 5.0
+.TP
+.BI \-i \ <INDEXES>
+.
+Select specified Lustre target numeric index(es). Ranges like \fI4\-8,10\fP
+are allowed here.
+.TP
+.BI \-l \ <LABELS>
+.
+Select specified Lustre target by label(s).
+.TP
+.BI \-t \ <TARGETS>
+.
+Process only specified target list (comma\-separated). Valid targets are: mgt,
+mdt, ost, router. This option could be used several times.
+.UNINDENT
+
+.INDENT 0.0
+.
+.B Node restriction
+.
+.INDENT 5.0
+.TP
+.BI \-n \ <NODES>
+.
+Select specified nodes that will be processed (comma\-separated list of
+nodes or nodeset, eg. cluster[2\-10/2]).
+.TP
+.BI \-F \ <FAILOVER_NODES>
+.
+Apply a failover action on the provided nodes. The action will be run for the
+related targets, not using their master node, but one of the failover nodes
+specified with -F.
+A target should have only one of its ha_node matching those in FAILOVER_NODES.
+
+For example, to start targets on foo42, which have \fIfoo42\fP in their \fIha_node\fP
+list, use:
+  # shine start -f bar -F foo42
 .TP
 .BI \-x \ <NODES>
 .
 Exclude specified nodes (comma\-separated list of nodes or nodeset).
-.TP
-.B \-y
-.
-Answer \fIYes\fP to confirmation prompt (for example, on format).
 .UNINDENT
+.UNINDENT
+.UNINDENT
+
 .SH EXIT STATUS
 .sp
 In general, an exit status of zero indicates success of the \fIshine\fP command.  However, special return codes are defined for the \fIstatus\fP command:

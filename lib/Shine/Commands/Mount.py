@@ -76,19 +76,18 @@ class Mount(FSLiveCommand):
 
         # Warn if trying to act on wrong nodes
         comps = fs.components.managed(supports='mount')
-        if not self.nodes_support.check_valid_list(fs.fs_name, comps.servers(),
-                                                   "mount"):
+        if not self.check_valid_list(fs.fs_name, comps.servers(), "mount"):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        status = fs.mount(addopts=self.addopts.get_options())
+        status = fs.mount(addopts=self.options.additional)
 
         rc = self.fs_status_to_rc(status)
 
-        if not self.remote_call:
+        if not self.options.remote:
             if rc == RC_OK:
                 # Notify backend of file system status mofication
                 fs_conf.set_status_fs_mounted()
