@@ -24,6 +24,8 @@ from operator import attrgetter
 
 from ClusterShell.NodeSet import NodeSet
 
+from Shine.Lustre.Server import ServerGroup
+
 # Constants for component states
 (MOUNTED,    \
  EXTERNAL,   \
@@ -84,6 +86,13 @@ class Component(object):
         It contains the filesystem name and component type.
         """
         return "%s-%s" % (self.fs.fs_name, self.TYPE)
+
+    def allservers(self):
+        """
+        Return all servers this target can run on. On standard component
+        there is only one server.
+        """
+        return ServerGroup([self.server])
 
     def uniqueid(self):
         """Return a unique string representing this component."""

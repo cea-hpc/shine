@@ -13,6 +13,13 @@ from Shine.Lustre.Client import Client
 
 class ClientTest(unittest.TestCase):
 
+    def test_allservers(self):
+        """test client.allservers()"""
+        fs = FileSystem('foo')
+        srv = Server('foo1', ['foo1@tcp'])
+        client = fs.new_client(srv, '/foo')
+        self.assertEqual(str(client.allservers().nodeset()), 'foo1')
+
     def test_unique_id(self):
         """test client.uniqueid()"""
         fs1 = FileSystem('uniqueid')
