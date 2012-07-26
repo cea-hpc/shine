@@ -38,9 +38,10 @@ class FSLocalEventHandler(Shine.Lustre.EventHandler.EventHandler):
     ACTION = '<to_be_defined>'
     ACTIONING = '<to_be_defined>'
 
-    def __init__(self, verbose=1):
+    def __init__(self, command, verbose=1):
         Shine.Lustre.EventHandler.EventHandler.__init__(self)
-        self.verbose = verbose
+        self.command = command
+        self.verbose = self.command.options.verbose
 
     #
     # Logging methods

@@ -64,16 +64,13 @@ class FSLiveCommand(RemoteCommand):
 
         self.init_execute()
 
-        # Get verbose level.
-        vlevel = self.options.verbose
-
         # Install appropriate event handler.
         local_eh = None
         global_eh = None
         if self.LOCAL_EH:
-            local_eh = self.LOCAL_EH(vlevel)
+            local_eh = self.LOCAL_EH(self)
         if self.GLOBAL_EH:
-            global_eh = self.GLOBAL_EH(vlevel)
+            global_eh = self.GLOBAL_EH(self)
         eh = self.install_eventhandler(local_eh, global_eh)
 
         for fsname in self.iter_fsname():
@@ -89,6 +86,7 @@ class FSLiveCommand(RemoteCommand):
                 eh.fs_conf = fs_conf
 
             # Run the real job
+            vlevel = self.options.verbose
             result = max(result, self.execute_fs(fs, fs_conf, eh, vlevel))
 
         return result

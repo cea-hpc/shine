@@ -219,7 +219,7 @@ class Update(Command):
         newconf = open_model(lmf)
         newfsconf = newconf._fs
         newfsconf.setup_target_devices(update_mode=True)
-        neweh = self.GLOBAL_EH(self.options.verbose)
+        neweh = self.GLOBAL_EH(self)
         newfs = instantiate_lustrefs(newconf, 
                                    nodes=self.options.nodes,
                                    excluded=self.options.excludes,
@@ -227,7 +227,7 @@ class Update(Command):
         newfs.set_debug(self.options.debug)
 
         # Load current registered FS
-        oldeh = self.GLOBAL_EH(self.options.verbose)
+        oldeh = self.GLOBAL_EH(self)
         oldconf, oldfs = open_lustrefs(newfsconf.fs_name, 
                                      nodes=self.options.nodes,
                                      excluded=self.options.excludes,
