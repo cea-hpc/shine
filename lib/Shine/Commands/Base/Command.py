@@ -89,8 +89,14 @@ class Command(object):
 
     def iter_fsname(self):
 
+        # If some labels are specified, they also specifies some fs names.
+        # (ie: fsname-OST0000)
+        if self.options.labels and not self.options.fsnames:
+            self.options.fsnames = [str(label).split('-',1)[0] for label
+                                    in self.options.labels]
+
         # Build a default filesystem list based on all fs in cache directory.
-        if not self.options.fsnames:
+        elif not self.options.fsnames:
             self.options.fsnames = []
             xmfdir = Globals().get_conf_dir()
             if os.path.isdir(xmfdir):
