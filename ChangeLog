@@ -1,3 +1,6 @@
+2012-07-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Nodes could be specified with -n or -w (ticket #48).
+
 2012-07-25 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Rewrite command line option management (ticket #35, #38)
 

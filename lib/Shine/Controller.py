@@ -184,7 +184,7 @@ class Controller:
         parser.add_option_group(comp_grp)
 
         node_grp = OptionGroup(parser, "Node restriction")
-        node_grp.add_option("-n", dest="nodes", type="nodeset",
+        node_grp.add_option("-n", "-w", dest="nodes", type="nodeset",
                             help="only use this nodes or nodeset,"
                                  " eg. red[2-10/2]")
         node_grp.add_option("-x", dest="excludes", type="nodeset",
