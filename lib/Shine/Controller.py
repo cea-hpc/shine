@@ -33,6 +33,7 @@ from Shine.Configuration.Globals import Globals
 from Shine.Configuration.ModelFile import ModelFileValueError
 from Shine.Configuration.Exceptions import ConfigException
 
+from Shine.CLI.Display import DisplayError
 from Shine.Commands import COMMAND_LIST
 from Shine.Commands.Base.Command import CommandHelpException, CommandException
 from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
@@ -249,6 +250,8 @@ class Controller:
             self.print_help(str(error), error.cmd)
 
         # Command exceptions
+        except DisplayError, error:
+            self.print_error(str(error))
         except CommandException, error:
             self.print_error(str(error))
 
