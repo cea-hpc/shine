@@ -166,3 +166,11 @@ foo        bar""")
         tbl.optional_cols = [ 'bar' ]
         tbl.append({'foo': 'zap', 'bar': 'zop' })
         self.assertEqual(str(tbl), """FOO BAR\n--- ---\nzap zop""")
+
+    def test_pattern_fields(self):
+        """fields could be extracted from pattern"""
+        tbl = TextTable("%foo %bar")
+        self.assertEqual(['foo', 'bar'], tbl.pattern_fields())
+
+        tbl = TextTable("%foo likes %>20bar and %other")
+        self.assertEqual(['foo', 'bar', 'other'], tbl.pattern_fields())

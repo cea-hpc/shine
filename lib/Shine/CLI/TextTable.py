@@ -62,6 +62,8 @@ class TextTable(object):
         optional_cols     Column list to not display if they are empty.
     """
 
+    RE_PATTERN = "%(>)?(\d+)?(?P<name>[a-z]+)"
+
     def __init__(self, fmt=""):
         self._rows = []
         self._max_width = {}
@@ -94,6 +96,10 @@ class TextTable(object):
         """
         return self.header_labels.get(name, name)
 
+    def pattern_fields(self):
+        """Return the list of all field place holder name used in fmt.  """
+        return [ match.group('name')
+                 for match in re.finditer(self.RE_PATTERN, self.fmt) ]
 
     def append(self, row):
         """Append a new row to be displayed. `row' should be a dict."""
@@ -144,7 +150,7 @@ class TextTable(object):
             else:
                 return "%-*s" % (length, value)
 
-        replacement = re.sub("%(>)?(\d+)?([a-z]+)", replacer, self.fmt)
+        replacement = re.sub(self.RE_PATTERN, replacer, self.fmt)
 
         return re.sub("%%", "%", replacement)
 
