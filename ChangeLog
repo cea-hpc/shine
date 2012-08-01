@@ -1,3 +1,6 @@
+2012-08-01 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Network supports an optional '0' id (ticket #134).
+
 2012-07-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Nodes could be specified with -n or -w (ticket #48).
 	*  -l also select filesystem when -f is missing (ticket #69).

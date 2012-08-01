@@ -456,6 +456,14 @@ class ActionsTest(unittest.TestCase):
              '"--mgsnode=localhost@tcp" "--failnode=localhost2@tcp" ' +
              '"--failnode=localhost3@tcp" /dev/root')
 
+    def test_format_target_ost_bad_network(self):
+        """test command line format (OST with a bad network)"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='bad netw')
+        tgt.add_server(self.srv2)
+        action = Format(tgt)
+        self.assertRaises(ValueError, action._prepare_cmd)
+
     def test_format_target_ost_failnodes_network(self):
         """test command line format (OST with 2 failnodes and network)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
@@ -467,6 +475,18 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd_format(action, '--ost --index=0 ' +
           '"--mgsnode=localhost@tcp" "--failnode=localhost2@tcp" ' +
           '--network=tcp /dev/root')
+
+    def test_format_target_network_zero(self):
+        """test command line format (network with zero suffix)"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='o2ib0')
+        tgt.add_server(self.srv2)
+        tgt.add_server(Server('localhost3', ['localhost3@o2ib']))
+        tgt._check_status(mountdata=False)
+        action = Format(tgt)
+        self.check_cmd_format(action, '--ost --index=0 ' +
+          '"--mgsnode=localhost@tcp" "--failnode=localhost3@o2ib" ' +
+          '--network=o2ib0 /dev/root')
 
     # Tunefs
     def check_cmd_tunefs(self, action, cmdline):
@@ -553,6 +573,36 @@ class ActionsTest(unittest.TestCase):
         action = Tunefs(ost)
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
                            '"--failnode=localhost2@tcp" --network=tcp /dev/root')
+
+    def test_tunefs_target_network_zero(self):
+        """test command line tunefs network with zero suffix"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='o2ib0')
+        ost.add_server(self.srv2)
+        ost.add_server(Server('localhost3', ['localhost3@o2ib']))
+        action = Tunefs(ost)
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                           '"--failnode=localhost3@o2ib" --network=o2ib0 /dev/root')
+
+    def test_tunefs_target_network_zero2(self):
+        """test command line tunefs network without zero suffix"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='o2ib')
+        ost.add_server(self.srv2)
+        ost.add_server(Server('localhost3', ['localhost3@o2ib0']))
+        action = Tunefs(ost)
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                           '"--failnode=localhost3@o2ib0" --network=o2ib /dev/root')
+
+    def test_tunefs_target_network_zero3(self):
+        """test command line tunefs network with non-zero suffix"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='o2ib1')
+        ost.add_server(self.srv2)
+        ost.add_server(Server('localhost3', ['localhost3@o2ib1']))
+        action = Tunefs(ost)
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                           '"--failnode=localhost3@o2ib1" --network=o2ib1 /dev/root')
 
     def test_tunefs_target_format_params(self):
         """test command line tunefs format params"""

@@ -19,6 +19,8 @@
 #
 # $Id$
 
+import re
+
 from Shine.Configuration.Globals import Globals
 
 from Shine.Lustre.Actions.Action import FSAction
@@ -89,8 +91,19 @@ class CommonFormat(FSAction):
 
             # if 'network' is specified, restrict the list of partner
             if self.comp.network and self.comp.TYPE in [self.MDT_TYPE, self.OST_TYPE]:
-                suffix = '@%s' % self.comp.network
-                nidlist = [ nid for nid in nidlist if nid.endswith(suffix) ]
+
+                # Parse network field
+                match = re.match("^([a-z0-9]+?)(\d+)?$", self.comp.network)
+                if not match:
+                    raise ValueError("Unrecognized network: %s" %
+                                     self.comp.network)
+                suffix = ((match.group(1), match.group(2) or '0'))
+
+                # Analyze NID list.
+                def same_suffix(nid):
+                    m = re.match(".*@([a-z0-9]+?)(\d+)?$", nid)
+                    return (m and (m.group(1), m.group(2) or '0') == suffix)
+                nidlist = [nid for nid in nidlist if same_suffix(nid)]
 
             # if there is still some matching partners, add them
             if len(nidlist) > 0:
