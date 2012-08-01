@@ -33,9 +33,8 @@ from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 # Command base class
 from Shine.Commands.Base.Command import Command, CommandHelpException
 
-# Utilities
-from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
-
+# CLI
+from Shine.CLI.Display import setup_table
 
 
 class Show(Command):
@@ -49,14 +48,20 @@ class Show(Command):
 
     def cmd_show_conf(self):
         """Show shine.conf"""
-        AsciiTable().print_from_simple_dict(Globals().as_dict())
+        tbl = setup_table(self.options, "%param %value")
+
+        for key, value in Globals().as_dict().items():
+            tbl.append({'param': key, 'value': str(value)})
+        print str(tbl)
         return 0
     
     def cmd_show_fs(self):
         """Show filesystems"""
         # XXX: Use a constant here
         verb = self.options.verbose >= 2
-        fslist = []
+
+        tbl = setup_table(self.options, "%fsname %description")
+
         for fsname in self.iter_fsname():
             try:
                 fs_conf = Configuration.load_from_cache(fsname)
@@ -66,14 +71,10 @@ class Show(Command):
             if not verb:
                 print fs_conf.get_fs_name()
             else:
-                fslist.append(dict([['FS name', fs_conf.get_fs_name()],
-                    ['Description', fs_conf.get_description()]]))
+                tbl.append({'fsname': fs_conf.get_fs_name(),
+                            'description': fs_conf.get_description()})
         if verb:
-            layout = AsciiTableLayout()
-            layout.set_show_header(True)
-            layout.set_column("FS name", 0, AsciiTableLayout.LEFT)
-            layout.set_column("Description", 1, AsciiTableLayout.LEFT)
-            AsciiTable().print_from_list_of_dict(fslist, layout)
+            print str(tbl)
 
         return 0
 
@@ -83,7 +84,6 @@ class Show(Command):
         # by the current node and specified by the user.
         for fsname in self.iter_fsname():
 
-            fslist = []
             try:
                 # Get the file system configuration structure
                 fs_conf = Configuration.load_from_cache(fsname)
@@ -122,31 +122,25 @@ class Show(Command):
             mgsnids = [ ','.join(fs_conf.get_nid(node)) for node in mgsnodes ]
             device_path = "%s:/%s" % (':'.join(mgsnids), fs_conf.get_fs_name())
 
-            # Add configuration parameter to the list of element displayed
-            # in the summary tab.
-            fslist.append(dict([['name', 'name'],
-                                ['value', fs_conf.get_fs_name()]]))
-            fslist.append(dict([['name', 'default mount path'],
-                                ['value', fs_conf.get_mount_path()]]))
-            fslist.append(dict([['name', 'device path'],
-                                ['value', device_path]]))
-            fslist.append(dict([['name', 'mount options'],
-                                ['value', fs_conf.get_default_mount_options()]]))
-            fslist.append(dict([['name', 'quotas'],
-                                ['value', quota_info]]))
-            fslist.append(dict([['name', 'stripping'],
-                                ['value', stripping]]))
-            fslist.append(dict([['name', 'tuning'],
-                                ['value', Globals().get_tuning_file()]]))
-            fslist.append(dict([['name', 'description'],
-                                ['value', fs_conf.get_description()]]))
+            tbl = setup_table(self.options, "%name %value")
+
+            # Add configuration parameter to the list of element displayed in
+            # the summary tab.
+            tbl.append({'name': 'name', 'value': fs_conf.get_fs_name()})
+            tbl.append({'name': 'default mount path',
+                        'value': fs_conf.get_mount_path()})
+            tbl.append({'name': 'device path', 'value': device_path})
+            tbl.append({'name': 'mount options',
+                        'value': fs_conf.get_default_mount_options()})
+            tbl.append({'name': 'quotas', 'value': quota_info})
+            tbl.append({'name': 'stripping', 'value': stripping})
+            tbl.append({'name': 'tuning',
+                        'value': Globals().get_tuning_file()})
+            tbl.append({'name': 'description',
+                        'value': fs_conf.get_description()})
 
             # Display the list of collected configuration information
-            layout = AsciiTableLayout()
-            layout.set_show_header(False)
-            layout.set_column("name", 0, AsciiTableLayout.LEFT)
-            layout.set_column("value", 1, AsciiTableLayout.LEFT)
-            AsciiTable().print_from_list_of_dict(fslist, layout)
+            print str(tbl)
 
 
     def cmd_show_storage(self):
