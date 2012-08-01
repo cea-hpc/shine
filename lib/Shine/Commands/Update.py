@@ -23,7 +23,7 @@
 Shine 'update' command class.
 """
 
-from Shine.Commands.Status import Status
+from Shine.CLI.Display import display
 
 from Shine.Configuration.Globals import Globals
 
@@ -46,7 +46,7 @@ class GlobalUpdateEventHandler(FSGlobalEventHandler):
 
     def handle_post(self, fs):
         if self.verbose > 0:
-            Status.status_view_fs(fs, show_clients=False)
+            print display(self.command, fs, supports='start')
 
 class CannotApplyError(Exception):
     """Filesystem cannot be uninstall for update."""

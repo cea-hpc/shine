@@ -19,7 +19,7 @@
 #
 # $Id$
 
-from Shine.Commands.Status import Status
+from Shine.CLI.Display import display
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
@@ -41,7 +41,7 @@ class GlobalTunefsEventHandler(FSGlobalEventHandler):
 
     def handle_post(self, fs):
         if self.verbose > 0:
-            Status.status_view_fs(fs, show_clients=False)
+            print display(self.command, fs, supports='tunefs')
 
 class LocalTunefsEventHandler(FSLocalEventHandler):
 

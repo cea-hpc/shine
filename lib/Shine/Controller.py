@@ -149,7 +149,6 @@ class Controller:
                 # rc=2
                 self.exit(2, "Error: %s\n" % msg)
 
-        # XXX: Add support for -V view for all commands.
         # XXX: Add support for client to -t flag
         parser = ShineParser(usage="%prog [options] COMMAND [options]",
                              version="Shine v%s" % public_version,
@@ -169,9 +168,17 @@ class Controller:
                             const=0, help="quiet output")
         view_grp.add_option("-d", dest="debug", action="store_true",
                             help="enable debugging")
-        view_grp.add_option("-V", dest="view", type="choice", default='fs',
-                            choices=['fs', 'target', 'disk'],
+        view_grp.add_option("-V", dest="view", type="choice", # for default,
+                            choices=['fs', 'target', 'disk'], # see below
                             help="change displayed filesystem information")
+        view_grp.add_option("-O", dest="viewfmt", metavar="FORMAT",
+                            help="custom format for component summary table")
+        view_grp.add_option("-H", dest="header", action="store_false",
+                            help="do not display table header", default=True)
+        view_grp.add_option("--color", dest="color", type="choice",
+                            choices=['auto', 'never', 'always'], default='auto',
+                            help="whether to use ANSI colors (never, always"
+                                 " or auto)", metavar='WHEN')
         parser.add_option_group(view_grp)
 
         comp_grp = OptionGroup(parser, "Component selection")
@@ -212,6 +219,12 @@ class Controller:
         # A command is mandatory
         if not args:
             parser.error("No command was specified")
+
+        # Incompatible options
+        if options.view and options.viewfmt:
+            parser.error("-O and -V option are mutually exclusive")
+        if not options.view:
+            options.view = 'fs'
 
         cmdname = args.pop(0)
 

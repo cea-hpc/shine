@@ -27,7 +27,7 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
-from Shine.Commands.Status import Status
+from Shine.CLI.Display import display
 from Shine.Commands.Tune import Tune
 
 # Command base class
@@ -49,7 +49,7 @@ class GlobalStartEventHandler(FSGlobalEventHandler):
 
     def handle_post(self, fs):
         if self.verbose > 0:
-            Status.status_view_fs(fs, show_clients=False)
+            print display(self.command, fs, supports='start')
 
 class LocalStartEventHandler(FSLocalEventHandler):
 

@@ -29,6 +29,9 @@ of the filesystem, or if needed, to enquire about filesystem components
 detailed states.
 """
 
+# Filesystem state formatting
+from Shine.CLI.Display import display
+
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
@@ -36,18 +39,13 @@ from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 
-# Command output formatting
-from Shine.Utilities.AsciiTable import AsciiTable, AsciiTableLayout
-
 # Lustre events and errors
 from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
                                                FSLocalEventHandler
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
-                                    STATUS_ANY, STATUS_CLIENTS, STATUS_SERVERS, \
+                                    STATUS_ANY, STATUS_CLIENTS, STATUS_SERVERS,\
                                     STATUS_HASERVERS
-
-(KILO, MEGA, GIGA, TERA) = (1024, 1048576, 1073741824, 1099511627776)
 
 
 class GlobalStatusEventHandler(FSGlobalEventHandler):
@@ -115,173 +113,6 @@ class Status(FSTargetLiveCommand):
         result = self.fs_status_to_rc(fs_result)
 
         if not self.options.remote and vlevel > 0:
-            if view == "fs":
-                self.status_view_fs(fs)
-            elif view.startswith("target"):
-                self.status_view_targets(fs)
-            elif view.startswith("disk"):
-                self.status_view_disks(fs)
+            print display(self, fs)
 
         return result
-
-
-    def status_view_targets(self, fs):
-        """
-        View: lustre targets
-        """
-
-        ldic = []
-        group_key = lambda t: (t.DISPLAY_ORDER, t.index)
-        for (order, index), enabled_targets in \
-            fs.components.managed(supports='index').groupby(key=group_key):
-
-            for target in enabled_targets:
-                ldic.append(dict([["target", target.get_id()],
-                    ["type", target.TYPE.upper()],
-                    ["nodes", target.allservers().nodeset()],
-                    ["device", target.dev],
-                    ["index", target.index],
-                    ["status", target.text_status()]]))
-
-        layout = AsciiTableLayout()
-        layout.set_show_header(True)
-        layout.set_column("target", 0, AsciiTableLayout.LEFT, "target id",
-                AsciiTableLayout.CENTER)
-        layout.set_column("type", 1, AsciiTableLayout.LEFT, "type",
-                AsciiTableLayout.CENTER)
-        layout.set_column("index", 2, AsciiTableLayout.RIGHT, "idx",
-                AsciiTableLayout.CENTER)
-        layout.set_column("nodes", 3, AsciiTableLayout.LEFT, "nodes",
-                AsciiTableLayout.CENTER)
-        layout.set_column("device", 4, AsciiTableLayout.LEFT, "device",
-                AsciiTableLayout.CENTER)
-        layout.set_column("status", 5, AsciiTableLayout.LEFT, "status",
-                AsciiTableLayout.CENTER)
-
-        print "FILESYSTEM TARGETS (%s)" % fs.fs_name
-        AsciiTable().print_from_list_of_dict(ldic, layout)
-
-
-    def status_view_fs(cls, fs, show_clients=True):
-        """
-        View: lustre FS summary
-        """
-
-        ldic = []
-
-        # Iterate over enabled TARGETS, grouped by display order and status
-        key = lambda t: (t.DISPLAY_ORDER, t.text_status())
-        for (disp, status), e_comps in fs.components.enabled().groupby(key=key):
-            comps = list(e_comps)
-            # XXX: Do something better...
-            if comps[0].TYPE == 'client' and not show_clients:
-                continue
-            ldic.append(dict([
-                ["type", comps[0].TYPE.upper()[0:3]],
-                ["count", len(e_comps)],
-                ["nodes", e_comps.servers()],
-                ["status", status]]))
-
-        layout = AsciiTableLayout()
-        layout.set_show_header(True)
-        layout.set_column("type", 0, AsciiTableLayout.CENTER, "type", AsciiTableLayout.CENTER)
-        layout.set_column("count", 1, AsciiTableLayout.RIGHT, "#", AsciiTableLayout.CENTER)
-        layout.set_column("nodes", 2, AsciiTableLayout.LEFT, "nodes", AsciiTableLayout.CENTER)
-        layout.set_column("status", 3, AsciiTableLayout.LEFT, "status", AsciiTableLayout.CENTER)
-
-        print "FILESYSTEM COMPONENTS STATUS (%s)" % fs.fs_name
-        AsciiTable().print_from_list_of_dict(ldic, layout)
-
-    status_view_fs = classmethod(status_view_fs)
-
-
-    def status_view_disks(self, fs):
-        """
-        View: lustre disks
-        """
-
-        ldic = []
-        jdev_col_enabled = False
-        tag_col_enabled = False
-        for type, e_targets in \
-            fs.components.managed(supports='dev').groupby('DISPLAY_ORDER'):
-
-            for target in e_targets:
-
-                if target.dev_size >= TERA:
-                    dev_size = "%.1fT" % (target.dev_size/TERA)
-                elif target.dev_size >= GIGA:
-                    dev_size = "%.1fG" % (target.dev_size/GIGA)
-                elif target.dev_size >= MEGA:
-                    dev_size = "%.1fM" % (target.dev_size/MEGA)
-                elif target.dev_size >= KILO:
-                    dev_size = "%.1fK" % (target.dev_size/KILO)
-                else:
-                    dev_size = "%d" % target.dev_size
-
-                if target.journal:
-                    jdev_col_enabled = True
-                    jdev = target.journal.dev
-                else:
-                    jdev = ""
-
-                if target.tag:
-                    tag_col_enabled = True
-                    tag = target.tag
-                else:
-                    tag = ""
-
-                ldic.append(dict([\
-                    ["nodes", target.allservers().nodeset()],
-                    ["dev", target.dev],
-                    ["size", dev_size],
-                    ["jdev", jdev],
-                    ["type", target.TYPE.upper()],
-                    ["index", target.index],
-                    ["tag", tag],
-                    ["label", target.label],
-                    ["flags", ' '.join(target.flags())],
-                    ["fsname", target.fs.fs_name],
-                    ["status", target.text_status()]]))
-
-        layout = AsciiTableLayout()
-        layout.set_show_header(True)
-        i = 0
-        layout.set_column("dev", i, AsciiTableLayout.LEFT, "device",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("nodes", i, AsciiTableLayout.LEFT, "node(s)",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("size", i, AsciiTableLayout.RIGHT, "dev size",
-                AsciiTableLayout.CENTER)
-        if jdev_col_enabled:
-            i += 1
-            layout.set_column("jdev", i, AsciiTableLayout.RIGHT, "journal device",
-                    AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("type", i, AsciiTableLayout.LEFT, "type",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("index", i, AsciiTableLayout.RIGHT, "index",
-                AsciiTableLayout.CENTER)
-        if tag_col_enabled:
-            i += 1
-            layout.set_column("tag", i, AsciiTableLayout.LEFT, "tag",
-                    AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("label", i, AsciiTableLayout.LEFT, "label",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("flags", i, AsciiTableLayout.LEFT, "ldd flags",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("fsname", i, AsciiTableLayout.LEFT, "fsname",
-                AsciiTableLayout.CENTER)
-        i += 1
-        layout.set_column("status", i, AsciiTableLayout.LEFT, "status",
-                AsciiTableLayout.CENTER)
-
-        print "FILESYSTEM DISKS (%s)" % fs.fs_name
-        AsciiTable().print_from_list_of_dict(ldic, layout)
-

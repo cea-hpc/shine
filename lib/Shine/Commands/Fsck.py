@@ -22,7 +22,7 @@
 
 import sys
 
-from Shine.Commands.Status import Status
+from Shine.CLI.Display import display
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
@@ -48,7 +48,7 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 
     def handle_post(self, fs):
         if self.verbose > 0:
-            Status.status_view_fs(fs, show_clients=False)
+            print display(self.command, fs, supports='fsck')
 
     def action_start(self, node, action, comp):
         self._comps[comp] = 0

@@ -27,7 +27,7 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
-from Shine.Commands.Status import Status
+from Shine.CLI.Display import display
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
@@ -48,7 +48,7 @@ class GlobalStopEventHandler(FSGlobalEventHandler):
 
     def handle_post(self, fs):
         if self.verbose > 0:
-            Status.status_view_fs(fs, show_clients=False)
+            print display(self.command, fs, supports='stop')
 
 class LocalStopEventHandler(FSLocalEventHandler):
 

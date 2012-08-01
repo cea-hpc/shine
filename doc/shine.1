@@ -207,8 +207,128 @@ Option used to specify the type of information that will be displayed in tables.
 .
 \fItarget\fP: information related to target status
 .UNINDENT
-.UNINDENT
+.TP
+.BI \-O \ <FORMAT>
+.
+Define a custom format use to display filesystem status in place of view. This
+option is incompatible with
+.B -V.
+The format is a mix of special fields taken from the list below and any other
+text. Special fields will be substitued with values from filesystem components.
 
+Here is a rough equivalent of Views and custom formats:
+
+.RS
+.TP 12
+.I "\-V fs"
+"%type %>count %status %nodes"
+.TP
+.I "\-V target"
+"%target %type %>index %servers %device %status"
+.TP
+.I "\-V disk"
+"%device %servers %>size %>jdev %type %>index %tag %label %flags %fsname %status"
+.RE
+
+.RS
+.TP 5
+.B Alignment
+By default, all fields are left-aligned. When adding ">" between "%" and the
+field name, this forces a right alignement (ie: "%>size").
+.TP
+.B Field width
+Field width could be forced, specifying a number between "%" and field name
+(ie: %40fsname). If a value is wider than a field width, it will be truncated
+and "..." will be added.
+.TP
+.B Non-field word
+Only field names (%xxxx) will be interpreted. You can use any other word in
+format if needed. They will be left unchanged (ie: "%label of type %type is
+%status")
+.RE
+
+.IP
+Here is the full list of available fields:
+
+.RS
+.TP 12
+.B %device
+Device path (target only).
+.TP
+.B %flags
+List of flags set on device (target only).
+.TP
+.B %fsname
+Component filesystem name.
+.TP
+.B %hanodes
+Nodeset with all possible failover nodes (target only).
+.TP
+.B %index
+Decimal value of target index (target only).
+.TP
+.B %jdev
+Path of journal device (target only).
+.TP
+.B %jsize
+Size of journal device (target only).
+.TP 
+.B %label
+Component label. For a target, this is the target label (ie: foo-OST0000).
+.TP
+.B %mntpath
+Filesystem mount point (client only).
+.TP
+.B %mntopts
+Filesystem mount options (client only).
+.TP
+.B %network
+Target lustre network, if a limited one was defined (target only).
+.TP
+.B %node
+Main server where the component is located.
+.TP
+.B %size
+Device size (target only).
+.TP
+.B %servers
+All servers where the component could be located. Same as %node except for targets.
+.TP
+.B %status
+Current component status (ie: \fBstarted\fR, \fBoffline\fR, ...).
+.TP
+.B %tag
+Backend configuration tag (target only).
+.TP
+.B %target
+Tag if defined else target label (target only).
+.TP 
+.B %type
+Short name for component type. Could be: \fBROU\fR (router), \fBMGT\fR,
+\fBMDT\fR, \fBOST\fR, \fBCLI\fR (client).
+.TP
+.B %>*
+Right justification
+.TP
+.B %<number>*
+Field width. Value is truncated is not wide enough.
+
+.RE
+
+.TP
+.B \-H
+.
+Do not display table header in filesystem status. Useful when using a custom display format, see
+.B \-O.
+.
+.TP
+.BI \-\-color= WHEN
+.
+Surround special patterns in display with with escape sequences to
+display them in color on the terminal. WHEN is never, always, or auto
+(which use color if standard output/error refer to a terminal)
+
+.UNINDENT
 .INDENT 0.0
 .
 .B Component selection
