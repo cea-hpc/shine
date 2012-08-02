@@ -27,6 +27,7 @@
 COMMAND_LIST = {}
 
 for cmd in [ "Show",
+             "Config",
              "Install",
              "Update",
              "Remove",
