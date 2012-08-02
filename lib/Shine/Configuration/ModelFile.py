@@ -1,4 +1,4 @@
-# Copyright (C) 2010 CEA
+# Copyright (C) 2010-2012 CEA
 #
 # This file is part of shine
 #
@@ -575,7 +575,8 @@ class ModelFile(object):
                 try:
                     self.parse(line)
                 except ModelFileValueError, error:
-                    raise ModelFileValueError("%s at line %d" % (error, nbr + 1))
+                    raise ModelFileValueError("%s at %s:%d" % \
+                                                (error, filename, nbr + 1))
         modelfd.close()
 
     def save(self, filename, header=None):

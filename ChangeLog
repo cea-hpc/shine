@@ -1,3 +1,6 @@
+2012-08-02 Stephane Thiell  <stephane.thiell@cea.fr>
+	* Add filename in lmf/xmf parse error message (ticket #135).
+
 2012-08-02 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add new 'config' command (ticket #67).
 	* Add new 'list' command (ticket #133).
