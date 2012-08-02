@@ -8,6 +8,7 @@
 import unittest
 
 import sys
+from Shine.Configuration.Globals import Globals
 from Shine.CLI.TextTable import TextTable
 from Shine.CLI.Display import setup_table, table_fill, display, DisplayError
 
@@ -53,6 +54,8 @@ class SetupTableTest(unittest.TestCase):
         """setup with no tty attached"""
         sys.stdout = FakeFile(False)
 
+        # config.color == auto
+        Globals().replace('color', 'auto')
         tbl = setup_table(DummyOptions('always', True))
         self.assertTrue(tbl.color)
         tbl = setup_table(DummyOptions('never', True))
@@ -60,10 +63,48 @@ class SetupTableTest(unittest.TestCase):
         tbl = setup_table(DummyOptions('auto', True))
         self.assertFalse(tbl.color)
 
+        # config.color == never
+        Globals().replace('color', 'never')
+        tbl = setup_table(DummyOptions('always', True))
+        self.assertTrue(tbl.color)
+        tbl = setup_table(DummyOptions('never', True))
+        self.assertFalse(tbl.color)
+        tbl = setup_table(DummyOptions('auto', True))
+        self.assertFalse(tbl.color)
+
+        # config.color == always
+        Globals().replace('color', 'always')
+        tbl = setup_table(DummyOptions('always', True))
+        self.assertTrue(tbl.color)
+        tbl = setup_table(DummyOptions('never', True))
+        self.assertFalse(tbl.color)
+        tbl = setup_table(DummyOptions('auto', True))
+        self.assertTrue(tbl.color)
+
     def test_tty(self):
         """setup with a fake tty attached"""
         sys.stdout = FakeFile(True)
 
+        # config.color == auto
+        Globals().replace('color', 'auto')
+        tbl = setup_table(DummyOptions('always', True))
+        self.assertTrue(tbl.color)
+        tbl = setup_table(DummyOptions('never', True))
+        self.assertFalse(tbl.color)
+        tbl = setup_table(DummyOptions('auto', True))
+        self.assertTrue(tbl.color)
+
+        # config.color == never
+        Globals().replace('color', 'never')
+        tbl = setup_table(DummyOptions('always', True))
+        self.assertTrue(tbl.color)
+        tbl = setup_table(DummyOptions('never', True))
+        self.assertFalse(tbl.color)
+        tbl = setup_table(DummyOptions('auto', True))
+        self.assertFalse(tbl.color)
+
+        # config.color == never
+        Globals().replace('color', 'always')
         tbl = setup_table(DummyOptions('always', True))
         self.assertTrue(tbl.color)
         tbl = setup_table(DummyOptions('never', True))
@@ -75,6 +116,7 @@ class SimpleFillTests(unittest.TestCase):
 
     def setUp(self):
         self._fs = FileSystem('foofs')
+        Globals().replace('color', 'auto')
 
     def _fmt_str(self, fmt, txt):
         tbl = TextTable(fmt)

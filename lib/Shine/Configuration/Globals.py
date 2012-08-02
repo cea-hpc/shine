@@ -79,6 +79,10 @@ class Globals(object):
             # Lustre version
             self.add_element('lustre_version',      check='string')
 
+            # CLI
+            self.add_element('color',               check='enum',
+                    default='auto', values=['never', 'always', 'auto'])
+
             # TO BE IMPLEMENTED
             self.add_element('start_timeout',       check='digit')
             self.add_element('mount_timeout',       check='digit')

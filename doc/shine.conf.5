@@ -102,6 +102,13 @@ is the file used to retrieve targets storage information.
 Default is
 .Pa /etc/shine/storage.conf
 .El
+
+.Ss Command line interface
+.Bl -tag -width Ds -compact
+.It Ic color Ns = Ns Ar [auto, always, never]
+Tell if colored output should be used on command line interface. If 'auto', color is used only if standard output is a TTY. This value could be changed using --color option on command line.
+.El
+
 .Ss Cluster-wide applicable settings
 .Bl -tag -width Ds -compact
 .It Ic conf_dir Ns = Ns Ar pathname

@@ -26,6 +26,8 @@ Helping method to format filesystem state for text output.
 import sys
 from operator import attrgetter
 
+from Shine.Configuration.Globals import Globals
+
 from Shine.CLI.TextTable import TextTable
 
 from Shine.Lustre.Component import Component
@@ -162,8 +164,11 @@ def setup_table(options, fmt=None):
     color and header.
     """
     tbl = TextTable(fmt)
-    tbl.color = (sys.stdout.isatty() and options.color == 'auto') or \
-                (options.color == 'always')
+    tbl.color = (options.color == 'auto' and Globals()['color'] == 'auto' \
+                      and sys.stdout.isatty()) or \
+                (options.color == 'auto' and Globals()['color'] == 'always') \
+                or (options.color == 'always')
+
     tbl.show_header = options.header
     return tbl
 
