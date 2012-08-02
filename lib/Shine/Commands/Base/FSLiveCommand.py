@@ -57,6 +57,8 @@ class FSLiveCommand(RemoteCommand):
 
     def execute(self):
 
+        first = True
+
         # Option sanity check
         self.forbidden(self.options.model, "-m, use -f")
 
@@ -84,6 +86,11 @@ class FSLiveCommand(RemoteCommand):
             # Eventhandler uses this FS configuration
             if eh:
                 eh.fs_conf = fs_conf
+
+            # Separate each fsname with a blank line
+            if not first:
+                print
+            first = False
 
             # Run the real job
             vlevel = self.options.verbose
