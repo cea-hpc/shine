@@ -13,8 +13,8 @@ class TextTableTest(unittest.TestCase):
 
     def test_empty(self):
         """empty table"""
-        tbl = TextTable()
-        self.assertEqual(str(tbl), "")
+        tbl = TextTable("%foo")
+        self.assertEqual(str(tbl), "FOO\n---")
 
     def test_simple(self):
         """simple row"""

@@ -134,6 +134,9 @@ class TextTable(object):
                 if self.ignore_bad_keys:
                     value = "%%%s" % key
                     length = len(value)
+                elif len(self) == 0:
+                    value = key
+                    length = len(value)
                 else:
                     raise ex
 
