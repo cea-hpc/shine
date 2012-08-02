@@ -12,7 +12,7 @@ from Shine.Configuration.Globals import Globals
 from Shine.CLI.TextTable import TextTable
 from Shine.CLI.Display import setup_table, table_fill, display, DisplayError
 
-from Shine.Lustre.FileSystem import FileSystem, Server
+from Shine.Lustre.FileSystem import FileSystem, Server, MOUNTED
 
 class DummyCommand(object):
     """Command mock-up for test purpose only."""
@@ -155,8 +155,14 @@ class SimpleFillTests(unittest.TestCase):
     def test_common_fields(self):
         """fill with component common fields"""
         self._fs.new_target(Server('foo', ['foo@tcp']), 'mgt', 0, '/dev/foo')
-        self._fmt_str("%fsname %label %node %status %type %servers",
-                      'foofs  MGS   foo  unknown MGT  foo')
+        self._fmt_str("%fsname %label %node %status %statusonly %type %servers",
+                      'foofs  MGS   foo  unknown unknown    MGT  foo')
+
+    def test_status_evicted(self):
+        client = self._fs.new_client(Server('foo', ['foo@tcp']), '/foo')
+        client.proc_states['evicted'] = 1
+        client.state = MOUNTED
+        self._fmt_str("%status | %statusonly", "mounted (evicted=1) | mounted")
 
     def test_target_fields(self):
         """fill with target fields"""

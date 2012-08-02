@@ -66,6 +66,8 @@ COMP_FIELDS = {
                      'getter': lambda comp: str(comp.allservers().nodeset()) },
         'status':  { 'supports': 'text_status',
                      'getter': lambda comp: comp.text_status() },
+        'statusonly': { 'supports': 'text_status',
+                     'getter': Component.text_status },
         'type':    { 'supports': 'TYPE',
                      'getter': lambda comp: comp.TYPE.upper()[0:3] },
 

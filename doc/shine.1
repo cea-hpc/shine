@@ -304,7 +304,12 @@ Device size (target only).
 All servers where the component could be located. Same as %node except for targets.
 .TP
 .B %status
-Current component status (ie: \fBstarted\fR, \fBoffline\fR, ...).
+Current component status (ie: \fBstarted\fR, \fBmounted (evicted=1)\fR, \fBrecovering for 5s (0/152)\fR, ...).
+This could be more than simply the status, like adding recovery information for
+targets or eviction status for clients.
+.TP
+.B %statusonly
+Current component status only, no other information (ie: \fBstarted\fR, \fBmounted\fR, \fBonline\fR, ...).
 .TP
 .B %tag
 Backend configuration tag (target only).
