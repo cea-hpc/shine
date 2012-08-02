@@ -74,7 +74,8 @@ Show configuration parameters. Supported \fIshow\fP keywords are detailed below:
 \fIconf\fP: List loaded \fIshine.conf\fP(5) configuration parameters.
 .IP \(bu 2
 .
-\fIfs\fP [\-v]: Show installed filesystems (with optional description)
+\fIfs\fP [\-v]: Show installed filesystems (with optional description). 
+Deprecated, see \fIlist\fP.
 .IP \(bu 2
 .
 \fIinfo\fP [\-f <fsname>]: Show installed filesystem information.
@@ -105,6 +106,10 @@ add/remove clients and more, or simply update the configuration files.
 Remove an installed file system. This command removes the filesystem
 description but nothing is done on the various targets involved in
 the considered filesystem (no reformatting of freed target is done).
+.TP
+.B \fIlist\fP
+.sp
+List installed filesystems. It replaces \fIshow fs\fP.
 .TP
 .B \fIconfig\fP -f <FSNAME>
 .sp

@@ -1,5 +1,6 @@
 2012-08-02 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add new 'config' command (ticket #67).
+	* Add new 'list' command (ticket #133).
 
 2012-08-01 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Network supports an optional '0' id (ticket #134).
