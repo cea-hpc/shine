@@ -182,7 +182,8 @@ class FileSystem:
                 # substitute target parameter by local one
                 params['comp'] = other
             except KeyError, error:
-                print "ERROR: Component update failed (%s)" % str(error)
+                print >> sys.stderr, "ERROR: Component update " \
+                                     "failed (%s)" % str(error)
 
         self._invoke(compname, action, status, node=node, **params)
 
@@ -312,7 +313,8 @@ class FileSystem:
                 # Workaround bug when state is None (Trac ticket #11)
                 # Bug is now closed, maybe this could be removed?
                 if comp.state is None:
-                    print "WARNING: no state report from node %s" % comp.server
+                    print >> sys.stderr, "WARNING: no state report " \
+                                         "from node %s" % comp.server
                     comp.state = RUNTIME_ERROR
 
                 if comp.state not in expected_states:

@@ -190,7 +190,7 @@ class FSProxyAction(ProxyAction):
                     actions = ""
                     if len(comp._list_action()):
                         actions = "actions: " + ", ".join(comp._list_action())
-                    print "ERROR: bad state for %s: %d %s" % \
+                    print >> sys.stderr, "ERROR: bad state for %s: %d %s" % \
                                     (comp.label, comp.state, actions)
                     comp.state = RUNTIME_ERROR
 

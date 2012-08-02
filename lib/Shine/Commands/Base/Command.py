@@ -20,6 +20,7 @@
 # $Id$
 
 import os
+import sys
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -154,12 +155,12 @@ class Command(object):
             if fs_nodes:
                 selected_nodes = selected_nodes - fs_nodes
             if selected_nodes:
-                print "WARNING: Nothing to %s on %s for `%s'." % \
+                print >> sys.stderr, "WARNING: Nothing to %s on %s for `%s'" % \
                     (action_txt, selected_nodes, fs_name)
 
         # All nodes were disabled?
         if len(fs_nodes) == 0:
-            print "WARNING: Nothing was done for `%s'." % fs_name
+            print >> sys.stderr, "WARNING: Nothing was done for `%s'." % fs_name
             return False
 
         return True
@@ -210,8 +211,8 @@ class RemoteCommand(Command):
     def filter_rc(self, rc):
         """
         When called remotely, return code are not used to handle shine action
-        success or failure, nor for status info. To properly detect ssh or remote
-        shine installation failures, we filter the return code here.
+        success or failure, nor for status info. To properly detect ssh or
+        remote shine installation failures, we filter the return code here.
         """
         if self.options.remote:
             # Only errors of type RUNTIME ERROR are allowed to go up.
