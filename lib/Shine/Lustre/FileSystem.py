@@ -306,7 +306,7 @@ class FileSystem:
 
         # If a component list is provided, check that all components from it
         # have expected state.
-        result = 0
+        result = None
         if complist:
             for comp in complist:
 
@@ -320,7 +320,7 @@ class FileSystem:
                 if comp.state not in expected_states:
                     result = max(result, comp.state)
 
-            if result:
+            if result is not None:
                 return result
 
         return expected_states[0]
