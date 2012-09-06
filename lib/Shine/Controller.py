@@ -251,13 +251,15 @@ class Controller:
         # sys.exit() if error on command line (optparse behaviour)
         # rc=2
 
+        rc = RC_RUNTIME_ERROR
+
         (options, args, cmdname) = self.handle_options()
 
         try:
 
             # Execute and filter rc
             command = COMMAND_LIST[cmdname](options, args)
-            return command.filter_rc(command.execute())
+            rc = command.filter_rc(command.execute())
 
         except CommandHelpException, error:
             self.print_help(str(error), error.cmd)
@@ -277,14 +279,19 @@ class Controller:
         # File system exceptions
         except FSRemoteError, exp:
             self.print_error(exp)
-            return exp.rc
+            rc = exp.rc
         except [ComponentError, NodeSetParseError, RangeSetParseError], exp:
             self.print_error(str(exp))
 
         # Special error
         except KeyboardInterrupt:
             print >> sys.stderr, "Exiting."
-            return 0
+            rc = 0
 
-        return RC_RUNTIME_ERROR
+        # Avoid BrokenPipe error if stdout is closed before we exit
+        try:
+            sys.stdout.flush()
+        except IOError:
+            pass
 
+        return rc

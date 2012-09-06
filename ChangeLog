@@ -1,5 +1,6 @@
 2012-09-04 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix exit code when shine cannot umount (ticket #138).
+	* Avoid broken pipe error (ticket #137).
 
 2012-08-02 Stephane Thiell  <stephane.thiell@cea.fr>
 	* Add filename in lmf/xmf parse error message (ticket #135).
