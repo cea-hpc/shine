@@ -21,8 +21,6 @@
 
 import re
 import sys
-import datetime
-import traceback
 import copy
 
 from optparse import OptionParser, OptionGroup, Option, OptionValueError, \
@@ -47,9 +45,9 @@ from ClusterShell.NodeSet import NodeSet, NodeSetException, NodeSetParseError, \
 
 
 def print_csdebug(task, msg):
-    m = re.search("(\w+): SHINE:\d:", msg)
-    if m:
-        print "%s<pickle>" % m.group(0)
+    match = re.search("(\w+): SHINE:\d:", msg)
+    if match:
+        print "%s<pickle>" % match.group(0)
     else:
         print msg
 
@@ -65,29 +63,9 @@ class Controller:
         if fanout > 0:
             task.set_info("fanout", fanout)
 
-    def print_error(self, errmsg):
-        print >> sys.stderr, "Error:", errmsg
-
-    def print_help(self, msg, cmd):
+    @classmethod
+    def print_error(cls, msg):
         print >> sys.stderr, "Error: %s" % msg
-
-    def save_exception(self, error):
-        """
-        Save the provided exception with its traceback in a file
-        for latter analysis or bug report.
-        """
-        now = datetime.datetime.today().replace(microsecond=0)
-
-        filename = '/tmp/shine-error-%s' % (now.isoformat('_'))
-        trx = open(filename, 'w')
-        trx.write("#\n# Shine error report - %s\n#\n\n" % now)
-        trx.write("Command was: '%s'\n\n" % " ".join(sys.argv))
-        traceback.print_exc(file=trx)
-        trx.write("\n")
-        trx.write("Exception: %s\n\n" % error)
-        trx.close()
-
-        return filename
 
     @classmethod
     def handle_options(cls):
@@ -262,26 +240,26 @@ class Controller:
             rc = command.filter_rc(command.execute())
 
         except CommandHelpException, error:
-            self.print_help(str(error), error.cmd)
+            self.print_error(error)
 
         # Command exceptions
         except DisplayError, error:
-            self.print_error(str(error))
+            self.print_error(error)
         except CommandException, error:
-            self.print_error(str(error))
+            self.print_error(error)
 
         # Configuration exceptions
-        except ConfigException, exp:
-            self.print_error("Configuration - %s" % exp)
+        except ConfigException, error:
+            self.print_error("Configuration - %s" % error)
         except ModelFileValueError, error:
-            self.print_error(str(error))
+            self.print_error(error)
 
         # File system exceptions
-        except FSRemoteError, exp:
-            self.print_error(exp)
-            rc = exp.rc
-        except [ComponentError, NodeSetParseError, RangeSetParseError], exp:
-            self.print_error(str(exp))
+        except FSRemoteError, error:
+            self.print_error(error)
+            rc = error.rc
+        except [ComponentError, NodeSetParseError, RangeSetParseError], error:
+            self.print_error(error)
 
         # Special error
         except KeyboardInterrupt:
