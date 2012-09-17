@@ -148,9 +148,11 @@ class FSGlobalEventHandler(FSLocalEventHandler,
     def action_failed(self, node, comp, result):
         txt = "Failed to %s %s\n>> %s" % \
                                     (self.ACTION, comp.longtext(), str(result))
+        # Add nodename prefix
+        txt = ''.join(["%s: %s" % (node, line)
+                       for line in txt.splitlines(True)])
         self.log_warning(txt)
         self.__update()
-
 
     def handle_pre(self, fs):
         """

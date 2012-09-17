@@ -1,3 +1,6 @@
+2012-09-17 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Add node name in error message where needed (ticket #140).
+
 2012-09-06 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix ignored args (-t, -i) with 'config' command (ticket #139).
 
