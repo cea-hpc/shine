@@ -21,7 +21,7 @@
 
 from Shine.CLI.Display import display
 
-from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 
 #
 # NOTE: This command is declared as a FSLiveCommand but it does not do any live
@@ -29,7 +29,7 @@ from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 # This is for convenience only as FSLiveCommand has already most of what this
 # needs to run.
 #
-class Config(FSLiveCommand):
+class Config(FSTargetLiveCommand):
     """
     shine config -f foo -O "%fsname"
     """
