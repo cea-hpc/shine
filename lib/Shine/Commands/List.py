@@ -38,7 +38,8 @@ class List(Command):
     def execute(self):
 
         # Option sanity check
-        self.forbidden(self.options.fsnames, "-m, see -f")
+        self.forbidden(self.options.fsnames, "-f")
+        self.forbidden(self.options.model, "-m")
         self.forbidden(self.options.labels, "-f")
         self.forbidden(self.options.labels, "-l")
         self.forbidden(self.options.indexes, "-i")

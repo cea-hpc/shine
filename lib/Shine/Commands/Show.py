@@ -167,7 +167,7 @@ class Show(Command):
     def execute(self):
 
         # Option sanity check
-        self.forbidden(self.options.fsnames, "-m, see -f")
+        self.forbidden(self.options.model, "-m, see -f")
 
         # This check is already done when parsing argument.
         # If this is modified, optparse code should also be fixed.

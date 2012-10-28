@@ -1,5 +1,6 @@
 2012-10-28 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix a bug when using -l without -f (ticket #143).
+	* Fix -f arg for "shine show info"
 
 2012-09-17 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Add node name in error message where needed (ticket #140).
