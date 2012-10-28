@@ -93,8 +93,12 @@ class Command(object):
         # If some labels are specified, they also specifies some fs names.
         # (ie: fsname-OST0000)
         if self.options.labels and not self.options.fsnames:
-            self.options.fsnames = [str(label).split('-',1)[0] for label
-                                    in self.options.labels]
+            self.options.fsnames = []
+            for label in self.options.labels:
+                fsname = str(label).split('-',1)[0]
+                # Avoid adding the same fs several times
+                if fsname not in self.options.fsnames:
+                    self.options.fsnames.append(fsname)
 
         # Build a default filesystem list based on all fs in cache directory.
         elif not self.options.fsnames:
