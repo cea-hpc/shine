@@ -94,23 +94,6 @@ class Install(Command):
                    % error.nodes
             rc = RC_FAILURE
 
-        # Print short file system summary.
-        if rc == RC_OK:
-            print
-            print "Install summary:"
-
-            # Display enabled components by display order
-            key = lambda t: (t.DISPLAY_ORDER, t.TYPE)
-            for order, targets in fs.components.managed().groupby(key=key):
-                # Get the target type in uppercase
-                target_list = list(targets)
-                type = target_list[0].TYPE.upper()[0:3]
-                # List of all servers for these targets
-                servers = targets.servers()
-                print "\t%3d %3s on %s" % (len(targets), type, servers)
-
-            print
-
         if not install_nodes and not excluded_nodes:
             # Give pointer to next user step.
             print "Use `shine format -f %s' to initialize the file system." % \
