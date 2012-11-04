@@ -40,6 +40,12 @@ from Shine.Lustre import ComponentError
 # in Display and Action.
 from Shine.CLI.Display import map_field
 
+# Action possible states
+ACT_WAITING = 0
+ACT_RUNNING = 1
+ACT_OK = 2
+ACT_ERROR = 3
+
 
 class Result(object):
     """
@@ -92,8 +98,150 @@ class Action(EventHandler):
         """Compute the action whole duration."""
         self.duration = time.time() - self.start
 
+class CommonAction(Action):
+    """
+    Abstract class representing an Action with graph dependency features.
 
-class FSAction(Action):
+    It could be with other CommonAction instances to create a graph of actions.
+    See GroupAction to group them.
+    """
+
+    def __init__(self, task=task_self()):
+        Action.__init__(self, task)
+        self.deps = set()
+        self.followers = set()
+        self._status = ACT_WAITING
+
+    def depends_on(self, other):
+        """
+        Add a dependency on `other'.
+
+        This action should not be launched before `other' is run with success.
+        """
+        self.deps.add(other)
+        other.followers.add(self)
+
+    def status(self):
+        """Return current action status."""
+        return self._status
+
+    def set_status(self, status):
+        """
+        Update action status.
+
+        If this is a final state, try to launch actions depending on it.
+        """
+        self._status = status
+        # If it is a final states, propagate in the graph
+        if self._status in (ACT_OK, ACT_ERROR):
+            for action in self.followers:
+                action.launch()
+
+    def _launch(self):
+        """
+        Really starts the action, without graph involvement.
+
+        Need to be overloaded in child class.
+        """
+        raise NotImplemented()
+
+    def _graph_ok(self, actions):
+        """
+        Return True if dependencies in action list are OK.
+
+        Return False if
+         - the group is not in WAITING state.
+         - one of them is waiting and launch it
+         - one of them is still running
+         - one of them is in error. This group is set in ERROR too.
+        """
+
+        # If I'm no more waiting, no need to be launched twice
+        if self.status() != ACT_WAITING:
+            return False
+
+        # If some deps are not yet run, launch them!
+        waiting = [dep for dep in actions if dep.status() == ACT_WAITING]
+        if waiting:
+            for dep in waiting:
+                dep.launch()
+            return False
+
+        # If all my deps are not in final state, wait
+        running = [dep for dep in actions if dep.status() == ACT_RUNNING]
+        if running:
+            return False
+
+        # If some deps are in error, I'm too
+        error = [dep for dep in actions if dep.status() == ACT_ERROR]
+        if error:
+            self.set_status(ACT_ERROR)
+            return False
+
+        return True
+
+    def launch(self):
+        """Check dependencies and run the action."""
+
+        if not self._graph_ok(self.deps):
+            return
+
+        self.set_status(ACT_RUNNING)
+        self._launch()
+
+    def ev_close(self, worker):
+        """
+        Check process termination status and generate appropriate events.
+        """
+        Action.ev_close(self, worker)
+
+        # Action timed out
+        if worker.did_timeout():
+            self.set_status(ACT_ERROR)
+
+        # Action succeeded
+        elif worker.retcode() == 0:
+            self.set_status(ACT_OK)
+
+        # Action failed
+        else:
+            self.set_status(ACT_ERROR)
+
+
+class ActionGroup(CommonAction):
+    """
+    Group several CommonAction to create a common entity which could be used
+    inside a graph of CommonAction or ActionGroup.
+    """
+
+    def __init__(self, task=task_self()):
+        CommonAction.__init__(self, task)
+        self._members = set()
+
+    def __len__(self):
+        """Number or group members."""
+        return len(self._members)
+
+    def add(self, action):
+        """Add an action to this group."""
+        self._members.add(action)
+        # Add a half-dependency
+        action.followers.add(self)
+
+    def launch(self):
+        """Check dependencies and run the action."""
+
+        if not self._graph_ok(self.deps):
+            return
+
+        if not self._graph_ok(self._members):
+            return
+
+        # So, all members are OK
+        self.set_status(ACT_OK)
+
+
+class FSAction(CommonAction):
     """
     Astract Shine action class for FileSystem actions.
     """
@@ -104,7 +252,7 @@ class FSAction(Action):
     CHECK_MOUNTDATA = True
 
     def __init__(self, comp, task=task_self(), **kwargs):
-        Action.__init__(self, task)
+        CommonAction.__init__(self, task)
         self.comp = comp
 
         # Command should have a separate stderr?
@@ -181,7 +329,7 @@ class FSAction(Action):
         # XXX: Add timeout
         self.task.shell(cmdline, handler=self, stderr=self.stderr)
 
-    def launch(self):
+    def _launch(self):
         """
         Run the command to process the action.
 
@@ -195,9 +343,11 @@ class FSAction(Action):
             if not result:
                 self._shell()
             else:
+                self.set_status(ACT_OK)
                 self.comp.action_done(self.NAME, result)
 
         except ComponentError, error:
+            self.set_status(ACT_ERROR)
             self.comp.action_failed(self.NAME, Result(str(error)))
 
     def ev_close(self, worker):
@@ -211,13 +361,16 @@ class FSAction(Action):
         # Action timed out
         if worker.did_timeout():
             self.comp.action_timeout(self.NAME)
+            self.set_status(ACT_ERROR)
 
         # Action succeeded
         elif worker.retcode() == 0:
             result = Result(duration=self.duration, retcode=worker.retcode())
             self.comp.action_done(self.NAME, result)
+            self.set_status(ACT_OK)
 
         # Action failed
         else:
             result = ErrorResult(worker.read(), self.duration, worker.retcode())
             self.comp.action_failed(self.NAME, result)
+            self.set_status(ACT_ERROR)

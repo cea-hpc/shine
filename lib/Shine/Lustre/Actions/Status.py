@@ -23,7 +23,7 @@ This module contains the version of FSAction class to implement component
 status checking.
 """
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import FSAction, ACT_OK
 
 class Status(FSAction):
     """
@@ -38,4 +38,5 @@ class Status(FSAction):
         """
         No-op method. Status command does not need to run an external command.
         """
+        self.set_status(ACT_OK)
         self.comp.action_done(self.NAME)

@@ -343,7 +343,10 @@ class Target(Component, Disk):
         Check the target is correct and not used and format it in Lustre
         format.
         """
-        return Format(self, **kwargs)
+        action = Format(self, **kwargs)
+        if self.journal:
+            action.depends_on(JournalFormat(self.journal, **kwargs))
+        return action
 
     def tunefs(self, **kwargs):
         """
@@ -433,12 +436,3 @@ class Journal(Component):
 
     def lustre_check(self):
         pass
-
-    def format(self, **kwargs):
-        """
-        Check the journal device is correct and format it to be used as an
-        external journal.
-        """
-        # Warning: kwargs is used to pass 'nextaction'. See JournalFormat.
-        JournalFormat(self, **kwargs).launch()
-

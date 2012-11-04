@@ -42,10 +42,10 @@ class CommonFormat(FSAction):
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)
 
-        # Hack to work aroung cross-dependcy with Target
-        self.MGT_TYPE = Shine.Lustre.Target.MGT.TYPE
-        self.MDT_TYPE = Shine.Lustre.Target.MDT.TYPE
-        self.OST_TYPE = Shine.Lustre.Target.OST.TYPE
+        # Hack to work aroung cross-dependency with Target
+        self.comp_is_mgs = (self.comp.TYPE == Shine.Lustre.Target.MGT.TYPE)
+        self.comp_is_mdt = (self.comp.TYPE == Shine.Lustre.Target.MDT.TYPE)
+        self.comp_is_ost = (self.comp.TYPE == Shine.Lustre.Target.OST.TYPE)
 
         self.stripecount = kwargs.get('stripecount')
         self.stripesize = kwargs.get('stripesize')
@@ -83,7 +83,7 @@ class CommonFormat(FSAction):
         command = []
 
         # --mgsnode and specific --param
-        if self.comp.TYPE == self.MDT_TYPE:
+        if self.comp_is_mdt:
             command += self._mgsnids()
             if self.stripecount:
                 command.append('--param=lov.stripecount=%d' % self.stripecount)
@@ -96,7 +96,7 @@ class CommonFormat(FSAction):
                     option = 'mdd.quota_type'
                 command.append('"--param=%s=%s"' % (option, self.quota_type))
 
-        elif self.comp.TYPE == self.OST_TYPE:
+        elif self.comp_is_ost:
             command += self._mgsnids()
             if self.quota_type is not None:
                 command.append('"--param=ost.quota_type=%s"' % self.quota_type)
@@ -106,7 +106,7 @@ class CommonFormat(FSAction):
         for nidlist in target_nids[1:]:
 
             # if 'network' is specified, restrict the list of partner
-            if self.comp.network and self.comp.TYPE in [self.MDT_TYPE, self.OST_TYPE]:
+            if self.comp.network and (self.comp_is_mdt or self.comp_is_ost):
 
                 # Parse network field
                 match = re.match("^([a-z0-9]+?)(\d+)?$", self.comp.network)
@@ -116,10 +116,19 @@ class CommonFormat(FSAction):
                 suffix = ((match.group(1), match.group(2) or '0'))
 
                 # Analyze NID list.
-                def same_suffix(nid):
-                    m = re.match(".*@([a-z0-9]+?)(\d+)?$", nid)
-                    return (m and (m.group(1), m.group(2) or '0') == suffix)
-                nidlist = [nid for nid in nidlist if same_suffix(nid)]
+                def _same_suffix(nid):
+                    """
+                    Returns true if NID suffix is equivalent to 'suffix'.
+
+                    If LNET network is not set, it is considered as '0'.
+                    That means 'x@tcp' and 'x@tcp0' is considered equivalent.
+                    """
+                    match = re.match(".*@([a-z0-9]+?)(\d+)?$", nid)
+                    if not match:
+                        return False
+                    else:
+                        return (match.group(1), match.group(2) or '0') == suffix
+                nidlist = [nid for nid in nidlist if _same_suffix(nid)]
 
             # if there is still some matching partners, add them
             if len(nidlist) > 0:
@@ -127,7 +136,7 @@ class CommonFormat(FSAction):
                 command.append('"--failnode=%s"' % nids)
 
         # --network: restrict target to a specific LNET network
-        if self.comp.network and self.comp.TYPE in [self.MDT_TYPE, self.OST_TYPE]:
+        if self.comp.network and (self.comp_is_mdt or self.comp_is_ost):
             command.append('--network=%s' % self.comp.network)
 
         # Generic --param
@@ -189,15 +198,15 @@ class Format(CommonFormat):
         command = ['mkfs.lustre --reformat --quiet']
         command.append('"--fsname=%s"' % self.comp.fs.fs_name)
 
-        if self.comp.TYPE == self.MGT_TYPE:
+        if self.comp_is_mgs:
             # '--mgs' and not '--mgt'
             command.append("--mgs")
 
-        elif self.comp.TYPE == self.MDT_TYPE:
+        elif self.comp_is_mdt:
             command.append("--mdt")
             command.append("--index=%d" % self.comp.index)
 
-        elif self.comp.TYPE == self.OST_TYPE:
+        elif self.comp_is_ost:
             command.append("--ost")
             command.append("--index=%d" % self.comp.index)
 
@@ -221,24 +230,6 @@ class Format(CommonFormat):
 
         return command
 
-    def _shell(self):
-        """
-        Create a command line and schedule it to be run by self.task
-
-        If a journal device for this target exists, a dedicated action for it is
-        first process before really doing the job for the full target.
-        """
-
-        # Format first the journal if it exists
-        if self.comp.journal:
-            self.comp.journal.format(nextaction=self)
-            # It is ok to not launch current action here. In JournalFormat 
-            # ev_close(), FSAction.launch(self) will be called to run
-            # the normal launch method.
-        else:
-            FSAction._shell(self)
-
-
 class JournalFormat(FSAction):
     """
     Specific Format Action for a journal device.
@@ -249,19 +240,6 @@ class JournalFormat(FSAction):
 
     NAME = 'format'
 
-    def __init__(self, comp, nextaction):
-        FSAction.__init__(self, comp)
-        self.nextaction = nextaction
-
     def _prepare_cmd(self):
         """Return target journal device format command line."""
         return [ "mke2fs -q -F -O journal_dev -b 4096 %s" % self.comp.dev ]
-
-    def ev_close(self, worker):
-        """Event callback when journal format ends."""
-        FSAction.ev_close(self, worker)
-        # action succeeded
-        if worker.retcode() == 0:
-            # Journal is done, launch next step
-            # This is not pretty as we ignore the launch() method of nextaction.
-            FSAction._shell(self.nextaction)

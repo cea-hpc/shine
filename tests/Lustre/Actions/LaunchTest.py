@@ -22,6 +22,7 @@ import types
 import unittest
 import Utils
 
+from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
@@ -85,6 +86,7 @@ class ActionsTest(unittest.TestCase):
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_format_if_started(self):
@@ -104,6 +106,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
+        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_format_with_error(self):
@@ -119,6 +122,7 @@ class ActionsTest(unittest.TestCase):
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_ERROR)
 
     # XXX: Add tests with Journal
 
@@ -139,6 +143,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_repairs(self):
@@ -160,6 +165,7 @@ class ActionsTest(unittest.TestCase):
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_no_repair(self):
@@ -181,6 +187,7 @@ class ActionsTest(unittest.TestCase):
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_with_error(self):
@@ -196,6 +203,7 @@ class ActionsTest(unittest.TestCase):
 
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
+        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Execute
@@ -212,6 +220,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     def test_execute_error(self):
         """Execute a bad command fails"""
@@ -225,6 +234,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 1)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_execute_check_mountdata(self):
@@ -258,6 +268,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result, None)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     def test_status_error(self):
         """Status on a not-formated target fails"""
@@ -271,6 +282,8 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
+        # XXX: Should we set an error even if job was done correctly?
+        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Start Target
@@ -289,6 +302,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_start_already_done(self):
@@ -309,6 +323,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_start_error(self):
@@ -323,6 +338,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
+        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Stop Target
@@ -347,6 +363,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_stop_already_done(self):
@@ -363,6 +380,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_stop_error(self):
@@ -386,4 +404,4 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 1)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
-
+        self.assertEqual(act.status(), ACT_ERROR)
