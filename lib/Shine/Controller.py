@@ -204,6 +204,10 @@ class Controller:
         if not options.view:
             options.view = 'fs'
 
+        # Enable clustershell debugging too in debug mode
+        if options.debug:
+            task_self().set_info("debug", True)
+
         cmdname = args.pop(0)
 
         # Special command handling
