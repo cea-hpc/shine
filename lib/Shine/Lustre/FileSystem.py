@@ -640,6 +640,35 @@ class FileSystem:
         # Ok, workers have completed, perform late status check...
         return self._check_errors([OFFLINE], comps)
 
+    def execute(self, comps=None, **kwargs):
+        """
+        Execute custom command.
+        """
+        comps = (comps or self.components).managed(supports='execute')
+
+        # addopts is not optional at all for 'execute' command
+        addopts = kwargs.get('addopts', None)
+        # Get additional options for the FSProxyAction call
+        failover = kwargs.get('failover', None)
+
+        for server, srvcomps in comps.groupbyserver():
+
+            if server.is_local():
+                # local client
+                for comp in srvcomps:
+                    comp.execute(**kwargs)
+            else:
+                # distant client
+                self._proxy_action('execute', server.hostname, srvcomps,
+                                   addopts, failover)
+
+        # Run local actions and FSProxyAction
+        self._run_actions()
+
+        # Here we check MOUNTED but in fact, any status is OK.
+        # XXX: Is that ok, to check MOUNTED here?
+        return self._check_errors([MOUNTED], comps)
+
     def tune(self, tuning_model, addopts=None, comps=None):
         """
         Tune server.

@@ -105,7 +105,7 @@ class Router(Component):
         self._action_start('status')
 
         try:
-            self.lustre_check()
+            self.full_check()
             self._action_done('status')
         except RouterError, error:
             self._action_failed('status', Result(str(error)))
@@ -118,7 +118,7 @@ class Router(Component):
         self._action_start('start')
 
         try:
-            self.lustre_check()
+            self.full_check()
             if self.state == MOUNTED:
                 result = Result('router is already enabled')
                 self._action_done('start', result=result)
@@ -136,7 +136,7 @@ class Router(Component):
         self._action_start('stop')
 
         try:
-            self.lustre_check()
+            self.full_check()
             if self.state == OFFLINE:
                 result = Result('router is already disabled')
                 self._action_done('stop', result=result)

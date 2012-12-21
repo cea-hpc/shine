@@ -26,6 +26,9 @@ from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.Server import ServerGroup
 
+from Shine.Lustre.Actions.Action import Result
+from Shine.Lustre.Actions.Execute import Execute
+
 # Constants for component states
 (MOUNTED,    \
  EXTERNAL,   \
@@ -156,6 +159,11 @@ class Component(object):
         """
         raise NotImplemented("Component must implement this.")
 
+    def full_check(self, mountdata=True):
+        """
+        Check component states, at Lustre level, and any other required ones.
+        """
+        self.lustre_check()
 
     #
     # Inprogress action methods
@@ -207,6 +215,25 @@ class Component(object):
         """Called by Actions.* on failure"""
         self._del_action(act)
         self.fs.local_event(self.TYPE, act, 'failed', comp=self, result=result)
+
+    #
+    # Component common actions
+    #
+
+    def execute(self, **kwargs):
+        """
+        Exec a custom command
+        """
+        self._action_start('execute')
+
+        try:
+            self.full_check()
+            action = Execute(self, **kwargs)
+            action.launch()
+
+        except ComponentError, error:
+            self._action_failed('execute', Result(str(error)))
+
 
 class ComponentGroup(object):
     """

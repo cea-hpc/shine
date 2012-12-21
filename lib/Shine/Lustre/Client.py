@@ -208,7 +208,7 @@ class Client(Component):
         self._action_start('status')
 
         try:
-            self.lustre_check()
+            self.full_check()
             self._action_done('status')
         except ClientError, error:
             self._action_failed('status', Result(str(error)))
@@ -221,7 +221,7 @@ class Client(Component):
         self._action_start('mount')
 
         try:
-            self.lustre_check()
+            self.full_check()
             if self.state == MOUNTED:
                 result = Result("%s is already mounted on %s" % \
                                 (self.fs.fs_name, self.mtpt))
@@ -240,7 +240,7 @@ class Client(Component):
         self._action_start('umount')
 
         try:
-            self.lustre_check()
+            self.full_check()
             if self.state == OFFLINE:
                 result = Result("%s is not mounted" % self.fs.fs_name)
                 self._action_done('umount', result=result)

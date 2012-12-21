@@ -40,7 +40,8 @@ for cmd in [ "Show",
              "Mount",
              "Umount",
              "Tune",
-             "Tunefs"]:
+             "Tunefs",
+             "Execute"]:
 
     # Import command class file
     mod = __import__(cmd, globals(), locals(), [cmd])

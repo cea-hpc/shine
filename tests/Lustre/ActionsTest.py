@@ -21,6 +21,7 @@ from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
 from Shine.Lustre.Actions.Format import JournalFormat, Format, Tunefs
+from Shine.Lustre.Actions.Execute import Execute
 
 class ActionsTest(unittest.TestCase):
 
@@ -168,13 +169,13 @@ class ActionsTest(unittest.TestCase):
         action = Fsck(tgt, addopts='--ostdb /mnt/db/%label.db')
         self.check_cmd(action, 'e2fsck -f -y -C2 /dev/root --ostdb /mnt/db/MGS.db')
 
-    # XXX: All _check_status() calls should be replaced by a real call to the
+    # XXX: All full_check() calls should be replaced by a real call to the
     # method dedicated action for the Target.
 
     def test_start_target(self):
         """test command line start target"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
                 'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -183,7 +184,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_addopts(self):
         """test command line start target (addl options)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, addopts='abort_recov')
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -192,7 +193,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_mount_options(self):
         """test command line start target (mount_options)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -201,7 +202,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_mount_options_none(self):
         """test command line start target (mount_options missing)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, mount_options={'mdt': 'abort_recov'})
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -215,7 +216,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_both_options(self):
         """test command line start target (both options)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, addopts='ro',
                              mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
@@ -229,7 +230,7 @@ class ActionsTest(unittest.TestCase):
         majorminor = os.stat(jdev).st_rdev
 
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev, jdev)
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
           'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -239,7 +240,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_file_device(self):
         """test command line start target (file device)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/etc/passwd')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt)
         self.check_cmd(action,
                 'mkdir -p "/mnt/action/mgt/0" && ' +
@@ -248,7 +249,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_mount_paths(self):
         """test command line start target (mount paths)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/mypath'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/mypath" && ' +
@@ -257,7 +258,7 @@ class ActionsTest(unittest.TestCase):
     def test_start_target_custom_mount_paths(self):
         """test command line start target (custom mount paths)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
 
         # fs_name
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name/mgt'})
@@ -295,7 +296,7 @@ class ActionsTest(unittest.TestCase):
 
         # jdev
         tgt = self.fs.new_target(self.srv1, 'mdt', 0, '/dev/root', '/dev/loop0')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StartTarget(tgt, mount_paths={'mdt': '/mnt/$jdev'})
         self.check_cmd(action, 'mkdir -p "/mnt/loop0" && ' +
               '/bin/mount -t lustre -o journal_dev=0x700 /dev/root /mnt/loop0')
@@ -305,7 +306,7 @@ class ActionsTest(unittest.TestCase):
         """test command line stop target"""
         dev = Utils.config_options('noformat_dev')
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev)
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StopTarget(tgt)
         self.check_cmd(action, 'umount %s' % dev)
 
@@ -313,14 +314,14 @@ class ActionsTest(unittest.TestCase):
         """test command line stop target (addl options)"""
         dev = Utils.config_options('noformat_dev')
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, dev)
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StopTarget(tgt, addopts='-l')
         self.check_cmd(action, 'umount -l %s' % dev)
 
     def test_stop_target_file_device(self):
         """test command line stop target (file device)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/etc/passwd')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = StopTarget(tgt)
         self.check_cmd(action, 'umount -d /etc/passwd')
 
@@ -333,14 +334,14 @@ class ActionsTest(unittest.TestCase):
     def test_format_target(self):
         """test command line format (MGT)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--mgs /dev/root')
 
     def test_format_target_loopback(self):
         """test command line format (MGT in loopback)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/etc/passwd')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         size = os.stat('/etc/passwd').st_size / 1024
         self.check_cmd_format(action, '--mgs --device-size=%d /etc/passwd' %
@@ -349,7 +350,7 @@ class ActionsTest(unittest.TestCase):
     def test_format_target_jdev(self):
         """test command line format (MGT with jdev and mkfsoptions)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', '/dev/ram0')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, mkfs_options={'mgt': '-m 2'})
         jaction = JournalFormat(tgt.journal, action)
         self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 /dev/ram0')
@@ -360,7 +361,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (MDT)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--mdt --index=0 ' +
                               '"--mgsnode=localhost@tcp" /dev/root')
@@ -369,7 +370,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (MDT with addl options)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, addopts='-v')
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" -v /dev/root')
@@ -379,7 +380,7 @@ class ActionsTest(unittest.TestCase):
         Globals().replace('lustre_version', '1.6')
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, quota=True, quota_type='ug')
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=mdt.quota_type=ug" /dev/root')
@@ -389,7 +390,7 @@ class ActionsTest(unittest.TestCase):
         Globals().replace('lustre_version', '2.0.0.1')
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, quota=True, quota_type='ug')
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=mdd.quota_type=ug" /dev/root')
@@ -398,7 +399,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (MDT with striping)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, stripecount=2, stripesize=2097152)
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" --param=lov.stripecount=2 ' +
@@ -408,7 +409,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (MDT with mkfsoptions)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, mkfs_options={'mdt': '-m 2'})
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--mkfsoptions=-m 2" /dev/root')
@@ -417,7 +418,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (MDT with param)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, format_params={'mdt': 'foo'})
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=foo" /dev/root')
@@ -426,7 +427,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (OST)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'ost', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--ost --index=0 ' +
                               '"--mgsnode=localhost@tcp" /dev/root')
@@ -435,7 +436,7 @@ class ActionsTest(unittest.TestCase):
         """test command line format (OST with quota)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'ost', 0, '/dev/root')
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt, quota=True, quota_type='ug')
         self.check_cmd_format(action, '--ost --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=ost.quota_type=ug" /dev/root')
@@ -445,7 +446,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root')
         tgt.add_server(self.srv2)
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--ost --index=0 ' +
              '"--mgsnode=localhost@tcp" "--failnode=localhost2@tcp" /dev/root')
@@ -456,7 +457,7 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root')
         tgt.add_server(self.srv2)
         tgt.add_server(Server('localhost3', ['localhost3@tcp']))
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--ost --index=0 ' +
              '"--mgsnode=localhost@tcp" "--failnode=localhost2@tcp" ' +
@@ -476,7 +477,7 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='tcp')
         tgt.add_server(self.srv2)
         tgt.add_server(Server('localhost3', ['localhost3@o2ib']))
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--ost --index=0 ' +
           '"--mgsnode=localhost@tcp" "--failnode=localhost2@tcp" ' +
@@ -488,7 +489,7 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'ost', 0, '/dev/root', network='o2ib0')
         tgt.add_server(self.srv2)
         tgt.add_server(Server('localhost3', ['localhost3@o2ib']))
-        tgt._check_status(mountdata=False)
+        tgt.full_check(mountdata=False)
         action = Format(tgt)
         self.check_cmd_format(action, '--ost --index=0 ' +
           '"--mgsnode=localhost@tcp" "--failnode=localhost3@o2ib" ' +
@@ -617,3 +618,37 @@ class ActionsTest(unittest.TestCase):
         action = Tunefs(ost, format_params={'ost': 'foo'})
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
                               '"--param=foo" /dev/root')
+
+    # Execute
+
+    def test_simple_execute(self):
+        """test simple execute"""
+        mgs = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = Execute(mgs, addopts="foo")
+        self.check_cmd(action, "foo")
+
+    def test_execute_target(self):
+        """test execute with target fields"""
+        mgs = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = Execute(mgs, addopts="fsck %device")
+        self.check_cmd(action, "fsck /dev/root")
+
+    def test_execute_client(self):
+        """test execute with client fields"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        client = self.fs.new_client(self.srv1, "/foo", "ro")
+        action = Execute(client, addopts="mount %mntpath %mntopts")
+        self.check_cmd(action, "mount /foo ro")
+
+    def test_execute_client_bad_fields(self):
+        """test execute with client and dev fields"""
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        client = self.fs.new_client(self.srv1, "/foo")
+        action = Execute(client, addopts="mount %device")
+        self.check_cmd(action, "mount ")
+
+    def test_execute_router(self):
+        """test execute with router fields"""
+        rtr = self.fs.new_router(self.srv1)
+        action = Execute(rtr, addopts="start %fsname")
+        self.check_cmd(action, "start action")

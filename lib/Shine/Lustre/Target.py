@@ -201,7 +201,7 @@ class Target(Component, Disk):
     # Target sanity checks
     #
 
-    def _check_status(self, mountdata=True):
+    def full_check(self, mountdata=True):
         """
         Sanity checks for device files and Lustre status.
         If mountdata is set to False, target content will not be analyzed.
@@ -214,7 +214,7 @@ class Target(Component, Disk):
                 self._mountdata_check(self.fs.fs_name, self.label)
 
             if self.journal:
-                self.journal.disk_check()
+                self.journal.full_check()
 
         except (JournalError, DiskDeviceError), error:
             self.state = TARGET_ERROR
@@ -343,7 +343,7 @@ class Target(Component, Disk):
         self._action_start('format')
 
         try:
-            self._check_status(mountdata=False)
+            self.full_check(mountdata=False)
 
             if self.state == OFFLINE:
                 # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
@@ -376,7 +376,7 @@ class Target(Component, Disk):
         self._action_start('tunefs')
 
         try:
-            self._check_status()
+            self.full_check()
 
             if self.state == OFFLINE:
                 # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
@@ -409,7 +409,7 @@ class Target(Component, Disk):
         self._action_start('fsck')
 
         try:
-            self._check_status(mountdata=False)
+            self.full_check(mountdata=False)
 
             if self.state == OFFLINE:
                 self.state = INPROGRESS
@@ -434,7 +434,7 @@ class Target(Component, Disk):
         self._action_start('status')
 
         try:
-            self._check_status()
+            self.full_check()
             self._action_done('status')
         except TargetError, error:
             self._action_failed('status', Result(str(error)))
@@ -449,7 +449,7 @@ class Target(Component, Disk):
         self._action_start('start')
 
         try:
-            self._check_status()
+            self.full_check()
 
             if self.state != OFFLINE:
                 # already mounted ?
@@ -478,7 +478,7 @@ class Target(Component, Disk):
         self._action_start('stop')
 
         try:
-            self._check_status()
+            self.full_check()
 
             if self.state == OFFLINE:
                 result = Result(message="%s is already stopped" % self.label)
@@ -561,7 +561,7 @@ class Journal(Component):
     def longtext(self):
         return "%s journal (%s)" % (self.target.get_id(), self.dev)
 
-    def disk_check(self):
+    def full_check(self, mountdata=True):
         """Device type check."""
 
         try:
@@ -585,7 +585,7 @@ class Journal(Component):
         self._action_start('format')
 
         try:
-            self.disk_check()
+            self.full_check()
 
             self.state = INPROGRESS
             # Warning: kwargs is used to pass 'nextaction'. See JournalFormat.
