@@ -166,7 +166,9 @@ show command line help options and exit
 .TP
 .BI \-o \ <OPTIONS>
 .
-Used to specify additional underlying command line options.
+Used to specify additional underlying command line options. Special keywords
+like \fB%device\fR (see -O for full list) could be used and will be replaced
+for each component, by example: \fB-o '--ostdb /mnt/db/%label.db'\fR
 .TP
 .BI \-m \ <MODEL>
 .

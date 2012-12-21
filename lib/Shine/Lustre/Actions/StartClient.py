@@ -28,10 +28,6 @@ class StartClient(FSAction):
 
     NAME = 'mount'
 
-    def __init__(self, client, **kwargs):
-        FSAction.__init__(self, client)
-        self.addopts = kwargs.get('addopts')
-
     def _prepare_cmd(self):
         """
         Prepare client file system mount command line.

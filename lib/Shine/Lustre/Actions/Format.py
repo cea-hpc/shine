@@ -34,7 +34,7 @@ class CommonFormat(FSAction):
     """
 
     def __init__(self, target, **kwargs):
-        FSAction.__init__(self, target)
+        FSAction.__init__(self, target, **kwargs)
 
         # Hack to work aroung cross-dependcy with Target
         self.MGT_TYPE = Shine.Lustre.Target.MGT.TYPE
@@ -44,7 +44,6 @@ class CommonFormat(FSAction):
         self.stripecount = kwargs.get('stripecount')
         self.stripesize = kwargs.get('stripesize')
         self.format_params = kwargs.get('format_params')
-        self.addopts = kwargs.get('addopts')
 
         # Quota
         if kwargs.get('quota', False):

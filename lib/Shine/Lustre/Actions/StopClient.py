@@ -32,10 +32,6 @@ class StopClient(FSAction):
 
     NAME = 'umount'
 
-    def __init__(self, client, **kwargs):
-        FSAction.__init__(self, client)
-        self.addopts = kwargs.get('addopts')
-
     def _prepare_cmd(self):
         """
         Unmount file system client.

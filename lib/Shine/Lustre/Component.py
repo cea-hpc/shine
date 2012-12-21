@@ -136,6 +136,12 @@ class Component(object):
     # Component printing methods.
     #
 
+    def text_statusonly(self):
+        """
+        Return a string version of the component state, only.
+        """
+        return Component.text_status(self)
+
     def text_status(self):
         """
         Return a human text form for the component state.

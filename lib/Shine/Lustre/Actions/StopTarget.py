@@ -32,10 +32,6 @@ class StopTarget(FSAction):
 
     NAME = 'stop'
 
-    def __init__(self, target, **kwargs):
-        FSAction.__init__(self, target)
-        self.addopts = kwargs.get('addopts')
-
     def _prepare_cmd(self):
         """
         Unmount file system target.

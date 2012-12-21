@@ -56,7 +56,7 @@ class Fsck(FSAction):
     NAME = 'fsck'
 
     def __init__(self, target, **kwargs):
-        FSAction.__init__(self, target)
+        FSAction.__init__(self, target, **kwargs)
 
         # e2fsck send its progression on stderr
         self.stderr = True
@@ -66,8 +66,6 @@ class Fsck(FSAction):
 
         # To track message rate
         self._last_progress = 0
-
-        self.addopts = kwargs.get('addopts')
 
     def _prepare_cmd(self):
         """

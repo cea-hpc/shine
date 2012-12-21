@@ -33,9 +33,8 @@ class StartTarget(FSAction):
     NAME = 'start'
 
     def __init__(self, target, **kwargs):
-        FSAction.__init__(self, target)
+        FSAction.__init__(self, target, **kwargs)
         self.mount_options = kwargs.get('mount_options')
-        self.addopts = kwargs.get('addopts')
         self.mount_paths = kwargs.get('mount_paths')
 
     def _vars_substitute(self, txt, suppl_vars=None):

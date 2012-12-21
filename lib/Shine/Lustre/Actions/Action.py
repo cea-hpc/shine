@@ -28,10 +28,17 @@ An action must inherits from one of the base Action class.
 
 import os
 import time
+import re
 from string import Template
 
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
+
+# XXX: This is not really good to import stuff from CLI in Actions. This part
+# of Display should be generalized in some kind of Utility module and imported
+# in Display and Action.
+from Shine.CLI.Display import map_field
+
 
 class Result(object):
     """
@@ -98,6 +105,20 @@ class FSAction(Action):
 
         # Command should have a separate stderr?
         self.stderr = False
+
+        self.addopts = self._addopts_substitute(kwargs.get('addopts'))
+
+    def _addopts_substitute(self, addopts):
+        """Substitute placeholders in `addopts' based on self.comp data."""
+
+        re_pattern = '%([a-z]+)'
+        if addopts is None:
+            return None
+
+        def replacer(matched):
+            """Extract field name from the regexp and call map_field() for it."""
+            return map_field(self.comp, matched.group(1), dash=False)
+        return re.sub(re_pattern, replacer, addopts)
 
     def _vars_substitute(self, txt, suppl_vars=None):
         """

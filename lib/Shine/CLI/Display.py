@@ -30,9 +30,6 @@ from Shine.Configuration.Globals import Globals
 
 from Shine.CLI.TextTable import TextTable
 
-from Shine.Lustre.Component import Component
-from Shine.Lustre.Target import Target
-
 class DisplayError(Exception):
     """An error prevent display to be done correctly."""
 
@@ -67,7 +64,7 @@ COMP_FIELDS = {
         'status':  { 'supports': 'text_status',
                      'getter': lambda comp: comp.text_status() },
         'statusonly': { 'supports': 'text_status',
-                     'getter': Component.text_status },
+                     'getter': lambda comp: comp.text_statusonly() },
         'type':    { 'supports': 'TYPE',
                      'getter': lambda comp: comp.TYPE.upper()[0:3] },
 
@@ -88,7 +85,7 @@ COMP_FIELDS = {
         'size':    { 'supports': 'dev_size',
                      'getter': lambda tgt: _human_unit(tgt.dev_size) },
         'tag':     { 'supports': 'tag', 'getter': attrgetter('tag') },
-        'target':  { 'supports': 'get_id', 'getter': Target.get_id },
+        'target':  { 'supports': 'get_id', 'getter': lambda tgt: tgt.get_id() },
 
         # Client specific fields
         'mntpath': { 'supports': 'mount_path',
@@ -97,6 +94,25 @@ COMP_FIELDS = {
                      'getter': attrgetter('mount_options') },
 
     }
+
+def map_field(comp, field, dash=True):
+    """
+    Map a field name to a component value, based on rules from COMP_FIELD.
+
+    Mapping, for a known but unsupported field for `comp', depends on `dash' value.
+    If dash is true, '-' is returned, otherwise an empty string is returned.
+
+    Raise DisplayError if field does not exist in COMP_FIELD.
+    """
+    if field not in COMP_FIELDS:
+        raise DisplayError("bad field name '%%%s'" % field)
+
+    if comp.capable(COMP_FIELDS[field]['supports']):
+        return COMP_FIELDS[field]['getter'](comp)
+    elif dash:
+        return '-'
+    else:
+        return ''
 
 def _get_fields(comp, fields):
     """
@@ -107,13 +123,9 @@ def _get_fields(comp, fields):
     """
     d_fields = {}
     for field in fields:
-        if field not in COMP_FIELDS:
-            raise DisplayError("bad field name '%%%s'" % field)
-        if comp.capable(COMP_FIELDS[field]['supports']):
-            d_fields[field] = COMP_FIELDS[field]['getter'](comp)
-        else:
-            d_fields[field] = '-'
+        d_fields[field] = map_field(comp, field)
     return d_fields
+
 
 def table_fill(tbl, fs, sort_key=None, supports=None):
     """
