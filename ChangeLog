@@ -1,3 +1,6 @@
+2013-02-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Documentation for -L flag (ticket #157).
+
 2012-12-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Special fields could be used with -o option. (ticket #153)
 	* Add 'execute' command. (ticket #145)

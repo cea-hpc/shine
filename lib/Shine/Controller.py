@@ -137,7 +137,7 @@ class Controller:
         parser.add_option("-R", dest="remote", action="store_true",
                           help=SUPPRESS_HELP)
         parser.add_option("-L", dest="local", action="store_true",
-                          help=SUPPRESS_HELP)
+                          help="Run only for local components")
 
         view_grp = OptionGroup(parser, "Display options")
         view_grp.add_option("-v", dest="verbose", action="store_const",
