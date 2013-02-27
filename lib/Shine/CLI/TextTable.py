@@ -173,10 +173,10 @@ class TextTable(object):
 
     def _str_title(self):
         """Build a title string"""
-        width = len(self._str_common(self._header))
+        width = len(self._str_common(self._header).rstrip())
         title = " %s " % self.title
-        left = (width - len(title)) / 2
-        right = width - len(title) - left
+        right = max((width - len(title)) / 2, 1)
+        left = max(width - len(title) - right, 1)
         if self.color:
             title = "%s%s%s" % (COLORS['header'], title, COLORS['stop'])
         title = "%s%s%s" % ('=' * left, title, '=' * right)

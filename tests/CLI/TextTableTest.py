@@ -139,7 +139,7 @@ foofoo2 barbar2""")
         tbl = TextTable("%one")
         tbl.title = "test title"
         tbl.append({'one': 'foo'})
-        self.assertEqual(str(tbl), " test title \nONE\n---\nfoo")
+        self.assertEqual(str(tbl), "= test title =\nONE\n---\nfoo")
 
     def test_title_with_color(self):
         """display with title and color"""
@@ -148,19 +148,30 @@ foofoo2 barbar2""")
         tbl.color = True
         tbl.append({'filesystem': 'foo', 'two': 'bar'})
         self.assertEqual(str(tbl), 
-"""===\033[34m title \033[0m====
-\033[34mFILESYSTEM TWO\033[0m
----------- ---
-foo        bar""")
+"====\033[34m title \033[0m===\n"
+"\033[34mFILESYSTEM TWO\033[0m\n"
+"---------- ---\n"
+"foo        bar")
 
-    def test_optional_colum_empty(self):
+    def test_long_title_truncated(self):
+        """very wide data does not imply wery wide title"""
+        tbl = TextTable("%one %two")
+        tbl.title = "title"
+        tbl.append({'one': 'foobar', 'two': ' go' * 100})
+        self.assertEqual(str(tbl),
+                    "== title =\n"
+                    "ONE    TWO\n"
+                    "---    ---\n"
+                    "foobar " + ' go' * 100)
+
+    def test_optional_column_empty(self):
         """an empty optional column should not be displayed"""
         tbl = TextTable("%foo %bar")
         tbl.optional_cols = [ 'bar' ]
         tbl.append({'foo': 'zap', 'bar': None })
         self.assertEqual(str(tbl), """FOO\n---\nzap""")
 
-    def test_optional_colum_non_empty(self):
+    def test_optional_column_non_empty(self):
         """an non-empty optional column shoud be displayed"""
         tbl = TextTable("%foo %bar")
         tbl.optional_cols = [ 'bar' ]

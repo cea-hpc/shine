@@ -271,7 +271,7 @@ class DisplayTest(unittest.TestCase):
         opts = DummyOptions(color='never', header=True, fmt='%type %node')
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
-        self.assertEqual(txt, """ FILESYSTEM STATUS (display) 
+        self.assertEqual(txt, """= FILESYSTEM STATUS (display) =
 TYPE NODE
 ---- ----
 ROU  foo0
@@ -284,7 +284,7 @@ OST  foo3""")
         opts = DummyOptions(color='never', header=True, view='fs', fmt=None)
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
-        self.assertEqual(txt, """ FILESYSTEM STATUS (display) 
+        self.assertEqual(txt, """= FILESYSTEM STATUS (display) =
 TYPE # STATUS  NODES
 ---- - ------  -----
 ROU  1 unknown foo0
@@ -298,7 +298,7 @@ OST  2 unknown foo3""")
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
         self.assertEqual(txt,
-"""========== FILESYSTEM TARGETS (display) ==========
+"""========== FILESYSTEM TARGETS (display) =========
 TARGET          TYPE IDX SERVERS DEVICE    STATUS
 ------          ---- --- ------- ------    ------
 MGS             MGT    0 foo1    /dev/mgt  unknown
@@ -311,7 +311,7 @@ display-OST0001 OST    1 foo3    /dev/ost1 unknown""")
         opts = DummyOptions(color='never', header=True, view='disk')
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
-        self.assertEqual(txt, """======================== FILESYSTEM DISKS (display) =========================
+        self.assertEqual(txt, """======================== FILESYSTEM DISKS (display) ========================
 DEVICE    SERVERS DEV_SIZE  TYPE INDEX  LABEL           FLAGS FSNAME  STATUS
 ------    ------- --------  ---- -----  -----           ----- ------  ------
 /dev/mgt  foo1           0  MGT      0  MGS                   display unknown
@@ -325,7 +325,7 @@ DEVICE    SERVERS DEV_SIZE  TYPE INDEX  LABEL           FLAGS FSNAME  STATUS
         opts = DummyOptions(color='always', header=True, view='fs')
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
-        self.assertEqual(txt, """\x1b[34m FILESYSTEM STATUS (display) \x1b[0m
+        self.assertEqual(txt, """=\x1b[34m FILESYSTEM STATUS (display) \x1b[0m=
 \x1b[34mTYPE # STATUS  NODES\x1b[0m
 ---- - ------  -----
 ROU  1 unknown foo0

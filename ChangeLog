@@ -1,3 +1,6 @@
+2013-02-27 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Improve table title display with wide data (ticket #157).
+
 2013-02-26 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Documentation for -L flag (ticket #157).
 
