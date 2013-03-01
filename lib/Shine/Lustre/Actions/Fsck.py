@@ -1,5 +1,5 @@
 # Fsck.py -- Lustre action class: fsck
-# Copyright (C) 2010-2012 CEA
+# Copyright (C) 2010-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Action class to check (fsck) target filesystem coherency.
@@ -60,6 +59,8 @@ class Fsck(FSAction):
 
         # e2fsck send its progression on stderr
         self.stderr = True
+        # As stderr msgtree is disabled, we have to track output ourselves.
+        self._output = []
 
         # Logging
         self.logger = logging.getLogger(__name__)
@@ -67,15 +68,15 @@ class Fsck(FSAction):
         # To track message rate
         self._last_progress = 0
 
+
     def _prepare_cmd(self):
         """
         Create the command line to run 'e2fsck'.
         """
-        command = ["e2fsck", '-f -y -C2', self.comp.dev]
+        command = ["e2fsck", '-f -C2', self.comp.dev]
 
         # Process additional options
-        if self.addopts:
-            command.append(self.addopts)
+        command.append(self.addopts or '-y')
 
         return command
 
@@ -85,6 +86,7 @@ class Fsck(FSAction):
 
     def ev_read(self, worker):
         self.logger.info("%-16s %s" % (self.comp.label, worker.current_msg))
+        self._output.append(worker.current_msg)
 
     def ev_error(self, worker):
         FSAction.ev_error(self, worker)
@@ -99,7 +101,8 @@ class Fsck(FSAction):
                 self.comp._action_progress(self.NAME, result=result)
 
         except ValueError:
-            pass
+            # Other error messages could be important
+            self._output.append(worker.current_errmsg)
 
     def ev_close(self, worker):
         """
@@ -118,14 +121,17 @@ class Fsck(FSAction):
             self.comp._action_timeout('fsck')
         # fsck returns 0=NOERROR, 1=OK_BUT_CORRECTION, 2=OK_BUT_REBOOT.
         # see man fsck.
-        elif worker.retcode() in (0, 1, 2):
+        elif worker.retcode() in (0, 1, 2, 4):
             # action succeeded
             result = Result(duration=self.duration, retcode=worker.retcode())
             if worker.retcode() in (1, 2):
                 result.message = "Errors corrected"
+            if worker.retcode() == 4: # -n
+                result.message = "Errors found but NOT corrected"
             self.comp._action_done('fsck', result)
         else:
             # action failure
             self.comp.state = TARGET_ERROR
-            result = ErrorResult(worker.read(), self.duration, worker.retcode())
+            msg = "\n".join(self._output)
+            result = ErrorResult(msg, self.duration, worker.retcode())
             self.comp._action_failed('fsck', result)

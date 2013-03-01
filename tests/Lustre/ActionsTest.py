@@ -155,19 +155,19 @@ class ActionsTest(unittest.TestCase):
         """test command line fsck"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Fsck(tgt)
-        self.check_cmd(action, 'e2fsck -f -y -C2 /dev/root')
+        self.check_cmd(action, 'e2fsck -f -C2 /dev/root -y')
 
     def test_fsck_addopts(self):
         """test command line fsck (addl options)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Fsck(tgt, addopts='-v')
-        self.check_cmd(action, 'e2fsck -f -y -C2 /dev/root -v')
+        self.check_cmd(action, 'e2fsck -f -C2 /dev/root -v')
 
     def test_fsck_addopts_placeholders(self):
         """test command line fsck (addl options with placeholders)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Fsck(tgt, addopts='--ostdb /mnt/db/%label.db')
-        self.check_cmd(action, 'e2fsck -f -y -C2 /dev/root --ostdb /mnt/db/MGS.db')
+        self.check_cmd(action, 'e2fsck -f -C2 /dev/root --ostdb /mnt/db/MGS.db')
 
     # XXX: All full_check() calls should be replaced by a real call to the
     # method dedicated action for the Target.

@@ -119,9 +119,9 @@ Display filesystem component static information.
 .sp
 Format an installed filesystem.
 .TP
-.B \fIfsck\fP -f <FSNAME>
+.B \fIfsck\fP -f <FSNAME> \fR[\fP -o '-n' \fR]\fP
 .sp
-Perform a "check and repair" \fIfsck\fP on specified targets backend file system in parallel.
+Perform a "check and repair" \fIfsck\fP on specified targets backend file system in parallel. It always attempt to fix any detected errors (runs 'fsck -y'). Use -o'-n' to check for errors without fixing them. As Shine cannot run interactive programs, -y, -n or -p must be explicitly specified if -o is used.
 .TP
 .B \fItunefs\fP -f <FSNAME>
 .sp
@@ -176,7 +176,8 @@ Run command only for local components. Do not connect on other nodes.
 .
 Used to specify additional underlying command line options. Special keywords
 like \fB%device\fR (see -O for full list) could be used and will be replaced
-for each component, by example: \fB-o '--ostdb /mnt/db/%label.db'\fR
+for each component, by example: \fB-o '--ostdb /mnt/db/%label.db'\fR. See 
+above for usage with fsck command.
 .TP
 .BI \-m \ <MODEL>
 .

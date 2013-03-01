@@ -1,3 +1,6 @@
+2013-06-07 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fsck could be run with -n option (ticket #151).
+
 2013-02-27 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Improve table title display with wide data (ticket #157).
 
