@@ -1,0 +1,134 @@
+.\" -*- nroff -*-
+.\" Copyright (c) 2007 CEA.  All rights reserved.
+.\" 
+.\" This file may be copied under the terms of the GNU Public License.
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\"
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\"
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+.\" "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+.\" TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\" PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+.\" CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+.\" EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+.\" PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+.\" OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+.\" WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+.\" OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+.\" ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.\" 
+.\" $Id$
+.Dd December 14, 2007    \" DATE 
+.Dt shine.conf 5         \" Program name and manual section number 
+.Os Linux
+.Sh NAME                 \" Section Header
+.Nm shine.conf
+.Nd Configuration file for
+.Tn shine
+.Sh DESCRIPTION          \" Section Header
+The
+.Nm
+file controls the behavior of
+.Xr shine 1
+command. It is located in the
+.Pa /etc/shine
+directory and is only needed on the management(s) node(s).
+.Pp
+The configuration is made up of several lines of paramaters such as:
+.Pp
+.D1 Ar key Ns = Ns Ar value
+.Pp
+where
+.Ar key
+represents a parameter name, and
+.Ar value
+would be the parameter's assigned value.  Lines that begin with a # are
+treated as comments.
+.Pp
+.Ss Storage backend
+.Bl -tag -width Ds -compact
+.It Ic backend Ns = Ns file|clusterdb
+specifies shine's selected backend type. If this variable is set to
+.Ic clusterdb Ns ,
+storage, filesystem and mount information is retrieved and stored from
+tables lustre_ost, lustre_mdt, lustre_mount and lustre_fs of ClusterDB.
+If backend is set to
+.Ic file Ns ,
+storage information is retrieved from
+.Ar storage_file
+and status information is stored in
+.Ar cache_dir
+directory on the management node. 
+Default is
+.Ic file Ns .
+.El
+.Ss File backend specific settings
+.Bl -tag -width Ds -compact
+.It Ic cache_dir Ns = Ns Ar pathname
+is the cache directory used for status information.
+Default directory is
+.Pa /var/cache/shine/status
+.It Ic storage_file Ns = Ns Ar pathname
+is the file used to retrieve targets storage information.
+Default is
+.Pa /etc/shine/storage.conf
+.El
+.Ss Cluster-wide applicable settings
+.Bl -tag -width Ds -compact
+.It Ic conf_dir Ns = Ns Ar pathname
+is a directory present on each Lustre nodes to store generated configuration files.
+The content of this directory is managed by shine and shouldn't be modified directly.
+Default directory is
+.Pa /var/cache/shine/conf
+.El
+.Ss Optional configuration files
+.Bl -tag -width Ds -compact
+.It Ic tuning_file Ns = Ns Ar pathname
+is the file describing Lustre tuning parameters.
+Default is
+.Pa /etc/shine/tuning.conf
+.El
+.Ss Advanced settings 
+.Bl -tag -width Ds -compact
+.It Ic ssh_connect_timeout Ns = Ns Ar secs
+is the timeout in seconds for ssh connections.
+.It Ic start_timeout Ns = Ns Ar secs
+is the timeout in seconds for start operation.
+.It Ic stop_timeout Ns = Ns Ar secs
+is the timeout in seconds for stop operation.
+.It Ic mount_timeout Ns = Ns Ar secs
+is the timeout in seconds for mount operation.
+.It Ic umount_timeout Ns = Ns Ar secs
+is the timeout in seconds for umount operation.
+.It Ic status_timeout Ns = Ns Ar secs
+is the timeout in seconds for status operation.
+.It Ic set_tuning_timeout Ns = Ns Ar secs
+is the timeout in seconds for applying tuning parameters.
+.It Ic allow_loop_devices Ns = Ns yes|no
+set it to yes if you want to use loop devices.
+Default is
+.Ic no Ns .
+.El
+.Sh FILES                \" File used or created by the topic of the man page
+.Bl -tag -width "/Library/StartupItems/balanced/uninstall.sh" -compact
+.It Pa /etc/shine/shine.conf
+.It Pa /etc/shine/tuning.conf
+.El
+.\" .Sh BUGS              \" Document known, unremedied bugs 
+.Sh HISTORY           \" Document history if command behaves in a unique manner
+.Nm
+settings were previously in
+.Pa /etc/lustre/lustre_util.conf
+and
+.Pa /etc/lustre/lustre.cfg
+.Sh SEE ALSO
+.Xr shine 1 ,
+.Xr shine-tuning.conf 5
