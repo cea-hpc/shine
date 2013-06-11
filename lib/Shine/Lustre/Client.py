@@ -17,7 +17,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
+
+"""
+Classes for Shine framework to manage Lustre clients.
+"""
 
 from glob import glob
 import os 
@@ -25,7 +28,6 @@ import os
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
 
-from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
@@ -193,52 +195,10 @@ class Client(Component):
     # Client actions
     #
 
-    def status(self):
-        """
-        Check client status.
-        """
-        self._action_start('status')
-
-        try:
-            self.full_check()
-            self._action_done('status')
-        except ComponentError, error:
-            self._action_failed('status', Result(str(error)))
-
-
     def mount(self, **kwargs):
-        """
-        Mount a Lustre client.
-        """
-        self._action_start('mount')
-
-        try:
-            self.full_check()
-            if self.state == MOUNTED:
-                result = Result("%s is already mounted on %s" % \
-                                (self.fs.fs_name, self.mtpt))
-                self._action_done('mount', result=result)
-            else:
-                action = StartClient(self, **kwargs)
-                action.launch()
-
-        except ComponentError, error:
-            self._action_failed('mount', Result(str(error)))
+        """Mount a Lustre client."""
+        return StartClient(self, **kwargs)
 
     def umount(self, **kwargs):
-        """
-        Umount a Lustre client.
-        """
-        self._action_start('umount')
-
-        try:
-            self.full_check()
-            if self.state == OFFLINE:
-                result = Result("%s is not mounted" % self.fs.fs_name)
-                self._action_done('umount', result=result)
-            else:
-                action = StopClient(self, **kwargs)
-                action.launch()
-
-        except ComponentError, error:
-            self._action_failed('umount', Result(str(error)))
+        """Umount a Lustre client."""
+        return StopClient(self, **kwargs)

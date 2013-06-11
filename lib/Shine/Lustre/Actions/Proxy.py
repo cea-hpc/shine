@@ -1,5 +1,5 @@
 # Proxy.py -- Lustre generic FS proxy action class
-# Copyright (C) 2009-2012 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import os
 import sys
@@ -100,7 +99,7 @@ class FSProxyAction(ProxyAction):
     """
 
     def __init__(self, fs, action, nodes, debug, comps=None, addopts=None, 
-                 failover=None):
+                 failover=None, mountdata=None):
 
         ProxyAction.__init__(self)
         self.fs = fs
@@ -112,6 +111,7 @@ class FSProxyAction(ProxyAction):
 
         self.addopts = addopts
         self.failover = failover
+        self.mountdata = mountdata
 
         if self.fs.debug:
             print "FSProxyAction %s on %s" % (action, nodes)
@@ -137,6 +137,9 @@ class FSProxyAction(ProxyAction):
         if self.failover:
             command.append("-F '%s'" % self.failover)
 
+        if self.mountdata:
+            command.append('--mountdata')
+
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
 
@@ -152,7 +155,7 @@ class FSProxyAction(ProxyAction):
             for comp in self._comps:
                 # Warning: there is no clean call at the end of the action.
                 # cleaning is done by hand.
-                comp._action_start('proxy')
+                comp.action_start('proxy')
 
     def ev_read(self, worker):
         node, buf = worker.last_read()

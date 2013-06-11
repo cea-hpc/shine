@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+#
+# Copyright (C) 2007-2013 CEA
+#
 # Shine.Lustre.Actions.* test suite
-# Written by A. Degremont 2010-12-19
-# $Id$
-
+#
 
 """Unit test for various Actions"""
 
@@ -34,7 +35,7 @@ class ActionsTest(unittest.TestCase):
         """Check `action' prepare_cmd() return the provided cmdline."""
         self.assertEqual(' '.join(action._prepare_cmd()), cmdline)
 
-    # 
+    #
     # Router
     #
 

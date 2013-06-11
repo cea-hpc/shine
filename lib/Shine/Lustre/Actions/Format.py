@@ -1,5 +1,5 @@
 # Format.py -- Lustre action class : format
-# Copyright (C) 2007-2010 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,14 +17,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
+
+"""
+This module contains several classes to manage Lustre target formatting and also
+tunefs command as it is very close in behaviour.
+"""
 
 import re
+
+from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
 from Shine.Lustre.Actions.Action import FSAction
-# take care of cross-dependency
+
 import Shine.Lustre.Target
 
 class CommonFormat(FSAction):
@@ -60,6 +66,17 @@ class CommonFormat(FSAction):
         for nidlist in self.comp.fs.get_mgs_nids():
             params += [ '"--mgsnode=%s"' % ','.join(nidlist) ]
         return params
+
+    def _already_done(self):
+        """Raise an exception if the target is mounted."""
+        self.comp.raise_if_started("Cannot %s" % self.NAME)
+
+        # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
+        if not self.comp.dev_isblk:
+            # configure one engine client max per task (sequential, bah.)
+            task_self().set_info("fanout", 1)
+
+        return None
 
     def _prepare_cmd(self):
 
@@ -160,6 +177,7 @@ class Format(CommonFormat):
     """
 
     NAME = 'format'
+    CHECK_MOUNTDATA = False
 
     def __init__(self, target, **kwargs):
         CommonFormat.__init__(self, target, **kwargs)
@@ -203,7 +221,7 @@ class Format(CommonFormat):
 
         return command
 
-    def launch(self):
+    def _shell(self):
         """
         Create a command line and schedule it to be run by self.task
 
@@ -218,7 +236,7 @@ class Format(CommonFormat):
             # ev_close(), FSAction.launch(self) will be called to run
             # the normal launch method.
         else:
-            FSAction.launch(self)
+            FSAction._shell(self)
 
 
 class JournalFormat(FSAction):
@@ -246,4 +264,4 @@ class JournalFormat(FSAction):
         if worker.retcode() == 0:
             # Journal is done, launch next step
             # This is not pretty as we ignore the launch() method of nextaction.
-            FSAction.launch(self.nextaction)
+            FSAction._shell(self.nextaction)

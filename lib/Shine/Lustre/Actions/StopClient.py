@@ -1,5 +1,5 @@
 # StopClient.py -- Umount client
-# Copyright (C) 2009, 2010 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -23,7 +23,7 @@
 Action class to stop Lustre client.
 """
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StopClient(FSAction):
     """
@@ -31,6 +31,13 @@ class StopClient(FSAction):
     """
 
     NAME = 'umount'
+
+    def _already_done(self):
+        """Return a Result object if the filesystem is not mounted already."""
+        if self.comp.is_stopped():
+            return Result("%s is not mounted" % self.comp.fs.fs_name)
+        else:
+            return None
 
     def _prepare_cmd(self):
         """

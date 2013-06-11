@@ -17,18 +17,23 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id: Client.py 248 2010-03-29 11:07:40Z ad-cea $
+
+"""
+Classes for Shine framework to manage Lustre LNET routers.
+"""
 
 import os 
 
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
 
-from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.StartRouter import StartRouter
 from Shine.Lustre.Actions.StopRouter import StopRouter
 
 class Router(Component):
+    """
+    Manages a LNET router in Shine framework.
+    """
 
     TYPE = 'router'
     DISPLAY_ORDER = 1
@@ -89,51 +94,10 @@ class Router(Component):
     # Client actions
     #
 
-    def status(self):
-        """
-        Check router status.
-        """
-        self._action_start('status')
-
-        try:
-            self.full_check()
-            self._action_done('status')
-        except ComponentError, error:
-            self._action_failed('status', Result(str(error)))
-
-
     def start(self, **kwargs):
-        """
-        Start a Lustre router
-        """
-        self._action_start('start')
-
-        try:
-            self.full_check()
-            if self.state == MOUNTED:
-                result = Result('router is already enabled')
-                self._action_done('start', result=result)
-            else:
-                action = StartRouter(self)
-                action.launch()
-
-        except ComponentError, error:
-            self._action_failed('start', Result(str(error)))
+        """Start a Lustre router."""
+        return StartRouter(self, **kwargs)
 
     def stop(self, **kwargs):
-        """
-        Stop a Lustre router
-        """
-        self._action_start('stop')
-
-        try:
-            self.full_check()
-            if self.state == OFFLINE:
-                result = Result('router is already disabled')
-                self._action_done('stop', result=result)
-            else:
-                action = StopRouter(self)
-                action.launch()
-
-        except ComponentError, error:
-            self._action_failed('stop', Result(str(error)))
+        """Stop a Lustre router."""
+        return StopRouter(self, **kwargs)

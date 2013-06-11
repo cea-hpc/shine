@@ -1,5 +1,5 @@
 # StartTarget.py -- Lustre action class : start (mount) target
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,17 +17,22 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
+
+"""
+This module contains a FSAction class to start a Lustre target.
+"""
 
 import os
 
-from Shine.Lustre.Actions.Action import FSAction
+from ClusterShell.Task import task_self
+
+from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StartTarget(FSAction):
     """
     File system target start action class.
 
-    Current version of Lustre (1.6) starts a target simply by mounting it.
+    Lustre, since 1.6, starts a target simply by mounting it.
     """
 
     NAME = 'start'
@@ -58,6 +63,19 @@ class StartTarget(FSAction):
             var_map.update(suppl_vars)
 
         return FSAction._vars_substitute(self, txt, var_map)
+
+    def _already_done(self):
+        """Return a Result object is the target is already mounted."""
+
+        # Already done?
+        if self.comp.is_started():
+            return Result("%s is already started" % self.comp.label)
+
+        # LBUG #18624
+        if not self.comp.dev_isblk:
+            task_self().set_info("fanout", 1)
+
+        return None
 
     def _prepare_cmd(self):
         """Mount file system target."""

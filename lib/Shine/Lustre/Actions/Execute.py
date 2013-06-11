@@ -31,6 +31,8 @@ class Execute(FSAction):
 
     NAME = 'execute'
 
+    CHECK_MOUNTDATA = False
+
     def _prepare_cmd(self):
         """
         There is no real preparation for Execute, as the command syntax is

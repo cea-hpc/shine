@@ -1,5 +1,5 @@
 # StopTarget.py -- Lustre action class: stop (umount) target
-# Copyright (C) 2009, 2010 CEA
+# Copyright (C) 2009-2012 CEA
 #
 # This file is part of shine
 #
@@ -23,7 +23,9 @@
 Action class to stop Lustre target.
 """
 
-from Shine.Lustre.Actions.Action import FSAction
+from ClusterShell.Task import task_self
+
+from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StopTarget(FSAction):
     """
@@ -31,6 +33,17 @@ class StopTarget(FSAction):
     """
 
     NAME = 'stop'
+
+    def _already_done(self):
+        """Return a Result object is the target is already unmounted."""
+        if self.comp.is_stopped():
+            return Result(message="%s is already stopped" % self.comp.label)
+
+        # LBUG #18624
+        if not self.comp.dev_isblk:
+            task_self().set_info("fanout", 1)
+
+        return None
 
     def _prepare_cmd(self):
         """

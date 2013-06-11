@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre FS
-# Copyright (C) 2007, 2008, 2009 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Lustre FileSystem class.
@@ -250,14 +249,16 @@ class FileSystem:
     # Task management.
     #
 
-    def _proxy_action(self, action, servers, comps=None, 
-                      addopts=None, failover=None):
+    def _proxy_action(self, action, servers, comps=None, addopts=None,
+                      **kwargs):
         """Create a proxy action to remotely run a shine action."""
         assert(isinstance(servers, NodeSet))
         assert(comps is None or isinstance(comps, ComponentGroup))
 
-        FSProxyAction(self, action, servers, self.debug, comps=comps, 
-                      addopts=addopts, failover=failover).launch()
+        failover = kwargs.get('failover')
+        mountdata = kwargs.get('mountdata')
+        FSProxyAction(self, action, servers, self.debug, comps, addopts,
+                      failover, mountdata).launch()
 
     def _run_actions(self):
         """
@@ -410,21 +411,15 @@ class FileSystem:
     def format(self, comps=None, **kwargs):
 
         comps = (comps or self.components).managed(supports='format')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-        failover = kwargs.get('failover', None)
-
         for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
                 for target in targets:
-                    target.format(**kwargs)
+                    target.format(**kwargs).launch()
 
             else:
-                self._proxy_action('format', server.hostname, targets, addopts,
-                                   failover)
+                self._proxy_action('format', server.hostname, targets, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -436,21 +431,15 @@ class FileSystem:
     def tunefs(self, comps=None, **kwargs):
 
         comps = (comps or self.components).managed(supports='tunefs')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-        failover = kwargs.get('failover', None)
-
         for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
                 for target in targets:
-                    target.tunefs(**kwargs)
+                    target.tunefs(**kwargs).launch()
 
             else:
-                self._proxy_action('tunefs', server.hostname, targets, addopts,
-                                   failover)
+                self._proxy_action('tunefs', server.hostname, targets, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -461,21 +450,15 @@ class FileSystem:
     def fsck(self, comps=None, **kwargs):
 
         comps = (comps or self.components).managed(supports='fsck')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-        failover = kwargs.get('failover', None)
-        
         for server, targets in comps.groupbyserver():
 
             if server.is_local():
                 # local server
                 for target in targets:
-                    target.fsck(**kwargs)
+                    target.fsck(**kwargs).launch()
 
             else:
-                self._proxy_action('fsck', server.hostname, targets, addopts,
-                                   failover)
+                self._proxy_action('fsck', server.hostname, targets, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -483,7 +466,7 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], comps)
 
-    def status(self, flags=STATUS_ANY, addopts=None, failover=None, comps=None):
+    def status(self, flags=STATUS_ANY, comps=None, **kwargs):
         """
         Get status of filesystem.
         """
@@ -499,10 +482,10 @@ class FileSystem:
 
             if server.is_local():
                 for comp in srvcomps:
-                    comp.status()
+                    comp.status().launch()
             else:
                 self._proxy_action('status', server.hostname, srvcomps,
-                                   addopts, failover)
+                                   **kwargs)
 
         # Run local and proxy actions
         self._run_actions()
@@ -515,10 +498,6 @@ class FileSystem:
         Start Lustre file system servers.
         """
         comps = (comps or self.components).managed(supports='start')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-        failover = kwargs.get('failover', None)
 
         # What starting order to use?
         key = lambda t: t.TYPE == MDT.TYPE
@@ -539,11 +518,11 @@ class FileSystem:
                         # Note that target.start() should never block here:
                         # it will perform necessary non-blocking actions and
                         # (when needed) will start local ClusterShell workers.
-                        target.start(**kwargs)
+                        target.start(**kwargs).launch()
                 else:
                     # Start per selected targets on this server.
                     self._proxy_action('start', server.hostname, subtargets,
-                                       addopts, failover)
+                                       **kwargs)
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -564,10 +543,6 @@ class FileSystem:
         """
         comps = (comps or self.components).managed(supports='stop')
 
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-        failover = kwargs.get('failover', None)
-
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
         for order, targets in comps.groupby(attr='START_ORDER', reverse=True):
@@ -576,11 +551,11 @@ class FileSystem:
                 if server.is_local():
                     # Stop targets if we are on the good server.
                     for target in subtargets:
-                        target.stop(**kwargs)
+                        target.stop(**kwargs).launch()
                 else:
                     # Stop per selected targets on this server.
                     self._proxy_action('stop', server.hostname, subtargets,
-                                       addopts, failover)
+                                       **kwargs)
 
             # Run local actions and FSProxyAction
             self._run_actions()
@@ -596,19 +571,15 @@ class FileSystem:
         Mount FS clients.
         """
         comps = (comps or self.components).managed(supports='mount')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-
         for server, clients in comps.groupbyserver():
 
             if server.is_local():
                 # local client
                 for comp in clients:
-                    comp.mount(**kwargs)
+                    comp.mount(**kwargs).launch()
             else:
                 # distant client
-                self._proxy_action('mount', server.hostname, clients, addopts)
+                self._proxy_action('mount', server.hostname, clients, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -621,18 +592,14 @@ class FileSystem:
         Unmount FS clients.
         """
         comps = (comps or self.components).managed(supports='umount')
-
-        # Get additional options for the FSProxyAction call
-        addopts = kwargs.get('addopts', None)
-
         for server, clients in comps.groupbyserver():
             if server.is_local():
                 # local clients
                 for comp in clients:
-                    comp.umount(**kwargs)
+                    comp.umount(**kwargs).launch()
             else:
                 # distant clients
-                self._proxy_action('umount', server.hostname, clients, addopts)
+                self._proxy_action('umount', server.hostname, clients, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -645,22 +612,16 @@ class FileSystem:
         Execute custom command.
         """
         comps = (comps or self.components).managed(supports='execute')
-
-        # addopts is not optional at all for 'execute' command
-        addopts = kwargs.get('addopts', None)
-        # Get additional options for the FSProxyAction call
-        failover = kwargs.get('failover', None)
-
         for server, srvcomps in comps.groupbyserver():
 
             if server.is_local():
                 # local client
                 for comp in srvcomps:
-                    comp.execute(**kwargs)
+                    comp.execute(**kwargs).launch()
             else:
                 # distant client
                 self._proxy_action('execute', server.hostname, srvcomps,
-                                   addopts, failover)
+                                   **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -669,7 +630,7 @@ class FileSystem:
         # XXX: Is that ok, to check MOUNTED here?
         return self._check_errors([MOUNTED], comps)
 
-    def tune(self, tuning_model, addopts=None, comps=None):
+    def tune(self, tuning_model, comps=None, **kwargs):
         """
         Tune server.
         """
@@ -693,7 +654,7 @@ class FileSystem:
                 types = set([type_map[tgt.TYPE] for tgt in srvcomps])
                 server.tune(tuning_model, types, self.fs_name)
             else:
-                self._proxy_action('tune', server.hostname, srvcomps, addopts)
+                self._proxy_action('tune', server.hostname, srvcomps, **kwargs)
 
         # Run local actions and FSProxyAction
         self._run_actions()

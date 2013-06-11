@@ -1,5 +1,5 @@
 # StartClient.py -- Mount client
-# Copyright (C) 2009-2012 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,9 +17,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
-from Shine.Lustre.Actions.Action import FSAction
+"""
+This module contains the FSAction class for mounting a Lustre filesystem, from
+a client side.
+"""
+
+from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StartClient(FSAction):
     """
@@ -27,6 +31,14 @@ class StartClient(FSAction):
     """
 
     NAME = 'mount'
+
+    def _already_done(self):
+        """Return a Result object if the client is already mounted."""
+        if self.comp.is_started():
+            return Result("%s is already mounted on %s" %
+                          (self.comp.fs.fs_name, self.comp.mtpt))
+        else:
+            return None
 
     def _prepare_cmd(self):
         """

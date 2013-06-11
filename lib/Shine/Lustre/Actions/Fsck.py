@@ -25,8 +25,9 @@ Action class to check (fsck) target filesystem coherency.
 import time
 import logging
 
-from Shine.Lustre.Actions.Action import Action, FSAction, Result, ErrorResult
 from Shine.Lustre.Component import TARGET_ERROR
+from Shine.Lustre.Actions.Action import Action, FSAction, Result, ErrorResult
+
 
 class FsckProgress(Result):
     """
@@ -54,6 +55,9 @@ class Fsck(FSAction):
 
     NAME = 'fsck'
 
+    # No mountdata check for fsck has it could be corrupted
+    CHECK_MOUNTDATA = False
+
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)
 
@@ -68,6 +72,10 @@ class Fsck(FSAction):
         # To track message rate
         self._last_progress = 0
 
+    def _already_done(self):
+        """Raise an exception if the target is mounted."""
+        self.comp.raise_if_started("Cannot fsck")
+        return None
 
     def _prepare_cmd(self):
         """
@@ -80,8 +88,9 @@ class Fsck(FSAction):
 
         return command
 
-    def launch(self):
-        FSAction.launch(self)
+    def _shell(self):
+        """Call superclass _shell() method and add logging."""
+        FSAction._shell(self)
         self.logger.info("%-16s %s" % (self.comp.label, "Starting fsck"))
 
     def ev_read(self, worker):
@@ -98,7 +107,7 @@ class Fsck(FSAction):
             # Limit message rate to one message per second max.
             if result.progress == 100 or self._last_progress + 1 < time.time():
                 self._last_progress = time.time()
-                self.comp._action_progress(self.NAME, result=result)
+                self.comp.action_progress(self.NAME, result=result)
 
         except ValueError:
             # Other error messages could be important
@@ -111,27 +120,27 @@ class Fsck(FSAction):
         Note that if fsck has correctly fixed some errors, actions will be
         considered as successful.
         """
-        # We want to skiping FSAction.ev_close(), just call the upper layer.
+
+        if worker.did_timeout():
+            return FSAction.ev_close(self, worker)
+
+        # We want to skip FSAction.ev_close(), just call the upper layer.
         Action.ev_close(self, worker)
 
         self.comp.lustre_check()
 
-        if worker.did_timeout():
-            # action timed out
-            self.comp._action_timeout('fsck')
         # fsck returns 0=NOERROR, 1=OK_BUT_CORRECTION, 2=OK_BUT_REBOOT.
         # see man fsck.
-        elif worker.retcode() in (0, 1, 2, 4):
+        if worker.retcode() in (0, 1, 2, 4):
             # action succeeded
             result = Result(duration=self.duration, retcode=worker.retcode())
             if worker.retcode() in (1, 2):
                 result.message = "Errors corrected"
             if worker.retcode() == 4: # -n
                 result.message = "Errors found but NOT corrected"
-            self.comp._action_done('fsck', result)
+            self.comp.action_done('fsck', result)
         else:
-            # action failure
             self.comp.state = TARGET_ERROR
             msg = "\n".join(self._output)
             result = ErrorResult(msg, self.duration, worker.retcode())
-            self.comp._action_failed('fsck', result)
+            self.comp.action_failed('fsck', result)

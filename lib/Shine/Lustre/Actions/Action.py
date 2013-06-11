@@ -1,5 +1,5 @@
 # Action.py -- Abstract class for shine lustre action
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Actions classes defined the code to launch and the event handler for a specific
@@ -33,6 +32,8 @@ from string import Template
 
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
+
+from Shine.Lustre.Component import ComponentError
 
 # XXX: This is not really good to import stuff from CLI in Actions. This part
 # of Display should be generalized in some kind of Utility module and imported
@@ -99,6 +100,9 @@ class FSAction(Action):
 
     NAME = "(to be changed)"
 
+    # full_check() should also check mountdata?
+    CHECK_MOUNTDATA = True
+
     def __init__(self, comp, task=task_self(), **kwargs):
         Action.__init__(self, task)
         self.comp = comp
@@ -108,6 +112,13 @@ class FSAction(Action):
 
         self.addopts = self._addopts_substitute(kwargs.get('addopts'))
 
+        # If mountdata is not set, use the default value of each action.
+        if kwargs.get('mountdata', 'auto') != 'auto':
+            # 'always' for True, 'never' for False
+            self.check_mountdata = (kwargs['mountdata'] == 'always')
+        else:
+            self.check_mountdata = self.__class__.CHECK_MOUNTDATA
+
     def _addopts_substitute(self, addopts):
         """Substitute placeholders in `addopts' based on self.comp data."""
 
@@ -116,7 +127,7 @@ class FSAction(Action):
             return None
 
         def replacer(matched):
-            """Extract field name from the regexp and call map_field() for it."""
+            """Extract field name from the regexp and call map_field() for it"""
             return map_field(self.comp, matched.group(1), dash=False)
         return re.sub(re_pattern, replacer, addopts)
 
@@ -147,10 +158,16 @@ class FSAction(Action):
         """
         raise NotImplementedError("Derived classes must implement it.")
 
-    def launch(self):
+    def _already_done(self):
         """
-        Create a command line and schedule it to be run by self.task.
+        Verify if the action work is already done.
+
+        Return a Result object if done, None otherwise.
         """
+        return None
+
+    def _shell(self):
+        """Create a command line and schedule it to be run by self.task"""
 
         # Extent path
         command = [ "export PATH=/usr/lib/lustre:$PATH;" ]
@@ -164,6 +181,25 @@ class FSAction(Action):
         # XXX: Add timeout
         self.task.shell(cmdline, handler=self, stderr=self.stderr)
 
+    def launch(self):
+        """
+        Run the command to process the action.
+
+        It checks the command could be really be run and raises events.
+        """
+        self.comp.action_start(self.NAME)
+        try:
+            self.comp.full_check(mountdata=self.check_mountdata)
+
+            result = self._already_done()
+            if not result:
+                self._shell()
+            else:
+                self.comp.action_done(self.NAME, result)
+
+        except ComponentError, error:
+            self.comp.action_failed(self.NAME, Result(str(error)))
+
     def ev_close(self, worker):
         """
         Check process termination status and generate appropriate events.
@@ -174,14 +210,14 @@ class FSAction(Action):
 
         # Action timed out
         if worker.did_timeout():
-            self.comp._action_timeout(self.NAME)
+            self.comp.action_timeout(self.NAME)
 
         # Action succeeded
         elif worker.retcode() == 0:
             result = Result(duration=self.duration, retcode=worker.retcode())
-            self.comp._action_done(self.NAME, result)
+            self.comp.action_done(self.NAME, result)
 
         # Action failed
         else:
             result = ErrorResult(worker.read(), self.duration, worker.retcode())
-            self.comp._action_failed(self.NAME, result)
+            self.comp.action_failed(self.NAME, result)

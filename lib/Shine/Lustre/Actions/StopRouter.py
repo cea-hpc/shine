@@ -1,5 +1,5 @@
 # StopRouter.py -- Stop router
-# Copyright (C) 2010, 2011 CEA
+# Copyright (C) 2010-2012 CEA
 #
 # This file is part of shine
 #
@@ -21,7 +21,7 @@
 
 """Action class to handle router stop command and event handling."""
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StopRouter(FSAction):
     """
@@ -29,6 +29,13 @@ class StopRouter(FSAction):
     """
 
     NAME = 'stop'
+
+    def _already_done(self):
+        """Return a Result object if the router is already stopped."""
+        if self.comp.is_stopped():
+            return Result('router is already disabled')
+        else:
+            return None
 
     def _prepare_cmd(self):
         """Stop LNET."""

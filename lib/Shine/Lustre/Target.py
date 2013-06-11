@@ -17,15 +17,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import os
 import stat
 import glob
 
-from ClusterShell.Task import task_self
-
-from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
@@ -34,7 +30,7 @@ from Shine.Lustre.Actions.Fsck import Fsck
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
-                                   INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
+                                   TARGET_ERROR, RUNTIME_ERROR
 from Shine.Lustre.Server import Server, ServerGroup
 
 
@@ -319,167 +315,56 @@ class Target(Component, Disk):
                 finally:
                     fproc.close()
 
+    #
+    # Helper methods to check component state in Actions.
+    #
+
+    def is_started(self):
+        """Return True if the target device is mounted."""
+        return self.state in (MOUNTED, RECOVERING)
+
+    def raise_if_started(self, message):
+        """Raise a ComponentError if the target device is mounted."""
+        if self.state != OFFLINE:
+            if self.is_started():
+                reason = "%s: target %s (%s) is started"
+            else:
+                reason = "%s: target %s (%s) is busy"
+            self.state = TARGET_ERROR
+            raise ComponentError(self, reason % (message, self.label, self.dev))
+
+    #
+    # Target actions
+    #
+
     def format(self, **kwargs):
         """
         Check the target is correct and not used and format it in Lustre
         format.
         """
-
-        self.state = INPROGRESS
-        self._action_start('format')
-
-        try:
-            self.full_check(mountdata=False)
-
-            if self.state == OFFLINE:
-                # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
-                if not self.dev_isblk:
-                    # configure one engine client max per task (sequential, bah.)
-                    task_self().set_info("fanout", 1)
-
-                self.state = INPROGRESS
-                action = Format(self, **kwargs)
-                action.launch()
-            else:
-                # Target state is not DOWN... cannot format device.
-                if self.state in [MOUNTED, RECOVERING]:
-                    reason = "Cannot format: target %s (%s) is started"
-                else:
-                    reason = "Cannot format: target %s (%s) is busy"
-                self.state = TARGET_ERROR
-                raise ComponentError(self, reason % (self.label, self.dev))
-
-        except ComponentError, error:
-            self._action_failed('format', Result(str(error)))
-
+        return Format(self, **kwargs)
 
     def tunefs(self, **kwargs):
         """
         Apply all on-disk metadata using Target description and tunefs.lustre
         command.
         """
-        self.state = INPROGRESS
-        self._action_start('tunefs')
-
-        try:
-            self.full_check()
-
-            if self.state == OFFLINE:
-                # LBUG #18624 : workaround for "multiple mkfs.lustre on loop devices"
-                if not self.dev_isblk:
-                    # configure one engine client max per task (sequential, bah.)
-                    task_self().set_info("fanout", 1)
-
-                self.state = INPROGRESS
-                Tunefs(self, **kwargs).launch()
-            else:
-                # Target state is not DOWN... cannot apply tunefs to device.
-                if self.state in [MOUNTED, RECOVERING]:
-                    reason = "Cannot tunefs: target %s (%s) is started"
-                else:
-                    reason = "Cannot tunefs: target %s (%s) is busy"
-                self.state = TARGET_ERROR
-                raise ComponentError(self, reason % (self.label, self.dev))
-
-        except ComponentError, error:
-            self._action_failed('tunefs', Result(str(error)))
-
+        return Tunefs(self, **kwargs)
 
     def fsck(self, **kwargs):
         """
         Apply a filesystem coherency check on the Target. This does not
         check coherency between several targets.
         """
-
-        self.state = INPROGRESS
-        self._action_start('fsck')
-
-        try:
-            self.full_check(mountdata=False)
-
-            if self.state == OFFLINE:
-                self.state = INPROGRESS
-                action = Fsck(self, **kwargs)
-                action.launch()
-            else:
-                # Target state is not DOWN... cannot fsck device.
-                if self.state in [MOUNTED, RECOVERING]:
-                    reason = "Cannot fsck: target %s (%s) is started"
-                else:
-                    reason = "Cannot fsck: target %s (%s) is busy"
-                self.state = TARGET_ERROR
-                raise ComponentError(self, reason % (self.label, self.dev))
-
-        except ComponentError, error:
-            self._action_failed('fsck', Result(str(error)))
-
-    def status(self):
-        """
-        Check target status.
-        """
-        self._action_start('status')
-
-        try:
-            self.full_check()
-            self._action_done('status')
-        except ComponentError, error:
-            self._action_failed('status', Result(str(error)))
-
+        return Fsck(self, **kwargs)
 
     def start(self, **kwargs):
-        """
-        Start the local Target and check for system sanity.
-        """
-
-        self.state = INPROGRESS
-        self._action_start('start')
-
-        try:
-            self.full_check()
-
-            if self.state != OFFLINE:
-                # already mounted ?
-                if  self.state == RECOVERING or self.state == MOUNTED:
-                    result = Result("%s is already started" % self.label)
-                    self._action_done('start', result)
-                    return
-                raise ComponentError(self, "bad state `%s' for %s" % \
-                        (self.state, self.label))
-
-            # LBUG #18624
-            if not self.dev_isblk:
-                task_self().set_info("fanout", 1)
-
-            action = StartTarget(self, **kwargs)
-            action.launch()
-
-        except ComponentError, error:
-            self._action_failed('start', Result(str(error)))
+        """Start the local Target and check for system sanity."""
+        return StartTarget(self, **kwargs)
 
     def stop(self, **kwargs):
-        """
-        Stop the local Target and check for system sanity.
-        """
-        self.state = INPROGRESS
-        self._action_start('stop')
-
-        try:
-            self.full_check()
-
-            if self.state == OFFLINE:
-                result = Result(message="%s is already stopped" % self.label)
-                self._action_done('stop', result)
-                return
-
-            # LBUG #18624
-            if not self.dev_isblk:
-                task_self().set_info("fanout", 1)
-
-            action = StopTarget(self, **kwargs)
-            action.launch()
-
-        except ComponentError, error:
-            self._action_failed('stop', Result(str(error)))
+        """Stop the local Target and check for system sanity."""
+        return StopTarget(self, **kwargs)
 
 
 class MGT(Target):
@@ -559,18 +444,6 @@ class Journal(Component):
         Check the journal device is correct and format it to be used as an
         external journal.
         """
-
-        self.state = INPROGRESS
-        self._action_start('format')
-
-        try:
-            self.full_check()
-
-            self.state = INPROGRESS
-            # Warning: kwargs is used to pass 'nextaction'. See JournalFormat.
-            action = JournalFormat(self, **kwargs)
-            action.launch()
-
-        except ComponentError, error:
-            self._action_failed('format', Result(str(error)))
+        # Warning: kwargs is used to pass 'nextaction'. See JournalFormat.
+        JournalFormat(self, **kwargs).launch()
 

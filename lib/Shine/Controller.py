@@ -1,5 +1,5 @@
 # Controller.py -- Controller class
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -190,7 +190,10 @@ class Controller:
                           help="path of the Lustre Model File")
         parser.add_option("-y", dest="yes", action="store_true",
                           help="assume a \"yes\" response to all prompts")
-
+        parser.add_option("--mountdata", dest="mountdata", type="choice",
+                          choices=['auto', 'never', 'always'], default='auto',
+                          help="analyze target mountdata (never, always"
+                               " or auto)", metavar='WHEN')
         # Parse command line
         (options, args) = parser.parse_args()
 

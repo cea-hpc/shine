@@ -195,6 +195,13 @@ by the command. This option could be used several times.
 .
 Answer \fIYes\fP to confirmation prompt (for example, on format).
 
+.TP
+.BI \-\-mountdata= WHEN
+.
+If set to \fIalways\fP, Shine will analyze target mountdata (label, flags, ...) for coherency
+and complain if they do not match Shine configuration. The value read that way could be seen in disk view, by example. This could be an issue if acting on a corrupted target for fsck or if reformating a device previously used for another filesystem. As a consequence, by default (\fIauto\fP), mountdata are not checked before fsck or formating. It is on for all the other actions. Possible values are: 
+.IR auto ,\  always ,\  never .
+
 .UNINDENT
 .B Display options
 .

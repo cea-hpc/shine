@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from itertools import ifilter, groupby
 from operator import attrgetter
@@ -25,9 +24,6 @@ from operator import attrgetter
 from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.Server import ServerGroup
-
-from Shine.Lustre.Actions.Action import Result
-from Shine.Lustre.Actions.Execute import Execute
 
 # Constants for component states
 (MOUNTED,    \
@@ -44,6 +40,9 @@ class ComponentError(Exception):
     def __init__(self, comp, message):
         Exception.__init__(self, message)
         self.comp = comp
+
+from Shine.Lustre.Actions.Status import Status
+from Shine.Lustre.Actions.Execute import Execute
 
 class Component(object):
     """
@@ -194,48 +193,54 @@ class Component(object):
     # Event raising methods
     #
 
-    def _action_start(self, act):
+    def action_start(self, act):
         """Called by Actions.* when starting"""
         self._add_action(act)
         self.fs.local_event(self.TYPE, act, 'start', comp=self)
 
-    def _action_progress(self, act, result):
+    def action_progress(self, act, result):
         """Called by Actions.* when some progress info should be sent."""
         self.fs.local_event(self.TYPE, act, 'progress',
                             comp=self, result=result)
 
-    def _action_done(self, act, result=None):
+    def action_done(self, act, result=None):
         """Called by Actions.* when done"""
         self._del_action(act)
         self.fs.local_event(self.TYPE, act, 'done', comp=self, result=result)
 
-    def _action_timeout(self, act):
+    def action_timeout(self, act):
         """Called by Actions.* on timeout"""
         self._del_action(act)
         self.fs.local_event(self.TYPE, act, 'timeout', comp=self)
 
-    def _action_failed(self, act, result):
+    def action_failed(self, act, result):
         """Called by Actions.* on failure"""
         self._del_action(act)
         self.fs.local_event(self.TYPE, act, 'failed', comp=self, result=result)
 
     #
+    # Helper methods to check component state in Actions.
+    #
+
+    def is_started(self):
+        """Return True if the component is started."""
+        return self.state == MOUNTED
+
+    def is_stopped(self):
+        """Return True if the component is stopped."""
+        return self.state == OFFLINE
+
+    #
     # Component common actions
     #
 
+    def status(self, **kwargs):
+        """Check component status."""
+        return Status(self, **kwargs)
+
     def execute(self, **kwargs):
-        """
-        Exec a custom command
-        """
-        self._action_start('execute')
-
-        try:
-            self.full_check()
-            action = Execute(self, **kwargs)
-            action.launch()
-
-        except ComponentError, error:
-            self._action_failed('execute', Result(str(error)))
+        """Exec a custom command."""
+        return Execute(self, **kwargs)
 
 
 class ComponentGroup(object):

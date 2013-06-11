@@ -1,5 +1,5 @@
-# StartRouter.py -- Start router
-# Copyright (C) 2010-2013 CEA
+# Status.py -- Check a component status
+# Copyright (C) 2012 CEA
 #
 # This file is part of shine
 #
@@ -18,24 +18,24 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-"""Action class to handle router start command and event handling."""
+"""
+This module contains the version of FSAction class to implement component
+status checking.
+"""
 
-from Shine.Lustre.Actions.Action import FSAction, Result
+from Shine.Lustre.Actions.Action import FSAction
 
-class StartRouter(FSAction):
+class Status(FSAction):
     """
-    File system router (ie: start lnet) start class
+    Status action triggers component status checking.
+
+    It does not run an external command.
     """
 
-    NAME = 'start'
+    NAME = 'status'
 
-    def _already_done(self):
-        """Return a Result object is the router is already enabled."""
-        if self.comp.is_started():
-            return Result('router is already enabled')
-        else:
-            return None
-
-    def _prepare_cmd(self):
-        """Start LNET which will start router if properly configured."""
-        return [ "/sbin/modprobe lnet", "&&", "lctl net up" ]
+    def _shell(self):
+        """
+        No-op method. Status command does not need to run an external command.
+        """
+        self.comp.action_done(self.NAME)
