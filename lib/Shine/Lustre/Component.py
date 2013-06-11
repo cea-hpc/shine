@@ -1,5 +1,5 @@
 # Components.py - Abstract class for any Lustre filesystem components.
-# Copyright (C) 2010-2012 CEA
+# Copyright (C) 2010-2013 CEA
 #
 # This file is part of shine
 #
@@ -41,6 +41,9 @@ from Shine.Lustre.Actions.Execute import Execute
 
 class ComponentError(Exception):
     """Generic exception for any components."""
+    def __init__(self, comp, message):
+        Exception.__init__(self, message)
+        self.comp = comp
 
 class Component(object):
     """

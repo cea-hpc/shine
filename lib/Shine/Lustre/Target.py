@@ -1,5 +1,5 @@
 # Target.py -- Lustre Target base class
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -37,20 +37,6 @@ from Shine.Lustre.Component import Component, ComponentError, \
                                    INPROGRESS, TARGET_ERROR, RUNTIME_ERROR
 from Shine.Lustre.Server import Server, ServerGroup
 
-
-class TargetError(ComponentError):
-    """
-    Target related error occured.
-    """
-    def __init__(self, target, message):
-        ComponentError.__init__(self, message)
-        self.target = target
-
-class TargetDeviceError(TargetError):
-    """
-    Target's underlying device error.
-    """
-    
 
 class Target(Component, Disk):
 
@@ -157,7 +143,7 @@ class Target(Component, Disk):
 
         # If we have more than one possible failover nodes, it is ambiguous
         if len(intersec) > 1:
-            raise TargetError(self, "More than one failover server matches.")
+            raise ComponentError(self, "More than one failover server matches.")
 
         if len(intersec) == 1:
             self.server = intersec[0]
@@ -216,9 +202,9 @@ class Target(Component, Disk):
             if self.journal:
                 self.journal.full_check()
 
-        except (JournalError, DiskDeviceError), error:
+        except (ComponentError, DiskDeviceError), error:
             self.state = TARGET_ERROR
-            raise TargetDeviceError(self, str(error))
+            raise ComponentError(self, str(error))
 
         # check for Lustre level status
         self.lustre_check()
@@ -242,8 +228,8 @@ class Target(Component, Disk):
             self.state = OFFLINE
         elif len(mntdev_path) == 0:
             self.state = TARGET_ERROR
-            raise TargetDeviceError(self, "incoherent state in " \
-                                    "/proc/fs/lustre for %s" % self.label)
+            raise ComponentError(self, "incoherent state in " \
+                                       "/proc/fs/lustre for %s" % self.label)
         else:
             # get target's real device
             fproc = open(mntdev_path[0])
@@ -264,7 +250,7 @@ class Target(Component, Disk):
                                 self.state = MOUNTED
                             else:
                                 self.state = TARGET_ERROR
-                                raise TargetDeviceError(self, "multiple " \
+                                raise ComponentError(self, "multiple " \
                                         " mounts detected for %s" % self.label)
             finally:
                 f_proc_mounts.close()
@@ -273,14 +259,14 @@ class Target(Component, Disk):
                 self.state = TARGET_ERROR
                 # up but not mounted = incoherent state
                 # check for loaded state: ST, UP...
-                raise TargetDeviceError(self, "incoherent state for %s " \
+                raise ComponentError(self, "incoherent state for %s " \
                                      "(started but not mounted?)" % self.label)
 
             if self.state == MOUNTED and not loaded:
                 self.state = TARGET_ERROR
                 # mounted but not up = incoherent state
                 # /etc/fstab was not correctly cleaned
-                raise TargetDeviceError(self, "incoherent state for %s " \
+                raise ComponentError(self, "incoherent state for %s " \
                                      "(mounted but not started?)" % self.label)
 
             if self.state == MOUNTED and self.TYPE != MGT.TYPE:
@@ -289,7 +275,7 @@ class Target(Component, Disk):
                     fproc = open(recov_path[0], 'r')
                 except (IOError, IndexError):
                     self.state = TARGET_ERROR
-                    raise TargetDeviceError(self, "recovery_state file not " \
+                    raise ComponentError(self, "recovery_state file not " \
                                                   "found for %s" % self.label)
 
                 try:
@@ -361,9 +347,9 @@ class Target(Component, Disk):
                 else:
                     reason = "Cannot format: target %s (%s) is busy"
                 self.state = TARGET_ERROR
-                raise TargetDeviceError(self, reason % (self.label, self.dev))
+                raise ComponentError(self, reason % (self.label, self.dev))
 
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('format', Result(str(error)))
 
 
@@ -393,9 +379,9 @@ class Target(Component, Disk):
                 else:
                     reason = "Cannot tunefs: target %s (%s) is busy"
                 self.state = TARGET_ERROR
-                raise TargetDeviceError(self, reason % (self.label, self.dev))
+                raise ComponentError(self, reason % (self.label, self.dev))
 
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('tunefs', Result(str(error)))
 
 
@@ -422,9 +408,9 @@ class Target(Component, Disk):
                 else:
                     reason = "Cannot fsck: target %s (%s) is busy"
                 self.state = TARGET_ERROR
-                raise TargetDeviceError(self, reason % (self.label, self.dev))
+                raise ComponentError(self, reason % (self.label, self.dev))
 
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('fsck', Result(str(error)))
 
     def status(self):
@@ -436,7 +422,7 @@ class Target(Component, Disk):
         try:
             self.full_check()
             self._action_done('status')
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('status', Result(str(error)))
 
 
@@ -457,7 +443,7 @@ class Target(Component, Disk):
                     result = Result("%s is already started" % self.label)
                     self._action_done('start', result)
                     return
-                raise TargetDeviceError(self, "bad state `%s' for %s" % \
+                raise ComponentError(self, "bad state `%s' for %s" % \
                         (self.state, self.label))
 
             # LBUG #18624
@@ -467,7 +453,7 @@ class Target(Component, Disk):
             action = StartTarget(self, **kwargs)
             action.launch()
 
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('start', Result(str(error)))
 
     def stop(self, **kwargs):
@@ -492,7 +478,7 @@ class Target(Component, Disk):
             action = StopTarget(self, **kwargs)
             action.launch()
 
-        except TargetError, error:
+        except ComponentError, error:
             self._action_failed('stop', Result(str(error)))
 
 
@@ -531,13 +517,6 @@ class OST(Target):
 # See MDT class.
 MDT.START_ORDER = OST.START_ORDER + 1
 
-class JournalError(TargetError):
-    """Journal target error."""
-
-    def __init__(self, journal, message):
-        TargetError.__init__(self, journal.target, message)
-
-
 class Journal(Component):
     """
     Manage a target external journal device.
@@ -567,10 +546,10 @@ class Journal(Component):
         try:
             info = os.stat(self.dev)
         except OSError, exp:
-            raise JournalError(self, str(exp))
+            raise ComponentError(self, str(exp))
 
         if not stat.S_ISBLK(info[stat.ST_MODE]):
-            raise JournalError(self, "bad journal device")
+            raise ComponentError(self, "bad journal device")
 
     def lustre_check(self):
         pass
@@ -592,6 +571,6 @@ class Journal(Component):
             action = JournalFormat(self, **kwargs)
             action.launch()
 
-        except JournalError, error:
+        except ComponentError, error:
             self._action_failed('format', Result(str(error)))
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+#
+# Copyright (C) 2007-2013 CEA
+#
 # Shine.Lustre.Target test suite
-# Written by A. Degremont 2010-06-11
-# $Id$
-
+#
 
 """Unit test for Target"""
 
@@ -15,7 +16,7 @@ from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.FileSystem import FileSystem
 from Shine.Lustre.Server import Server
-from Shine.Lustre.Target import Target, TargetError
+from Shine.Lustre.Target import Target, ComponentError
 
 class TargetTest(unittest.TestCase):
 
@@ -89,7 +90,7 @@ class TargetTest(unittest.TestCase):
         self.assertEqual(tgt.server, foo2)
 
         # Could not switch if more than one node matches
-        self.assertRaises(TargetError, Target.failover, tgt, 
+        self.assertRaises(ComponentError, Target.failover, tgt,
                           NodeSet("foo[2,3]"))
 
 

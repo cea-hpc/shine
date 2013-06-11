@@ -1,5 +1,5 @@
 # Client.py -- Lustre Client
-# Copyright (C) 2008-2012 CEA
+# Copyright (C) 2008-2013 CEA
 #
 # This file is part of shine
 #
@@ -30,14 +30,6 @@ from Shine.Lustre.Actions.StartClient import StartClient
 from Shine.Lustre.Actions.StopClient import StopClient
 
 from Shine.Lustre.Target import MDT, OST
-
-class ClientError(ComponentError):
-    """
-    Client error exception.
-    """
-    def __init__(self, client, message=None):
-        ComponentError.__init__(self, message)
-        self.client = client
 
 
 class Client(Component):
@@ -139,23 +131,23 @@ class Client(Component):
                     else:
                         self.state = CLIENT_ERROR
                         if lnetdev != curr_lnetdev:
-                            raise ClientError(self, "conflicting mounts "
-                                              "detected for %s and %s on %s" %
-                                              (lnetdev, curr_lnetdev,
-                                               self.mount_path))
+                            raise ComponentError(self, "conflicting mounts "
+                                                "detected for %s and %s on %s" %
+                                                 (lnetdev, curr_lnetdev,
+                                                  self.mount_path))
                         else:
-                            raise ClientError(self, "multiple mounts detected"
-                                                    "for %s (%s)" % (lnetdev,
-                                                              self.mount_path))
+                            raise ComponentError(self, "multiple mounts "
+                                                 "detected for %s (%s)" %
+                                                 (lnetdev, self.mount_path))
         finally:
             f_proc_mounts.close()
 
         if loaded and self.state != MOUNTED:
             # up but not mounted = incoherent state
             self.state = CLIENT_ERROR
-            raise ClientError(self, "incoherent client state for FS '%s'"
-                                    " (not mounted but loaded. Mount in "
-                                    "progress?)" % self.fs.fs_name)
+            raise ComponentError(self, "incoherent client state for FS '%s'"
+                                       " (not mounted but loaded. Mount in "
+                                       "progress?)" % self.fs.fs_name)
 
         # Look for some evictions
         self._lustre_check_proc_state()
@@ -177,8 +169,8 @@ class Client(Component):
 
         if 'EVICTED' in self.proc_states:
             self.state = CLIENT_ERROR
-            raise ClientError(self, 'client connection error (%d evictions)' %
-                                    self.proc_states['EVICTED'])
+            raise ComponentError(self, 'client connection error (%d evictions)'
+                                       %  self.proc_states['EVICTED'])
 
     def text_status(self):
         """
@@ -210,7 +202,7 @@ class Client(Component):
         try:
             self.full_check()
             self._action_done('status')
-        except ClientError, error:
+        except ComponentError, error:
             self._action_failed('status', Result(str(error)))
 
 
@@ -230,7 +222,7 @@ class Client(Component):
                 action = StartClient(self, **kwargs)
                 action.launch()
 
-        except ClientError, error:
+        except ComponentError, error:
             self._action_failed('mount', Result(str(error)))
 
     def umount(self, **kwargs):
@@ -248,5 +240,5 @@ class Client(Component):
                 action = StopClient(self, **kwargs)
                 action.launch()
 
-        except ClientError, error:
+        except ComponentError, error:
             self._action_failed('umount', Result(str(error)))

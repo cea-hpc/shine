@@ -1,5 +1,5 @@
 # Router.py -- Shine Lustre Router
-# Copyright (C) 2010-2012 CEA
+# Copyright (C) 2010-2013 CEA
 #
 # This file is part of shine
 #
@@ -27,15 +27,6 @@ from Shine.Lustre.Component import Component, ComponentError, \
 from Shine.Lustre.Actions.Action import Result
 from Shine.Lustre.Actions.StartRouter import StartRouter
 from Shine.Lustre.Actions.StopRouter import StopRouter
-
-class RouterError(ComponentError):
-    """
-    Router error exception.
-    """
-    def __init__(self, router, message=None):
-        ComponentError.__init__(self, message)
-        self.router = router
-
 
 class Router(Component):
 
@@ -82,17 +73,17 @@ class Router(Component):
             state = routes.readline().strip().lower()
         except:
             self.state = RUNTIME_ERROR
-            raise RouterError(self, "Could not read routing information")
+            raise ComponentError(self, "Could not read routing information")
 
         # routing info tells this is ok?
         if state == "routing enabled":
             self.state = MOUNTED
         elif state == "routing disabled":
             self.state = TARGET_ERROR
-            raise RouterError(self, "Misconfigured router")
+            raise ComponentError(self, "Misconfigured router")
         else:
             self.state = RUNTIME_ERROR
-            raise RouterError(self, "Bad routing status")
+            raise ComponentError(self, "Bad routing status")
 
     #
     # Client actions
@@ -107,7 +98,7 @@ class Router(Component):
         try:
             self.full_check()
             self._action_done('status')
-        except RouterError, error:
+        except ComponentError, error:
             self._action_failed('status', Result(str(error)))
 
 
@@ -126,7 +117,7 @@ class Router(Component):
                 action = StartRouter(self)
                 action.launch()
 
-        except RouterError, error:
+        except ComponentError, error:
             self._action_failed('start', Result(str(error)))
 
     def stop(self, **kwargs):
@@ -144,5 +135,5 @@ class Router(Component):
                 action = StopRouter(self)
                 action.launch()
 
-        except RouterError, error:
+        except ComponentError, error:
             self._action_failed('stop', Result(str(error)))
