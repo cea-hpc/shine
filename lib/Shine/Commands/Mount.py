@@ -94,8 +94,8 @@ class Mount(FSLiveCommand):
 
                 if vlevel > 0:
                     key = lambda c: c.state == MOUNTED
-                    print "Mount successful on %s" % \
-                        comps.filter(key=key).servers()
+                    print "%s was successfully mounted on %s" % \
+                        (fs.fs_name, comps.filter(key=key).servers())
 
                 # Apply tuning after successful mount(s)
                 tuning = Tune.get_tuning(fs_conf)

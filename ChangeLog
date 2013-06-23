@@ -1,3 +1,6 @@
+2013-06-24 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Improve mount/umount messages (ticket #141).
+
 2013-06-07 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fsck could be run with -n option (ticket #151).
 
