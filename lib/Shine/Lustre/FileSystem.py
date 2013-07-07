@@ -270,7 +270,6 @@ class FileSystem:
         """
         This verifies that executed tasks were successfull.
 
-        It checks no proxy error have been reported.
         It verifies all provided components (Target, Clients, ...) have
         expected state. If not, it returns the most incoherent state.
 
@@ -278,45 +277,23 @@ class FileSystem:
         """
         assert type(expected_states) is list
 
-        # As we read 2 times components, we have to transform the iterator to
-        # a list.
-        if components:
-            complist = list(components)
-        else:
-            complist = None
-
-        # Proxy commands should not have return errors
-        if self.proxy_errors:
-
-            # Find targets/clients affected by the runtime error(s)
-            if complist:
-                error_nodes = NodeSet.fromlist([ n[0] for n in self.proxy_errors])
-                for comp in complist:
-                    # This target/client has no defined state and is on an
-                    # error node, so we consider there was an error
-                    if comp.server.hostname in error_nodes and comp.state is None:
-                        comp.state = RUNTIME_ERROR
-
         # If a component list is provided, check that all components from it
         # have expected state.
         result = None
-        if complist:
-            for comp in complist:
+        for comp in components or []:
 
-                # Workaround bug when state is None (Trac ticket #11)
-                # Bug is now closed, maybe this could be removed?
-                if comp.state is None:
-                    print >> sys.stderr, "WARNING: no state report " \
-                                         "from node %s" % comp.server
-                    comp.state = RUNTIME_ERROR
+            # This should never happen but it is convenient for debugging if
+            # there is some uncatched bug somewhere.
+            # (ie: cannot unpickle due to ClusterShell version mismatch)
+            if comp.state is None:
+                msg = "WARNING: no state report from node %s" % comp.server
+                print >> sys.stderr, msg
+                comp.state = RUNTIME_ERROR
 
-                if comp.state not in expected_states:
-                    result = max(result, comp.state)
+            if comp.state not in expected_states:
+                result = max(result, comp.state)
 
-            if result is not None:
-                return result
-
-        return expected_states[0]
+        return result or expected_states[0]
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 

@@ -196,11 +196,14 @@ class FSProxyAction(ProxyAction):
                 # XXX: This should be changed using a real event for proxy.
                 comp._del_action('proxy')
 
+                if comp.state is None:
+                    comp.state = RUNTIME_ERROR
+
                 # At this step, there should be no more INPROGRESS component.
                 # If yes, this is a bug, change state to RUNTIME_ERROR.
                 # INPROGRESS management could be change using running action
                 # list.
-                if comp.state == INPROGRESS:
+                elif comp.state == INPROGRESS:
                     actions = ""
                     if len(comp._list_action()):
                         actions = "actions: " + ", ".join(comp._list_action())
