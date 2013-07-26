@@ -85,9 +85,6 @@ class Stop(FSTargetLiveCommand):
             mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
             mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
 
-        # Ignore all clients for this command
-        fs.disable_clients()
-
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='stop').servers()
         if not self.check_valid_list(fs.fs_name, servers, "stop"):

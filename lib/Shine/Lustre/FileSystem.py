@@ -229,16 +229,6 @@ class FileSystem:
         self._attach_component(router)
         return router
 
-    def disable_clients(self):
-        """
-        Change all client components to disabled mode.
-        Warning, this is a temporary method which will change when a 
-        better solution will be available.
-        """
-        key = lambda c: c.TYPE == Client.TYPE
-        for comp in self.components.managed().filter(key=key):
-            comp.action_enabled = False
-
     #
     # Task management.
     #

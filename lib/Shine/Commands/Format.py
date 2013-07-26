@@ -76,9 +76,6 @@ class Format(FSTargetLiveCriticalCommand):
         if not self.check_valid_list(fs.fs_name, servers, 'format'):
             return RC_FAILURE
 
-        # Ignore all clients for this command
-        fs.disable_clients()
-
         if not self.ask_confirm("Format %s on %s: are you sure?" % (fs.fs_name,
                                                                     servers)):
             return RC_FAILURE

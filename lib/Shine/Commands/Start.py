@@ -86,12 +86,9 @@ class Start(FSTargetLiveCommand):
             mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
             mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
 
-        # Ignore all clients for this command
-        fs.disable_clients()
-
         # Warn if trying to act on wrong nodes
-        servers = fs.components.managed(supports='start').servers()
-        if not self.check_valid_list(fs.fs_name, servers, 'start'):
+        comps = fs.components.managed(supports='start')
+        if not self.check_valid_list(fs.fs_name, comps.servers(), 'start'):
             return RC_FAILURE
 
         # Will call the handle_pre() method defined by the event handler.
@@ -115,7 +112,7 @@ class Start(FSTargetLiveCommand):
             if vlevel > 0:
                 print "Start successful."
             tuning = Tune.get_tuning(fs_conf)
-            status = fs.tune(tuning)
+            status = fs.tune(tuning, comps=comps)
             if status == RUNTIME_ERROR:
                 rc = RC_RUNTIME_ERROR
             # XXX improve tuning on start error handling
