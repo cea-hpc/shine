@@ -1,5 +1,5 @@
 # Status.py -- Check remote filesystem servers and targets status
-# Copyright (C) 2009-2012 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `status' command classes.
@@ -43,9 +42,7 @@ from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
 from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
                                                FSLocalEventHandler
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
-                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
-                                    STATUS_ANY, STATUS_CLIENTS, STATUS_SERVERS,\
-                                    STATUS_HASERVERS
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
 class GlobalStatusEventHandler(FSGlobalEventHandler):
@@ -86,22 +83,18 @@ class Status(FSTargetLiveCommand):
         if not self.check_valid_list(fs.fs_name, all_nodes, "check"):
             return RC_FAILURE
 
-        status_flags = STATUS_ANY
-        view = self.options.view
-
-        # disable client checks when not requested
-        if view.startswith("disk") or view.startswith("target"):
-            status_flags &= ~STATUS_CLIENTS
-            fs.disable_clients()
-        # disable servers checks when not requested
-        if view.startswith("client"):
-            status_flags &= ~(STATUS_SERVERS|STATUS_HASERVERS)
+        # Apply 'status' only to required components
+        comps = fs.components
+        if self.options.view.startswith("target"):
+            comps = comps.filter(supports='index')
+        if self.options.view.startswith("disk"):
+            comps = comps.filter(supports='dev')
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        fs_result = fs.status(status_flags, failover=self.options.failover)
+        fs_result = fs.status(comps, failover=self.options.failover)
 
         if fs_result == RUNTIME_ERROR:
             for nodes, msg in fs.proxy_errors:

@@ -83,12 +83,6 @@ class FSRemoteError(FSError):
         return "%s: %s [rc=%d]" % (self.nodes, self.msg, self.rc)
 
 
-STATUS_SERVERS      = 0x01
-STATUS_HASERVERS    = 0x02
-STATUS_CLIENTS      = 0x10
-STATUS_ANY          = 0xff
-
-
 class FileSystem:
     """
     The Lustre FileSystem abstract class.
@@ -466,17 +460,12 @@ class FileSystem:
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], comps)
 
-    def status(self, flags=STATUS_ANY, comps=None, **kwargs):
+
+    def status(self, comps=None, **kwargs):
         """
         Get status of filesystem.
         """
-        # Filter components depending on flags
-        # XXX: Ugly test, implement something cleaner.
-        key = lambda c: ((flags & STATUS_SERVERS) and (hasattr(c, 'index') or \
-                                                       c.TYPE == Router.TYPE)) \
-                       or ((flags & STATUS_CLIENTS) and c.TYPE == Client.TYPE)
-
-        comps = (comps or self.components).managed('status').filter(key=key)
+        comps = (comps or self.components).managed('status')
 
         for server, srvcomps in comps.groupbyserver():
 
