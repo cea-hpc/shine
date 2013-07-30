@@ -23,8 +23,6 @@ from operator import attrgetter
 
 from ClusterShell.NodeSet import NodeSet
 
-from Shine.Lustre.Server import ServerGroup
-
 # Constants for component states
 (MOUNTED,    \
  EXTERNAL,   \
@@ -35,12 +33,8 @@ from Shine.Lustre.Server import ServerGroup
  TARGET_ERROR, \
  RUNTIME_ERROR) = range(8)
 
-class ComponentError(Exception):
-    """Generic exception for any components."""
-    def __init__(self, comp, message):
-        Exception.__init__(self, message)
-        self.comp = comp
-
+from Shine.Lustre import ComponentError
+from Shine.Lustre.Server import ServerGroup
 from Shine.Lustre.Actions.Status import Status
 from Shine.Lustre.Actions.Execute import Execute
 

@@ -33,7 +33,7 @@ from string import Template
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
 
-from Shine.Lustre.Component import ComponentError
+from Shine.Lustre import ComponentError
 
 # XXX: This is not really good to import stuff from CLI in Actions. This part
 # of Display should be generalized in some kind of Utility module and imported
