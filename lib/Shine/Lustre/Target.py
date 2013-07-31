@@ -20,7 +20,7 @@
 
 import os
 import stat
-import glob
+from glob import glob
 
 from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
@@ -193,7 +193,7 @@ class Target(Component, Disk):
         try:
             self._device_check()
             if mountdata:
-                self._mountdata_check(self.fs.fs_name, self.label)
+                self._mountdata_check(self.label)
 
             if self.journal:
                 self.journal.full_check()
@@ -213,10 +213,11 @@ class Target(Component, Disk):
         self.state = None   # Unknown
 
         # find pathnames matching wanted lustre procfs
-        mntdev_path = glob.glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
-        assert len(mntdev_path) <= 1
+        # (Since Lustre 2.4. More than one path could be returned.
+        #  The first one is fine.)
+        mntdev_path = glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
 
-        recov_path = glob.glob('/proc/fs/lustre/*/%s/recovery_status' % self.label)
+        recov_path = glob('/proc/fs/lustre/*/%s/recovery_status' % self.label)
         assert len(recov_path) <= 1
 
         # check for label presence in /proc : is this lustre target started?
@@ -377,12 +378,6 @@ class MGT(Target):
     def label(self):
         """Always returns the MGS label which is 'MGS'."""
         return 'MGS'
-
-    def _mountdata_check(self, fsname_check=None, label_check=None):
-        """Overload Disk method. Do not test filesystem name for MGS."""
-        # XXX: As MGT target could be defined as 'external', do we still
-        # need to avoid the fsname_check for MGT?
-        return Disk._mountdata_check(self, None, label_check)
 
 class MDT(Target):
 

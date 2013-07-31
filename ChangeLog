@@ -1,3 +1,6 @@
+2013-07-31 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Supports Lustre 2.4 (ticket #158).
+
 2013-06-24 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Improve mount/umount messages (ticket #141).
 
