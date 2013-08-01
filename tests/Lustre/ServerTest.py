@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # Shine.Lustre.Server test suite
 # Written by A. Degremont 2009-08-03
-# $Id$
 
 
 """Unit test for Server"""
 
-import sys
 import unittest
 import socket
-
-sys.path.insert(0, '../lib')
 
 from Shine.Lustre.Server import Server, ServerGroup
 # No direct dependancies to NodeSet. This should be fixed.
@@ -118,8 +114,3 @@ class ServerGroupTest(unittest.TestCase):
         grp = ServerGroup([srv1, srv2])
         subgrp = grp.distant()
         self.assertEqual(list(iter(subgrp)), [ srv2 ])
-
-
-if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(ServerTest)
-    unittest.TextTestRunner(verbosity=2).run(suite)

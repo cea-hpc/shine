@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # Shine.Configuration.NidMap test suite
 # Written by A. Degremont 2010-09-25
-# $Id$
 
 
 """Unit test for Nid Mapping management"""
 
-import sys
 import unittest
-
-sys.path.insert(0, "../lib")
 
 from Shine.Configuration.NidMap import NidMap, InvalidNidMapError
 from Shine.Configuration.Model import Model
@@ -72,7 +68,3 @@ class NidMapTest(unittest.TestCase):
         nm.add("foo[4-5]", "foo[4-5]-ib1@o2ib2")
         self.assertEqual(nm["foo4"], ["foo4-ib0@o2ib1", "foo4-ib1@o2ib2"])
         self.assertEqual(nm["foo5"], ["foo5-ib0@o2ib1", "foo5-ib1@o2ib2"])
-
-if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(NidMapTest)
-    unittest.TextTestRunner(verbosity=2).run(suite)

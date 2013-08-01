@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.ModelFile test suite
 # Written by A. Degremont 2010-10-12
-# $Id$
-
 
 """Unit test for ModelFile"""
 
@@ -644,14 +642,3 @@ bar: 2""")
         # Compare the two files. They should have no difference
         added, changed, removed = model.diff(model2)
         self.assertTrue(len(changed) == len(added) == len(removed) == 0)
-
-if __name__ == '__main__':
-    loader = unittest.TestLoader()
-    loader.sortTestMethodsUsing = None
-
-    alltests = unittest.TestSuite()
-    alltests.addTest(loader.loadTestsFromTestCase(SimpleElementTest))
-    alltests.addTest(loader.loadTestsFromTestCase(MultipleElementTest))
-    alltests.addTest(loader.loadTestsFromTestCase(ModelFileTest))
-
-    unittest.TextTestRunner(verbosity=2).run(alltests)

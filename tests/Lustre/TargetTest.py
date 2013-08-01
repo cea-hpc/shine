@@ -7,10 +7,7 @@
 
 """Unit test for Target"""
 
-import sys
 import unittest
-
-sys.path.insert(0, '../lib')
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -92,8 +89,3 @@ class TargetTest(unittest.TestCase):
         # Could not switch if more than one node matches
         self.assertRaises(ComponentError, Target.failover, tgt,
                           NodeSet("foo[2,3]"))
-
-
-if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TargetTest)
-    unittest.TextTestRunner(verbosity=2).run(suite)

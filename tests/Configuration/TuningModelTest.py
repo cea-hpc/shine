@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # Shine.Configuration.TuningModel test suite
 # Written by A. Degremont 2010-01-19
-# $Id$
 
 
 """Unit test for Model"""
 
-import sys
 import unittest
-
-sys.path.insert(0, '../lib')
 
 from Utils import makeTempFile
 from ClusterShell.NodeSet import NodeSet
@@ -126,8 +122,3 @@ alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
         tunings = m.get_params_for_name(NodeSet("foo[1-2]"), [])
         self.assertEqual(len(tunings), 1)
         self.assertTrue(tunings[0] == tuning)
-
- 
-if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(TuningModelTest)
-    unittest.TextTestRunner(verbosity=2).run(suite)

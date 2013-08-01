@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.Configuration test suite
 # Written by A. Degremont 2010-11-21
-# $Id$
 
 
 """Unit test for Configuration"""
@@ -47,7 +46,7 @@ mgt: mode=external
         """)
         self.assertEqual(len(self._conf.get_client_nodes()), 0)
 
-    def test_get_client_nodes_empty(self):
+    def test_get_client_nodes(self):
         """Configuration get_client_nodes (some clients)"""
         self._conf = self.make_config("""
 fs_name: climount
