@@ -92,7 +92,8 @@ class Execute(FSTargetLiveCommand):
             eh.pre(fs)
 
         fs_result = fs.execute(failover=self.options.failover,
-                               addopts=self.options.additional)
+                               addopts=self.options.additional,
+                               mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(fs_result)
 

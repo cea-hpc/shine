@@ -103,7 +103,8 @@ class Format(FSTargetLiveCriticalCommand):
                     quota=fs_conf.has_quota(),
                     quota_type=fs_conf.get_quota_type(),
                     addopts=self.options.additional,
-                    failover=self.options.failover)
+                    failover=self.options.failover,
+                    mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)
 

@@ -138,7 +138,7 @@ class FSProxyAction(ProxyAction):
             command.append("-F '%s'" % self.failover)
 
         if self.mountdata:
-            command.append('--mountdata')
+            command.append('--mountdata=%s' % self.mountdata)
 
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)

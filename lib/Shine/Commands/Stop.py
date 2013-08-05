@@ -98,7 +98,8 @@ class Stop(FSTargetLiveCommand):
         fs_conf.set_status_fs_stopping()
 
         status = fs.stop(addopts=self.options.additional,
-                         failover=self.options.failover)
+                         failover=self.options.failover,
+                         mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)
 
