@@ -99,7 +99,7 @@ class Mount(FSLiveCommand):
 
                 # Apply tuning after successful mount(s)
                 tuning = Tune.get_tuning(fs_conf)
-                status = fs.tune(tuning)
+                status = fs.tune(tuning, comps=comps)
                 if status == MOUNTED:
                     print "Filesystem tuning applied on %s" % comps.servers()
                 elif status == RUNTIME_ERROR:
