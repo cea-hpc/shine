@@ -116,10 +116,9 @@ class FSProxyAction(ProxyAction):
         if self.fs.debug:
             print "FSProxyAction %s on %s" % (action, nodes)
 
-    def launch(self):
-        """
-        Launch FS proxy command.
-        """
+    def _prepare_cmd(self):
+        """Create the command line base on proxy properties."""
+
         command = ["%s" % self.progpath]
         command.append(self.action)
         command.append("-f %s" % self.fs.fs_name)
@@ -139,6 +138,12 @@ class FSProxyAction(ProxyAction):
 
         if self.mountdata:
             command.append('--mountdata=%s' % self.mountdata)
+
+        return command
+
+    def launch(self):
+        """Launch FS proxy command."""
+        command = self._prepare_cmd()
 
         # Schedule cluster command.
         self.task.shell(' '.join(command), nodes=self.nodes, handler=self)
