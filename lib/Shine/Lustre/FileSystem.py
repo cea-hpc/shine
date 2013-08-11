@@ -26,6 +26,7 @@ Represents a Lustre FS.
 
 import os
 import sys
+import socket
 import logging
 import logging.handlers
 
@@ -117,13 +118,19 @@ class FileSystem:
         else:
             logger.setLevel(logging.INFO)
 
-        # Handler
-        handler = logging.handlers.SysLogHandler(address='/dev/log')
-        logger.addHandler(handler)
         # Formatter
         formatter = logging.Formatter(datefmt="%Y-%m-%d %X",
                       fmt='%(name)s %(levelname)s  %(message)s')
-        handler.setFormatter(formatter)
+
+        try:
+            # Handler
+            handler = logging.handlers.SysLogHandler(address='/dev/log')
+            logger.addHandler(handler)
+            handler.setFormatter(formatter)
+        except socket.error:
+            logging.raiseExceptions = False
+            msg = "Error connecting to syslog, disabling logging."
+            print >> sys.stderr, "WARNING: %s" % msg
 
         return logger
 

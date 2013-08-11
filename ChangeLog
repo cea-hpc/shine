@@ -1,3 +1,6 @@
+2013-08-11 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Fix exception when syslog is not available (ticket #160).
+
 2013-07-31 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Supports Lustre 2.4 (ticket #158).
 
@@ -18,7 +21,7 @@
 	* Add 'execute' command. (ticket #145)
 
 2012-11-21 Aurelien Degremont  <aurelien.degremont@cea.fr>
-	* Fix CS debugging regression. (tocket #154)
+	* Fix CS debugging regression. (ticket #154)
 
 2012-10-28 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Fix a bug when using -l without -f (ticket #143).
