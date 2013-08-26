@@ -405,3 +405,121 @@ class ActionsTest(unittest.TestCase):
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
         self.assertEqual(act.status(), ACT_ERROR)
+
+    #
+    # Server test (special)
+    # This test needs a running MGS, it is better to put it here.
+    #
+
+    @Utils.rootonly
+    def test_module_busy(self):
+        """Unloading module with a started MGS is an error"""
+        self.format()
+        # Start the target, to set module busy
+        self.tgt.start().launch()
+        self.fs._run_actions()
+
+        srv = self.tgt.server
+        act = srv.unload_modules()
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(sorted(srv.modules.keys()), ['ldiskfs', 'libcfs'])
+        self.assertEqual(act.status(), ACT_ERROR)
+
+
+class ServerActionTest(unittest.TestCase):
+
+    def _clean_modules(self):
+        """Remove all already loaded modules, before a test."""
+        self.srv.lustre_check()
+        if 'libcfs' in self.srv.modules or 'ldiskfs' in self.srv.modules:
+            self.srv.unload_modules().launch()
+            self.fs._run_actions()
+
+    def setUp(self):
+        self.srv = Server('localhost', ['127.0.0.1@lo'])
+        self.fs = FileSystem('srvaction')
+        self._clean_modules()
+
+    def tearDown(self):
+        self._clean_modules()
+
+    #
+    # Modules
+    #
+
+    @Utils.rootonly
+    def test_module_load(self):
+        """Load lustre modules is ok"""
+        act = self.srv.load_modules()
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_module_load_custom(self):
+        """Load a custom module is ok"""
+        act = self.srv.load_modules(modname='ldiskfs')
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(self.srv.modules.keys(), ['ldiskfs'])
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_module_load_error(self):
+        """Load a bad module is an error"""
+        act = self.srv.load_modules(modname='ERROR')
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(self.srv.modules, {})
+        self.assertEqual(act.status(), ACT_ERROR)
+
+    @Utils.rootonly
+    def test_module_load_already_done(self):
+        """Load modules when already loaded is ok"""
+        def lustre_check(self):
+            self.modules = {'lustre': 0, 'libcfs': 1}
+        self.srv.lustre_check = types.MethodType(lustre_check, self.srv)
+        act = self.srv.load_modules()
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_module_unload(self):
+        """Unload modules"""
+        # First load modules
+        self.srv.load_modules().launch()
+        self.fs._run_actions()
+
+        act = self.srv.unload_modules()
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(self.srv.modules, {})
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_module_unload_already_done(self):
+        """Unload modules when already done is ok"""
+        # By default modules are not loaded
+        act = self.srv.unload_modules()
+        act.launch()
+        self.fs._run_actions()
+
+        # Status check
+        self.assertEqual(self.srv.modules, {})
+        self.assertEqual(act.status(), ACT_OK)

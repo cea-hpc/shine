@@ -35,6 +35,7 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
+from Shine.Lustre.Actions.Action import ActionGroup
 from Shine.Lustre.Actions.Proxy import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
@@ -495,20 +496,29 @@ class FileSystem:
                 MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
 
         # Iterate over targets, grouping them by start order and server.
-        for order, targets in comps.groupby(attr='START_ORDER'):
+        for _order, targets in comps.groupby(attr='START_ORDER'):
+            grp = ActionGroup()
+            modprobe = None
+
             for server, subtargets in targets.groupbyserver():
 
                 if server.is_local():
+                    if not modprobe:
+                        modprobe = server.load_modules()
                     # Start targets if we are on the good server.
                     for target in subtargets:
                         # Note that target.start() should never block here:
                         # it will perform necessary non-blocking actions and
                         # (when needed) will start local ClusterShell workers.
-                        target.start(**kwargs).launch()
+                        grp.add(target.start(**kwargs))
                 else:
                     # Start per selected targets on this server.
                     self._proxy_action('start', server.hostname, subtargets,
                                        **kwargs)
+
+            if len(grp):
+                grp.depends_on(modprobe)
+                modprobe.launch()
 
             # Resume current task, ie. start runloop, process workers events
             # and also act as a target-type barrier.
@@ -531,17 +541,25 @@ class FileSystem:
 
         # We use a similar logic than start(): see start() for comments.
         # iterate over targets by start order and server
-        for order, targets in comps.groupby(attr='START_ORDER', reverse=True):
+        for _order, targets in comps.groupby(attr='START_ORDER', reverse=True):
+            grp = ActionGroup()
+            rmmod = None
             for server, subtargets in targets.groupbyserver():
 
                 if server.is_local():
+                    if not rmmod:
+                        rmmod = server.unload_modules()
                     # Stop targets if we are on the good server.
                     for target in subtargets:
-                        target.stop(**kwargs).launch()
+                        grp.add(target.stop(**kwargs))
                 else:
                     # Stop per selected targets on this server.
                     self._proxy_action('stop', server.hostname, subtargets,
                                        **kwargs)
+
+            if len(grp):
+                rmmod.depends_on(grp)
+                grp.launch()
 
             # Run local actions and FSProxyAction
             self._run_actions()
@@ -557,15 +575,24 @@ class FileSystem:
         Mount FS clients.
         """
         comps = (comps or self.components).managed(supports='mount')
+
+        modprobe = None
+        grp = ActionGroup()
         for server, clients in comps.groupbyserver():
 
             if server.is_local():
+                if not modprobe:
+                    modprobe = server.load_modules()
                 # local client
                 for comp in clients:
-                    comp.mount(**kwargs).launch()
+                    grp.add(comp.mount(**kwargs))
             else:
                 # distant client
                 self._proxy_action('mount', server.hostname, clients, **kwargs)
+
+        if len(grp):
+            grp.depends_on(modprobe)
+            grp.launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -578,14 +605,23 @@ class FileSystem:
         Unmount FS clients.
         """
         comps = (comps or self.components).managed(supports='umount')
+
+        rmmod = None
+        grp = ActionGroup()
         for server, clients in comps.groupbyserver():
             if server.is_local():
+                if not rmmod:
+                    rmmod = server.unload_modules()
                 # local clients
                 for comp in clients:
                     comp.umount(**kwargs).launch()
             else:
                 # distant clients
                 self._proxy_action('umount', server.hostname, clients, **kwargs)
+
+        if len(grp):
+            rmmod.depends_on(grp)
+            grp.launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()

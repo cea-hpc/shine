@@ -38,4 +38,4 @@ class StartRouter(FSAction):
 
     def _prepare_cmd(self):
         """Start LNET which will start router if properly configured."""
-        return [ "/sbin/modprobe lnet", "&&", "lctl net up" ]
+        return [ "/sbin/modprobe ptlrpc" ]

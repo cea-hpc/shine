@@ -1,5 +1,5 @@
 # Server.py -- Lustre Server base class
-# Copyright (C) 2007, 2008, 2009, 2010 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,13 +17,22 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
+
+"""
+Lustre server management.
+"""
 
 import socket
 
 from ClusterShell.Task import task_self, NodeSet
 
+from Shine.Lustre import ServerError
+from Shine.Lustre.Actions.Modules import LoadModules, UnloadModules
+
 class ServerGroup(object):
+    """
+    List of Server instance, with helpers to filter of display them.
+    """
 
     def __init__(self, iterable=None):
         self._list = []
@@ -60,6 +69,11 @@ class ServerGroup(object):
 
 
 class Server(object):
+    """
+    Represents a node in the cluster, by its hostname and NIDs.
+
+    Currently, it is link to no specific filesystem nor components.
+    """
 
     _CACHE_HOSTNAME_SHORT = None
     _CACHE_HOSTNAME_LONG = None
@@ -68,6 +82,7 @@ class Server(object):
         assert type(nids) is list
         self.nids = nids
         self.hostname = NodeSet(hostname)
+        self.modules = dict()
 
     def __str__(self):
         return "%s (%s)" % (self.hostname, ','.join(self.nids))
@@ -112,9 +127,32 @@ class Server(object):
         domain name or machine short-name.
         """
         srvname = str(self.hostname)
+        return srvname in (self.hostname_long(), self.hostname_short())
 
-        return self.hostname_long() == srvname or \
-               self.hostname_short() == srvname
+    def raise_if_mod_in_use(self):
+        """Raise a ServerError if Lustre modules are currently in use."""
+        if self.modules.get('lustre', 0) > 0:
+            raise ServerError(self, "Lustre modules are busy")
+
+    def lustre_check(self):
+        """
+        Verify server Lustre sanity.
+
+        It analyzes which Lustre module is loaded and keeps it in self.modules
+        """
+        self.modules.clear()
+        try:
+            modlist = open('/proc/modules')
+            for line in modlist:
+                modname, _, count, _ = line.split(' ', 3)
+                if modname in ('libcfs', 'lustre', 'ldiskfs'):
+                    self.modules[modname] = int(count)
+        finally:
+            modlist.close()
+
+    #
+    # Actions
+    #
 
     def tune(self, tuning_model, types, fs_name):
         """
@@ -137,3 +175,11 @@ class Server(object):
             # and create a shell for each one of them.
             for command in command_list:
                 task.shell(command)
+
+    def load_modules(self, **kwargs):
+        """Load lustre kernel modules."""
+        return LoadModules(self, **kwargs)
+
+    def unload_modules(self, **kwargs):
+        """Unload all lustre kernel modules."""
+        return UnloadModules(self, **kwargs)
