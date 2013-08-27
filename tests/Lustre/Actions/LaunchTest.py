@@ -26,7 +26,10 @@ from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
-from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR
+from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
+
+from Shine.Lustre.Actions.Proxy import shine_msg_pack
+
 
 class ActionsTest(unittest.TestCase):
 
@@ -523,3 +526,81 @@ class ServerActionTest(unittest.TestCase):
         # Status check
         self.assertEqual(self.srv.modules, {})
         self.assertEqual(act.status(), ACT_OK)
+
+
+class ProxyTest(unittest.TestCase):
+
+    def setUp(self):
+        self.fs = FileSystem('proxy')
+        self.srv1 = Server(Utils.HOSTNAME, ["%s@tcp" % Utils.HOSTNAME])
+        disk = Utils.makeTempFilename()
+        self.tgt = self.fs.new_target(self.srv1, 'mgt', 0, disk)
+
+        self.act = self.fs._proxy_action('start', self.srv1.hostname,
+                                         self.fs.components)
+        def fakeprepare(action):
+            return [action.fakecmd]
+        self.act._prepare_cmd = types.MethodType(fakeprepare, self.act)
+
+    def test_exec_fail(self):
+        """simulate unable to run python"""
+        self.act.fakecmd = '/bin/false'
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([MOUNTED], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+        self.assertEqual(self.fs.proxy_errors[0][1],
+                         "Remote action start failed: No response")
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+
+    def test_start_crash(self):
+        """send a start message then crashes"""
+        msg = shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                             status='start', comp=self.tgt)
+
+        self.act.fakecmd = 'echo "%s"; echo BAD; exit 1' % msg
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([MOUNTED], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+        self.assertEqual(self.fs.proxy_errors[0][1],
+                         "Remote action start failed: \nBAD\n")
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+
+    def test_start_ok(self):
+        """send a start and done message"""
+        msgs = []
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='start', comp=self.tgt))
+        self.tgt.state = MOUNTED
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='done', comp=self.tgt))
+
+        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([MOUNTED], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 0)
+        self.assertEqual(self.tgt.state, MOUNTED)
+
+    def test_crash_after_start_ok(self):
+        """send a start and done message and then crashes"""
+        msgs = []
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='start', comp=self.tgt))
+        self.tgt.state = MOUNTED
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='done', comp=self.tgt))
+
+        self.act.fakecmd = 'echo "%s"; echo Oops; exit 1' % '\n'.join(msgs)
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([MOUNTED], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+        self.assertEqual(self.fs.proxy_errors[0][1],
+                         "Remote action start failed: \n\nOops\n")
+        self.assertEqual(self.tgt.state, MOUNTED)

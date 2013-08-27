@@ -249,8 +249,8 @@ class FileSystem:
 
         failover = kwargs.get('failover')
         mountdata = kwargs.get('mountdata')
-        FSProxyAction(self, action, servers, self.debug, comps, addopts,
-                      failover, mountdata).launch()
+        return FSProxyAction(self, action, servers, self.debug, comps, addopts,
+                             failover, mountdata)
 
     def _run_actions(self):
         """
@@ -390,7 +390,7 @@ class FileSystem:
 
         if len(distant_servers) > 0:
             # Perform the remove operations on all targets for these nodes.
-            self._proxy_action('remove', distant_servers)
+            self._proxy_action('remove', distant_servers).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -411,7 +411,8 @@ class FileSystem:
                     target.format(**kwargs).launch()
 
             else:
-                self._proxy_action('format', server.hostname, targets, **kwargs)
+                self._proxy_action('format', server.hostname, targets,
+                                   **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -431,7 +432,8 @@ class FileSystem:
                     target.tunefs(**kwargs).launch()
 
             else:
-                self._proxy_action('tunefs', server.hostname, targets, **kwargs)
+                self._proxy_action('tunefs', server.hostname, targets,
+                                   **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -450,7 +452,8 @@ class FileSystem:
                     target.fsck(**kwargs).launch()
 
             else:
-                self._proxy_action('fsck', server.hostname, targets, **kwargs)
+                self._proxy_action('fsck', server.hostname, targets,
+                                   **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -472,7 +475,7 @@ class FileSystem:
                     comp.status().launch()
             else:
                 self._proxy_action('status', server.hostname, srvcomps,
-                                   **kwargs)
+                                   **kwargs).launch()
 
         # Run local and proxy actions
         self._run_actions()
@@ -514,7 +517,7 @@ class FileSystem:
                 else:
                     # Start per selected targets on this server.
                     self._proxy_action('start', server.hostname, subtargets,
-                                       **kwargs)
+                                       **kwargs).launch()
 
             if len(grp):
                 grp.depends_on(modprobe)
@@ -555,7 +558,7 @@ class FileSystem:
                 else:
                     # Stop per selected targets on this server.
                     self._proxy_action('stop', server.hostname, subtargets,
-                                       **kwargs)
+                                       **kwargs).launch()
 
             if len(grp):
                 rmmod.depends_on(grp)
@@ -588,7 +591,8 @@ class FileSystem:
                     grp.add(comp.mount(**kwargs))
             else:
                 # distant client
-                self._proxy_action('mount', server.hostname, clients, **kwargs)
+                self._proxy_action('mount', server.hostname, clients,
+                                    **kwargs).launch()
 
         if len(grp):
             grp.depends_on(modprobe)
@@ -617,7 +621,8 @@ class FileSystem:
                     comp.umount(**kwargs).launch()
             else:
                 # distant clients
-                self._proxy_action('umount', server.hostname, clients, **kwargs)
+                self._proxy_action('umount', server.hostname, clients,
+                                   **kwargs).launch()
 
         if len(grp):
             rmmod.depends_on(grp)
@@ -643,7 +648,7 @@ class FileSystem:
             else:
                 # distant client
                 self._proxy_action('execute', server.hostname, srvcomps,
-                                   **kwargs)
+                                   **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
@@ -676,7 +681,8 @@ class FileSystem:
                 types = set([type_map[tgt.TYPE] for tgt in srvcomps])
                 server.tune(tuning_model, types, self.fs_name)
             else:
-                self._proxy_action('tune', server.hostname, srvcomps, **kwargs)
+                self._proxy_action('tune', server.hostname, srvcomps,
+                                   **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()

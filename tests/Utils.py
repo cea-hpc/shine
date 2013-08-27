@@ -1,15 +1,23 @@
 #!/usr/bin/env python
 # Utilities function for Shine unit tests.
 # Written by A. Degremont
-# $Id$
 
 import os
+import socket
 import tempfile
 import ConfigParser
 
 TESTS_CONFIG='tests.conf'
 
 from Shine.Configuration.Globals import Globals
+
+
+# Used when a real hostname is required
+HOSTNAME = socket.gethostname().split('.')[0]
+
+#
+# Test decorators
+#
 
 def rootonly(method):
     def root_tested(self):
