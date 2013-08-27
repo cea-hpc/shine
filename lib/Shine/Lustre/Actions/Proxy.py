@@ -38,6 +38,12 @@ class ProxyActionUnpackError(Exception):
     An error occured while trying to unpack a shine event message.
     """
 
+def shine_msg_pack(**kwargs):
+    """Shine event serialization method."""
+    # To be more evolutive, Shine message contains only a dict.
+    return "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
+                        binascii.b2a_base64(pickle.dumps(kwargs, -1)))
+
 class ProxyAction(Action):
     """
     Abstract shine proxy action class.

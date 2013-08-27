@@ -1,5 +1,5 @@
 # RemoteCallEventHandler.py -- Lustre remote call event handling (for -R)
-# Copyright (C) 2009-2011 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,15 +17,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
-
-from Shine.Lustre.EventHandler import EventHandler
-from Shine.Lustre.Actions.Proxy import SHINE_MSG_VERSION, SHINE_MSG_MAGIC
-
-import binascii, pickle
 import sys
 
+from Shine.Lustre.EventHandler import EventHandler
+from Shine.Lustre.Actions.Proxy import shine_msg_pack
 
 class RemoteCallEventHandler(EventHandler):
     """
@@ -34,17 +30,13 @@ class RemoteCallEventHandler(EventHandler):
     output.
     """
 
-    def _shine_msg_pack(self, **kwargs):
-        """
-        This is the shine event serialization method.
-        """
-        # To be more evolutive, Shine message contains only a dict.
-        sys.stdout.write("%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
-                          binascii.b2a_base64(pickle.dumps(kwargs, -1))))
-        sys.stdout.flush()
-
-    def event_callback(self, compname, action, status, node, **kwargs):
+    def event_callback(self, compname, action, status, **kwargs):
+        """Convert each event it receives into an encoded line on stdout."""
         # For distant message, we do not need to send the node. It will
         # be extract from the incoming server name.
-        self._shine_msg_pack(compname=compname, action=action,
-                             status=status, **kwargs)
+        if 'node' in kwargs:
+            del kwargs['node']
+        msg = shine_msg_pack(compname=compname, action=action, status=status,
+                             **kwargs)
+        sys.stdout.write(msg)
+        sys.stdout.flush()
