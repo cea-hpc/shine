@@ -22,6 +22,9 @@ import os
 import sys
 import binascii, pickle
 
+from ClusterShell.MsgTree import MsgTree
+from ClusterShell.NodeSet import NodeSet
+
 from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
 from Shine.Lustre.Actions.Action import Action, CommonAction, ACT_OK, ACT_ERROR
 
@@ -116,6 +119,9 @@ class FSProxyAction(CommonAction):
         self.failover = failover
         self.mountdata = mountdata
 
+        self._outputs = MsgTree()
+        self._silentnodes = NodeSet() # Error nodes without output
+
         if self.fs.debug:
             print "FSProxyAction %s on %s" % (action, nodes)
 
@@ -166,7 +172,8 @@ class FSProxyAction(CommonAction):
                 comp.action_start('proxy')
 
     def ev_read(self, worker):
-        node, buf = worker.last_read()
+        node = worker.current_node
+        buf = worker.current_msg
         try:
             data = shine_msg_unpack(buf)
             compname = data.pop('compname')
@@ -174,8 +181,16 @@ class FSProxyAction(CommonAction):
             status = data.pop('status')
             self.fs.distant_event(compname, action, status, node=node, **data)
         except ProxyActionUnpackError:
-            # ignore any non shine messages
-            pass
+            # Store output that is not a shine message
+            self._outputs.add(node, buf)
+
+    def ev_hup(self, worker):
+        """Keep a list of node, without output, with a return code != 0"""
+        # If this node was on error
+        if worker.current_rc != 0:
+            # If there is no known outputs
+            if self._outputs.get(worker.current_node) is None:
+                self._silentnodes.add(worker.current_node)
 
     def ev_close(self, worker):
         """End of proxy command."""
@@ -228,32 +243,18 @@ class FSProxyAction(CommonAction):
                 # If there is at least one error, the action is on error.
                 status = ACT_ERROR
 
-                # Built the list of nodes without output
-                nobuffer_nodes = nodes
-
                 # Gather these nodes by buffer
-                for buffers, nodes in worker.iter_buffers(nodes):
+                key = nodes.__contains__
+                for buffers, nodes in self._outputs.walk(match=key):
+                    # Handle proxy command error
+                    nodes = NodeSet.fromlist(nodes)
+                    msg = "Remote action %s failed: %s\n" % \
+                                                        (self.action, buffers)
+                    self.fs._handle_shine_proxy_error(nodes, msg)
 
-                    # Ok, those nodes have output, forget them
-                    nobuffer_nodes.difference_update(nodes)
-
-                    ### FIXME #25: temporary SHINE msg filter to avoid pickle 
-                    ### data to be dumped on screen. To be fixed as soon as
-                    ### ClusterShell is able to clean MsgTree buffers on demand
-                    ### (CS trac #3).
-                    buf = ""
-                    for line in buffers.splitlines():
-                        if not line.startswith("SHINE:"):
-                            buf += "%s\n" % line 
-
-                    # Handle proxy command error which rc >= 127 and 
-                    self.fs._handle_shine_proxy_error(nodes, "Remote action "
-                                                      "%s failed: %s" %
-                                                      (self.action, buf))
-
-                # Raise an error for nodes without output
-                if len(nobuffer_nodes) > 0:
-                    self.fs._handle_shine_proxy_error(nobuffer_nodes, \
-                           "Remote action %s failed: No response" % self.action)
+        # Raise an error for nodes without output
+        if len(self._silentnodes) > 0:
+            msg = "Remote action %s failed: No response" % self.action
+            self.fs._handle_shine_proxy_error(self._silentnodes, msg)
 
         self.set_status(status)
