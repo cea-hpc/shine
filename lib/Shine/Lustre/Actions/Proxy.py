@@ -22,21 +22,20 @@ import os
 import sys
 import binascii, pickle
 
-from ClusterShell.Task import task_self
 from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
-from Shine.Lustre.Actions.Action import Action
+from Shine.Lustre.Actions.Action import Action, CommonAction, ACT_OK, ACT_ERROR
 
 # For V2 Compat
 from Shine.Lustre.Actions.Action import ErrorResult
 
-# SHINE PROXY PROTOCOL CONSTANTS
+#
+# SHINE PROXY PROTOCOL
+#
 SHINE_MSG_MAGIC = "SHINE:"
 SHINE_MSG_VERSION = 3
 
 class ProxyActionUnpackError(Exception):
-    """
-    An error occured while trying to unpack a shine event message.
-    """
+    """An error occured while trying to unpack a shine event message."""
 
 def shine_msg_pack(**kwargs):
     """Shine event serialization method."""
@@ -44,70 +43,68 @@ def shine_msg_pack(**kwargs):
     return "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
                         binascii.b2a_base64(pickle.dumps(kwargs, -1)))
 
-class ProxyAction(Action):
+def shine_msg_unpack(msg):
     """
-    Abstract shine proxy action class.
+    Parse a raw string from a remote shine command.
+
+    Return a dict containing the information put by shine_msg_pack().
     """
+    # check for any shine msg
+    if not msg.startswith(SHINE_MSG_MAGIC):
+        raise ProxyActionUnpackError("Missing shine message prefix")
 
-    NAME = 'proxy'
+    # Identified shine msg of the form SHINE:<version>:<pickle>
+    try:
+        # unpack pickle object
+        version, data = msg[len(SHINE_MSG_MAGIC):].split(':', 1)
+        if int(version) == SHINE_MSG_VERSION:
+            return pickle.loads(binascii.a2b_base64(data))
+        elif int(version) == 2:
+            return shine_msg_unpack_v2(data)
+        else:
+            raise ProxyActionUnpackError("Shine message version mismatch")
+    except Exception, exp:
+        raise ProxyActionUnpackError("Unknown error: %s" % exp)
 
-    def __init__(self, task=task_self()):
-        Action.__init__(self, task)
-        self.progpath = os.path.abspath(sys.argv[0])
+def shine_msg_unpack_v2(msg):
+    """
+    Compatibility function to unpack old-style v2 messages.
 
-    def _shine_msg_unpack(self, msg):
-        """
-        Parse a raw string from a remote shine command.
-        Return a dict containing the information put by
-         RemoteCallEventHandler._shine_msg_pack()
-        """
-        # check for any shine msg
-        if not msg.startswith("SHINE:"):
-            raise ProxyActionUnpackError("Missing shine message prefix")
+    v2-style messages were used up to v0.910, becoming useless when
+    v3-style messages were introduced in v0.911, released 14-02-12.
+    """
+    # v2 message looks like:
+    # SHINE:2:ev_starttarget_done:{node:, comp:, rc:, message:}
 
-        # Identified shine msg of the form SHINE:<version>:<pickle>
-        try:
-            # unpack pickle object
-            version, data = msg[6:].split(':', 1)
-            if int(version) == SHINE_MSG_VERSION:
-                return pickle.loads(binascii.a2b_base64(data))
-            elif int(version) == 2:
-                return self._shine_msg_unpack_v2(data)
-            else:
-                raise ProxyActionUnpackError("Shine message version mismatch")
-        except Exception, exp:
-            raise ProxyActionUnpackError("Unknown error: %s" % exp)
+    event, msg = msg.split(':', 1)
+    data = pickle.loads(binascii.a2b_base64(msg))
+    dummy, actioncomp, data['status'] = event.split('_', 3)
+    for name in ('router', 'client', 'target', 'journal'):
+        if actioncomp.endswith(name):
+            data['action'] = actioncomp[:-len(name)]
+            data['compname'] = name
+            break
 
-    @classmethod
-    def _shine_msg_unpack_v2(cls, msg):
-        """Compatibility function to unpack old-style v2 messages."""
-        # v2 message looks like:
-        # SHINE:2:ev_starttarget_done:{node:, comp:, rc:, message:}
+    # Result is only possible for 'failed' event in v2.
+    if data['status'] == 'failed':
+        data['result'] = ErrorResult(message=data.get('message'),
+                                     retcode=data.get('rc'))
+    return data
 
-        event, msg = msg.split(':', 1)
-        data = pickle.loads(binascii.a2b_base64(msg))
-        dummy, actioncomp, data['status'] = event.split('_', 3)
-        for name in ('router', 'client', 'target', 'journal'):
-            if actioncomp.endswith(name):
-                data['action'] = actioncomp[:-len(name)]
-                data['compname'] = name
-                break
 
-        # Result is only possible for 'failed' event in v2.
-        if data['status'] == 'failed':
-            data['result'] = ErrorResult(message=data.get('message'),
-                                         retcode=data.get('rc'))
-        return data
-
-class FSProxyAction(ProxyAction):
+class FSProxyAction(CommonAction):
     """
     Generic file system command proxy action class.
     """
 
+    NAME = 'proxy'
+
     def __init__(self, fs, action, nodes, debug, comps=None, addopts=None, 
                  failover=None, mountdata=None):
 
-        ProxyAction.__init__(self)
+        CommonAction.__init__(self)
+
+        self.progpath = os.path.abspath(sys.argv[0])
         self.fs = fs
         self.action = action
         self.nodes = nodes
@@ -147,7 +144,7 @@ class FSProxyAction(ProxyAction):
 
         return command
 
-    def launch(self):
+    def _launch(self):
         """Launch FS proxy command."""
         command = self._prepare_cmd()
 
@@ -171,7 +168,7 @@ class FSProxyAction(ProxyAction):
     def ev_read(self, worker):
         node, buf = worker.last_read()
         try:
-            data = self._shine_msg_unpack(buf)
+            data = shine_msg_unpack(buf)
             compname = data.pop('compname')
             action = data.pop('action')
             status = data.pop('status')
@@ -181,14 +178,20 @@ class FSProxyAction(ProxyAction):
             pass
 
     def ev_close(self, worker):
-        """
-        End of proxy command.
-        """
+        """End of proxy command."""
+        Action.ev_close(self, worker)
 
-        # XXX: Before all, we must check if shine command ran without
-        # bugs, node crash, etc... So we need to verify all node retcode
-        # and change the component state on the bad nodes.
+        # Before all, we must check if shine command ran without bugs, node
+        # crash, etc...
+        # So we need to verify all node retcodes and change the component state
+        # on the bad nodes.
 
+        # Action timed out
+        if worker.did_timeout():
+            self.set_status(ACT_ERROR)
+            return
+
+        status = ACT_OK
 
         # Remove the 'proxy' running action for each component.
         if self._comps:
@@ -203,6 +206,8 @@ class FSProxyAction(ProxyAction):
                 # If yes, this is a bug, change state to RUNTIME_ERROR.
                 # INPROGRESS management could be change using running action
                 # list.
+                # Starting with v1.3, there is no more code setting INPROGRESS.
+                # This is for compatibility with older clients.
                 elif comp.state == INPROGRESS:
                     actions = ""
                     if len(comp._list_action()):
@@ -213,17 +218,21 @@ class FSProxyAction(ProxyAction):
 
         # Gather nodes by return code
         for rc, nodes in worker.iter_retcodes():
+            # Remote command returns only RUNTIME_ERROR (See RemoteCommand)
             # some common remote errors:
             # rc 127 = command not found
             # rc 126 = found but not executable
             # rc 1 = python failure...
             if rc != 0:
 
+                # If there is at least one error, the action is on error.
+                status = ACT_ERROR
+
                 # Built the list of nodes without output
                 nobuffer_nodes = nodes
 
                 # Gather these nodes by buffer
-                for buffer, nodes in worker.iter_buffers(nodes):
+                for buffers, nodes in worker.iter_buffers(nodes):
 
                     # Ok, those nodes have output, forget them
                     nobuffer_nodes.difference_update(nodes)
@@ -233,7 +242,7 @@ class FSProxyAction(ProxyAction):
                     ### ClusterShell is able to clean MsgTree buffers on demand
                     ### (CS trac #3).
                     buf = ""
-                    for line in buffer.splitlines():
+                    for line in buffers.splitlines():
                         if not line.startswith("SHINE:"):
                             buf += "%s\n" % line 
 
@@ -242,7 +251,9 @@ class FSProxyAction(ProxyAction):
                                                       "%s failed: %s" %
                                                       (self.action, buf))
 
-                # Raise an error for nodes without outputs
+                # Raise an error for nodes without output
                 if len(nobuffer_nodes) > 0:
                     self.fs._handle_shine_proxy_error(nobuffer_nodes, \
-                        "Remote action %s failed: No response" % (self.action))
+                           "Remote action %s failed: No response" % self.action)
+
+        self.set_status(status)

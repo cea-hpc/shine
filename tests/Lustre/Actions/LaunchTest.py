@@ -553,6 +553,7 @@ class ProxyTest(unittest.TestCase):
         self.assertEqual(self.fs.proxy_errors[0][1],
                          "Remote action start failed: No response")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+        self.assertEqual(self.act.status(), ACT_ERROR)
 
     def test_start_crash(self):
         """send a start message then crashes"""
@@ -568,6 +569,7 @@ class ProxyTest(unittest.TestCase):
         self.assertEqual(self.fs.proxy_errors[0][1],
                          "Remote action start failed: \nBAD\n")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+        self.assertEqual(self.act.status(), ACT_ERROR)
 
     def test_start_ok(self):
         """send a start and done message"""
@@ -585,6 +587,7 @@ class ProxyTest(unittest.TestCase):
 
         self.assertEqual(len(self.fs.proxy_errors), 0)
         self.assertEqual(self.tgt.state, MOUNTED)
+        self.assertEqual(self.act.status(), ACT_OK)
 
     def test_crash_after_start_ok(self):
         """send a start and done message and then crashes"""
@@ -604,3 +607,4 @@ class ProxyTest(unittest.TestCase):
         self.assertEqual(self.fs.proxy_errors[0][1],
                          "Remote action start failed: \n\nOops\n")
         self.assertEqual(self.tgt.state, MOUNTED)
+        self.assertEqual(self.act.status(), ACT_ERROR)
