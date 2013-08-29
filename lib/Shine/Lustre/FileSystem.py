@@ -35,7 +35,7 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Lustre.Actions.Action import ActionGroup
+from Shine.Lustre.Actions.Action import ActionGroup, ACT_ERROR
 from Shine.Lustre.Actions.Proxy import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
@@ -266,7 +266,7 @@ class FileSystem:
                              Globals().get_ssh_connect_timeout())
         task_self().resume()
 
-    def _check_errors(self, expected_states, components=None):
+    def _check_errors(self, expected_states, components=None, actions=None):
         """
         This verifies that executed tasks were successfull.
 
@@ -276,10 +276,13 @@ class FileSystem:
         If there is no error, it returns the expected state.
         """
         assert type(expected_states) is list
+        result = None
+
+        if actions and actions.status() == ACT_ERROR:
+            result = TARGET_ERROR
 
         # If a component list is provided, check that all components from it
         # have expected state.
-        result = None
         for comp in components or []:
 
             # This should never happen but it is convenient for debugging if
@@ -451,7 +454,7 @@ class FileSystem:
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], comps)
+        return self._check_errors([OFFLINE], comps, actions)
 
 
     def tunefs(self, comps=None, **kwargs):
@@ -462,7 +465,7 @@ class FileSystem:
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], comps)
+        return self._check_errors([OFFLINE], comps, actions)
 
 
     def fsck(self, comps=None, **kwargs):
@@ -471,9 +474,8 @@ class FileSystem:
         actions = self._prepare('fsck', comps, **kwargs)
         actions.launch()
         self._run_actions()
-
         # Check for errors and return OFFLINE or error code
-        return self._check_errors([OFFLINE], comps)
+        return self._check_errors([OFFLINE], comps, actions)
 
 
     def status(self, comps=None, **kwargs):
@@ -546,7 +548,7 @@ class FileSystem:
 
         # Here we check MOUNTED but in fact, any status is OK.
         # XXX: Is that ok, to check MOUNTED here?
-        return self._check_errors([MOUNTED], comps)
+        return self._check_errors([MOUNTED], comps, actions)
 
     def tune(self, tuning_model, comps=None, **kwargs):
         """Tune server."""

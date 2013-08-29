@@ -1,3 +1,7 @@
+2013-08-29 Aurelien Degremont  <aurelien.degremont@cea.fr>
+	* Always return an error when format, fsck, tunefs or execute
+	failed (ticket #82).
+
 2013-08-28 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Clean handling of remote shine output (ticket #25).
 

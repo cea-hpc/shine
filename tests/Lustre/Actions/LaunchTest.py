@@ -205,7 +205,7 @@ class ActionsTest(unittest.TestCase):
         self.assertEqual(result.retcode, 8)
 
         # Status checks
-        self.assertEqual(self.tgt.state, TARGET_ERROR)
+        self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_ERROR)
 
     #

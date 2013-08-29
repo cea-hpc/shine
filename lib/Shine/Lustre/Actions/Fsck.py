@@ -25,7 +25,6 @@ Action class to check (fsck) target filesystem coherency.
 import time
 import logging
 
-from Shine.Lustre.Component import TARGET_ERROR
 from Shine.Lustre.Actions.Action import Action, FSAction, Result, ErrorResult, \
                                         ACT_OK, ACT_ERROR
 
@@ -142,12 +141,7 @@ class Fsck(FSAction):
             self.comp.action_done('fsck', result)
             self.set_status(ACT_OK)
         else:
-            # XXX: Do not put this on error as it the only Action where this is
-            # done.
-            # This has to be checked and see if we really need it.
-            # Same issue with Actions.Format.
-            # This symbol is bad here anyway.
-            self.comp.state = TARGET_ERROR
+            # action failed
             msg = "\n".join(self._output)
             result = ErrorResult(msg, self.duration, worker.retcode())
             self.comp.action_failed('fsck', result)
