@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.FileSystem class
-# Copyright (C) 2009-2011 CEA
-# $Id$
+# Copyright (C) 2009-2013 CEA
 
 
 """Unit test for Shine.Configuration.FileSystem"""
@@ -454,7 +453,7 @@ mgt: node=foo1 dev=/dev/sda
         self.assertTrue(actions.get('copyconf', False))
         self.assertTrue(actions.get('restart', False))
 
-    def test_client_mount_options(self):
+    def test_client_mount_options_no_clients(self):
         actions = self._compare(
 """fs_name: compare
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -466,6 +465,44 @@ nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
 mount_path: /bar
 mgt: node=foo1 dev=/dev/sda
 """)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(actions.keys(), ['copyconf'])
         self.assertTrue(actions.get('copyconf', False))
-        self.assertTrue(actions.get('remount', False))
+
+    def test_client_mount_options(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /foo
+mgt: node=foo1 dev=/dev/sda
+client: node=foo2
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /bar
+mgt: node=foo1 dev=/dev/sda
+client: node=foo2
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertEqual(len(actions.get('mount', [])), 1)
+        self.assertEqual(len(actions.get('unmount', [])), 1)
+
+    def test_client_mount_options_and_remove(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /foo
+mgt: node=foo1 dev=/dev/sda
+client: node=foo[2-3]
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /bar
+mgt: node=foo1 dev=/dev/sda
+client: node=foo2
+""")
+        self.assertEqual(sorted(actions.keys()),
+                         ['copyconf', 'mount', 'unmount'])
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('unmount', False))
+        self.assertTrue(actions.get('mount', False))

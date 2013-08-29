@@ -1,5 +1,5 @@
 # Update.py -- Update a file system with a new model file
-# Copyright (C) 2011-2012 CEA
+# Copyright (C) 2011-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine 'update' command class.
@@ -108,7 +107,7 @@ class Update(Command):
                 if action == 'stop':
                     txt.append("Warning: A target should be empty before" \
                                " being removed.")
-        for action in ('tunefs', 'writeconf', 'reformat', 'remount', 'restart'):
+        for action in ('tunefs', 'writeconf', 'reformat', 'restart'):
             if action in changes:
                 txt.append(" %10s: Yes" % action.capitalize())
         for action in ('format', 'start', 'mount'):
@@ -276,12 +275,12 @@ class Update(Command):
             if len(oldcomps):
                 self._precheck(oldfs, oldfs.status, 'verify', comps=oldcomps)
 
-            # Unmount what's will be removed
+            # Unmount what will be removed
             if 'unmount' in actions:
                 comps = actions['unmount']
                 self._apply(oldfs, oldfs.umount, 'unmount', comps, OFFLINE)
 
-            # Stop what's will be removed
+            # Stop what will be removed
             if 'stop' in actions:
                 self._apply(oldfs, oldfs.stop, 'stop', actions['stop'], OFFLINE)
 
@@ -371,12 +370,6 @@ class Update(Command):
                                 len(actions['start']))
             next_actions.append(self._next_action_cmd('start', newfs, 
                                 '-l %s' % actions['start'].labels()))
-
-        # Remount need unmount first
-        if 'remount' in actions:
-            next_actions.append("Need to `remount' all clients.")
-            next_actions.append(self._next_action_cmd('umount', newfs)) 
-            next_actions.append(self._next_action_cmd('mount', newfs)) 
 
         # Mount if needed
         if 'mount' in actions:

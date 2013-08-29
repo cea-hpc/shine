@@ -1,6 +1,7 @@
 2013-08-29 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Always return an error when format, fsck, tunefs or execute
 	failed (ticket #82).
+	* umount/mount clients on update only when needed (ticket #152).
 
 2013-08-28 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Clean handling of remote shine output (ticket #25).

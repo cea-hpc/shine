@@ -376,11 +376,18 @@ class FileSystem(object):
             # Note: Target removal could also set this flag.
             actions['writeconf'] = True
 
-        # Need to remount clients
+        # Need to unmount then remount clients
         remountkeys = set(['mount_options', 'mount_path'])
         if remountkeys & anyset:
-            # XXX: Could be improved to remount only needed clients
-            actions['remount'] = True
+            actions['copyconf'] = True
+            # Could be improved if doing this only on clients without specific
+            # path or options.
+            if self.model.get('client'):
+                actions['unmount'] = [ Clients(cli) for cli
+                                       in self.model.get('client') ]
+            if otherfs.model.get('client'):
+                actions['mount'] = [ Clients(cli) for cli
+                                     in otherfs.model.get('client') ]
 
         # Need to restart targets
         restartkeys = set(['mgt_mount_path', 'mdt_mount_path', 'ost_mount_path',
@@ -396,9 +403,13 @@ class FileSystem(object):
 
         # Clients have changed
         if 'client' in removed:
-            actions['unmount'] = [ Clients(elem) for elem in removed.elements('client')]
+            actions.setdefault('unmount', [])
+            actions['unmount'] += [Clients(elem) for elem
+                                   in removed.elements('client')]
         if 'client' in added:
-            actions['mount'] = [ Clients(elem) for elem in added.elements('client')]
+            actions.setdefault('mount', [])
+            actions['mount'] += [Clients(elem) for elem
+                                 in added.elements('client')]
         assert 'client' not in changed, 'Client change is not supported'
 
         # Router has changed
