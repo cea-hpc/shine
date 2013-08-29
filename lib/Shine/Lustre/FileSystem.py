@@ -377,21 +377,77 @@ class FileSystem:
         
         return result
 
+    def _prepare(self, action, comps=None, groupby=None, reverse=False,
+                 need_load=False, need_unload=False, **kwargs):
+        """
+        Instanciate all actions for the component list and but them in a graph
+        of ActionGroup().
+
+        Action could be local or proxy actions.
+        Components list is filtered, based on action name.
+        """
+
+        graph = ActionGroup()
+        subparts = []
+
+        first_comps = None
+        last_comps = None
+        localsrv = None
+
+        if groupby:
+            iterable = comps.groupby(attr=groupby, reverse=reverse)
+        else:
+            iterable = [(None, comps)]
+
+        # Iterate over targets, grouping them by start order and server.
+        for _order, comps in iterable:
+
+            subparts.append(ActionGroup())
+            graph.add(subparts[-1])
+            compgrp = ActionGroup()
+            proxygrp = ActionGroup()
+
+            for srv, comps in comps.groupbyserver():
+                if srv.is_local():
+                    localsrv = srv
+                    for comp in comps:
+                        compgrp.add(getattr(comp, action)(**kwargs))
+                else:
+                    act = self._proxy_action(action, srv.hostname,
+                                             comps, **kwargs)
+                    proxygrp.add(act)
+
+            if len(compgrp) > 0:
+                subparts[-1].add(compgrp)
+                # Keep track of first comp group
+                if first_comps is None:
+                    first_comps = compgrp
+                # Keep track of last comp group
+                last_comps = compgrp
+
+            if len(proxygrp) > 0:
+                subparts[-1].add(proxygrp)
+
+
+        # Add module loading, if needed.
+        if need_load and first_comps is not None:
+            first_comps.depends_on(localsrv.load_modules())
+        # Add module unloading to last component group, if needed.
+        if need_unload and last_comps is not None:
+            localsrv.unload_modules().depends_on(last_comps)
+
+        # Join the different part together
+        for sub1, sub2 in zip(subparts, subparts[1::]):
+            sub2.depends_on(sub1)
+
+        return graph
+
+
     def format(self, comps=None, **kwargs):
-
+        """Format filesystem targets."""
         comps = (comps or self.components).managed(supports='format')
-        for server, targets in comps.groupbyserver():
-
-            if server.is_local():
-                # local server
-                for target in targets:
-                    target.format(**kwargs).launch()
-
-            else:
-                self._proxy_action('format', server.hostname, targets,
-                                   **kwargs).launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('format', comps, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
@@ -399,40 +455,21 @@ class FileSystem:
 
 
     def tunefs(self, comps=None, **kwargs):
-
+        """Modify component option set at format."""
         comps = (comps or self.components).managed(supports='tunefs')
-        for server, targets in comps.groupbyserver():
-
-            if server.is_local():
-                # local server
-                for target in targets:
-                    target.tunefs(**kwargs).launch()
-
-            else:
-                self._proxy_action('tunefs', server.hostname, targets,
-                                   **kwargs).launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('tunefs', comps, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
         return self._check_errors([OFFLINE], comps)
 
+
     def fsck(self, comps=None, **kwargs):
-
+        """Check component filesystem coherency."""
         comps = (comps or self.components).managed(supports='fsck')
-        for server, targets in comps.groupbyserver():
-
-            if server.is_local():
-                # local server
-                for target in targets:
-                    target.fsck(**kwargs).launch()
-
-            else:
-                self._proxy_action('fsck', server.hostname, targets,
-                                   **kwargs).launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('fsck', comps, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Check for errors and return OFFLINE or error code
@@ -440,30 +477,17 @@ class FileSystem:
 
 
     def status(self, comps=None, **kwargs):
-        """
-        Get status of filesystem.
-        """
-        comps = (comps or self.components).managed('status')
-
-        for server, srvcomps in comps.groupbyserver():
-
-            if server.is_local():
-                for comp in srvcomps:
-                    comp.status().launch()
-            else:
-                self._proxy_action('status', server.hostname, srvcomps,
-                                   **kwargs).launch()
-
-        # Run local and proxy actions
+        """Get status of filesystem."""
+        comps = (comps or self.components).managed(supports='status')
+        actions = self._prepare('status', comps, **kwargs)
+        actions.launch()
         self._run_actions()
         
         # Here we check MOUNTED but in fact, any status is OK.
         return self._check_errors([MOUNTED], comps)
 
     def start(self, comps=None, **kwargs):
-        """
-        Start Lustre file system servers.
-        """
+        """Start Lustre file system servers."""
         comps = (comps or self.components).managed(supports='start')
 
         # What starting order to use?
@@ -473,161 +497,51 @@ class FileSystem:
             self.status(comps=ComponentGroup([target]))
             if target.has_first_time_flag() or target.has_writeconf_flag():
                 # first_time or writeconf flag found, start MDT before OSTs
-                MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
+                MDT.START_ORDER, OST.START_ORDER = \
+                                               OST.START_ORDER, MDT.START_ORDER
 
-        # Iterate over targets, grouping them by start order and server.
-        for _order, targets in comps.groupby(attr='START_ORDER'):
-            grp = ActionGroup()
-            modprobe = None
+        actions = self._prepare('start', comps, groupby='START_ORDER',
+                                need_load=True, **kwargs)
+        actions.launch()
+        self._run_actions()
 
-            for server, subtargets in targets.groupbyserver():
-
-                if server.is_local():
-                    if not modprobe:
-                        modprobe = server.load_modules()
-                    # Start targets if we are on the good server.
-                    for target in subtargets:
-                        # Note that target.start() should never block here:
-                        # it will perform necessary non-blocking actions and
-                        # (when needed) will start local ClusterShell workers.
-                        grp.add(target.start(**kwargs))
-                else:
-                    # Start per selected targets on this server.
-                    self._proxy_action('start', server.hostname, subtargets,
-                                       **kwargs).launch()
-
-            if len(grp):
-                grp.depends_on(modprobe)
-                modprobe.launch()
-
-            # Resume current task, ie. start runloop, process workers events
-            # and also act as a target-type barrier.
-            self._run_actions()
-
-            # Avoid broken cascading starts, so we break now if
-            # a target of the previous type failed to start.
-            result = self._check_errors([MOUNTED, RECOVERING], targets)
-            if result not in [MOUNTED, RECOVERING]:
-                return result
-
-        return MOUNTED
-
+        return self._check_errors([MOUNTED, RECOVERING], comps)
 
     def stop(self, comps=None, **kwargs):
-        """
-        Stop file system.
-        """
+        """Stop file system."""
         comps = (comps or self.components).managed(supports='stop')
+        actions = self._prepare('stop', comps, groupby='START_ORDER',
+                                reverse=True, need_unload=True, **kwargs)
+        actions.launch()
+        self._run_actions()
 
-        # We use a similar logic than start(): see start() for comments.
-        # iterate over targets by start order and server
-        for _order, targets in comps.groupby(attr='START_ORDER', reverse=True):
-            grp = ActionGroup()
-            rmmod = None
-            for server, subtargets in targets.groupbyserver():
-
-                if server.is_local():
-                    if not rmmod:
-                        rmmod = server.unload_modules()
-                    # Stop targets if we are on the good server.
-                    for target in subtargets:
-                        grp.add(target.stop(**kwargs))
-                else:
-                    # Stop per selected targets on this server.
-                    self._proxy_action('stop', server.hostname, subtargets,
-                                       **kwargs).launch()
-
-            if len(grp):
-                rmmod.depends_on(grp)
-                grp.launch()
-
-            # Run local actions and FSProxyAction
-            self._run_actions()
-        
-            result = self._check_errors([OFFLINE], targets)
-            if result != OFFLINE:
-                return result
-
-        return OFFLINE
+        return self._check_errors([OFFLINE], comps)
 
     def mount(self, comps=None, **kwargs):
-        """
-        Mount FS clients.
-        """
+        """Mount FS clients."""
         comps = (comps or self.components).managed(supports='mount')
-
-        modprobe = None
-        grp = ActionGroup()
-        for server, clients in comps.groupbyserver():
-
-            if server.is_local():
-                if not modprobe:
-                    modprobe = server.load_modules()
-                # local client
-                for comp in clients:
-                    grp.add(comp.mount(**kwargs))
-            else:
-                # distant client
-                self._proxy_action('mount', server.hostname, clients,
-                                    **kwargs).launch()
-
-        if len(grp):
-            grp.depends_on(modprobe)
-            grp.launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('mount', comps, need_load=True, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
         return self._check_errors([MOUNTED], comps)
 
     def umount(self, comps=None, **kwargs):
-        """
-        Unmount FS clients.
-        """
+        """Unmount FS clients."""
         comps = (comps or self.components).managed(supports='umount')
-
-        rmmod = None
-        grp = ActionGroup()
-        for server, clients in comps.groupbyserver():
-            if server.is_local():
-                if not rmmod:
-                    rmmod = server.unload_modules()
-                # local clients
-                for comp in clients:
-                    comp.umount(**kwargs).launch()
-            else:
-                # distant clients
-                self._proxy_action('umount', server.hostname, clients,
-                                   **kwargs).launch()
-
-        if len(grp):
-            rmmod.depends_on(grp)
-            grp.launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('umount', comps, need_unload=True, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
         return self._check_errors([OFFLINE], comps)
 
     def execute(self, comps=None, **kwargs):
-        """
-        Execute custom command.
-        """
+        """Execute custom command."""
         comps = (comps or self.components).managed(supports='execute')
-        for server, srvcomps in comps.groupbyserver():
-
-            if server.is_local():
-                # local client
-                for comp in srvcomps:
-                    comp.execute(**kwargs).launch()
-            else:
-                # distant client
-                self._proxy_action('execute', server.hostname, srvcomps,
-                                   **kwargs).launch()
-
-        # Run local actions and FSProxyAction
+        actions = self._prepare('execute', comps, **kwargs)
+        actions.launch()
         self._run_actions()
 
         # Here we check MOUNTED but in fact, any status is OK.
@@ -635,9 +549,7 @@ class FileSystem:
         return self._check_errors([MOUNTED], comps)
 
     def tune(self, tuning_model, comps=None, **kwargs):
-        """
-        Tune server.
-        """
+        """Tune server."""
         comps = (comps or self.components).managed()
 
         type_map = { 'mgt': 'mgs', 
