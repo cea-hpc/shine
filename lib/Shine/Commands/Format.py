@@ -1,5 +1,5 @@
 # Format.py -- Format file system targets
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from Shine.CLI.Display import display
 
@@ -92,9 +91,6 @@ class Format(FSTargetLiveCriticalCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
         
-        # Notify backend of file system status mofication
-        fs_conf.set_status_fs_formating()
-
         # Format really.
         status = fs.format(stripecount=fs_conf.get_stripecount(),
                     stripesize=fs_conf.get_stripesize(),
@@ -109,15 +105,9 @@ class Format(FSTargetLiveCriticalCommand):
         rc = self.fs_status_to_rc(status)
 
         if rc == RC_OK:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_formated()
-
             if vlevel > 0:
                 print "Format successful."
         else:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_format_failed()
-
             if rc == RC_RUNTIME_ERROR:
                 for nodes, msg in fs.proxy_errors:
                     print "%s: %s" % (nodes, msg)

@@ -1,5 +1,5 @@
 # Stop.py -- Stop file system
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `stop' command classes.
@@ -94,9 +93,6 @@ class Stop(FSTargetLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
             
-        # Notify backend of file system status mofication
-        fs_conf.set_status_fs_stopping()
-
         status = fs.stop(addopts=self.options.additional,
                          failover=self.options.failover,
                          mountdata=self.options.mountdata)
@@ -104,15 +100,9 @@ class Stop(FSTargetLiveCommand):
         rc = self.fs_status_to_rc(status)
 
         if rc == RC_OK:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_offline()
-
             if vlevel > 0:
                 print "Stop successful."
         elif rc == RC_RUNTIME_ERROR:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_offline_failed()
-
             for nodes, msg in fs.proxy_errors:
                 print "%s: %s" % (nodes, msg)
 

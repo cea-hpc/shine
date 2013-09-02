@@ -1,5 +1,5 @@
 # Backend.py -- File system config backend point of view
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -47,23 +47,6 @@ class Backend:
     TARGET_UNREACHABLE=12
     TARGET_CHECKING=13
 
-    # Integers which represents the different fs status
-    FS_INSTALLED = 1
-    FS_FORMATING = 2
-    FS_FORMATED = 3
-    FS_STARTING = 4
-    FS_ONLINE = 5
-    FS_MOUNTED = 6
-    FS_STOPPING = 7
-    FS_OFFLINE  = 8
-    FS_CHECKING = 9
-    FS_UNKNOWN = 10
-    FS_WARNING = 11
-    FS_CRITICAL = 12
-    FS_ONLINE_FAILED = 13
-    FS_OFFLINE_FAILED = 14
-    FS_FORMAT_FAILED = 15
-
     def __init__(self):
         "Initializer."
         pass
@@ -105,19 +88,6 @@ class Backend:
     def unregister_fs(self, fs):
         """
         This function is used to remove a filesystem configuration to the backend
-        """
-        raise NotImplementedError(NIEXC)
-
-    def set_status_fs(self, fs_name, status, options):
-        """
-        Set status of file system.
-        """
-        raise NotImplementedError(NIEXC)
-
-    def get_status_fs(self, fs_name):
-        """
-        Get all target status of the form { fs : { 'status' : status,
-        'date' : datetime, 'options' : None } }
         """
         raise NotImplementedError(NIEXC)
 

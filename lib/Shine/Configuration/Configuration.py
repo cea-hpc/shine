@@ -1,5 +1,5 @@
 # Configuration.py -- Configuration container
-# Copyright (C) 2007-2011 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -269,115 +268,3 @@ class Configuration:
         from the backend.
         """
         self._fs.unregister()
-
-    def set_status_fs_installed(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to INSTALLED
-        """
-        self._fs.set_status_installed(options)
-
-    def set_status_fs_format_failed(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to FORMAT_FAILED
-        """
-        self._fs.set_status_format_failed(options)
-
-    def set_status_fs_formating(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to FORMATING
-        """
-        self._fs.set_status_formating(options)
-
-    def set_status_fs_formated(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to FORMATED
-        """
-        self._fs.set_status_formated(options)
-
-    def set_status_fs_starting(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to STARTING
-        """
-        self._fs.set_status_starting(options)
-
-    def set_status_fs_online(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to ONLINE
-        """
-        self._fs.set_status_online(options)
-
-    def set_status_fs_mounted(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to MOUNTED
-        """
-        self._fs.set_status_mounted(options)
-
-    def set_status_fs_stopping(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to STOPPING
-        """
-        self._fs.set_status_stopping(options)
-
-    def set_status_fs_offline(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to OFFLINE
-        """
-        self._fs.set_status_offline(options)
-
-    def set_status_fs_checking(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to CHECKING
-        """
-        self._fs.set_status_checking(options)
-
-    def set_status_fs_unknown(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to UNKNOWN
-        """
-        self._fs.set_status_unknown(options)
-
-    def set_status_fs_warning(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to WARNING
-        """
-        self._fs.set_status_warning(options)
-
-    def set_status_fs_critical(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to CRITICAL
-        """
-        self._fs.set_status_critical(options)
-
-    def set_status_fs_online_failed(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to ONLINE_FAILED
-        """
-        self._fs.set_status_online_failed(options)
-
-    def set_status_fs_offline_failed(self, options=None):
-        """
-        This function is used to set the status of current file system
-        to OFFLINE_FAILED
-        """
-        self._fs.set_status_offline_failed(options)
-
-    def get_status_fs(self):
-        """
-        This function returns the status of current file system.
-        """
-        return self._fs.get_status()
-

@@ -1,5 +1,5 @@
 # Start.py -- Start file system
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `start' command classes.
@@ -95,9 +94,6 @@ class Start(FSTargetLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
             
-        # Notify backend of file system status mofication
-        fs_conf.set_status_fs_starting()
-
         status = fs.start(mount_options=mount_options,
                           mount_paths=mount_paths,
                           addopts=self.options.additional,
@@ -107,9 +103,6 @@ class Start(FSTargetLiveCommand):
         rc = self.fs_status_to_rc(status)
 
         if rc == RC_OK:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_online()
-
             if vlevel > 0:
                 print "Start successful."
             tuning = Tune.get_tuning(fs_conf)
@@ -121,9 +114,6 @@ class Start(FSTargetLiveCommand):
             print "Tuning skipped."
 
         if rc == RC_RUNTIME_ERROR:
-            # Notify backend of file system status mofication
-            fs_conf.set_status_fs_online_failed()
-
             for nodes, msg in fs.proxy_errors:
                 print "%s: %s" % (nodes, msg)
 

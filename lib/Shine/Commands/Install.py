@@ -1,5 +1,5 @@
 # Install.py -- File system installation commands
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from Shine.Configuration.Globals import Globals 
 
@@ -98,9 +97,6 @@ class Install(Command):
             # Give pointer to next user step.
             print "Use `shine format -f %s' to initialize the file system." % \
                     fs_conf.get_fs_name()
-
-        # Notify backend of file system status mofication
-        fs_conf.set_status_fs_installed()
 
         return rc
 

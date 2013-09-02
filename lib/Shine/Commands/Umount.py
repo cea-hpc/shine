@@ -1,5 +1,5 @@
 # Umount.py -- Unmount file system on clients
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `umount' command classes.
@@ -86,8 +85,6 @@ class Umount(FSLiveCommand):
 
         if not self.options.remote:
             if rc == RC_OK:
-                
-                fs_conf.set_status_fs_online()
                 if vlevel > 0:
                     key = lambda c: c.state == OFFLINE
                     print "%s was successfully unmounted on %s" % \

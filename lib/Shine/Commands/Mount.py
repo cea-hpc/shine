@@ -1,5 +1,5 @@
 # Mount.py -- Mount file system on clients
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `mount' command classes.
@@ -89,9 +88,6 @@ class Mount(FSLiveCommand):
 
         if not self.options.remote:
             if rc == RC_OK:
-                # Notify backend of file system status mofication
-                fs_conf.set_status_fs_mounted()
-
                 if vlevel > 0:
                     key = lambda c: c.state == MOUNTED
                     print "%s was successfully mounted on %s" % \
@@ -104,9 +100,6 @@ class Mount(FSLiveCommand):
                     print "Filesystem tuning applied on %s" % comps.servers()
                 elif status == RUNTIME_ERROR:
                     rc = RC_RUNTIME_ERROR
-
-                    # Notify backend of file system status mofication
-                    fs_conf.set_status_fs_warning()
 
                     for nodes, msg in fs.proxy_errors:
                         print "%s: %s" % (nodes, msg)

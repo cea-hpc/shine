@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import copy
 import os
@@ -490,122 +489,3 @@ class FileSystem(object):
         """
         if self._start_backend():
             return self.backend.unregister_target(self, target)
-
-    def _set_status(self, status, options):
-        """
-        This function is used to change the specified filesystem status.
-        """
-        if self._start_backend():
-            self.backend.set_status_fs(self.fs_name, status, options)
-
-    def set_status_installed(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to INSTALLED
-        """
-        self._set_status(Backend.FS_INSTALLED, options)
-
-    def set_status_formating(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to FORMATING
-        """
-        self._set_status(Backend.FS_FORMATING, options)
-
-    def set_status_formated(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to FORMATED
-        """
-        self._set_status(Backend.FS_FORMATED, options)
-
-    def set_status_format_failed(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to FORMAT_FAILED
-        """
-        self._set_status(Backend.FS_FORMAT_FAILED, options)
-
-    def set_status_starting(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to STARTING
-        """
-        self._set_status(Backend.FS_STARTING, options)
-
-    def set_status_online(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to ONLINE
-        """
-        self._set_status(Backend.FS_ONLINE, options)
-
-    def set_status_mounted(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to MOUNTED
-        """
-        self._set_status(Backend.FS_MOUNTED, options)
-
-    def set_status_stopping(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to STOPPING
-        """
-        self._set_status(Backend.FS_STOPPING, options)
-
-    def set_status_offline(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to OFFLINE
-        """
-        self._set_status(Backend.FS_OFFLINE, options)
-
-    def set_status_checking(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to CHECKING
-        """
-        self._set_status(Backend.FS_CHECKING, options)
-
-    def set_status_unknown(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to UNKNOWN
-        """
-        self._set_status(Backend.FS_UNKNOWN, options)
-
-    def set_status_warning(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to WARNING
-        """
-        self._set_status(Backend.FS_WARNING, options)
-
-    def set_status_critical(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to CRITICAL
-        """
-        self._set_status(Backend.FS_CRITICAL, options)
-
-    def set_status_online_failed(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to ONLINE_FAILED
-        """
-        self._set_status(Backend.FS_ONLINE_FAILED, options)
-
-    def set_status_offline_failed(self, options):
-        """
-        This function is used to set the specified filesystem status
-        to OFFLINE_FAILED
-        """
-        self._set_status(Backend.FS_OFFLINE_FAILED, options)
-
-    def get_status(self):
-        """
-        This function returns the status of the current file system.
-        """
-        return self.backend.get_status_fs(self.fs_name)
-

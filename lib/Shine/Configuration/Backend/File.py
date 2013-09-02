@@ -1,5 +1,5 @@
 # File.py -- File backend module
-# Copyright (C) 2007-2010 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import os
 import shelve
@@ -111,19 +110,6 @@ class File(Backend):
     def unregister_fs(self, fs):
         """
         This function is used to remove a filesystem configuration to the backend
-        """
-        pass
-
-    def set_status_fs(self, fs_name, status, options):
-        """
-        Set status of file system.
-        """
-        pass
-
-    def get_status_fs(self, fs_name):
-        """
-        Get all target status of the form { fs : { 'status' : status,
-        'date' : datetime, 'options' : None } }
         """
         pass
 
