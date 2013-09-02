@@ -1,6 +1,7 @@
 2013-09-02 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* tuning.conf supports 'router' as node type (ticket #96).
 	* Remove code managing FS state in backend (ticket #161).
+	* Allow to unregister a FS even with error (ticket #125).
 
 2013-08-29 Aurelien Degremont  <aurelien.degremont@cea.fr>
 	* Always return an error when format, fsck, tunefs or execute

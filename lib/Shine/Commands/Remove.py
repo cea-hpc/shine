@@ -96,9 +96,8 @@ class Remove(FSTargetLiveCriticalCommand):
             # Do the job now!
             print "Removing filesystem %s..." % fs.fs_name
             if fs.remove():
-                print "Error: failed to remove all filesystem %s " \
+                print "WARNING: failed to remove all filesystem %s " \
                       "configuration files" % fs.fs_name
-                return RC_FAILURE
 
             # XXX: This is not really nice. Need to find a better way.
             if not self.options.nodes \
