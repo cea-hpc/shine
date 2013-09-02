@@ -29,8 +29,7 @@ Lustre filesystem.
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Configuration.TuningModel import TuningModel
-from Shine.Configuration.TuningModel import TuningParameterDeclarationException
+from Shine.Configuration.TuningModel import TuningModel, TuningError
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
@@ -132,9 +131,9 @@ class Tune(FSTargetLiveCommand):
                 # Parse the tuning model
                 tuning.parse()
 
-            except TuningParameterDeclarationException, tpde:
+            except TuningError, error:
                 # An error has occured during parsing of tuning configuration file
-                print "%s" % str(tpde)
+                print str(error)
                 # Break the tuning process for the currently processed file system
                 return None
 

@@ -22,13 +22,15 @@
 #
 # <alias>: Alias previously defined where value will be echoed.
 #
-# <targets>: Could be a mix of node type: MGS, MDS, OSS or CLT and node names,
-#            separated by ';' ie:  MDS;OSS;foo[1-5]
+# <targets>: Could be a mix of node type and node names,
+#            separated by ';'.
+#            Supported node type: MGS, MDS, OSS, CLIENT, CLT, ROUTER, RTR
+#            ie:  MDS;OSS;foo[1-5]
 
 # Alias declarations
 alias debug=/proc/sys/lnet/debug
 alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
 
 # Tuning parameters
-"1"    panic_on_lbug      CLT;MDS;OSS
-"0"    debug              CLT;MDS;OSS
+"1"    panic_on_lbug      CLT;MDS;OSS;ROUTER
+"0"    debug              CLT;MDS;OSS;ROUTER

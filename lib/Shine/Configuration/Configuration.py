@@ -159,12 +159,6 @@ class Configuration:
         """
         return self._fs.xmf_path
 
-    def get_tuning_cfg_filename(self):
-        """
-        Return the tuning.conf file path
-        """
-        self._fs.tuning_model.get_filename()
-
     def get_description(self):
         return self._fs.get('description')
 
