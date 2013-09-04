@@ -28,9 +28,6 @@ of the filesystem, or if needed, to enquire about filesystem components
 detailed states.
 """
 
-# Filesystem state formatting
-from Shine.CLI.Display import display
-
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
@@ -45,17 +42,6 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class GlobalStatusEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'status'
-    ACTIONING = 'checking'
-
-class LocalStatusEventHandler(FSLocalEventHandler):
-
-    ACTION = 'status'
-    ACTIONING = 'checking'
-
-
 class Status(FSTargetLiveCommand):
     """
     shine status [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
@@ -64,8 +50,8 @@ class Status(FSTargetLiveCommand):
     NAME = "status"
     DESCRIPTION = "Check for file system target status."
 
-    GLOBAL_EH = GlobalStatusEventHandler
-    LOCAL_EH = LocalStatusEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_ST_ONLINE,
@@ -105,7 +91,8 @@ class Status(FSTargetLiveCommand):
 
         result = self.fs_status_to_rc(fs_result)
 
-        if not self.options.remote and vlevel > 0:
-            print display(self, fs)
+        # Call a handle_post() method if defined by the event handler.
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
         return result

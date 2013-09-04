@@ -26,8 +26,6 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
-from Shine.CLI.Display import display
-
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
@@ -40,20 +38,6 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
-class GlobalStopEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'stop'
-    ACTIONING = 'stopping'
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='stop')
-
-class LocalStopEventHandler(FSLocalEventHandler):
-
-    ACTION = 'stop'
-    ACTIONING = 'stopping'
-
 
 class Stop(FSTargetLiveCommand):
     """
@@ -63,8 +47,8 @@ class Stop(FSTargetLiveCommand):
     NAME = "stop"
     DESCRIPTION = "Stop file system servers."
 
-    GLOBAL_EH = GlobalStopEventHandler
-    LOCAL_EH = LocalStopEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,
@@ -80,9 +64,9 @@ class Stop(FSTargetLiveCommand):
         # Prepare options...
         mount_options = {}
         mount_paths = {}
-        for target_type in [ 'mgt', 'mdt', 'ost' ]:
-            mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
-            mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
+        for tgt_type in [ 'mgt', 'mdt', 'ost' ]:
+            mount_options[tgt_type] = fs_conf.get_target_mount_options(tgt_type)
+            mount_paths[tgt_type] = fs_conf.get_target_mount_path(tgt_type)
 
         # Warn if trying to act on wrong nodes
         servers = fs.components.managed(supports='stop').servers()

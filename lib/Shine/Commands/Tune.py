@@ -1,6 +1,6 @@
 # Tune.py -- Tune file system
 # Copyright (C) 2007 BULL S.A.S
-# Copyright (C) 2012 CEA
+# Copyright (C) 2012-2013 CEA
 #
 # This file is part of shine
 #
@@ -18,7 +18,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `tune' command classes.
@@ -44,26 +43,15 @@ from Shine.Lustre.FileSystem import RUNTIME_ERROR
 
 
 class GlobalTuneEventHandler(FSGlobalEventHandler):
+    SUMMARY = False
 
-    def handle_pre(self, fs):
-        self.log_verbose("Tuning filesystem %s..." % fs.fs_name)
-
-    def post_ok(self, fs):
-        self.log_verbose("Filesystem %s successfully tuned." % fs.fs_name)
-
-    def post_ko(self, fs, status):
-        self.log_verbose("Tuning of filesystem %s failed." % fs.fs_name)
+    def handle_pre(self):
+        self.log_verbose("Tuning filesystem %s..." % self.fs.fs_name)
 
 class LocalTuneEventHandler(FSLocalEventHandler):
 
-    def handle_pre(self, fs):
-        self.log_verbose("Tuning filesystem %s..." % fs.fs_name)
-
-    def post_ok(self, fs):
-        self.log_verbose("Filesystem %s successfully tuned." % fs.fs_name)
-
-    def post_ko(self, fs, status):
-        self.log_verbose("Tuning of filesystem %s failed." % fs.fs_name)
+    def handle_pre(self):
+        self.log_verbose("Tuning filesystem %s..." % self.fs.fs_name)
 
 class Tune(FSTargetLiveCommand):
 
@@ -99,11 +87,11 @@ class Tune(FSTargetLiveCommand):
                 print msg
             return RC_RUNTIME_ERROR
         elif status == 0:
-            if hasattr(eh, 'post_ok'):
-                eh.post_ok(fs)
+            if vlevel > 1:
+                print "Filesystem %s successfully tuned." % fs.fs_name
         else:
-            if hasattr(eh, 'post_ko'):
-                eh.post_ko(fs, status)
+            if vlevel > 1:
+                print "Tuning of filesystem %s failed." % fs.fs_name
             return RC_RUNTIME_ERROR
 
         return RC_OK

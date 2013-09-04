@@ -22,8 +22,6 @@
 Shine 'update' command class.
 """
 
-from Shine.CLI.Display import display
-
 from Shine.Configuration.Globals import Globals
 
 from Shine.Commands.Base.Command import Command, CommandHelpException
@@ -38,15 +36,6 @@ from Shine.Lustre.FileSystem import FSRemoteError, ComponentGroup, OFFLINE, \
                                     MOUNTED, TARGET_ERROR, CLIENT_ERROR, \
                                     RUNTIME_ERROR, RECOVERING
 
-class GlobalUpdateEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'update'
-    ACTIONING = 'updating'
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='start')
-
 class CannotApplyError(Exception):
     """Filesystem cannot be uninstall for update."""
     def __init__(self, action, elements):
@@ -59,7 +48,7 @@ class Update(Command):
     NAME = "update"
     DESCRIPTION = "Update an installed filesystem with a new model"
 
-    GLOBAL_EH = GlobalUpdateEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
 
     def lmfpath(self):
         """Check LMF value and return a full LMF path"""
@@ -73,10 +62,10 @@ class Update(Command):
         if lmf:
             print "Using Lustre model file %s" % lmf
         else:
-            raise CommandHelpException("Lustre model file for ``%s'' not " \
-                    "found: please use filename or full LMF path.\n" \
-                    "Your default model files directory (lmf_dir) " \
-                    "is: %s" % (self.options.model, Globals().get_lmf_dir()), self)
+            raise CommandHelpException("Lustre model file for ``%s'' not found:"
+                    " please use filename or full LMF path.\n Your default "
+                    "model file directory (lmf_dir) is: %s" %
+                    (self.options.model, Globals().get_lmf_dir()), self)
         return lmf
 
     def __warning(self, message):
@@ -133,8 +122,7 @@ class Update(Command):
         if len(comps):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
-            fs.event_handler.ACTION = actiontxt
-            fs.event_handler.ACTIONING = actiontxt + 'ing'
+            fs.event_handler.fs_action = actiontxt
             result = action(comps=comps)
 
             # Got an error if state is not the expected one. 
@@ -150,8 +138,7 @@ class Update(Command):
         if len(comps):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
-            fs.event_handler.ACTION = actiontxt
-            fs.event_handler.ACTIONING = actiontxt + 'ing'
+            fs.event_handler.fs_action = actiontxt
             result = action(comps=comps)
 
             # Got an error if state is not the expected one. 
@@ -169,8 +156,7 @@ class Update(Command):
         if len(servers):
             self.__verbose("%s configuration from %s ..." %
                             (actiontxt.capitalize(), servers))
-            fs.event_handler.ACTION = actiontxt
-            fs.event_handler.ACTIONING = actiontxt + 'ing'
+            fs.event_handler.fs_action = actiontxt
             result = action(servers)
 
             # Got an error if state is not the expected one. 

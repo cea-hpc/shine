@@ -26,7 +26,6 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
-from Shine.CLI.Display import display
 from Shine.Commands.Tune import Tune
 
 # Command base class
@@ -41,20 +40,6 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
-class GlobalStartEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'start'
-    ACTIONING = 'starting'
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='start')
-
-class LocalStartEventHandler(FSLocalEventHandler):
-
-    ACTION = 'start'
-    ACTIONING = 'starting'
-
 
 class Start(FSTargetLiveCommand):
     """
@@ -64,8 +49,8 @@ class Start(FSTargetLiveCommand):
     NAME = "start"
     DESCRIPTION = "Start file system servers."
 
-    GLOBAL_EH = GlobalStartEventHandler
-    LOCAL_EH = LocalStartEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
@@ -81,9 +66,9 @@ class Start(FSTargetLiveCommand):
         # Prepare options...
         mount_options = {}
         mount_paths = {}
-        for target_type in [ 'mgt', 'mdt', 'ost' ]:
-            mount_options[target_type] = fs_conf.get_target_mount_options(target_type)
-            mount_paths[target_type] = fs_conf.get_target_mount_path(target_type)
+        for tgt_type in [ 'mgt', 'mdt', 'ost' ]:
+            mount_options[tgt_type] = fs_conf.get_target_mount_options(tgt_type)
+            mount_paths[tgt_type] = fs_conf.get_target_mount_path(tgt_type)
 
         # Warn if trying to act on wrong nodes
         comps = fs.components.managed(supports='start')

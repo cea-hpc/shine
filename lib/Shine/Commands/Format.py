@@ -18,7 +18,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-from Shine.CLI.Display import display
+"""
+Shine `format' classes.
+Format or reformat any installed filesystem.
+"""
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
@@ -33,21 +36,6 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class GlobalFormatEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'format'
-    ACTIONING = 'formating'
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='format')
-
-class LocalFormatEventHandler(FSLocalEventHandler):
-
-    ACTION = 'format'
-    ACTIONING = 'formating'
-
-
 class Format(FSTargetLiveCriticalCommand):
     """
     shine format -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
@@ -56,8 +44,8 @@ class Format(FSTargetLiveCriticalCommand):
     NAME = "format"
     DESCRIPTION = "Format file system targets."
 
-    GLOBAL_EH = GlobalFormatEventHandler
-    LOCAL_EH = LocalFormatEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,

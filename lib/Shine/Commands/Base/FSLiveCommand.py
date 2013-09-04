@@ -1,5 +1,5 @@
 # FSLiveCommand.py -- Base commands class : live filesystem
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Base class for live filesystem commands (start, stop, status, etc.).
@@ -83,10 +82,6 @@ class FSLiveCommand(RemoteCommand):
             # Define debuggin level
             fs.set_debug(self.options.debug)
 
-            # Eventhandler uses this FS configuration
-            if eh:
-                eh.fs_conf = fs_conf
-
             # Separate each fsname with a blank line
             if not first:
                 print
@@ -125,6 +120,7 @@ class FSTargetLiveCriticalCommand(FSTargetLiveCommand):
     def execute(self):
         # Do not allow implicit filesystems format.
         if not self.options.fsnames:
-            raise CommandHelpException("A filesystem is required (use -f).", self)
+            msg = "A filesystem is required (use -f)."
+            raise CommandHelpException(msg, self)
 
         return FSTargetLiveCommand.execute(self)

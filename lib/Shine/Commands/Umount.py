@@ -38,15 +38,8 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
 
 
 class GlobalUmountEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'umount'
-    ACTIONING = 'unmounting'
-
-
-class LocalUmountEventHandler(FSLocalEventHandler):
-
-    ACTION = 'umount'
-    ACTIONING = 'unmounting'
+    """Event handler with component table not displayed."""
+    SUMMARY = False
 
 
 class Umount(FSLiveCommand):
@@ -58,7 +51,7 @@ class Umount(FSLiveCommand):
     DESCRIPTION = "Unmount file system clients."
 
     GLOBAL_EH = GlobalUmountEventHandler
-    LOCAL_EH = LocalUmountEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,

@@ -1,5 +1,5 @@
 # Execute.py -- Execute a custom command for any component.
-# Copyright (C) 2012 CEA
+# Copyright (C) 2012-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,15 +17,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `execute' command classes.
 
 """
-
-# Filesystem state formatting
-from Shine.CLI.Display import display
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand, \
@@ -41,17 +37,6 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class GlobalExecuteEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'process'
-    ACTIONING = 'processing'
-
-class LocalExecuteEventHandler(FSLocalEventHandler):
-
-    ACTION = 'process'
-    ACTIONING = 'processing'
-
-
 class Execute(FSTargetLiveCommand):
     """
     shine execute [-f <fsname>] -o "..." 
@@ -60,8 +45,8 @@ class Execute(FSTargetLiveCommand):
     NAME = "execute"
     DESCRIPTION = "Execute a custom command"
 
-    GLOBAL_EH = GlobalExecuteEventHandler
-    LOCAL_EH = LocalExecuteEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
@@ -108,7 +93,8 @@ class Execute(FSTargetLiveCommand):
                 print msg
             print
 
-        if not self.options.remote and vlevel > 0:
-            print display(self, fs, supports='execute')
+        # Call a post_format method if defined by the event handler.
+        if hasattr(eh, 'post'):
+            eh.post(fs)
 
         return rc

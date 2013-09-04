@@ -41,15 +41,8 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
 
 
 class GlobalMountEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'mount'
-    ACTIONING = 'mounting'
-
-
-class LocalMountEventHandler(FSLocalEventHandler):
-
-    ACTION = 'mount'
-    ACTIONING = 'mounting'
+    """Event handler with component table not displayed."""
+    SUMMARY = False
 
 
 class Mount(FSLiveCommand):
@@ -61,7 +54,7 @@ class Mount(FSLiveCommand):
     DESCRIPTION = "Mount file system clients."
 
     GLOBAL_EH = GlobalMountEventHandler
-    LOCAL_EH = LocalMountEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,

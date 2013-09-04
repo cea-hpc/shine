@@ -19,9 +19,12 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-import sys
+"""
+Shine `fsck' command.
+Run a low-level filesystem check for filesystem targets.
+"""
 
-from Shine.CLI.Display import display
+import sys
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
@@ -36,26 +39,20 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 class GlobalFsckEventHandler(FSGlobalEventHandler):
+    """Display a global progress status for all components."""
 
-    ACTION = 'fsck'
-    ACTIONING = 'checking'
-
-    def __init__(self, verbose=1, fs_conf=None):
-        FSGlobalEventHandler.__init__(self, verbose, fs_conf)
+    def __init__(self, command):
+        FSGlobalEventHandler.__init__(self, command)
         self._comps = {}
         self._current = 0
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='fsck')
 
     def action_start(self, node, action, comp):
         self._comps[comp] = 0
 
-    def action_progress(self, node, comp, result):
+    def action_progress(self, node, action, comp, result):
         self._comps[comp] = result.progress
         self._current = sum(self._comps.values()) / len(self._comps)
-        header = self.ACTIONING.capitalize()
+        header = self.command.NAME.capitalize()
         sys.stdout.write("%s in progress: %d %%\r" % (header, self._current))
         sys.stdout.flush()
         if self._current == 100:
@@ -63,20 +60,24 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 
 
 class LocalFsckEventHandler(FSLocalEventHandler):
+    """Display a global progress status for all components."""
 
-    ACTION = 'fsck'
-    ACTIONING = 'checking'
-
-    def __init__(self, verbose=1):
-        FSLocalEventHandler.__init__(self, verbose)
+    def __init__(self, command):
+        FSLocalEventHandler.__init__(self, command)
         self._comps = {}
+        self._current = 0
 
     def action_start(self, node, action, comp):
         self._comps[comp] = 0
 
-    def action_progress(self, node, comp, result):
+    def action_progress(self, node, action, comp, result):
         self._comps[comp] = result.progress
-        current = sum(self._comps.values()) / len(self._comps)
+        self._current = sum(self._comps.values()) / len(self._comps)
+        header = self.command.NAME.capitalize()
+        sys.stdout.write("%s in progress: %d %%\r" % (header, self._current))
+        sys.stdout.flush()
+        if self._current == 100:
+            sys.stdout.write("\n")
 
 
 class Fsck(FSTargetLiveCriticalCommand):

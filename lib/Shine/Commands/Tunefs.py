@@ -1,5 +1,5 @@
 # Tunefs.py -- Tune file system targets
-# Copyright (C) 2011-2012 CEA
+# Copyright (C) 2011-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,9 +17,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
-from Shine.CLI.Display import display
+"""
+Shine `tunefs' command classes.
+
+The tunefs command aims to modify target on-disk parameter without reformating
+it.
+"""
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
@@ -34,21 +38,6 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class GlobalTunefsEventHandler(FSGlobalEventHandler):
-
-    ACTION = 'tunefs'
-    ACTIONING = 'tuning'
-
-    def handle_post(self, fs):
-        if self.verbose > 0:
-            print display(self.command, fs, supports='tunefs')
-
-class LocalTunefsEventHandler(FSLocalEventHandler):
-
-    ACTION = 'tunefs'
-    ACTIONING = 'tuning'
-
-
 class Tunefs(FSTargetLiveCriticalCommand):
     """
     shine tunefs -f <fsname> [...]
@@ -57,8 +46,8 @@ class Tunefs(FSTargetLiveCriticalCommand):
     NAME = "tunefs"
     DESCRIPTION = "Tune file system targets."
 
-    GLOBAL_EH = GlobalTunefsEventHandler
-    LOCAL_EH = LocalTunefsEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_FAILURE,
