@@ -1,5 +1,5 @@
 # Action.py -- Abstract class for shine lustre action
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -73,6 +73,18 @@ class ErrorResult(Result):
         else:
             return Result.__str__(self)
 
+class ActionInfo(object):
+    """Information describing an action event."""
+
+    def __init__(self, action, elem=None, description=None):
+        self.actname = action.NAME
+        self.elem = elem
+        self.description = description
+
+    def __str__(self):
+        return self.description or self.actname
+
+
 class Action(EventHandler):
     """
     Generic abstract Shine action.
@@ -91,6 +103,10 @@ class Action(EventHandler):
     def launch(self):
         """Run the action."""
         raise NotImplementedError("Derived classes must implement.")
+
+    def info(self):
+        """Return a ActionInfo describing this action."""
+        return ActionInfo(self, None)
 
     def ev_start(self, worker):
         """Store the start time."""
@@ -266,8 +282,6 @@ class FSAction(CommonAction):
     Astract Shine action class for FileSystem actions.
     """
 
-    NAME = "(to be changed)"
-
     # full_check() should also check mountdata?
     CHECK_MOUNTDATA = True
 
@@ -288,6 +302,11 @@ class FSAction(CommonAction):
             self.check_mountdata = (kwargs['mountdata'] == 'always')
         else:
             self.check_mountdata = self.__class__.CHECK_MOUNTDATA
+
+    def info(self):
+        """Return a ActionInfo describing this action."""
+        desc = '%s of %s' % (self.NAME, self.comp.longtext())
+        return ActionInfo(self, self.comp, desc)
 
     def _addopts_substitute(self, addopts):
         """Substitute placeholders in `addopts' based on self.comp data."""
@@ -359,7 +378,7 @@ class FSAction(CommonAction):
 
         It checks the command could be really be run and raises events.
         """
-        self.comp.action_start(self.NAME)
+        self.comp.action_event(self, 'start')
         try:
             self.comp.full_check(mountdata=self.check_mountdata)
 
@@ -367,12 +386,12 @@ class FSAction(CommonAction):
             if not result:
                 self._shell()
             else:
+                self.comp.action_event(self, 'done', result)
                 self.set_status(ACT_OK)
-                self.comp.action_done(self.NAME, result)
 
         except ComponentError, error:
+            self.comp.action_event(self, 'failed', Result(str(error)))
             self.set_status(ACT_ERROR)
-            self.comp.action_failed(self.NAME, Result(str(error)))
 
     def ev_close(self, worker):
         """
@@ -384,19 +403,19 @@ class FSAction(CommonAction):
 
         # Action timed out
         if worker.did_timeout():
-            self.comp.action_timeout(self.NAME)
+            self.comp.action_event(self, 'timeout')
             self.set_status(ACT_ERROR)
 
         # Action succeeded
         elif worker.retcode() == 0:
             result = Result(duration=self.duration, retcode=worker.retcode())
-            self.comp.action_done(self.NAME, result)
+            self.comp.action_event(self, 'done', result)
             self.set_status(ACT_OK)
 
         # Action failed
         else:
             result = ErrorResult(worker.read(), self.duration, worker.retcode())
-            self.comp.action_failed(self.NAME, result)
+            self.comp.action_event(self, 'failed', result)
             self.set_status(ACT_ERROR)
 
     def needed_modules(self):

@@ -1,5 +1,5 @@
 # EventHandler.py -- Lustre event handling
-# Copyright (C) 2009-2011 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -17,8 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
-
 
 
 class EventHandler(object):
@@ -27,7 +25,7 @@ class EventHandler(object):
     should override this class and handle events of their choice.
     """
 
-    def event_callback(self, compname, action, status, **kwargs):
+    def event_callback(self, evtype, **kwargs):
         """
         Base event handler. It is called for each event received.
 

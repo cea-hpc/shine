@@ -1,5 +1,5 @@
 # test suite for launch() method in Shine.Lustre.Actions.*
-# Copyright (C) 2013 CEA
+# Copyright (C) 2013-2015 CEA
 #
 # This file is part of shine
 #
@@ -20,17 +20,20 @@
 
 import types
 import unittest
+import binascii
 import Utils
 
 from Shine.Configuration.TuningModel import TuningModel
 
 from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
+from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
 from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
 
-from Shine.Lustre.Actions.Proxy import shine_msg_pack
+from Shine.Lustre.Actions.Proxy import shine_msg_pack, SHINE_MSG_MAGIC, \
+                                       SHINE_MSG_VERSION
 
 class CommonTestCase(unittest.TestCase):
 
@@ -38,21 +41,31 @@ class CommonTestCase(unittest.TestCase):
         def __init__(self):
             EventHandler.__init__(self)
             self.evlist = dict()
-        def event_callback(self, compname, action, status, **kwargs):
-            self.evlist['%s_%s_%s' % (compname, action, status)] = kwargs
+
+        def event_callback(self, evtype, **kwargs):
+            status = kwargs.get('status')
+            action = kwargs.get('info').actname
+            self.evlist['%s_%s_%s' % (evtype, action, status)] = kwargs
+
         def clear(self):
             self.evlist.clear()
-        def result(self, compname, action, status):
-            evname = '%s_%s_%s' % (compname, action, status)
-            return self.evlist[evname]['result']
 
-    def assert_events(self, compname, action, status_list):
+        def result(self, evtype, action, status, key='result'):
+            evname = '%s_%s_%s' % (evtype, action, status)
+            return self.evlist[evname][key]
+
+    def assert_events(self, evtype, action, status_list):
         self.assertEqual(len(self.eh.evlist), len(status_list))
         for status in status_list:
-            evname = '%s_%s_%s' % (compname, action, status)
+            evname = '%s_%s_%s' % (evtype, action, status)
             evlist = ', '.join(self.eh.evlist)
             self.assertTrue(evname in self.eh.evlist,
                             "'%s' not in event list: %s" % (evname, evlist))
+
+    def assert_info(self, evtype, action, status, elem, text):
+        info = self.eh.result(evtype, action, status, key='info')
+        self.assertEqual(info.elem, elem)
+        self.assertEqual(str(info), text)
 
     def setUp(self):
         self.eh = self.ActionEH()
@@ -89,9 +102,13 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'format', ['start', 'done'])
-        result = self.eh.result('mgt', 'format', 'done')
+        self.assert_events('comp', 'format', ['start', 'done'])
+        result = self.eh.result('comp', 'format', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'format', 'start', self.tgt,
+                         'format of MGS (%s)' % self.tgt.dev)
+        self.assert_info('comp', 'format', 'done', self.tgt,
+                         'format of MGS (%s)' % self.tgt.dev)
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -110,9 +127,12 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'format', ['start', 'failed'])
-        result = self.eh.result('mgt', 'format', 'failed')
+        self.assert_events('comp', 'format', ['start', 'failed'])
+        result = self.eh.result('comp', 'format', 'failed')
         self.assertEqual(result.retcode, None)
+        self.assert_info('comp', 'format', 'failed', self.tgt,
+                         'format of MGS (%s)' % self.tgt.dev)
+
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
         self.assertEqual(act.status(), ACT_ERROR)
@@ -125,9 +145,17 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'format', ['start', 'failed'])
-        result = self.eh.result('mgt', 'format', 'failed')
+        self.assert_events('comp', 'format', ['start', 'failed'])
+        result = self.eh.result('comp', 'format', 'failed')
         self.assertEqual(result.retcode, 22)
+
+        # Hack for old mkfs.lustre with Lustre 1.8
+        resultstr = str(result).replace("`--BAD-OPTIONS'", "'--BAD-OPTIONS'")
+        self.assertEqual(resultstr,
+                         "mkfs.lustre: unrecognized option '--BAD-OPTIONS'\n"
+                         "mkfs.lustre: exiting with 22 (Invalid argument)")
+        self.assert_info('comp', 'format', 'failed', self.tgt,
+                         'format of MGS (%s)' % self.tgt.dev)
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -147,8 +175,8 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('mgt', 'fsck', 'done')
+        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
+        result = self.eh.result('comp', 'fsck', 'done')
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -167,10 +195,12 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('mgt', 'fsck', 'done')
-        self.assertEqual(result.message, "Errors corrected")
+        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
+        result = self.eh.result('comp', 'fsck', 'done')
+        self.assertEqual(str(result), "Errors corrected")
         self.assertEqual(result.retcode, 1)
+        self.assert_info('comp', 'fsck', 'done', self.tgt,
+                         'fsck of MGS (%s)' % self.tgt.dev)
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -189,10 +219,12 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('mgt', 'fsck', 'done')
-        self.assertEqual(result.message, "Errors found but NOT corrected")
+        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
+        result = self.eh.result('comp', 'fsck', 'done')
+        self.assertEqual(str(result), "Errors found but NOT corrected")
         self.assertEqual(result.retcode, 4)
+        self.assert_info('comp', 'fsck', 'done', self.tgt,
+                         'fsck of MGS (%s)' % self.tgt.dev)
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -206,9 +238,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'fsck', ['start', 'failed'])
-        result = self.eh.result('mgt', 'fsck', 'failed')
+        self.assert_events('comp', 'fsck', ['start', 'failed'])
+        result = self.eh.result('comp', 'fsck', 'failed')
         self.assertEqual(result.retcode, 8)
+        self.assert_info('comp', 'fsck', 'start', self.tgt,
+                         'fsck of MGS (%s)' % self.tgt.dev)
 
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -224,9 +258,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'execute', ['start', 'done'])
-        result = self.eh.result('mgt', 'execute', 'done')
+        self.assert_events('comp', 'execute', ['start', 'done'])
+        result = self.eh.result('comp', 'execute', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'execute', 'done', self.tgt,
+                         'execute of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
@@ -238,9 +274,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'execute', ['start', 'failed'])
-        result = self.eh.result('mgt', 'execute', 'failed')
+        self.assert_events('comp', 'execute', ['start', 'failed'])
+        result = self.eh.result('comp', 'execute', 'failed')
         self.assertEqual(result.retcode, 1)
+        self.assert_info('comp', 'execute', 'failed', self.tgt,
+                         'execute of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_ERROR)
@@ -254,9 +292,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'execute', ['start', 'done'])
-        result = self.eh.result('mgt', 'execute', 'done')
+        self.assert_events('comp', 'execute', ['start', 'done'])
+        result = self.eh.result('comp', 'execute', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'execute', 'start', self.tgt,
+                         'execute of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
 
@@ -272,9 +312,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'status', ['start', 'done'])
-        result = self.eh.result('mgt', 'status', 'done')
+        self.assert_events('comp', 'status', ['start', 'done'])
+        result = self.eh.result('comp', 'status', 'done')
         self.assertEqual(result, None)
+        self.assert_info('comp', 'status', 'start', self.tgt,
+                         'status of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
@@ -286,9 +328,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'status', ['start', 'failed'])
-        result = self.eh.result('mgt', 'status', 'failed')
+        self.assert_events('comp', 'status', ['start', 'failed'])
+        result = self.eh.result('comp', 'status', 'failed')
         self.assertEqual(result.retcode, None)
+        self.assert_info('comp', 'status', 'failed', self.tgt,
+                         'status of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
         # XXX: Should we set an error even if job was done correctly?
@@ -306,9 +350,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'start', ['start', 'done'])
-        result = self.eh.result('mgt', 'start', 'done')
+        self.assert_events('comp', 'start', ['start', 'done'])
+        result = self.eh.result('comp', 'start', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'start', 'start', self.tgt,
+                         'start of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
         self.assertEqual(act.status(), ACT_OK)
@@ -326,9 +372,9 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'start', ['start', 'done'])
-        result = self.eh.result('mgt', 'start', 'done')
-        self.assertEqual(result.message, "MGS is already started")
+        self.assert_events('comp', 'start', ['start', 'done'])
+        result = self.eh.result('comp', 'start', 'done')
+        self.assertEqual(str(result), "MGS is already started")
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
@@ -342,8 +388,8 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'start', ['start', 'failed'])
-        result = self.eh.result('mgt', 'start', 'failed')
+        self.assert_events('comp', 'start', ['start', 'failed'])
+        result = self.eh.result('comp', 'start', 'failed')
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
@@ -367,9 +413,11 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'stop', ['start', 'done'])
-        result = self.eh.result('mgt', 'stop', 'done')
+        self.assert_events('comp', 'stop', ['start', 'done'])
+        result = self.eh.result('comp', 'stop', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'stop', 'start', self.tgt,
+                         'stop of MGS (%s)' % self.tgt.dev)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
@@ -383,9 +431,9 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'stop', ['start', 'done'])
-        result = self.eh.result('mgt', 'stop', 'done')
-        self.assertEqual(result.message, "MGS is already stopped")
+        self.assert_events('comp', 'stop', ['start', 'done'])
+        result = self.eh.result('comp', 'stop', 'done')
+        self.assertEqual(str(result), "MGS is already stopped")
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
@@ -402,14 +450,14 @@ class ActionsTest(CommonTestCase):
 
         act = self.tgt.stop()
         def _prepare_cmd(_self):
-            return [ "/bin/false" ]
+            return ["/bin/false"]
         act._prepare_cmd = types.MethodType(_prepare_cmd, act)
         act.launch()
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('mgt', 'stop', ['start', 'failed'])
-        result = self.eh.result('mgt', 'stop', 'failed')
+        self.assert_events('comp', 'stop', ['start', 'failed'])
+        result = self.eh.result('comp', 'stop', 'failed')
         self.assertEqual(result.retcode, 1)
         # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
@@ -474,9 +522,11 @@ class RouterActionTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('router', 'start', ['start', 'done'])
-        result = self.eh.result('router', 'start', 'done')
+        self.assert_events('comp', 'start', ['start', 'done'])
+        result = self.eh.result('comp', 'start', 'done')
         self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'start', 'start', self.router,
+                         'start of router on %s' % self.router.server)
         # Status checks
         self.assertEqual(self.router.state, MOUNTED)
         self.assertEqual(act.status(), ACT_OK)
@@ -496,9 +546,9 @@ class RouterActionTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('router', 'start', ['start', 'done'])
-        result = self.eh.result('router', 'start', 'done')
-        self.assertEqual(result.message, "router is already enabled")
+        self.assert_events('comp', 'start', ['start', 'done'])
+        result = self.eh.result('comp', 'start', 'done')
+        self.assertEqual(str(result), "router is already enabled")
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.router.state, MOUNTED)
@@ -522,8 +572,8 @@ class RouterActionTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('router', 'stop', ['start', 'done'])
-        result = self.eh.result('router', 'stop', 'done')
+        self.assert_events('comp', 'stop', ['start', 'done'])
+        result = self.eh.result('comp', 'stop', 'done')
         self.assertEqual(result.retcode, 0)
         # Status checks
         self.assertEqual(self.router.state, OFFLINE)
@@ -538,9 +588,9 @@ class RouterActionTest(CommonTestCase):
         self.fs._run_actions()
 
         # Callback checks
-        self.assert_events('router', 'stop', ['start', 'done'])
-        result = self.eh.result('router', 'stop', 'done')
-        self.assertEqual(result.message, "router is already disabled")
+        self.assert_events('comp', 'stop', ['start', 'done'])
+        result = self.eh.result('comp', 'stop', 'done')
+        self.assertEqual(str(result), "router is already disabled")
         self.assertEqual(result.retcode, None)
         # Status checks
         self.assertEqual(self.router.state, OFFLINE)
@@ -690,6 +740,7 @@ class ProxyTest(unittest.TestCase):
 
         self.act = self.fs._proxy_action('start', self.srv1.hostname,
                                          self.fs.components)
+        self.info = StartTarget(self.tgt).info()
         def fakeprepare(action):
             return [action.fakecmd]
         self.act._prepare_cmd = types.MethodType(fakeprepare, self.act)
@@ -709,8 +760,7 @@ class ProxyTest(unittest.TestCase):
 
     def test_start_crash(self):
         """send a start message then crashes"""
-        msg = shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                             status='start', comp=self.tgt)
+        msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
 
         self.act.fakecmd = 'echo "%s"; echo BAD; exit 1' % msg
         self.act.launch()
@@ -726,11 +776,11 @@ class ProxyTest(unittest.TestCase):
     def test_start_ok(self):
         """send a start and done message"""
         msgs = []
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='start', comp=self.tgt))
+        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
+                                   status='start'))
         self.tgt.state = MOUNTED
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='done', comp=self.tgt))
+        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
+                                   status='done'))
 
         self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
         self.act.launch()
@@ -744,11 +794,11 @@ class ProxyTest(unittest.TestCase):
     def test_crash_after_start_ok(self):
         """send a start and done message and then crashes"""
         msgs = []
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='start', comp=self.tgt))
+        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
+                                   status='start'))
         self.tgt.state = MOUNTED
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='done', comp=self.tgt))
+        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
+                                   status='done'))
 
         self.act.fakecmd = 'echo "%s"; echo Oops; exit 1' % '\n'.join(msgs)
         self.act.launch()
@@ -763,8 +813,7 @@ class ProxyTest(unittest.TestCase):
 
     def test_bad_object(self):
         """send a start message which fails update due to bad property"""
-        msg = shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                             status='start', comp=self.tgt)
+        msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
         def buggy_update(self, other):
             self.wrong_property = other.wrong_property
         self.tgt.update = types.MethodType(buggy_update, self.tgt)
@@ -780,4 +829,39 @@ class ProxyTest(unittest.TestCase):
                          "version): 'MGT' object has no attribute "
                          "'wrong_property'")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+        self.assertEqual(self.act.status(), ACT_OK)
+
+    def test_cannot_unpickle(self):
+        """send a forged message which fails due to bad pickle content"""
+        msg = "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
+                           binascii.b2a_base64('bad content'))
+
+        self.act.fakecmd = 'echo "%s"' % msg
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([OFFLINE], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
+                         "Cannot unpickle message (check Shine and ClusterShell"
+                         " versions): pop from empty list")
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+        self.assertEqual(self.act.status(), ACT_OK)
+
+    def test_compat_compname(self):
+        """message with compname value is backward compatible"""
+        msgs = []
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='start', comp=self.tgt))
+        self.tgt.state = MOUNTED
+        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                                   status='done', comp=self.tgt))
+
+        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([MOUNTED], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 0)
+        self.assertEqual(self.tgt.state, MOUNTED)
         self.assertEqual(self.act.status(), ACT_OK)

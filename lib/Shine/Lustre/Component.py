@@ -75,7 +75,7 @@ class Component(object):
         self.action_enabled = enabled
 
         # List of running action
-        self.__running_actions = []
+        self._running_actions = []
 
         # Component behaviour change depending on its mode.
         self._mode = mode
@@ -177,49 +177,33 @@ class Component(object):
         """
         Add the named action to the running action list.
         """
-        assert(act not in self.__running_actions)
-        self.__running_actions.append(act)
+        assert act not in self._running_actions
+        self._running_actions.append(act)
 
     def _del_action(self, act):
         """
         Remove the named action from the running action list.
         """
-        self.__running_actions.remove(act)
+        self._running_actions.remove(act)
 
     def _list_action(self):
         """
         Return the running action list.
         """
-        return self.__running_actions
+        return self._running_actions
 
     #
-    # Event raising methods
+    # Event raising method
     #
 
-    def action_start(self, act):
-        """Called by Actions.* when starting"""
-        self._add_action(act)
-        self.fs.local_event(self.TYPE, act, 'start', comp=self)
-
-    def action_progress(self, act, result):
-        """Called by Actions.* when some progress info should be sent."""
-        self.fs.local_event(self.TYPE, act, 'progress',
-                            comp=self, result=result)
-
-    def action_done(self, act, result=None):
-        """Called by Actions.* when done"""
-        self._del_action(act)
-        self.fs.local_event(self.TYPE, act, 'done', comp=self, result=result)
-
-    def action_timeout(self, act):
-        """Called by Actions.* on timeout"""
-        self._del_action(act)
-        self.fs.local_event(self.TYPE, act, 'timeout', comp=self)
-
-    def action_failed(self, act, result):
-        """Called by Actions.* on failure"""
-        self._del_action(act)
-        self.fs.local_event(self.TYPE, act, 'failed', comp=self, result=result)
+    def action_event(self, act, status, result=None):
+        """Send an event."""
+        if status == 'start':
+            self._add_action(act.NAME)
+        elif status in ('done', 'timeout', 'failed'):
+            self._del_action(act.NAME)
+        self.fs.local_event('comp', info=act.info(), status=status,
+                            result=result)
 
     #
     # Helper methods to check component state in Actions.

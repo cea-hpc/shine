@@ -26,7 +26,8 @@ from ClusterShell.MsgTree import MsgTree
 from ClusterShell.NodeSet import NodeSet
 
 from Shine.Lustre.Component import INPROGRESS, RUNTIME_ERROR
-from Shine.Lustre.Actions.Action import Action, CommonAction, ACT_OK, ACT_ERROR
+from Shine.Lustre.Actions.Action import Action, CommonAction, ActionInfo, \
+                                        ACT_OK, ACT_ERROR
 
 # For V2 Compat
 from Shine.Lustre.Actions.Action import ErrorResult
@@ -142,6 +143,9 @@ class FSProxyAction(CommonAction):
         if self.fs.debug:
             print "FSProxyAction %s on %s" % (action, nodes)
 
+    def info(self):
+        return ActionInfo(self, description='Proxy action')
+
     def _prepare_cmd(self):
         """Create the command line base on proxy properties."""
 
@@ -189,19 +193,31 @@ class FSProxyAction(CommonAction):
         # Add a 'proxy' running action for each component.
         if self._comps:
             for comp in self._comps:
-                # Warning: there is no clean call at the end of the action.
-                # cleaning is done by hand.
-                comp.action_start('proxy')
+                # This special event is raised to keep track of undergoing
+                # actions. Maybe this could be dropped is such tracking is no
+                # more needed.
+                comp.action_event(self, 'start')
 
     def ev_read(self, worker):
         node = worker.current_node
         buf = worker.current_msg
         try:
             data = shine_msg_unpack(buf)
-            compname = data.pop('compname')
-            action = data.pop('action')
-            status = data.pop('status')
-            self.fs.distant_event(compname, action, status, node=node, **data)
+
+            # COMPAT: Prior to 1.4, 'comp'+'action' was used.
+            # 1.4+ uses ActionInfo
+            if 'comp' in data:
+                action = Action()
+                action.NAME = data.pop('action')
+                comp = data.pop('comp')
+                comp.fs = self.fs
+                desc = "%s of %s" % (action.NAME, comp.longtext())
+                data['info'] = ActionInfo(action, comp, desc)
+                evtype = 'comp'
+            else:
+                evtype = data.pop('evtype')
+
+            self.fs.distant_event(evtype, node=node, **data)
         except ProxyActionUnpickleError, exp:
             # Maintain a standalone list of unpickling errors.
             # Node could have unpickling error but still exit with 0
@@ -244,8 +260,9 @@ class FSProxyAction(CommonAction):
         # Remove the 'proxy' running action for each component.
         if self._comps:
             for comp in self._comps:
-                # XXX: This should be changed using a real event for proxy.
-                comp.action_done('proxy')
+                # This special event helps to keep track of undergoing actions
+                # (see ev_start())
+                comp.action_event(self, 'done')
 
                 if comp.state is None:
                     comp.state = RUNTIME_ERROR

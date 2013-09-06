@@ -1,5 +1,5 @@
 # Status.py -- Check a component status
-# Copyright (C) 2012 CEA
+# Copyright (C) 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -39,4 +39,4 @@ class Status(FSAction):
         No-op method. Status command does not need to run an external command.
         """
         self.set_status(ACT_OK)
-        self.comp.action_done(self.NAME)
+        self.comp.action_event(self, 'done')

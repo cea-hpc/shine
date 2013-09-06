@@ -1,5 +1,5 @@
 # FSEventHandler.py -- Base Command Event Handler
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -73,21 +73,21 @@ class FSLocalEventHandler(LustreEH):
         if self.verbose > 1:
             print msg
 
-    def log(self, _node, action, comptxt, status):
-        """Display a standard message giving the status of action component."""
-        status = STATUS_TO_TXT.get(status, status)
-        self.log_info("%s of %s%s" % (action.capitalize(), comptxt, status))
-
     #
     # Event handlers
     #
 
-    def action_start(self, node, action, comp):
+    def action_log(self, _node, action, text, status):
+        """Display a standard message giving the status of action component."""
+        status = STATUS_TO_TXT.get(status, status)
+        self.log_info("%s%s" % (text, status))
+
+    def action_start(self, node, action, text):
         """Display a message when a component action is started."""
         if action != 'proxy':
-            self.log(node, action, comp.longtext(), 'start')
+            self.action_log(node, action, text, 'start')
 
-    def action_done(self, node, action, comp, result):
+    def action_done(self, node, action, text, result):
         """Display a message when a component action is finished."""
         if action == 'proxy':
             return
@@ -101,38 +101,42 @@ class FSLocalEventHandler(LustreEH):
             duration = ""
 
         if result and result.message:
-            self.log(node, action, comp.longtext(),
-                     "%s: %s" % (duration, result.message))
+            self.action_log(node, action, text,
+                            '%s: %s' % (duration, result.message))
         else:
-            self.log(node, action, comp.longtext(), ' succeeded%s' % duration)
+            self.action_log(node, action, text, ' succeeded%s' % duration)
 
-    def action_failed(self, _node, action, comp, result):
+    def action_failed(self, _node, action, text, result):
         """Display a warning message when a component action failed."""
-        txt = "%s of %s failed\n>> %s" % (action, comp.longtext(), str(result))
+        txt = "%s failed\n>> %s" % (text, str(result))
         self.log_warning(txt)
 
-    def action_timeout(self, node, action, comp):
+    def action_timeout(self, node, action, text):
         """No-op when a component action timeout."""
 
-    def action_progress(self, node, action, comp, result):
+    def action_progress(self, node, action, text, result):
         """No-op when a component action progress is received."""
 
-    def event_callback(self, compname, action, status, **kwargs):
+    def event_callback(self, evtype, **kwargs):
         node = kwargs['node']
-        comp = kwargs['comp']
+        info = kwargs['info']
+        action = info.actname
+        text = str(info)
+        text = text[0].upper() + text[1:]
+        status = kwargs['status']
         if status == 'start':
-            self.action_start(node, action, comp)
+            self.action_start(node, action, text)
         elif status == 'done':
             result = kwargs.get('result', None)
-            self.action_done(node, action, comp, result)
+            self.action_done(node, action, text, result)
         elif status == 'timeout':
-            self.action_timeout(node, action, comp)
+            self.action_timeout(node, action, text)
         elif status == 'failed':
             result = kwargs['result']
-            self.action_failed(node, action, comp, result)
+            self.action_failed(node, action, text, result)
         elif status == 'progress':
             result = kwargs['result']
-            self.action_progress(node, action, comp, result)
+            self.action_progress(node, action, text, result)
 
     def handle_pre(self):
         """Custom handler called before processing each filesystem."""
@@ -178,26 +182,22 @@ class FSGlobalEventHandler(FSLocalEventHandler):
         self._timer = None
         self.status_changed = False
 
-    def log(self, node, action, comptxt, status):
+    def action_log(self, node, action, text, status):
         """Display a standard message giving the status of action component."""
         status = STATUS_TO_TXT.get(status, status)
-        self.log_verbose("%s: %s of %s%s" % (node, action.capitalize(),
-                                             comptxt, status))
+        self.log_verbose("%s: %s%s" % (node, text, status))
 
-    def action_failed(self, node, action, comp, result):
-        txt = "%s of %s failed\n>> %s" % (action, comp.longtext(), str(result))
+    def action_failed(self, node, action, text, result):
+        txt = "%s failed\n>> %s" % (text, str(result))
         # Add nodename prefix
         txt = ''.join(["%s: %s" % (node, line)
                        for line in txt.splitlines(True)])
         self.log_warning(txt)
 
-    def event_callback(self, compname, action, status, **kwargs):
-        FSLocalEventHandler.event_callback(self, compname, action, status,
-                                           **kwargs)
-
-        if status in ('start', 'done', 'failed'):
+    def event_callback(self, evtype, **kwargs):
+        FSLocalEventHandler.event_callback(self, evtype, **kwargs)
+        if kwargs.get('status') in ('start', 'done', 'failed'):
             self._update()
-
 
     def handle_pre(self):
         """Default pre-handler. Display a single line."""

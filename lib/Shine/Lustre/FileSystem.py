@@ -144,29 +144,28 @@ class FileSystem:
     # file system event handling
     #
 
-    def _invoke(self, compname, action, status, **kwargs):
+    def _invoke(self, evtype, **kwargs):
         """
         Inform the filesystem the provided event happened.
         If an event handler is set, the associated callback will be called.
         """
         # New style event handling: One global handler
         if self.event_handler:
-            self.event_handler.event_callback(compname, action, status,
-                                              **kwargs)
- 
-    def local_event(self, compname, action, status, **params):
+            self.event_handler.event_callback(evtype, **kwargs)
+
+    def local_event(self, evtype, **params):
         # Currently, all event callbacks need a node.
         # When localy called, add the current node
         node = Server.hostname_short()
 
-        self._invoke(compname, action, status, node=node, **params)
+        self._invoke(evtype, node=node, **params)
 
-    def distant_event(self, compname, action, status, node, **params):
-        
+    def distant_event(self, evtype, node, **params):
+
         # Update the local component instance with the provided instance
         # if one is available in params.
-        if 'comp' in params:
-            comp = params['comp']
+        if evtype == 'comp':
+            comp = params['info'].elem
             comp.fs = self
             try:
                 # Special hack for Journal object as they are not put in
@@ -187,7 +186,7 @@ class FileSystem:
                 print >> sys.stderr, "ERROR: Component update " \
                                      "failed (%s)" % str(error)
 
-        self._invoke(compname, action, status, node=node, **params)
+        self._invoke(evtype, node=node, **params)
 
     def _handle_shine_proxy_error(self, nodes, message):
         """

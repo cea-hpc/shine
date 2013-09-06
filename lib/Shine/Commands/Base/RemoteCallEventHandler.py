@@ -1,5 +1,5 @@
 # RemoteCallEventHandler.py -- Lustre remote call event handling (for -R)
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -30,13 +30,12 @@ class RemoteCallEventHandler(EventHandler):
     output.
     """
 
-    def event_callback(self, compname, action, status, **kwargs):
+    def event_callback(self, evtype, **kwargs):
         """Convert each event it receives into an encoded line on stdout."""
         # For distant message, we do not need to send the node. It will
         # be extract from the incoming server name.
         if 'node' in kwargs:
             del kwargs['node']
-        msg = shine_msg_pack(compname=compname, action=action, status=status,
-                             **kwargs)
+        msg = shine_msg_pack(evtype=evtype, **kwargs)
         sys.stdout.write(msg)
         sys.stdout.flush()

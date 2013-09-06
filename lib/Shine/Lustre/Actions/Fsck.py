@@ -107,7 +107,7 @@ class Fsck(FSAction):
             # Limit message rate to one message per second max.
             if result.progress == 100 or self._last_progress + 1 < time.time():
                 self._last_progress = time.time()
-                self.comp.action_progress(self.NAME, result=result)
+                self.comp.action_event(self, 'progress', result=result)
 
         except ValueError:
             # Other error messages could be important
@@ -138,11 +138,11 @@ class Fsck(FSAction):
                 result.message = "Errors corrected"
             if worker.retcode() == 4: # -n
                 result.message = "Errors found but NOT corrected"
-            self.comp.action_done('fsck', result)
+            self.comp.action_event(self, 'done', result)
             self.set_status(ACT_OK)
         else:
             # action failed
             msg = "\n".join(self._output)
             result = ErrorResult(msg, self.duration, worker.retcode())
-            self.comp.action_failed('fsck', result)
+            self.comp.action_event(self, 'failed', result)
             self.set_status(ACT_ERROR)
