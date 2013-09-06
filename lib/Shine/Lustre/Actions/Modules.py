@@ -22,8 +22,11 @@
 Action classes for Lustre module managements.
 """
 
+from Shine.Configuration.Globals import Globals
+
 from Shine.Lustre import ServerError
-from Shine.Lustre.Actions.Action import CommonAction, ACT_OK, ACT_ERROR
+from Shine.Lustre.Actions.Action import CommonAction, ACT_OK, ACT_ERROR, \
+                                        Result, ErrorResult, Action, ActionInfo
 
 class ServerAction(CommonAction):
     """
@@ -35,6 +38,10 @@ class ServerAction(CommonAction):
     def __init__(self, srv):
         CommonAction.__init__(self)
         self.server = srv
+
+    def info(self):
+        """Return a ActionInfo describing this action."""
+        return ActionInfo(self, self.server)
 
     def _already_done(self):
         """
@@ -50,6 +57,7 @@ class ServerAction(CommonAction):
 
         It checks the command could be really be run before running it.
         """
+        self.server.action_event(self, 'start')
         try:
             self.server.lustre_check()
 
@@ -57,33 +65,57 @@ class ServerAction(CommonAction):
             if not result:
                 self._shell()
             else:
+                self.server.action_event(self, 'done', result)
                 self.set_status(ACT_OK)
 
-        except ServerError:
+        except ServerError, error:
+            self.server.action_event(self, 'failed', Result(str(error)))
             self.set_status(ACT_ERROR)
+
+    def _prepare_cmd(self):
+        """
+        Return an array of command and arguments to be run by launch() method.
+        """
+        raise NotImplementedError
 
     def _shell(self):
         """Create a command line and schedule it to be run by self.task"""
-        raise NotImplementedError
+        # Call specific method to prepare command line
+        command = self._prepare_cmd()
+
+        # Extent path if defined
+        path = Globals().get('command_path')
+        if path:
+            command.insert(0, "export PATH=%s:${PATH};" % path)
+
+        # Add the command to be scheduled
+        cmdline = ' '.join(command)
+
+        self.task.shell(cmdline, handler=self)
 
     def ev_close(self, worker):
         """
         Check process termination status and set action status.
         """
-        CommonAction.ev_close(self, worker)
+        Action.ev_close(self, worker)
 
         self.server.lustre_check()
 
         # Action timed out
         if worker.did_timeout():
+            self.server.action_event(self, 'timeout')
             self.set_status(ACT_ERROR)
 
         # Action succeeded
         elif worker.retcode() == 0:
+            result = Result(duration=self.duration, retcode=worker.retcode())
+            self.server.action_event(self, 'done', result)
             self.set_status(ACT_OK)
 
         # Action failed
         else:
+            result = ErrorResult(worker.read(), self.duration, worker.retcode())
+            self.server.action_event(self, 'failed', result)
             self.set_status(ACT_ERROR)
 
 class LoadModules(ServerAction):
@@ -93,22 +125,27 @@ class LoadModules(ServerAction):
     By default, it is 'lustre', use `modname' if you want to load another one.
     """
 
-    NAME = 'loadmodules'
+    NAME = 'load modules'
 
     def __init__(self, srv, modname='lustre', options=None):
         ServerAction.__init__(self, srv)
         self._modname = modname
         self._options = options
 
+    def info(self):
+        """Return a ActionInfo describing this action."""
+        return ActionInfo(self, self.server,
+                          "load module '%s'" % self._modname)
+
     def _already_done(self):
         if self._modname in self.server.modules:
-            return True
+            return Result("'%s' is already loaded" % self._modname)
 
-    def _shell(self):
-        command = "modprobe %s" % self._modname
+    def _prepare_cmd(self):
+        command = ['modprobe %s' % self._modname]
         if self._options is not None:
-            command += ' "%s"' % self._options
-        self.task.shell(command, handler=self)
+            command.append(' "%s"' % self._options)
+        return command
 
 
 class UnloadModules(ServerAction):
@@ -116,15 +153,14 @@ class UnloadModules(ServerAction):
     Unload all lustre modules using 'lustre_rmmod'
     """
 
-    NAME = 'unloadmodules'
+    NAME = 'unload modules'
 
     def _device_count(self):
         """Return the number of loaded Lustre devices."""
         count = 0
         try:
             devices = open('/proc/fs/lustre/devices')
-            for line in devices:
-                count += 1
+            count = len(devices.readlines())
             devices.close()
         except IOError:
             pass
@@ -133,16 +169,17 @@ class UnloadModules(ServerAction):
 
     def _already_done(self):
         if len(self.server.modules) == 0:
-            return True
+            return Result("modules already unloaded")
 
         # If some devices are still loaded, do not try to unload
         # and do not consider this as an error.
         if self._device_count() > 0:
-            return True
+            msg = 'ignoring, still %d in-use lustre device(s)' % \
+                    self._device_count()
+            return Result(msg)
 
         # Check still in use?
         self.server.raise_if_mod_in_use()
 
-    def _shell(self):
-        command = 'lustre_rmmod'
-        self.task.shell(command, handler=self)
+    def _prepare_cmd(self):
+        return ['lustre_rmmod']

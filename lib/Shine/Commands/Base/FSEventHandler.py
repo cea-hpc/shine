@@ -121,8 +121,9 @@ class FSLocalEventHandler(LustreEH):
         node = kwargs['node']
         info = kwargs['info']
         action = info.actname
-        text = str(info)
-        text = text[0].upper() + text[1:]
+        if evtype in ('server', 'comp'):
+            text = str(info)
+            text = text[0].upper() + text[1:]
         status = kwargs['status']
         if status == 'start':
             self.action_start(node, action, text)

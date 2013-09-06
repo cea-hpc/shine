@@ -55,12 +55,10 @@ class CommonTestCase(unittest.TestCase):
             return self.evlist[evname][key]
 
     def assert_events(self, evtype, action, status_list):
-        self.assertEqual(len(self.eh.evlist), len(status_list))
-        for status in status_list:
-            evname = '%s_%s_%s' % (evtype, action, status)
-            evlist = ', '.join(self.eh.evlist)
-            self.assertTrue(evname in self.eh.evlist,
-                            "'%s' not in event list: %s" % (evname, evlist))
+        evset = set(('%s_%s_%s' % (evtype, action, status)
+                     for status in status_list))
+        raisedset = set(self.eh.evlist.keys())
+        self.assertEqual(evset, raisedset)
 
     def assert_info(self, evtype, action, status, elem, text):
         info = self.eh.result(evtype, action, status, key='info')
@@ -80,7 +78,7 @@ class ActionsTest(CommonTestCase):
     def setUp(self):
         self.eh = self.ActionEH()
         self.fs = FileSystem('action', event_handler=self.eh)
-        srv1 = Server("localhost", ["localhost@tcp"])
+        srv1 = Server("localhost", ["localhost@tcp"], hdlr=self.eh)
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(srv1, 'mgt', 0, self.disk.name)
 
@@ -475,11 +473,22 @@ class ActionsTest(CommonTestCase):
         # Start the target, to set module busy
         self.tgt.start().launch()
         self.fs._run_actions()
+        self.eh.clear()
 
         srv = self.tgt.server
         act = srv.unload_modules()
         act.launch()
         self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('server', 'unload modules', ['start', 'done'])
+        result = self.eh.result('server', 'unload modules', 'done')
+        # Hack for Lustre < 2.4
+        resultstr = str(result).replace('2 in-use', '3 in-use')
+        self.assertEqual(resultstr,
+                         'ignoring, still 3 in-use lustre device(s)')
+        self.assert_info('server', 'unload modules', 'start', srv,
+                         'unload modules')
 
         # Status check
         self.assertTrue(set(['ldiskfs', 'libcfs', 'lustre']).issubset(
@@ -597,7 +606,7 @@ class RouterActionTest(CommonTestCase):
         self.assertEqual(act.status(), ACT_OK)
 
 
-class ServerActionTest(unittest.TestCase):
+class ServerActionTest(CommonTestCase):
 
     def _clean_modules(self):
         """Remove all already loaded modules, before a test."""
@@ -605,9 +614,11 @@ class ServerActionTest(unittest.TestCase):
         if 'libcfs' in self.srv.modules or 'ldiskfs' in self.srv.modules:
             self.srv.unload_modules().launch()
             self.fs._run_actions()
+            self.eh.clear()
 
     def setUp(self):
-        self.srv = Server('localhost', ['127.0.0.1@lo'])
+        self.eh = self.ActionEH()
+        self.srv = Server('localhost', ['127.0.0.1@lo'], hdlr=self.eh)
         self.fs = FileSystem('srvaction')
         self._clean_modules()
 
@@ -625,6 +636,13 @@ class ServerActionTest(unittest.TestCase):
         act.launch()
         self.fs._run_actions()
 
+        # Callback checks
+        self.assert_events('server', "load modules", ['start', 'done'])
+        result = self.eh.result('server', "load modules", 'done')
+        self.assertEqual(result.retcode, 0)
+        self.assert_info('server', 'load modules', 'start', self.srv,
+                         "load module 'lustre'")
+
         # Status check
         self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
         self.assertEqual(act.status(), ACT_OK)
@@ -636,6 +654,13 @@ class ServerActionTest(unittest.TestCase):
         act.launch()
         self.fs._run_actions()
 
+        # Callback checks
+        self.assert_events('server', "load modules", ['start', 'done'])
+        result = self.eh.result('server', "load modules", 'done')
+        self.assertEqual(result.retcode, 0)
+        self.assert_info('server', 'load modules', 'done', self.srv,
+                         "load module 'ldiskfs'")
+
         # Status check
         self.assertEqual(self.srv.modules.keys(), ['ldiskfs'])
         self.assertEqual(act.status(), ACT_OK)
@@ -646,6 +671,13 @@ class ServerActionTest(unittest.TestCase):
         act = self.srv.load_modules(modname='ERROR')
         act.launch()
         self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('server', "load modules", ['start', 'failed'])
+        result = self.eh.result('server', "load modules", 'failed')
+        self.assertEqual(result.retcode, 1)
+        self.assert_info('server', 'load modules', 'failed', self.srv,
+                         "load module 'ERROR'")
 
         # Status check
         self.assertEqual(self.srv.modules, {})
@@ -661,6 +693,14 @@ class ServerActionTest(unittest.TestCase):
         act.launch()
         self.fs._run_actions()
 
+        # Callback checks
+        self.assert_events('server', "load modules", ['start', 'done'])
+        result = self.eh.result('server', "load modules", 'done')
+        self.assertEqual(str(result), "'lustre' is already loaded")
+        self.assertEqual(result.retcode, None)
+        self.assert_info('server', 'load modules', 'start', self.srv,
+                         "load module 'lustre'")
+
         # Status check
         self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
         self.assertEqual(act.status(), ACT_OK)
@@ -671,10 +711,18 @@ class ServerActionTest(unittest.TestCase):
         # First load modules
         self.srv.load_modules().launch()
         self.fs._run_actions()
+        self.eh.clear()
 
         act = self.srv.unload_modules()
         act.launch()
         self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('server', 'unload modules', ['start', 'done'])
+        result = self.eh.result('server', 'unload modules', 'done')
+        self.assertEqual(result.retcode, 0)
+        self.assert_info('server', 'unload modules', 'start', self.srv,
+                         'unload modules')
 
         # Status check
         self.assertEqual(self.srv.modules, {})
@@ -687,6 +735,14 @@ class ServerActionTest(unittest.TestCase):
         act = self.srv.unload_modules()
         act.launch()
         self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('server', 'unload modules', ['start', 'done'])
+        result = self.eh.result('server', 'unload modules', 'done')
+        self.assertEqual(str(result), 'modules already unloaded')
+        self.assertEqual(result.retcode, None)
+        self.assert_info('server', 'unload modules', 'done', self.srv,
+                         'unload modules')
 
         # Status check
         self.assertEqual(self.srv.modules, {})

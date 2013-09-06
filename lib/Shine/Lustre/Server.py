@@ -1,5 +1,5 @@
 # Server.py -- Lustre Server base class
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -55,7 +55,7 @@ class ServerGroup(object):
 
     def select(self, nodeset):
         """
-        Return a ServerGroup containing only server which hostname are 
+        Return a ServerGroup containing only server which hostname are
         present in provided nodeset.
         """
         return ServerGroup((srv for srv in self if srv.hostname in nodeset))
@@ -79,11 +79,14 @@ class Server(object):
     _CACHE_HOSTNAME_SHORT = None
     _CACHE_HOSTNAME_LONG = None
 
-    def __init__(self, hostname, nids):
+    def __init__(self, hostname, nids, hdlr=None):
         assert type(nids) is list
         self.nids = nids
         self.hostname = NodeSet(hostname)
         self.modules = dict()
+
+        self._hdlr = hdlr
+        self._running_actions = []
 
     def __str__(self):
         return "%s (%s)" % (self.hostname, ','.join(self.nids))
@@ -97,7 +100,7 @@ class Server(object):
         if not cls._CACHE_HOSTNAME_LONG:
             cls._CACHE_HOSTNAME_LONG = socket.getfqdn()
         return cls._CACHE_HOSTNAME_LONG
-        
+
     @classmethod
     def hostname_short(cls):
         """
@@ -107,7 +110,7 @@ class Server(object):
         if not cls._CACHE_HOSTNAME_SHORT:
             cls._CACHE_HOSTNAME_SHORT = cls.hostname_long().split('.', 1)[0]
         return cls._CACHE_HOSTNAME_SHORT
- 
+
     @classmethod
     def distant_servers(cls, servers):
         """
@@ -122,7 +125,7 @@ class Server(object):
 
     def is_local(self):
         """
-        Return true if the node where this code is running matches the server 
+        Return true if the node where this code is running matches the server
         node_name.
         This means node_name should either match the machine fully qualified
         domain name or machine short-name.
@@ -150,6 +153,38 @@ class Server(object):
                     self.modules[modname] = int(count)
         finally:
             modlist.close()
+    #
+    # Inprogress action methods
+    #
+    def _add_action(self, act):
+        """Add the named action to the running action list."""
+        assert act not in self._running_actions
+        self._running_actions.append(act)
+
+    def _del_action(self, act):
+        """Remove the named action from the running action list."""
+        self._running_actions.remove(act)
+
+    def _list_action(self):
+        """Return the running action list."""
+        return self._running_actions
+
+    #
+    # Event raising methods
+    #
+    def _invoke(self, **kwargs):
+        """Raise an event message for this server instance"""
+        if self._hdlr is not None:
+            node = Server.hostname_short()
+            self._hdlr.event_callback('server', node=node, **kwargs)
+
+    def action_event(self, act, status, result=None):
+        """Send an event."""
+        if status == 'start':
+            self._add_action(act.NAME)
+        elif status in ('done', 'timeout', 'failed'):
+            self._del_action(act.NAME)
+        self._invoke(info=act.info(), status=status, result=result)
 
     #
     # Actions
