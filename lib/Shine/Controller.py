@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import re
 import sys
@@ -127,7 +126,6 @@ class Controller:
                 # rc=2
                 self.exit(2, "Error: %s\n" % msg)
 
-        # XXX: Add support for client to -t flag
         parser = ShineParser(usage="%prog [options] COMMAND [options]",
                              version="Shine v%s" % public_version,
                              option_class=ShineOption,
@@ -165,7 +163,7 @@ class Controller:
         comp_grp.add_option("-l", dest="labels", type="nodeset",
                             help="specify component by label (ie: foo-OST0000)")
         comp_grp.add_option("-t", dest="targets", action="extend",
-                            choices=['mgt','mdt','ost','router'],
+                            choices=['mgt','mdt','ost','router','client'],
                             help="specify components (mgt, mdt, ost, router)")
         parser.add_option_group(comp_grp)
 

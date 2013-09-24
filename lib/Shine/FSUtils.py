@@ -1,5 +1,5 @@
 # FSUtils.py -- Useful shine FS utility functions
-# Copyright (C) 2009-2012 CEA
+# Copyright (C) 2009-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 
 from ClusterShell.NodeSet import NodeSet, RangeSet
@@ -33,22 +32,22 @@ def _create_comp(fs_conf, fs, comp):
 
     comp_type = comp.get_type()
     newcomp = None
+    server = Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename()))
     if comp_type == 'client':
-        newcomp = Client(fs, Server(comp.get_nodes(),
-               fs_conf.get_nid(comp.get_nodes())),
+        newcomp = Client(fs, server,
                comp.get_mount_path() or fs_conf.get_default_mount_path(),
                comp.get_mount_options() or fs_conf.get_default_mount_options())
     elif comp_type == 'mgt':
-        newcomp = MGT(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
-                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+        newcomp = MGT(fs, server, comp.get_index(), comp.get_dev(),
+                      comp.get_jdev())
     elif comp_type == 'mdt':
-        newcomp = MDT(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
-                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+        newcomp = MDT(fs, server, comp.get_index(), comp.get_dev(),
+                      comp.get_jdev())
     elif comp_type == 'ost':
-        newcomp = OST(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())),
-                    comp.get_index(), comp.get_dev(), comp.get_jdev()) 
+        newcomp = OST(fs, server, comp.get_index(), comp.get_dev(),
+                      comp.get_jdev())
     elif comp_type == 'router':
-        newcomp = Router(fs, Server(comp.get_nodename(), fs_conf.get_nid(comp.get_nodename())))
+        newcomp = Router(fs, server)
     else:
         assert False, "Unknown component type: %s" % comp_type
 
@@ -82,7 +81,9 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     for cf_target in fs_conf.iter_targets():
         target_node = cf_target.get_nodename()
 
-        server = servers.setdefault(target_node, Server(target_node, fs_conf.get_nid(target_node)))
+        server = servers.setdefault(target_node,
+                                    Server(target_node,
+                                           fs_conf.get_nid(target_node)))
 
         # retrieve config variables
         cf_t_type = cf_target.get_type()
@@ -124,7 +125,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         if (nodes is not None and target.server.hostname not in nodes) or \
            (excluded is not None and target.server.hostname in excluded):
             target.action_enabled = False
-            
+
 
     # Create attached file system clients...
     for client_node, mount_path, mount_options in fs_conf.iter_clients():
@@ -132,13 +133,11 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
                                     Server(client_node, \
                                            fs_conf.get_nid(client_node)))
 
-        # filter on nodes
+        # filter on target types and nodes
         client_action_enabled = True
-        if (nodes is not None and server.hostname not in nodes) or \
+        if (target_types is not None and 'client' not in target_types) or \
+            (nodes is not None and server.hostname not in nodes) or \
             (excluded is not None and server.hostname in excluded):
-            client_action_enabled = False
-        # if a target is specified, no client enabled
-        if target_types is not None:
             client_action_enabled = False
 
         client = fs.new_client(server, mount_path, mount_options, \
@@ -178,7 +177,7 @@ def create_lustrefs(fs_model_file, event_handler=None, nodes=None,
                     excluded=None, update_mode=False):
     """Create a FileSystem instance from configuration file and save in on
     disk."""
-    fs_conf = Configuration.create_from_model(fs_model_file, update_mode=update_mode)
+    fs_conf = Configuration.create_from_model(fs_model_file, update_mode)
     
     fs = instantiate_lustrefs(fs_conf, event_handler=event_handler, \
                               nodes=nodes, excluded=excluded)
