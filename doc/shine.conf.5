@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.\" Copyright (c) 2007, 2008, 2009, 2010 CEA.  All rights reserved.
+.\" Copyright (c) 2007-2013 CEA.  All rights reserved.
 .\" 
 .\" This file may be copied under the terms of the GNU Public License.
 .\" Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 .\" ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\" 
 .\" $Id$
-.Dd September 24, 2010   \" DATE 
+.Dd September 27, 2013   \" DATE
 .Dt shine.conf 5         \" Program name and manual section number 
 .Os Linux
 .Sh NAME                 \" Section Header
@@ -109,6 +109,12 @@ Default is
 Tell if colored output should be used on command line interface. If 'auto', color is used only if standard output is a TTY. This value could be changed using --color option on command line.
 .El
 
+.Ss Commands options
+.Bl -tag -width Ds -compact
+.It Ic command_path Ns = Ns Ar path
+Additional paths to look for Lustre or ldiskfs specific commands.
+.El
+
 .Ss Cluster-wide applicable settings
 .Bl -tag -width Ds -compact
 .It Ic conf_dir Ns = Ns Ar pathname
@@ -129,8 +135,6 @@ If not set, no tuning is applied.
 is the maximum number of simultaneous remote ssh commands.
 .It Ic ssh_connect_timeout Ns = Ns Ar secs
 is the timeout in seconds for ssh connections.
-.It Ic default_timeout Ns = Ns Ar secs
-is the timeout in seconds for any operations.
 .El
 .Sh FILES                \" File used or created by the topic of the man page
 .Bl -tag -width "/Library/StartupItems/balanced/uninstall.sh" -compact

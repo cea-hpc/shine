@@ -1,5 +1,5 @@
 # Globals.py -- Configuration of global parameters
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
+
+"""
+Classes used to manipulate Shine global configuration file.
+
+This is mostly done using the Globals singleton.
+"""
 
 import os
 
@@ -76,6 +81,10 @@ class Globals(object):
             self.add_element('default_timeout',     check='digit',
                     default=30)
 
+            # Commands
+            self.add_element('command_path',        check='path',
+                    default='/usr/lib/lustre')
+
             # Lustre version
             self.add_element('lustre_version',      check='string')
 
@@ -131,14 +140,9 @@ class Globals(object):
         def get_ssh_connect_timeout(self):
             return self.get('ssh_connect_timeout')
 
-        def get_default_timeout(self):
-            return self.get('default_timeout')
-
-        def get_status_timeout(self):
-            return self.get('status_timeout')
-
         def get_ssh_fanout(self):
             return self.get('ssh_fanout')
+
 
 class DefaultElement(SimpleElement):
     """

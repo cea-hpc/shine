@@ -33,6 +33,8 @@ from string import Template
 from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self
 
+from Shine.Configuration.Globals import Globals
+
 from Shine.Lustre import ComponentError
 
 # XXX: This is not really good to import stuff from CLI in Actions. This part
@@ -317,11 +319,13 @@ class FSAction(CommonAction):
     def _shell(self):
         """Create a command line and schedule it to be run by self.task"""
 
-        # Extent path
-        command = [ "export PATH=/usr/lib/lustre:$PATH;" ]
-
         # Call specific method to prepare command line
-        command += self._prepare_cmd()
+        command = self._prepare_cmd()
+
+        # Extent path if defined
+        path = Globals().get('command_path')
+        if path:
+            command.insert(0, "export PATH=%s:${PATH};" % path)
 
         # Add the command to be scheduled
         cmdline = ' '.join(command)

@@ -28,6 +28,8 @@ import os
 import stat
 import subprocess
 
+from Shine.Configuration.Globals import Globals
+
 ### From lustre/include/lustre_disk.h:
 
 # persistent mount data
@@ -112,8 +114,11 @@ class Disk:
     def _mountdata_check(self, label_check=None):
         """Read device flags using 'tunefs.lustre'"""
 
-        cmd = "export PATH=/usr/lib/lustre/:${PATH}; %s %s %s" % \
-              ("tunefs.lustre", "--noformat", self.dev)
+        cmd = "tunefs.lustre --noformat %s" % self.dev
+        path = Globals().get('command_path')
+        if path:
+            cmd = "export PATH=%s:${PATH}; %s" % (path, cmd)
+
         process = subprocess.Popen([cmd], stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, shell=True)
         output = process.communicate()[0]
