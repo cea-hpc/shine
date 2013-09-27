@@ -95,9 +95,10 @@ class LoadModules(ServerAction):
 
     NAME = 'loadmodules'
 
-    def __init__(self, srv, modname='lustre'):
+    def __init__(self, srv, modname='lustre', options=None):
         ServerAction.__init__(self, srv)
         self._modname = modname
+        self._options = options
 
     def _already_done(self):
         if 'lustre' in self.server.modules:
@@ -105,6 +106,8 @@ class LoadModules(ServerAction):
 
     def _shell(self):
         command = "modprobe %s" % self._modname
+        if self._options is not None:
+            command += ' "%s"' % self._options
         self.task.shell(command, handler=self)
 
 

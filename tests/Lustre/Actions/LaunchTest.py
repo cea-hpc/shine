@@ -30,8 +30,7 @@ from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
 
 from Shine.Lustre.Actions.Proxy import shine_msg_pack
 
-
-class ActionsTest(unittest.TestCase):
+class CommonTestCase(unittest.TestCase):
 
     class ActionEH(EventHandler):
         def __init__(self):
@@ -52,6 +51,11 @@ class ActionsTest(unittest.TestCase):
             evlist = ', '.join(self.eh.evlist)
             self.assertTrue(evname in self.eh.evlist,
                             "'%s' not in event list: %s" % (evname, evlist))
+
+    def setUp(self):
+        self.eh = self.ActionEH()
+
+class ActionsTest(CommonTestCase):
 
     def format(self):
         self.tgt.format().launch()
@@ -348,7 +352,7 @@ class ActionsTest(unittest.TestCase):
     #
     @Utils.rootonly
     def test_stop_ok(self):
-        """Start a simple target"""
+        """Stop a simple target"""
         self.format()
         # Start the target, to be able to unmount it after
         act = self.tgt.start()
@@ -430,6 +434,114 @@ class ActionsTest(unittest.TestCase):
         # Status check
         self.assertEqual(sorted(srv.modules.keys()), ['ldiskfs', 'libcfs'])
         self.assertEqual(act.status(), ACT_ERROR)
+
+
+class RouterActionTest(CommonTestCase):
+
+    def net_up(self, options):
+        self.srv1.load_modules(modname='lnet', options=options).launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+    def setUp(self):
+        self.eh = self.ActionEH()
+        self.fs = FileSystem('action', event_handler=self.eh)
+        self.srv1 = Server("localhost", ["localhost@tcp"])
+        self.router = self.fs.new_router(self.srv1)
+        self.srv1.unload_modules().launch()
+        self.fs._run_actions()
+
+    def tearDown(self):
+        self.router.lustre_check()
+        if self.router.is_started():
+            self.router.stop().launch()
+            self.fs._run_actions()
+        self.srv1.unload_modules().launch()
+        self.fs._run_actions()
+
+    #
+    # Start Router
+    #
+    @Utils.rootonly
+    def test_start_router_ok(self):
+        """Start a stopped router is ok"""
+        self.net_up('forwarding=enabled')
+        act = self.router.start()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('router', 'start', ['start', 'done'])
+        result = self.eh.result('router', 'start', 'done')
+        self.assertEqual(result.retcode, 0)
+        # Status checks
+        self.assertEqual(self.router.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_start_router_already_done(self):
+        """Start an already started router is ok"""
+        self.net_up('forwarding=enabled')
+        # Start the router
+        self.router.start().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        # Then try to restart it
+        act = self.router.start()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('router', 'start', ['start', 'done'])
+        result = self.eh.result('router', 'start', 'done')
+        self.assertEqual(result.message, "router is already enabled")
+        self.assertEqual(result.retcode, None)
+        # Status checks
+        self.assertEqual(self.router.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
+
+    #
+    # Stop Router
+    #
+    @Utils.rootonly
+    def test_stop_router_ok(self):
+        """Stop a started router is ok"""
+        self.net_up('forwarding=enabled')
+        # Start the router
+        self.router.start().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        # Then stop it
+        act = self.router.stop()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('router', 'stop', ['start', 'done'])
+        result = self.eh.result('router', 'stop', 'done')
+        self.assertEqual(result.retcode, 0)
+        # Status checks
+        self.assertEqual(self.router.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_stop_router_already_done(self):
+        """Stop an already stopped router fails"""
+        self.net_up('forwarding=enabled')
+        act = self.router.stop()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('router', 'stop', ['start', 'done'])
+        result = self.eh.result('router', 'stop', 'done')
+        self.assertEqual(result.message, "router is already disabled")
+        self.assertEqual(result.retcode, None)
+        # Status checks
+        self.assertEqual(self.router.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
 
 
 class ServerActionTest(unittest.TestCase):
