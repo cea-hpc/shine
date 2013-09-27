@@ -30,6 +30,7 @@ import socket
 import logging
 import logging.handlers
 
+from ClusterShell.MsgTree import MsgTree
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_self
 
@@ -93,7 +94,7 @@ class FileSystem:
     def __init__(self, fs_name, event_handler=None):
         self.fs_name = fs_name
         self.event_handler = event_handler
-        self.proxy_errors = []
+        self.proxy_errors = MsgTree()
 
         # All FS components (MGT, MDT, OST, Clients, ...)
         self.components = ComponentGroup()
@@ -189,7 +190,14 @@ class FileSystem:
         self._invoke(compname, action, status, node=node, **params)
 
     def _handle_shine_proxy_error(self, nodes, message):
-        self.proxy_errors.append((NodeSet(nodes), message))
+        """
+        Store error messages, for later processing.
+
+        Hostnames are replaced by 'THIS_SHINE_HOST' to allow message grouping.
+        Grouping outputs which only differ by the host name.
+        """
+        message = message.replace(str(nodes), 'THIS_SHINE_HOST')
+        self.proxy_errors.add(NodeSet(nodes), message)
 
     #
     # file system construction
@@ -259,7 +267,7 @@ class FileSystem:
         It clears all previous proxy errors and starts task run-loop. This
         launches all FSProxyAction prepared before by example.
         """
-        self.proxy_errors = []
+        self.proxy_errors = MsgTree()
         # XXX: Warning, also update _distant_action_by_server()
         task_self().set_default("stderr_msgtree", False)
         task_self().set_info('connect_timeout', 
@@ -375,7 +383,7 @@ class FileSystem:
         # Run local actions and FSProxyAction
         self._run_actions()
 
-        if self.proxy_errors:
+        if len(self.proxy_errors) > 0:
             return RUNTIME_ERROR
         
         return result

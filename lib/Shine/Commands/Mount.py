@@ -93,9 +93,8 @@ class Mount(FSLiveCommand):
                     print "Filesystem tuning applied on %s" % comps.servers()
                 elif status == RUNTIME_ERROR:
                     rc = RC_RUNTIME_ERROR
+                    self.display_proxy_errors(fs)
 
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
             else:
                 # Display a failure message in case of previous failed
                 # mounts. For now, if one mount fail, the tuning is
@@ -104,8 +103,7 @@ class Mount(FSLiveCommand):
                 if vlevel > 0:
                     print "Tuning skipped!"
                 if rc == RC_RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print "%s: %s" % (nodes, msg)
+                    self.display_proxy_errors(fs)
 
         if hasattr(eh, 'post'):
             eh.post(fs)

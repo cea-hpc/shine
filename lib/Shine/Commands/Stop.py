@@ -87,8 +87,7 @@ class Stop(FSTargetLiveCommand):
             if vlevel > 0:
                 print "Stop successful."
         elif rc == RC_RUNTIME_ERROR:
-            for nodes, msg in fs.proxy_errors:
-                print "%s: %s" % (nodes, msg)
+            self.display_proxy_errors(fs)
 
         if hasattr(eh, 'post'):
             eh.post(fs)

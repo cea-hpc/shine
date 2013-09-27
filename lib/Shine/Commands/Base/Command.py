@@ -1,5 +1,5 @@
 # Command.py -- Base command class
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 import os
 import sys
@@ -95,7 +94,7 @@ class Command(object):
         if self.options.labels and not self.options.fsnames:
             self.options.fsnames = []
             for label in self.options.labels:
-                fsname = str(label).split('-',1)[0]
+                fsname = str(label).split('-', 1)[0]
                 # Avoid adding the same fs several times
                 if fsname not in self.options.fsnames:
                     self.options.fsnames.append(fsname)
@@ -169,6 +168,14 @@ class Command(object):
 
         return True
 
+    @classmethod
+    def display_proxy_errors(cls, fs):
+        """Display proxy error messages for the specified filesystem."""
+        for msg, nodes in fs.proxy_errors.walk():
+            nodes = str(NodeSet.fromlist(nodes))
+            msg = str(msg).replace('THIS_SHINE_HOST', nodes)
+            print "%s: %s" % (nodes, msg)
+
 class RemoteCommand(Command):
     
     def __init__(self, options=None, args=None):
@@ -223,4 +230,3 @@ class RemoteCommand(Command):
             rc &= RC_FLAG_RUNTIME_ERROR
 
         return Command.filter_rc(self, rc)
-

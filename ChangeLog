@@ -1,3 +1,6 @@
+2013-09-27 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Similar error messages are grouped (ticket #103).
+
 2013-09-24 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* -t option supports 'client' option (ticket #164).
 	* Fix message output in verbose mode (ticket #163).

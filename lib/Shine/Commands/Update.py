@@ -107,12 +107,6 @@ class Update(Command):
         if txt:
             print "FILESYSTEM CHANGES\n%s\n" % "\n".join(txt)
 
-    @classmethod
-    def __show_proxy_errors(cls, fs):
-        """Display proxy error messages for the specified filesystem."""
-        for nodes, message in fs.proxy_errors:
-            print "%s: %s" % (nodes, message)
-
     def _apply(self, fs, action, actiontxt, comps, expected):
         """Apply an action on the provided filesystem and check for errors."""
 
@@ -128,7 +122,7 @@ class Update(Command):
             # Got an error if state is not the expected one. 
             # Proxy errors set result to RUNTIME_ERROR
             if result != expected:
-                self.__show_proxy_errors(fs)
+                self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "this component")
 
     # XXX: Could be merged with _apply() method?
@@ -144,7 +138,7 @@ class Update(Command):
             # Got an error if state is not the expected one. 
             # Proxy errors set result to RUNTIME_ERROR
             if result not in [OFFLINE, RECOVERING, MOUNTED]:
-                self.__show_proxy_errors(fs)
+                self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "this component")
 
 
@@ -162,7 +156,7 @@ class Update(Command):
             # Got an error if state is not the expected one. 
             # Proxy errors set result to RUNTIME_ERROR
             if result != 0:
-                self.__show_proxy_errors(fs)
+                self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "those servers")
 
 

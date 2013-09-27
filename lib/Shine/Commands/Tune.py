@@ -81,10 +81,7 @@ class Tune(FSTargetLiveCommand):
 
         status = fs.tune(tuning, addopts=self.options.additional)
         if status == RUNTIME_ERROR:
-            for nodes, msg in fs.proxy_errors:
-                print nodes
-                print '-' * 15
-                print msg
+            self.display_proxy_errors(fs)
             return RC_RUNTIME_ERROR
         elif status == 0:
             if vlevel > 1:

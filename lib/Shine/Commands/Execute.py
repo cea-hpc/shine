@@ -87,10 +87,7 @@ class Execute(FSTargetLiveCommand):
                 print "Execute successful."
 
         elif rc == RC_RUNTIME_ERROR:
-            for nodes, msg in fs.proxy_errors:
-                print nodes
-                print '-' * 15
-                print msg
+            self.display_proxy_errors(fs)
             print
 
         # Call a post_format method if defined by the event handler.

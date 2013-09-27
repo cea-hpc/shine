@@ -81,10 +81,7 @@ class Remove(FSTargetLiveCriticalCommand):
                     print "WARNING: Some targets are started: %s" % labels
                 # Error, won't be able to remove on these nodes
                 elif state == RUNTIME_ERROR:
-                    for nodes, msg in fs.proxy_errors:
-                        print nodes
-                        print '-' * 15
-                        print msg
+                    self.display_proxy_errors(fs)
                     print "WARNING: Removing %s might failed on some nodes " \
                           "(see above)!" % fs.fs_name
 

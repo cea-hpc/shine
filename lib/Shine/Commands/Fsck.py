@@ -127,8 +127,7 @@ class Fsck(FSTargetLiveCriticalCommand):
                 print "Fsck successful."
         else:
             if rc == RC_RUNTIME_ERROR:
-                for nodes, msg in fs.proxy_errors:
-                    print "%s: %s" % (nodes, msg)
+                self.display_proxy_errors(fs)
             if vlevel > 0:
                 print "Fsck failed"
 

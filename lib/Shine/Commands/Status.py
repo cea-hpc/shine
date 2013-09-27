@@ -83,10 +83,7 @@ class Status(FSTargetLiveCommand):
         fs_result = fs.status(comps, failover=self.options.failover)
 
         if fs_result == RUNTIME_ERROR:
-            for nodes, msg in fs.proxy_errors:
-                print nodes
-                print '-' * 15
-                print msg
+            self.display_proxy_errors(fs)
             print
 
         result = self.fs_status_to_rc(fs_result)
