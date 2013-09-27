@@ -1,5 +1,5 @@
 # Show.py -- Show command
-# Copyright (C) 2008-2012 CEA
+# Copyright (C) 2008-2013 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine `show' command classes.
@@ -146,7 +145,7 @@ class Show(Command):
     def cmd_show_storage(self):
         """Show storage info"""
 
-        backend = BackendRegistry().get_selected()
+        backend = BackendRegistry().selected()
         if not backend:
             # no backend? check to be sure
             assert Globals().get_backend() == "None", \

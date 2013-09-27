@@ -28,7 +28,6 @@ from Shine.Configuration.Exceptions import ConfigInvalidFileSystem, \
                                            ConfigException
 from Shine.Configuration.TuningModel import TuningModel
 from Shine.Configuration.NidMap import NidMap
-from Shine.Configuration.Backend.Backend import Backend
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 
@@ -196,7 +195,7 @@ class FileSystem(object):
         if not self.backend:
 
             # Start the selected config backend system.
-            self.backend = BackendRegistry().get_selected()
+            self.backend = BackendRegistry().selected()
             if self.backend:
                 self.backend.start()
 

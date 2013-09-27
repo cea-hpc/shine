@@ -1,5 +1,5 @@
 # BackendRegistry.py -- Registry for config backends
-# Copyright (C) 2007 CEA
+# Copyright (C) 2007,2013 CEA
 #
 # This file is part of shine
 #
@@ -17,58 +17,47 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
-from Backend import Backend
+"""
+Load and maintain the list of available configuration backends.
+"""
 
 from Shine.Configuration.Globals import Globals
 
-
 class BackendRegistry:
-    """ Container object to deal with available storage systems.
-    """
-    def __init__(self):
-        self.backend_list = []
-        self.backend_dict = {}
+    """Container object to deal with available storage systems."""
 
-    # Special methods
+    def __init__(self):
+        self.backends = {}
 
     def __len__(self):
-        "Return the number of backend storages."
-        return len(self.backend_list)
+        """Return the number of backend storages."""
+        return len(self.backends)
     
     def __iter__(self):
-        "Iterate over available backend storages."
-        for backend in self.backend_list:
+        """Iterate over available backend storages."""
+        for backend in self.backends.values():
             yield backend
 
-    # Public methods
-
     def get(self, name):
+        """Load an return a instance of backend with the specified name."""
 
         if name == "None":
             return None
 
         # Import Backend if not already done
-        if name not in self.backend_dict:
-            try:
-                mod = __import__(name, globals(), locals(), [])
-                cls = getattr(mod, mod.BACKEND_MODNAME)
-                self.register(cls())
-            except Exception, e:
-                raise
+        if name not in self.backends:
+            mod = __import__(name, globals(), locals(), [])
+            cls = getattr(mod, mod.BACKEND_MODNAME)
+            self.register(cls())
 
-        return self.backend_dict[name]
+        return self.backends[name]
 
-    def get_selected(self):
+    def selected(self):
+        """Return the Backend specified in global configuration."""
         return self.get(Globals().get_backend())
 
     def register(self, obj):
-        "Register a new config backend storage system."
-        if not isinstance(obj, Backend):
-            raise something
-        self.backend_list.append(obj)
-        #print "adding %s" % obj.get_name()
-        self.backend_dict[obj.get_name()] = obj
+        """Register a new config backend storage system."""
+        self.backends[obj.get_name()] = obj
 
-    
