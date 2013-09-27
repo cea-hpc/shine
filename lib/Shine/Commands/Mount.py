@@ -39,12 +39,6 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
-
-class GlobalMountEventHandler(FSGlobalEventHandler):
-    """Event handler with component table not displayed."""
-    SUMMARY = False
-
-
 class Mount(FSLiveCommand):
     """
     shine mount
@@ -53,7 +47,7 @@ class Mount(FSLiveCommand):
     NAME = "mount"
     DESCRIPTION = "Mount file system clients."
 
-    GLOBAL_EH = GlobalMountEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \

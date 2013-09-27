@@ -37,11 +37,6 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class GlobalUmountEventHandler(FSGlobalEventHandler):
-    """Event handler with component table not displayed."""
-    SUMMARY = False
-
-
 class Umount(FSLiveCommand):
     """
     shine umount
@@ -50,7 +45,7 @@ class Umount(FSLiveCommand):
     NAME = "umount"
     DESCRIPTION = "Unmount file system clients."
 
-    GLOBAL_EH = GlobalUmountEventHandler
+    GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler
 
     TARGET_STATUS_RC_MAP = { \
