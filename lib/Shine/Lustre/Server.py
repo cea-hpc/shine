@@ -24,10 +24,11 @@ Lustre server management.
 
 import socket
 
-from ClusterShell.Task import task_self, NodeSet
+from ClusterShell.Task import NodeSet
 
 from Shine.Lustre import ServerError
 from Shine.Lustre.Actions.Modules import LoadModules, UnloadModules
+from Shine.Lustre.Actions.Tune import Tune
 
 class ServerGroup(object):
     """
@@ -154,27 +155,9 @@ class Server(object):
     # Actions
     #
 
-    def tune(self, tuning_model, types, fs_name):
-        """
-        Tune server parameters.
-        """
-        task = task_self()
-
-        # Retrieve the list of tuning parameters that must be applied to
-        # the current node
-        tuning_parameters = tuning_model.get_params_for_name(
-                                                    str(self.hostname), types)
-        
-        # Walk through the tuning parameters list and apply each one of them
-        for tuning_parameter in tuning_parameters:
-            # Build the command which must be executed on this node to
-            # tune de file system.
-            command_list = tuning_parameter.build_tuning_command(fs_name)
-            
-            # Walk through the list of commands created for this parameters
-            # and create a shell for each one of them.
-            for command in command_list:
-                task.shell(command)
+    def tune(self, tuning_model, types, fs_name, **kwargs):
+        """Tune server parameters."""
+        return Tune(self, tuning_model, types, fs_name, **kwargs)
 
     def load_modules(self, **kwargs):
         """Load lustre kernel modules."""

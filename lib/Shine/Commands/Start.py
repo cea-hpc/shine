@@ -92,7 +92,13 @@ class Start(FSTargetLiveCommand):
                 print "Start successful."
             tuning = Tune.get_tuning(fs_conf)
             status = fs.tune(tuning, comps=comps)
-            if status == RUNTIME_ERROR:
+            if status == MOUNTED:
+                if vlevel > 1:
+                    print "Filesystem tuning applied on %s" % comps.servers()
+            elif status == TARGET_ERROR:
+                print "ERROR: Filesystem tuning failed"
+                rc = RC_RUNTIME_ERROR
+            elif status == RUNTIME_ERROR:
                 rc = RC_RUNTIME_ERROR
             # XXX improve tuning on start error handling
         elif vlevel > 0:

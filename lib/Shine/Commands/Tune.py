@@ -35,7 +35,7 @@ from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
                                               RC_RUNTIME_ERROR
 
-from Shine.Lustre.FileSystem import RUNTIME_ERROR
+from Shine.Lustre.FileSystem import RUNTIME_ERROR, MOUNTED
 
 
 class Tune(FSTargetLiveCommand):
@@ -67,12 +67,10 @@ class Tune(FSTargetLiveCommand):
         if status == RUNTIME_ERROR:
             self.display_proxy_errors(fs)
             return RC_RUNTIME_ERROR
-        elif status == 0:
-            if vlevel > 1:
-                print "Filesystem %s successfully tuned." % fs.fs_name
+        elif status == MOUNTED:
+            print "Filesystem %s successfully tuned." % fs.fs_name
         else:
-            if vlevel > 1:
-                print "Tuning of filesystem %s failed." % fs.fs_name
+            print "Tuning of filesystem %s failed." % fs.fs_name
             return RC_RUNTIME_ERROR
 
         return RC_OK

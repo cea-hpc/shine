@@ -562,12 +562,6 @@ class FileSystem:
         """Tune server."""
         comps = (comps or self.components).managed()
 
-        type_map = { 'mgt': 'mgs', 
-                     'mdt': 'mds', 
-                     'ost': 'oss', 
-                     'client': 'client', 
-                     'router': 'router' }
-
         # Copy tuning file on distant servers
         tuning_conf = Globals().get_tuning_file()
         if tuning_conf:
@@ -575,17 +569,17 @@ class FileSystem:
                                            config_file=tuning_conf)
 
         # Apply tunings
+        actions = ActionGroup()
         for server, srvcomps in comps.groupbyserver():
             if server.is_local():
-                types = set([type_map[tgt.TYPE] for tgt in srvcomps])
-                server.tune(tuning_model, types, self.fs_name)
+                actions.add(server.tune(tuning_model, srvcomps, self.fs_name))
             else:
-                self._proxy_action('tune', server.hostname, srvcomps,
-                                   **kwargs).launch()
+                actions.add(self._proxy_action('tune', server.hostname,
+                                               srvcomps, **kwargs))
 
         # Run local actions and FSProxyAction
+        actions.launch()
         self._run_actions()
 
-        # Check for proxy errors, and return 'result' if no proxy errors
-        result = task_self().max_retcode()
-        return self._check_errors([result])
+        # Check actions status and return MOUNTED if no error
+        return self._check_errors([MOUNTED], None, actions)
