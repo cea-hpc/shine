@@ -701,8 +701,13 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd(action, "nosetests dummy -f action -R"
                                " -l action-client,action-router -F 'failnode'")
 
-    def test_proxy_comps_mountdata(self):
-        """test proxy with a component list and mountdata"""
+    def test_proxy_comps_mountdata_never(self):
+        """test proxy with a component list and mountdata=never"""
         action = self._create_proxy(debug=False, mountdata='never')
         self.check_cmd(action, "nosetests dummy -f action -R"
                                " --mountdata=never")
+
+    def test_proxy_comps_mountdata_auto(self):
+        """test proxy with a component list and mountdata=auto"""
+        action = self._create_proxy(debug=False, mountdata='auto')
+        self.check_cmd(action, "nosetests dummy -f action -R")

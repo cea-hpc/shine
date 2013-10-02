@@ -145,7 +145,9 @@ class FSProxyAction(CommonAction):
         if self.failover:
             command.append("-F '%s'" % self.failover)
 
-        if self.mountdata:
+        # To be compatible with older clients in most cases, do not set the
+        # option when it is its default value.
+        if self.mountdata is not None and self.mountdata != 'auto':
             command.append('--mountdata=%s' % self.mountdata)
 
         return command
