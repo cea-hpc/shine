@@ -343,14 +343,14 @@ class FileSystem:
             if len(err_nodes) > 0:
                 raise FSRemoteError(err_nodes, err_code, err_txt)
 
-    def install(self, fs_config_file):
+    def install(self, fs_config_file, servers=None):
         """
         Install filesystem configuration file on its servers. 
         Server list is built from enabled targets and enabled clients only.
         """
 
-        # Get all possible servers 
-        servers = self.components.managed().allservers()
+        # Get all possible servers
+        servers = (servers or self.components.managed().allservers())
 
         self._distant_action_by_server(Install, servers,
                                        config_file=fs_config_file)
@@ -562,13 +562,6 @@ class FileSystem:
         """Tune server."""
         comps = (comps or self.components).managed()
 
-        # Copy tuning file on distant servers
-        tuning_conf = Globals().get_tuning_file()
-        if tuning_conf:
-            self._distant_action_by_server(Install, comps.servers(),
-                                           config_file=tuning_conf)
-
-        # Apply tunings
         actions = ActionGroup()
         for server, srvcomps in comps.groupbyserver():
             if server.is_local():

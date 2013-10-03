@@ -47,18 +47,18 @@ class Install(Command):
         rc = RC_OK
 
         if not self.options.model:
-            raise CommandHelpException("Lustre model file path (-m <model_file>) " \
-                    "argument required.", self)
+            raise CommandHelpException("Lustre model file path"
+                                   "(-m <model_file>) argument required.", self)
 
         # Use this Shine.FSUtils convenience function.
         lmf = self.get_lmf_path()
         if lmf:
             print "Using Lustre model file %s" % lmf
         else:
-            raise CommandHelpException("Lustre model file for ``%s'' not found: " \
-                    "please use filename or full LMF path.\n" \
-                    "Your default model files directory (lmf_dir) " \
-                    "is: %s" % (self.options.model, Globals().get_lmf_dir()), self)
+            raise CommandHelpException("Lustre model file for ``%s'' not found:"
+                        " please use filename or full LMF path.\n"
+                        "Your default model files directory (lmf_dir) is: %s" %
+                        (self.options.model, Globals().get_lmf_dir()), self)
 
         install_nodes = self.options.nodes
         excluded_nodes = self.options.excludes
@@ -88,6 +88,11 @@ class Install(Command):
         # convenient this way...
         try:
             fs.install(fs_conf.get_cfg_filename()) 
+
+            tuning_conf = Globals().get_tuning_file()
+            if tuning_conf:
+                fs.install(tuning_conf)
+
         except FSRemoteError, error:
             print "WARNING: Due to error, installation skipped on %s" \
                    % error.nodes

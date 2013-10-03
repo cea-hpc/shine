@@ -78,7 +78,9 @@ class Start(FSTargetLiveCommand):
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
-            
+
+        self.copy_tuning(fs, comps=comps)
+
         status = fs.start(mount_options=mount_options,
                           mount_paths=mount_paths,
                           addopts=self.options.additional,

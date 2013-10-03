@@ -1,5 +1,6 @@
 2013-10-03 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fix bad quota tuning options (ticket #148).
+	* tuning.conf is also copied when installing (ticket #53).
 
 2013-09-27 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Similar error messages are grouped (ticket #103).

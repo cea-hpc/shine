@@ -47,7 +47,8 @@ class Tune(FSTargetLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        all_nodes = fs.components.managed().servers()
+        comps = fs.components.managed()
+        all_nodes = comps.servers()
         if not self.check_valid_list(fs.fs_name, all_nodes, "tune"):
             return RC_FAILURE
 
@@ -60,7 +61,9 @@ class Tune(FSTargetLiveCommand):
         if vlevel > 1:
             print "Tuning filesystem %s..." % fs.fs_name
 
-        if not self.options.remote and (vlevel > 1):
+        self.copy_tuning(fs, comps=comps)
+
+        if not self.options.remote and vlevel > 1:
             print tuning
 
         status = fs.tune(tuning, addopts=self.options.additional)
