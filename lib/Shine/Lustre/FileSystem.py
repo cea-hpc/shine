@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre FS
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -394,7 +394,7 @@ class FileSystem:
         return result
 
     def _prepare(self, action, comps=None, groupby=None, reverse=False,
-                 need_unload=False, **kwargs):
+                 need_unload=False, tunings=None, **kwargs):
         """
         Instanciate all actions for the component list and but them in a graph
         of ActionGroup().
@@ -409,6 +409,7 @@ class FileSystem:
         last_comps = None
         localsrv = None
         modules = set()
+        localcomps = None
 
         if groupby:
             iterable = comps.groupby(attr=groupby, reverse=reverse)
@@ -425,6 +426,7 @@ class FileSystem:
             for srv, comps in comps.groupbyserver():
                 if srv.is_local():
                     localsrv = srv
+                    localcomps = comps
                     for comp in comps:
                         compgrp.add(getattr(comp, action)(**kwargs))
                 else:
@@ -461,6 +463,12 @@ class FileSystem:
 
             first_comps.parent.add(modgrp)
             first_comps.depends_on(modgrp)
+
+        # Apply tuning to last component group, if needed
+        if tunings is not None and last_comps is not None:
+            tune = localsrv.tune(tunings, localcomps, self.fs_name)
+            last_comps.parent.add(tune)
+            tune.depends_on(last_comps)
 
         # Add module unloading to last component group, if needed.
         if need_unload and last_comps is not None:
@@ -534,7 +542,7 @@ class FileSystem:
         actions.launch()
         self._run_actions()
 
-        return self._check_errors([MOUNTED, RECOVERING], comps)
+        return self._check_errors([MOUNTED, RECOVERING], comps, actions)
 
     def stop(self, comps=None, **kwargs):
         """Stop file system."""
@@ -554,7 +562,7 @@ class FileSystem:
         self._run_actions()
 
         # Ok, workers have completed, perform late status check...
-        return self._check_errors([MOUNTED], comps)
+        return self._check_errors([MOUNTED], comps, actions)
 
     def umount(self, comps=None, **kwargs):
         """Unmount FS clients."""

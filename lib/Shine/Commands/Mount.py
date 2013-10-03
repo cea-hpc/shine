@@ -1,5 +1,5 @@
 # Mount.py -- Mount file system on clients
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -72,7 +72,8 @@ class Mount(FSLiveCommand):
         self.copy_tuning(fs, comps=comps)
 
         status = fs.mount(addopts=self.options.additional,
-                          fanout=self.options.fanout)
+                          fanout=self.options.fanout,
+                          tunings=Tune.get_tuning(fs_conf, fs.components))
 
         rc = self.fs_status_to_rc(status)
 
@@ -82,29 +83,7 @@ class Mount(FSLiveCommand):
                     key = lambda c: c.state == MOUNTED
                     print "%s was successfully mounted on %s" % \
                         (fs.fs_name, comps.filter(key=key).servers())
-
-                # Apply tuning after successful mount(s)
-                tuning = Tune.get_tuning(fs_conf, fs.components)
-                status = fs.tune(tuning, comps=comps)
-                if status == MOUNTED:
-                    if vlevel > 1:
-                        print "Filesystem tuning applied on %s" % \
-                                                        comps.servers()
-                elif status == TARGET_ERROR:
-                    print "ERROR: Filesystem tuning failed"
-                    rc = RC_RUNTIME_ERROR
-                else:
-                    rc = RC_RUNTIME_ERROR
-
-            else:
-                # Display a failure message in case of previous failed
-                # mounts. For now, if one mount fail, the tuning is
-                # skipped. Use `shine tune' to manually tune the FS.
-                # Trac ticket #46 aims to improve this.
-                if vlevel > 0:
-                    print "Tuning skipped!"
-
-            if rc == RC_RUNTIME_ERROR:
+            elif rc == RC_RUNTIME_ERROR:
                 self.display_proxy_errors(fs)
 
         if hasattr(eh, 'post'):

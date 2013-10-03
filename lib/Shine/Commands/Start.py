@@ -1,5 +1,5 @@
 # Start.py -- Start file system
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -86,28 +86,15 @@ class Start(FSTargetLiveCommand):
                           addopts=self.options.additional,
                           failover=self.options.failover,
                           fanout=self.options.fanout,
-                          mountdata=self.options.mountdata)
+                          mountdata=self.options.mountdata,
+                          tunings=Tune.get_tuning(fs_conf, fs.components))
 
         rc = self.fs_status_to_rc(status)
 
         if rc == RC_OK:
             if vlevel > 0:
                 print "Start successful."
-            tuning = Tune.get_tuning(fs_conf, fs.components)
-            status = fs.tune(tuning, comps=comps)
-            if status == MOUNTED:
-                if vlevel > 1:
-                    print "Filesystem tuning applied on %s" % comps.servers()
-            elif status == TARGET_ERROR:
-                print "ERROR: Filesystem tuning failed"
-                rc = RC_RUNTIME_ERROR
-            elif status == RUNTIME_ERROR:
-                rc = RC_RUNTIME_ERROR
-            # XXX improve tuning on start error handling
-        elif vlevel > 0:
-            print "Tuning skipped."
-
-        if rc == RC_RUNTIME_ERROR:
+        elif rc == RC_RUNTIME_ERROR:
             self.display_proxy_errors(fs)
 
         if hasattr(eh, 'post'):

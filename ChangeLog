@@ -1,5 +1,6 @@
 2015-04-09 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Padding in ranges in model file is supported (ticket #188)
+	* Simplify tuning enforcement when starting and mounting (ticket #33)
 
 2015-04-08 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Display a message when load/unloading modules (ticket #182)
