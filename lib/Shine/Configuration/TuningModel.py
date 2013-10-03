@@ -80,8 +80,12 @@ class TuningParameter(object):
             and other.value == self.value and other.node_list == self.node_list
 
     def __str__(self):
-        return "%s=%s types=%s nodes=%s" % \
-              (self.name, self.value, ",".join(self.node_types), self.node_list)
+        output = "%s=%s" % (self.name, self.value)
+        if self.node_types:
+            output += " types=%s" % ",".join(self.node_types)
+        if self.node_list:
+            output += " nodes=%s" % self.node_list
+        return output
         
     def build_tuning_command(self, fs_name):
         """
@@ -127,7 +131,7 @@ class TuningModel:
         self.aliases = {}
         self._parameter_dict = {}
 
-    def convert_parameter_aliases(self):
+    def convert_parameter_aliases(self, check=True):
         """
         This function is used to convert the alias name set in parameters into
         the real full parameter name.
@@ -139,8 +143,9 @@ class TuningModel:
             for param in parameters:
                 # Complain if the parameter has no associated alias
                 if param.name not in self.aliases:
-                    msg = "Parameter %s is not declared" % param.name
-                    raise TuningError(msg)
+                    if check:
+                        msg = "Tuning alias '%s' is not declared" % param.name
+                        raise TuningError(msg)
                 else:
                     param.name = self.aliases[name]
         
@@ -201,11 +206,11 @@ class TuningModel:
         
         # Walk through the list of aliases and display each one of them
         for alias, fullpath in self.aliases.items():
-            msg += "tuning_alias: %s = %s\n" % (alias, fullpath)
+            msg += "Tuning alias: %s <=> %s\n" % (alias, fullpath)
             
         # Walk through the list of parameters and display each one of them
         for params in self._parameter_dict.values():
-            msg += "\n".join(["tuning_param: %s" % param for param in params])
+            msg += "\n".join(["Tuning param: %s" % param for param in params])
             msg += "\n"
             
         return msg
@@ -272,8 +277,8 @@ class TuningModel:
         # If the tuning parameter is already known add a value to the list
         self._parameter_dict[new_parameter.name].append(new_parameter)
 
-    def create_parameter(self, parameter_name, parameter_value, node_type_list,
-                         node_name_list):
+    def create_parameter(self, parameter_name, parameter_value,
+                         node_type_list=None, node_name_list=None):
         """
         Function used to create a new tuning parameter and add it to the tuning
         configuration model. 

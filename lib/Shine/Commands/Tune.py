@@ -28,35 +28,18 @@ Lustre filesystem.
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Configuration.TuningModel import TuningModel, TuningError
+from Shine.Configuration.TuningModel import TuningModel
 
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
                                               RC_RUNTIME_ERROR
 
-# Lustre events
-from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
-                                               FSLocalEventHandler
-
 from Shine.Lustre.FileSystem import RUNTIME_ERROR
 
 
-class GlobalTuneEventHandler(FSGlobalEventHandler):
-    SUMMARY = False
-
-    def handle_pre(self):
-        self.log_verbose("Tuning filesystem %s..." % self.fs.fs_name)
-
-class LocalTuneEventHandler(FSLocalEventHandler):
-
-    def handle_pre(self):
-        self.log_verbose("Tuning filesystem %s..." % self.fs.fs_name)
-
 class Tune(FSTargetLiveCommand):
-
-    GLOBAL_EH = GlobalTuneEventHandler
-    LOCAL_EH = LocalTuneEventHandler
+    """shine tune [-v]"""
 
     NAME = "tune"
     DESCRIPTION = "Tune file system servers."
@@ -69,13 +52,14 @@ class Tune(FSTargetLiveCommand):
             return RC_FAILURE
 
         tuning = self.get_tuning(fs_conf)
-        if not tuning:
-            return RC_OK
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
-            
+
+        if vlevel > 1:
+            print "Tuning filesystem %s..." % fs.fs_name
+
         if not self.options.remote and (vlevel > 1):
             print tuning
 
@@ -93,133 +77,107 @@ class Tune(FSTargetLiveCommand):
 
         return RC_OK
 
+    @classmethod
     def get_tuning(cls, fs_conf):
         """
         Tune class method: get TuningModel for a fs configuration.
         """
-        tuning = None
-        # Is the tuning configuration file name specified ?
-        if not Globals().get_tuning_file():
-            # No.  Create an empty tuning model.
+        # XXX: If no tuning.conf is defined in configuration
+        # we still create a tuning model which will be used for quota.
+        # Be carefull that this could be very confusing for users, who
+        # can think tuning will be applied but is not.
+        tuning = TuningModel()
 
-            # XXX: If no tuning.conf is defined in configuration
-            # we still create a tuning model which will be used for quota.
-            # Be carefull that this could be very confusing for users, who
-            # can think tuning will be applied but is not.
-
-            tuning = TuningModel()
-        else:
-            # Yes.
+        # Is the tuning configuration file name specified?
+        if Globals().get_tuning_file():
             # Load the tuning configuration file
-            tuning = TuningModel(filename=Globals().get_tuning_file())
-            try:
-                # Parse the tuning model
-                tuning.parse()
-
-            except TuningError, error:
-                # An error has occured during parsing of tuning configuration file
-                print str(error)
-                # Break the tuning process for the currently processed file system
-                return None
+            tuning.parse(filename=Globals().get_tuning_file())
 
         # Add the quota tuning parameters to the tuning model.
         cls._add_quota_tuning(tuning, fs_conf)
 
         return tuning
 
-    get_tuning = classmethod(get_tuning)
 
-    def _add_quota_tuning(cls, tuning_model, fs_conf):
+    @classmethod
+    def _add_quota_tuning(cls, tunings, fs_conf):
         """
-        This function is used to add the quota tuning information to the tuning model
-        provided by the caller.
+        This function is used to add the quota tuning information to the tuning
+        model provided by the caller.
         """
-        ###
-        # Create the aliases linked to quo tuning parameters
-        ###
-        # Create aliases for MDS tuning
-        tuning_model.create_parameter_alias('quota_iunit_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_iunit_sz')
-        tuning_model.create_parameter_alias('quota_bunit_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_bunit_sz')
-        tuning_model.create_parameter_alias('quota_itune_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_itune_sz')
-        tuning_model.create_parameter_alias('quota_btune_mds', \
-                '/proc/fs/lustre/mds/${fsname}-MDT*/quota_btune_sz')
-
-        # Create aliases for OSS tuning
-        tuning_model.create_parameter_alias('quota_iunit_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_iunit_sz')
-        tuning_model.create_parameter_alias('quota_bunit_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_bunit_sz')
-        tuning_model.create_parameter_alias('quota_itune_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_itune_sz')
-        tuning_model.create_parameter_alias('quota_btune_oss', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
-        
-        # Create aliases for quota_type tuning
-        tuning_model.create_parameter_alias('quota_type', \
-                '/proc/fs/lustre/obdfilter/${fsname}-OST*/quota_btune_sz')        
-        
         # Is the quota activated in the configuration description ?
-        if fs_conf.has_quota():
-            quota_iunit_value = fs_conf.get_quota_iunit()
-            quota_bunit_value = fs_conf.get_quota_bunit()
-            quota_itune_value = fs_conf.get_quota_itune()
-            quota_btune_value = fs_conf.get_quota_btune()
+        if not fs_conf.has_quota():
+            return
 
-            need_convertion = False
+        base = '/proc/fs/lustre/lquota/'
+        need_convertion = False
 
-            if quota_bunit_value:
-                # The bunit size value must be converted in KBs
-                quota_bunit_value = str( int(quota_bunit_value) * 1048576)
+        quota_iunit = fs_conf.get_quota_iunit()
+        quota_bunit = fs_conf.get_quota_bunit()
+        quota_itune = fs_conf.get_quota_itune()
+        quota_btune = fs_conf.get_quota_btune()
 
-                # Create the quota tuning parameters with the right values
-                tuning_model.create_parameter('quota_bunit_mds', quota_bunit_value, \
-                        ['mds'], None)
-                tuning_model.create_parameter('quota_bunit_oss', quota_bunit_value, \
-                        ['oss'], None)
+        if quota_bunit:
+            # Create aliases
+            path = "%s*-${fsname}-MDT*/quota_bunit_sz" % base
+            tunings.create_parameter_alias("quota_bunit_mds", path)
+            path = "%s${fsname}-OST*/quota_bunit_sz" % base
+            tunings.create_parameter_alias("quota_bunit_oss", path)
 
-                need_convertion = True
+            # The bunit size value must be converted in KBs
+            quota_bunit = str(int(quota_bunit) * 1048576)
 
-            if quota_btune_value and quota_bunit_value:
-                # Convert the values to the right units
-                quota_btune_value = \
-                        str( (int(quota_btune_value)*int(quota_bunit_value))/100 )
+            # Create the quota tuning parameters with the right values
+            tunings.create_parameter('quota_bunit_mds', quota_bunit, ['mds'])
+            tunings.create_parameter('quota_bunit_oss', quota_bunit, ['oss'])
 
-                # Create the quota tuning parameters with the right values
-                tuning_model.create_parameter('quota_btune_mds', quota_btune_value, \
-                        ['mds'], None)
-                tuning_model.create_parameter('quota_btune_oss', quota_btune_value, \
-                        ['oss'], None)
+            need_convertion = True
 
-                need_convertion = True
+        if quota_btune and quota_bunit:
+            # Create aliases
+            path = "%s*-${fsname}-MDT*/quota_btune_sz" % base
+            tunings.create_parameter_alias("quota_btune_mds", path)
+            path = "%s${fsname}-OST*/quota_btune_sz" % base
+            tunings.create_parameter_alias("quota_btune_oss", path)
 
-            if quota_iunit_value:
-                # Create the quota tuning parameters with the right values
-                tuning_model.create_parameter('quota_iunit_mds', quota_iunit_value, \
-                        ['mds'], None)
-                tuning_model.create_parameter('quota_iunit_oss', quota_iunit_value, \
-                        ['oss'], None)
+            # Convert the values to the right units
+            quota_btune = str(int(quota_btune) * int(quota_bunit) / 100)
 
-                need_convertion = True
-                    
-            if quota_itune_value and quota_iunit_value:
-                # Convert the values to the right units
-                quota_itune_value = \
-                        str( (int(quota_itune_value)*int(quota_iunit_value))/100 )
+            # Create the quota tuning parameters with the right values
+            tunings.create_parameter('quota_btune_mds', quota_btune, ['mds'])
+            tunings.create_parameter('quota_btune_oss', quota_btune, ['oss'])
 
-                # Create the quota tuning parameters with the right values
-                tuning_model.create_parameter('quota_itune_mds', quota_itune_value, \
-                        ['mds'], None)
-                tuning_model.create_parameter('quota_itune_oss', quota_itune_value, \
-                        ['oss'], None)
+            need_convertion = True
 
-                need_convertion = True
+        if quota_iunit:
+            # Create aliases
+            path = "%s*-${fsname}-MDT*/quota_iunit_sz" % base
+            tunings.create_parameter_alias("quota_iunit_mds", path)
+            path = "%s${fsname}-OST*/quota_iunit_sz" % base
+            tunings.create_parameter_alias("quota_iunit_oss", path)
 
-            if need_convertion:
-                # Convert the parameter aliases to the real parameter name
-                tuning_model.convert_parameter_aliases()
+            # Create the quota tuning parameters with the right values
+            tunings.create_parameter('quota_iunit_mds', quota_iunit, ['mds'])
+            tunings.create_parameter('quota_iunit_oss', quota_iunit, ['oss'])
 
-    _add_quota_tuning = classmethod(_add_quota_tuning)
+            need_convertion = True
 
+        if quota_itune and quota_iunit:
+            # Create aliases
+            path = "%s*-${fsname}-MDT*/quota_itune_sz" % base
+            tunings.create_parameter_alias("quota_itune_mds", path)
+            path = "%s${fsname}-OST*/quota_itune_sz" % base
+            tunings.create_parameter_alias("quota_itune_oss", path)
+
+            # Convert the values to the right units
+            quota_itune = str(int(quota_itune) * int(quota_iunit) / 100)
+
+            # Create the quota tuning parameters with the right values
+            tunings.create_parameter('quota_itune_mds', quota_itune, ['mds'])
+            tunings.create_parameter('quota_itune_oss', quota_itune, ['oss'])
+
+            need_convertion = True
+
+        if need_convertion:
+            # Convert the parameter aliases to the real parameter name
+            tunings.convert_parameter_aliases(check=False)
