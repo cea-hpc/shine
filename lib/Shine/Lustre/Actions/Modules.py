@@ -118,8 +118,26 @@ class UnloadModules(ServerAction):
 
     NAME = 'unloadmodules'
 
+    def _device_count(self):
+        """Return the number of loaded Lustre devices."""
+        count = 0
+        try:
+            devices = open('/proc/fs/lustre/devices')
+            for line in devices:
+                count += 1
+            devices.close()
+        except IOError:
+            pass
+
+        return count
+
     def _already_done(self):
         if len(self.server.modules) == 0:
+            return True
+
+        # If some devices are still loaded, do not try to unload
+        # and do not consider this as an error.
+        if self._device_count() > 0:
             return True
 
         # Check still in use?

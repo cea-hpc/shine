@@ -420,7 +420,7 @@ class ActionsTest(CommonTestCase):
 
     @Utils.rootonly
     def test_module_busy(self):
-        """Unloading module with a started MGS is an error"""
+        """Unloading module with a started MGS is not considered as an error"""
         self.format()
         # Start the target, to set module busy
         self.tgt.start().launch()
@@ -432,8 +432,9 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Status check
-        self.assertEqual(sorted(srv.modules.keys()), ['ldiskfs', 'libcfs'])
-        self.assertEqual(act.status(), ACT_ERROR)
+        self.assertEqual(sorted(srv.modules.keys()),
+                         ['ldiskfs', 'libcfs', 'lustre'])
+        self.assertEqual(act.status(), ACT_OK)
 
 
 class RouterActionTest(CommonTestCase):

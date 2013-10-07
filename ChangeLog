@@ -1,3 +1,6 @@
+2013-10-07 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Unload modules only when possible (ticket #167).
+
 2013-10-03 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fix bad quota tuning options (ticket #148).
 	* tuning.conf is also copied when installing (ticket #53).
