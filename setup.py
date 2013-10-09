@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2013 CEA
 #
 # This file is part of shine
 #
@@ -18,7 +18,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from distutils.core import setup
 import os
@@ -26,7 +25,7 @@ import os
 setup(name='shine',
       version=os.environ['SHINEVERSION'],
       license='GPL',
-      description='Lustre shine administration utility',
+      description='Lustre administration utility',
       author='Stephane Thiell',
       author_email='stephane.thiell@cea.fr',
       url='http://lustre-shine.sourceforge.net/',
