@@ -97,6 +97,11 @@ class Clients:
     def get_nodes(self):
         return self.dic.get('node')
 
+    def get_nodename(self):
+        # To be compatible with Target
+        # Called from _create_comp() in FSUtils.py
+        return self.get_nodes()
+
     def get_mount_options(self):
         return self.dic.get('mount_options')
 

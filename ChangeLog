@@ -1,3 +1,6 @@
+2013-10-30 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Fix traceback when adding/removing client with update (ticket #169).
+
 2013-10-09 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Release: 1.3
 
