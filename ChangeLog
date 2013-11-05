@@ -1,3 +1,7 @@
+2013-11-05 Florent Thery <florent.thery@bull.net>
+	* Do not copy tuning.conf if -L or -R option is specified and handle
+	-n and -x options when copying tuning.conf (ticket #168).
+
 2013-10-30 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fix traceback when adding/removing client with update (ticket #169).
 

@@ -47,12 +47,18 @@ class FSLiveCommand(RemoteCommand):
 
     def copy_tuning(self, fs, comps=None):
         """Copy tuning.conf if defined."""
-        if not self.options.remote:
+        if not self.has_local_flag():
             tuning_conf = Globals().get_tuning_file()
             if tuning_conf:
                 servers = None
                 if comps:
+                    # take into account -n and -x options
                     servers = comps.allservers()
+                    if self.options.nodes is not None:
+                        servers.intersection_update(self.options.nodes)
+                    if self.options.excludes is not None:
+                        servers.difference_update(self.options.excludes)
+
                 fs.install(tuning_conf, servers=servers)
 
     def _open_fs(self, fsname, eh):
