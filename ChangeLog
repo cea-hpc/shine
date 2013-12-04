@@ -1,3 +1,6 @@
+2014-01-27 Florent Thery <florent.thery@bull.net>
+	* Disable quota handling for Lustre 2.4 and above (ticket #171)
+
 2013-12-06 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Restore table display for local commands (ticket #172)
 	* Restore broken -V disk/target behaviour (ticket #173)

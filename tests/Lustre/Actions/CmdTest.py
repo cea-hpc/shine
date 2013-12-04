@@ -400,6 +400,16 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd_format(action, '--mdt --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=mdd.quota_type=ug" /dev/root')
 
+    def test_format_target_mdt_quota_v24(self):
+        """test command line format v2.4 and above (MDT with quota)"""
+        Globals().replace('lustre_version', '2.4')
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv2, 'mdt', 0, '/dev/root')
+        tgt.full_check(mountdata=False)
+        action = Format(tgt, quota=True, quota_type='ug')
+        self.check_cmd_format(action, '--mdt --index=0 ' +
+             '"--mgsnode=localhost@tcp" /dev/root')
+
     def test_format_target_mdt_striping(self):
         """test command line format (MDT with striping)"""
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
@@ -437,14 +447,25 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd_format(action, '--ost --index=0 ' +
                               '"--mgsnode=localhost@tcp" /dev/root')
 
-    def test_format_target_ost_quota(self):
-        """test command line format (OST with quota)"""
+    def test_format_target_ost_quota_v2x(self):
+        """test command line format v2.x (OST with quota)"""
+        Globals().replace('lustre_version', '2.0.0.1')
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt = self.fs.new_target(self.srv2, 'ost', 0, '/dev/root')
         tgt.full_check(mountdata=False)
         action = Format(tgt, quota=True, quota_type='ug')
         self.check_cmd_format(action, '--ost --index=0 ' +
              '"--mgsnode=localhost@tcp" "--param=ost.quota_type=ug" /dev/root')
+
+    def test_format_target_ost_quota_v24(self):
+        """test command line format v2.4 and above (OST with quota)"""
+        Globals().replace('lustre_version', '2.4')
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        tgt = self.fs.new_target(self.srv2, 'ost', 0, '/dev/root')
+        tgt.full_check(mountdata=False)
+        action = Format(tgt, quota=True, quota_type='ug')
+        self.check_cmd_format(action, '--ost --index=0 ' +
+             '"--mgsnode=localhost@tcp" /dev/root')
 
     def test_format_target_ost_failnode(self):
         """test command line format (OST with failnode)"""
@@ -566,6 +587,19 @@ class ActionsTest(unittest.TestCase):
         action = Tunefs(ost, quota=True, quota_type='ug')
         self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
                               '"--param=ost.quota_type=ug" /dev/sdb')
+
+    def test_tunefs_target_quota_v24(self):
+        """test command line tunefs quota (v2.4 and above)"""
+        Globals().replace('lustre_version', '2.4')
+        self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        mdt = self.fs.new_target(self.srv1, 'mdt', 0, '/dev/root')
+        action = Tunefs(mdt, quota=True, quota_type='ug')
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                              '/dev/root')
+        ost = self.fs.new_target(self.srv1, 'ost', 0, '/dev/sdb')
+        action = Tunefs(ost, quota=True, quota_type='ug')
+        self.check_cmd_tunefs(action, '"--mgsnode=localhost@tcp" ' +
+                              '/dev/sdb')
 
     def test_tunefs_target_failnode(self):
         """test command line tunefs failnode"""

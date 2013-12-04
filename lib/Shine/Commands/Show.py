@@ -93,23 +93,24 @@ class Show(Command):
                 raise
                 
             # Retrieve quota configuration information
-            quota_info = ''
-            if fs_conf.has_quota():
-                quota_info += 'type=%s ' % fs_conf.get_quota_type()
+            if Globals().lustre_version_is_smaller('2.4'):
+                quota_info = ''
+                if fs_conf.has_quota():
+                    quota_info += 'type=%s ' % fs_conf.get_quota_type()
 
-                qiunit = fs_conf.get_quota_iunit() or '[lustre_default]'
-                quota_info += 'iunit=%s ' % qiunit
+                    qiunit = fs_conf.get_quota_iunit() or '[lustre_default]'
+                    quota_info += 'iunit=%s ' % qiunit
 
-                qbunit = fs_conf.get_quota_bunit() or '[lustre_default]'
-                quota_info += 'bunit=%s ' % qbunit
+                    qbunit = fs_conf.get_quota_bunit() or '[lustre_default]'
+                    quota_info += 'bunit=%s ' % qbunit
 
-                qitune = fs_conf.get_quota_itune() or '[lustre_default]'
-                quota_info += 'itune=%s ' % qitune
+                    qitune = fs_conf.get_quota_itune() or '[lustre_default]'
+                    quota_info += 'itune=%s ' % qitune
 
-                qbtune = fs_conf.get_quota_btune() or '[lustre_default]'
-                quota_info += 'btune=%s ' % qbtune
-            else:
-                quota_info = 'not activated'
+                    qbtune = fs_conf.get_quota_btune() or '[lustre_default]'
+                    quota_info += 'btune=%s ' % qbtune
+                else:
+                    quota_info = 'not activated'
 
             # Get file system stripping configuration information
             stripping = 'stripe_size=%s ' % fs_conf.get_stripesize()
@@ -131,7 +132,8 @@ class Show(Command):
             tbl.append({'name': 'device path', 'value': device_path})
             tbl.append({'name': 'mount options',
                         'value': fs_conf.get_default_mount_options()})
-            tbl.append({'name': 'quotas', 'value': quota_info})
+            if Globals().lustre_version_is_smaller('2.4'):
+                tbl.append({'name': 'quotas', 'value': quota_info})
             tbl.append({'name': 'stripping', 'value': stripping})
             tbl.append({'name': 'tuning',
                         'value': Globals().get_tuning_file()})

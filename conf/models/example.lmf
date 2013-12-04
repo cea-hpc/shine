@@ -126,6 +126,7 @@ mount_options: acl,user_xattr
 # Quota
 #
 # Enable quota support.
+# In lustre 2.4 and above, all quota options described here are ignored
 # Possible values are yes or no (default is no).
 quota: no
 

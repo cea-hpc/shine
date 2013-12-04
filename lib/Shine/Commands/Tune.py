@@ -95,7 +95,8 @@ class Tune(FSTargetLiveCommand):
             tuning.parse(filename=Globals().get_tuning_file())
 
         # Add the quota tuning parameters to the tuning model.
-        cls._add_quota_tuning(tuning, fs_conf)
+        if Globals().lustre_version_is_smaller('2.4'):
+            cls._add_quota_tuning(tuning, fs_conf)
 
         return tuning
 

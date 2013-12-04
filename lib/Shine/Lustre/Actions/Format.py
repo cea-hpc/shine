@@ -89,7 +89,8 @@ class CommonFormat(FSAction):
                 command.append('--param=lov.stripecount=%d' % self.stripecount)
             if self.stripesize:
                 command.append('--param=lov.stripesize=%d' % self.stripesize)
-            if self.quota_type is not None:
+            if Globals().lustre_version_is_smaller('2.4') and \
+               self.quota_type is not None:
                 if Globals().lustre_version_is_smaller('2'):
                     option = 'mdt.quota_type'
                 else:
@@ -98,7 +99,8 @@ class CommonFormat(FSAction):
 
         elif self.comp_is_ost:
             command += self._mgsnids()
-            if self.quota_type is not None:
+            if Globals().lustre_version_is_smaller('2.4') and \
+               self.quota_type is not None:
                 command.append('"--param=ost.quota_type=%s"' % self.quota_type)
 
         # --failnode: NID(s) of failover partner
