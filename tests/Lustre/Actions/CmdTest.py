@@ -32,6 +32,9 @@ class ActionsTest(unittest.TestCase):
         self.srv1 = Server("localhost", ["localhost@tcp"])
         self.srv2 = Server("localhost2", ["localhost2@tcp"])
 
+    def tearDown(self):
+        del Globals()['lustre_version']
+
     def check_cmd(self, action, cmdline):
         """Check `action' prepare_cmd() return the provided cmdline."""
         self.assertEqual(' '.join(action._prepare_cmd()), cmdline)
