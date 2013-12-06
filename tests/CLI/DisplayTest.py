@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.CLI.TextTable test suite
 # Written by A. Degremont 2012-07-04
-# $Id$
 
 """Unit test for CLI.Display"""
 
@@ -159,6 +158,7 @@ class SimpleFillTests(unittest.TestCase):
                       'foofs  MGS   foo  unknown unknown    MGT  foo')
 
     def test_status_evicted(self):
+        """fill with status/statusonly field with different values"""
         client = self._fs.new_client(Server('foo', ['foo@tcp']), '/foo')
         client.proc_states['evicted'] = 1
         client.state = MOUNTED
@@ -265,6 +265,8 @@ class DisplayTest(unittest.TestCase):
         self._fs.new_target(srv3, 'ost', 1, '/dev/ost1')
         # MDT (foo2)
         self._fs.new_target(Server('foo2', ['foo2@tcp']), 'mdt', 0, '/dev/mdt')
+        # Client (foo0)
+        self._fs.new_client(Server('foo0', ['foo0@tcp']), '/foo')
 
     def test_view_custom(self):
         """display with a custom format"""
@@ -277,7 +279,8 @@ TYPE NODE
 ROU  foo0
 MGT  foo1
 MDT  foo2
-OST  foo3""")
+OST  foo3
+CLI  foo0""")
 
     def test_view_fs(self):
         """display with fs view"""
@@ -290,13 +293,28 @@ TYPE # STATUS  NODES
 ROU  1 unknown foo0
 MGT  1 unknown foo1
 MDT  1 unknown foo2
-OST  2 unknown foo3""")
+OST  2 unknown foo3
+CLI  1 unknown foo0""")
 
     def test_view_target(self):
         """display with target view"""
         opts = DummyOptions(color='never', header=True, view='target')
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
+        self.assertEqual(txt,
+"""========== FILESYSTEM TARGETS (display) =========
+TARGET          TYPE IDX SERVERS DEVICE    STATUS
+------          ---- --- ------- ------    ------
+MGS             MGT    0 foo1    /dev/mgt  unknown
+display-MDT0000 MDT    0 foo2    /dev/mdt  unknown
+display-OST0000 OST    0 foo3    /dev/ost0 unknown
+display-OST0001 OST    1 foo3    /dev/ost1 unknown""")
+
+    def test_view_target_with_supports(self):
+        """display with target view with a force 'supports'"""
+        opts = DummyOptions(color='never', header=True, view='target')
+        cmd = DummyCommand(opts)
+        txt = display(cmd, self._fs, supports='status')
         self.assertEqual(txt,
 """========== FILESYSTEM TARGETS (display) =========
 TARGET          TYPE IDX SERVERS DEVICE    STATUS
@@ -331,4 +349,5 @@ DEVICE    SERVERS DEV_SIZE  TYPE INDEX  LABEL           FLAGS FSNAME  STATUS
 ROU  1 unknown foo0
 MGT  1 unknown foo1
 MDT  1 unknown foo2
-OST  2 unknown foo3""")
+OST  2 unknown foo3
+CLI  1 unknown foo0""")

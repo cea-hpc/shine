@@ -1,5 +1,6 @@
 2013-12-06 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Restore table display for local commands (ticket #172)
+	* Restore broken -V disk/target behaviour (ticket #173)
 
 2013-11-05 Florent Thery <florent.thery@bull.net>
 	* Do not copy tuning.conf if -L or -R option is specified and handle

@@ -127,7 +127,7 @@ def _get_fields(comp, fields):
     return d_fields
 
 
-def table_fill(tbl, fs, sort_key=None, supports=None):
+def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
     """
     Fill ``tbl'' with the component properties from filesystem ``fs''.
 
@@ -144,11 +144,14 @@ def table_fill(tbl, fs, sort_key=None, supports=None):
             pat_fields.remove(elem)
 
     # Grouped by visible fields
+    comps = fs.components.managed(supports=supports)
+    if viewsupports is not None:
+        comps = comps.filter(supports=viewsupports)
     def fieldvals(comp):
         """Get the value list of field for ``comp''."""
         return _get_fields(comp, pat_fields).values()
     grplst = [ (list(compgrp)[0], compgrp) for _, compgrp in \
-               fs.components.managed(supports=supports).groupby(key=fieldvals) ]
+               comps.groupby(key=fieldvals) ]
 
     # Sort
     def sorter((first, _)):
@@ -199,6 +202,7 @@ def display(cmd, fs, supports=None):
     tbl = setup_table(cmd.options)
 
     key = None
+    viewsupports = None
 
     #
     # Custom format
@@ -225,8 +229,7 @@ def display(cmd, fs, supports=None):
         tbl.fmt = "%target %type %>index %servers %device %status"
         tbl.header_labels = {'index': 'idx'}
         key = lambda t: (t.DISPLAY_ORDER, t.label)
-        if not supports:
-            supports = "index"
+        viewsupports = "index"
 
     elif view == "disk":
         tbl.title = "FILESYSTEM DISKS (%s)" % fs.fs_name
@@ -235,8 +238,8 @@ def display(cmd, fs, supports=None):
         tbl.header_labels = { 'size': 'dev_size', 'jdev': 'journal_device'}
         tbl.optional_cols = ['jdev', 'tag']
         key = lambda t: (t.DISPLAY_ORDER, t.label)
-        if not supports:
-            supports = "dev"
+        viewsupports = "dev"
 
-    table_fill(tbl, fs, sort_key=key, supports=supports)
+    table_fill(tbl, fs, sort_key=key, supports=supports,
+               viewsupports=viewsupports)
     return str(tbl)
