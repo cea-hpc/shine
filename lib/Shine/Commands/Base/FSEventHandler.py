@@ -45,6 +45,8 @@ class FSLocalEventHandler(LustreEH):
     processing only (-L).
     """
 
+    SUMMARY = True
+
     def __init__(self, command):
         LustreEH.__init__(self)
         self.command = command
@@ -142,8 +144,14 @@ class FSLocalEventHandler(LustreEH):
         self.handle_pre()
 
     def handle_post(self, fs):
-        """Custom handler called after processing each filesystem."""
-        pass
+        """
+        Custom handler called after processing each filesystem.
+
+        It displays a table summary if verbosity is high enough and
+        SUMMARY is set for this command (True by default).
+        """
+        if self.SUMMARY and self.verbose > 0:
+            print display(self.command, fs, supports=self.fs_action)
 
     def post(self, fs):
         """Do any post-processing. This is called for each filesystem."""
@@ -162,8 +170,6 @@ class FSGlobalEventHandler(FSLocalEventHandler):
 
     This means local and distant commands could be executed.
     """
-
-    SUMMARY = True
 
     def __init__(self, command):
         FSLocalEventHandler.__init__(self, command)
@@ -200,10 +206,6 @@ class FSGlobalEventHandler(FSLocalEventHandler):
     def pre(self, fs):
         FSLocalEventHandler.pre(self, fs)
         self._update()
-
-    def handle_post(self, fs):
-        if self.SUMMARY and self.verbose > 0:
-            print display(self.command, fs, supports=self.fs_action)
 
 
     def ev_timer(self, timer):
