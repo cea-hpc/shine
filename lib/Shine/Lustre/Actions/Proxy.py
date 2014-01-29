@@ -40,6 +40,9 @@ SHINE_MSG_VERSION = 3
 class ProxyActionUnpackError(Exception):
     """An error occured while trying to unpack a shine event message."""
 
+class ProxyActionUnpickleError(Exception):
+    """An error occured while trying to unpickle a shine event message."""
+
 def shine_msg_pack(**kwargs):
     """Shine event serialization method."""
     # To be more evolutive, Shine message contains only a dict.
@@ -58,16 +61,28 @@ def shine_msg_unpack(msg):
 
     # Identified shine msg of the form SHINE:<version>:<pickle>
     try:
-        # unpack pickle object
         version, data = msg[len(SHINE_MSG_MAGIC):].split(':', 1)
-        if int(version) == SHINE_MSG_VERSION:
-            return pickle.loads(binascii.a2b_base64(data))
-        elif int(version) == 2:
-            return shine_msg_unpack_v2(data)
-        else:
-            raise ProxyActionUnpackError("Shine message version mismatch")
+        version = int(version)
     except Exception, exp:
-        raise ProxyActionUnpackError("Unknown error: %s" % exp)
+        raise ProxyActionUnpackError("Malformed Shine message: %s" % exp)
+
+    if version == SHINE_MSG_VERSION:
+        try:
+            # unpack and unpickle object
+            return pickle.loads(binascii.a2b_base64(data))
+        except Exception, exp:
+            msg = "Cannot unpickle message (check Shine and ClusterShell " \
+                  "versions): %s" % exp
+            raise ProxyActionUnpickleError(msg)
+
+    elif version == 2:
+        try:
+            return shine_msg_unpack_v2(data)
+        except Exception, exp:
+            raise ProxyActionUnpackError("Unknown error: %s" % exp)
+
+    else:
+        raise ProxyActionUnpackError("Shine message version mismatch")
 
 def shine_msg_unpack_v2(msg):
     """
@@ -102,7 +117,7 @@ class FSProxyAction(CommonAction):
 
     NAME = 'proxy'
 
-    def __init__(self, fs, action, nodes, debug, comps=None, addopts=None, 
+    def __init__(self, fs, action, nodes, debug, comps=None, addopts=None,
                  failover=None, mountdata=None):
 
         CommonAction.__init__(self)
@@ -120,6 +135,7 @@ class FSProxyAction(CommonAction):
         self.mountdata = mountdata
 
         self._outputs = MsgTree()
+        self._errpickle = MsgTree()
         self._silentnodes = NodeSet() # Error nodes without output
 
         if self.fs.debug:
@@ -182,6 +198,17 @@ class FSProxyAction(CommonAction):
             action = data.pop('action')
             status = data.pop('status')
             self.fs.distant_event(compname, action, status, node=node, **data)
+        except ProxyActionUnpickleError, exp:
+            # Maintain a standalone list of unpickling errors.
+            # Node could have unpickling error but still exit with 0
+            msg = str(exp)
+            if msg not in self._errpickle.get(node, ""):
+                self._errpickle.add(node, msg)
+        except AttributeError, exp:
+            msg = "Cannot read message (check Shine and ClusterShell " \
+                  "version): %s" % str(exp)
+            if msg not in self._errpickle.get(node, ""):
+                self._errpickle.add(node, msg)
         except ProxyActionUnpackError:
             # Store output that is not a shine message
             self._outputs.add(node, buf)
@@ -253,6 +280,12 @@ class FSProxyAction(CommonAction):
                     msg = "Remote action %s failed: %s\n" % \
                                                         (self.action, buffers)
                     self.fs._handle_shine_proxy_error(nodes, msg)
+
+        # Raise errors for each unpickling error,
+        # which could happen mostly when Shine exits with 0.
+        for buffers, nodes in self._errpickle.walk():
+            nodes = NodeSet.fromlist(nodes)
+            self.fs._handle_shine_proxy_error(nodes, str(buffers))
 
         # Raise an error for nodes without output
         if len(self._silentnodes) > 0:

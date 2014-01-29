@@ -721,3 +721,24 @@ class ProxyTest(unittest.TestCase):
                          "Remote action start failed: \n\nOops\n")
         self.assertEqual(self.tgt.state, MOUNTED)
         self.assertEqual(self.act.status(), ACT_ERROR)
+
+    def test_bad_object(self):
+        """send a start message which fails update due to bad property"""
+        msg = shine_msg_pack(compname=self.tgt.TYPE, action='start',
+                             status='start', comp=self.tgt)
+        def buggy_update(self, other):
+            self.wrong_property = other.wrong_property
+        self.tgt.update = types.MethodType(buggy_update, self.tgt)
+
+        self.act.fakecmd = 'echo "%s"' % msg
+        self.act.launch()
+        self.fs._run_actions()
+        self.fs._check_errors([OFFLINE], self.fs.components)
+
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
+                         "Cannot read message (check Shine and ClusterShell "
+                         "version): 'MGT' object has no attribute "
+                         "'wrong_property'")
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+        self.assertEqual(self.act.status(), ACT_OK)
