@@ -1,5 +1,5 @@
 # Configuration.py -- Configuration container
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2014 CEA
 #
 # This file is part of shine
 #
@@ -132,11 +132,11 @@ class Configuration:
         if not 'client' in self._fs.model:
             return
 
-        for clients in [Clients(cli) for cli in self._fs.get('client')]:
-            for node in NodeSet(clients.get_nodes()):
-                path = clients.get_mount_path() or self.get_default_mount_path()
-                opts = clients.get_mount_options() or self.get_default_mount_options()
-                yield node, path, opts
+        for clnt in [Clients(clnt) for clnt in self._fs.get('client')]:
+            assert '[' not in clnt.get_nodes()
+            path = clnt.get_mount_path() or self.get_default_mount_path()
+            opts = clnt.get_mount_options() or self.get_default_mount_options()
+            yield clnt.get_nodes(), path, opts
 
     def iter_routers(self):
         """

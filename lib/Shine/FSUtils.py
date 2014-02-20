@@ -1,5 +1,5 @@
 # FSUtils.py -- Useful shine FS utility functions
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2014 CEA
 #
 # This file is part of shine
 #
@@ -62,6 +62,13 @@ def convert_comparison(fsconf, fs, actions):
     return ComponentGroup((_create_comp(fsconf, fs, elem) for elem in actions))
 
 
+_SERVERS = {}
+def _get_servers(nodename, fs_conf):
+    """Instantiate Server and cache them in _SERVERS"""
+    if nodename not in _SERVERS:
+        _SERVERS[nodename] = Server(nodename, fs_conf.get_nid(nodename))
+    return _SERVERS[nodename]
+
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         failover=None, indexes=None, labels=None, groups=None,
         event_handler=None):
@@ -72,18 +79,15 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     assert indexes is None or isinstance(indexes, RangeSet)
     assert labels is None or isinstance(labels, NodeSet)
 
+    _SERVERS.clear()
+
     # Create file system instance
     fs = FileSystem(fs_conf.get_fs_name(), event_handler)
 
-    servers = {}
-
     # Create attached file system targets...
     for cf_target in fs_conf.iter_targets():
-        target_node = cf_target.get_nodename()
 
-        server = servers.setdefault(target_node,
-                                    Server(target_node,
-                                           fs_conf.get_nid(target_node)))
+        server = _get_servers(cf_target.get_nodename(), fs_conf)
 
         # retrieve config variables
         cf_t_type = cf_target.get_type()
@@ -99,7 +103,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         target_action_enabled = True
         if (target_types is not None and cf_t_type not in target_types) or \
            (indexes is not None and cf_t_index not in indexes) or \
-           (groups is not None and (cf_t_group is None or cf_t_group not in groups)):
+           (groups is not None and \
+            (cf_t_group is None or cf_t_group not in groups)):
             target_action_enabled = False
 
         target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev,
@@ -107,14 +112,12 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
                                target_action_enabled, cf_t_mode, cf_t_net)
 
         # Now the device is instanciated, we could check label name
-        if (labels is not None and target.label not in labels):
+        if labels is not None and target.label not in labels:
             target.action_enabled = False
 
         # add failover hosts
         for ha_node in cf_target.ha_nodes():
-            server = servers.setdefault(ha_node, \
-                                        Server(ha_node, \
-                                               fs_conf.get_nid(ha_node)))
+            server = _get_servers(ha_node, fs_conf)
             target.add_server(server)
 
         # Change current server if failover nodes are used.
@@ -129,9 +132,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system clients...
     for client_node, mount_path, mount_options in fs_conf.iter_clients():
-        server = servers.setdefault(client_node, \
-                                    Server(client_node, \
-                                           fs_conf.get_nid(client_node)))
+        server = _get_servers(client_node, fs_conf)
 
         # filter on target types and nodes
         client_action_enabled = True
@@ -149,9 +150,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system routers...
     for router_node in fs_conf.iter_routers():
-        server = servers.setdefault(router_node, \
-                                    Server(router_node, \
-                                           fs_conf.get_nid(router_node)))
+        server = _get_servers(router_node, fs_conf)
 
         # filter on target types and nodes
         router_action_enabled = True

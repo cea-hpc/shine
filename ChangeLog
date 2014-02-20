@@ -1,3 +1,6 @@
+2014-02-24 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Faster loading fixing useless object creation (ticket #156).
+
 2014-01-28 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Better error handling when reading remote messages (ticket #174).
 
