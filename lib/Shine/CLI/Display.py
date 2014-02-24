@@ -1,5 +1,5 @@
 # Display.py -- Display filesystem state in text mode.
-# Copyright (C) 2012 CEA
+# Copyright (C) 2012-2014 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Helping method to format filesystem state for text output.
@@ -138,10 +137,9 @@ def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
 
     # Build the list of all fields used in the display format, except the
     # special group fields.
-    pat_fields = tbl.pattern_fields()
-    for elem in ('count', 'labels', 'nodes'):
-        if elem in pat_fields:
-            pat_fields.remove(elem)
+    pat_fields = set(tbl.pattern_fields())
+    grp_fields = pat_fields & set(('count', 'labels', 'nodes'))
+    pat_fields.difference_update(grp_fields)
 
     # Grouped by visible fields
     comps = fs.components.managed(supports=supports)
@@ -169,9 +167,12 @@ def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
         fields = _get_fields(first, pat_fields)
 
         # Get ComponentGroup fields
-        fields['count'] = str(len(compgrp))
-        fields['labels'] = str(compgrp.labels())
-        fields['nodes'] = str(compgrp.servers())
+        if 'count' in grp_fields:
+            fields['count'] = str(len(compgrp))
+        if 'labels' in grp_fields:
+            fields['labels'] = str(compgrp.labels())
+        if 'nodes' in grp_fields:
+            fields['nodes'] = str(compgrp.servers())
         tbl.append(fields)
 
 
