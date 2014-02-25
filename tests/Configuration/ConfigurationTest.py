@@ -37,26 +37,6 @@ class ConfigurationTest(unittest.TestCase):
         self.assertEqual(self._conf.get_stripesize(), 1048576)
         self.assertTrue(self._conf.get_cfg_filename())
 
-    def test_get_client_nodes_empty(self):
-        """Configuration get_client_nodes (no clients)"""
-        self._conf = self.make_config("""
-fs_name: climount
-nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
-mgt: mode=external
-        """)
-        self.assertEqual(len(self._conf.get_client_nodes()), 0)
-
-    def test_get_client_nodes(self):
-        """Configuration get_client_nodes (some clients)"""
-        self._conf = self.make_config("""
-fs_name: climount
-nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
-mgt: mode=external
-client: node=foo[1-3]
-client: node=foo[5-7]
-        """)
-        self.assertEqual(str(self._conf.get_client_nodes()), "foo[1-3,5-7]")
-
     def test_empty_iter_clients(self):
         """Configuration iter_clients (no clients)"""
         self._conf = self.make_config("""

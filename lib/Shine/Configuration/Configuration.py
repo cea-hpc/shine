@@ -108,14 +108,6 @@ class Configuration:
                         
         return target
 
-    def get_client_nodes(self):
-        """Return a NodeSet with all client nodes."""
-        if 'client' not in self._fs.model:
-            return NodeSet()
-        else:
-            return NodeSet.fromlist([Clients(cli).get_nodes() 
-                                      for cli in self._fs.get('client')])
-
     def get_default_mount_path(self):
         """
         Return the default client mount path or raise a ConfigException 
