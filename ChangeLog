@@ -1,3 +1,7 @@
+2014-02-25 Florent Thery <florent.thery@bull.net>
+	* Select module loading list depending on action and component
+	(ticket #170).
+
 2014-02-24 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Faster loading fixing useless object creation (ticket #156).
 

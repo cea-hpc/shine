@@ -389,7 +389,7 @@ class FileSystem:
         return result
 
     def _prepare(self, action, comps=None, groupby=None, reverse=False,
-                 need_load=False, need_unload=False, **kwargs):
+                 need_unload=False, **kwargs):
         """
         Instanciate all actions for the component list and but them in a graph
         of ActionGroup().
@@ -404,6 +404,7 @@ class FileSystem:
         first_comps = None
         last_comps = None
         localsrv = None
+        modules = set()
 
         if groupby:
             iterable = comps.groupby(attr=groupby, reverse=reverse)
@@ -436,13 +437,29 @@ class FileSystem:
                 # Keep track of last comp group
                 last_comps = compgrp
 
+                # Build module loading list, if needed
+                for comp_action in compgrp._members:
+                    modules.update(comp_action.needed_modules())
+
             if len(proxygrp) > 0:
                 subparts[-1].add(proxygrp)
 
 
         # Add module loading, if needed.
-        if need_load and first_comps is not None:
-            first_comps.depends_on(localsrv.load_modules())
+        if first_comps is not None:
+            modgrp = ActionGroup()
+            modlist = []
+            for module in modules:
+                modlist.append(localsrv.load_modules(modname=module))
+                modgrp.add(modlist[-1])
+
+            # Serialize modules loading actions
+            for act1, act2 in zip(modlist, modlist[1:]):
+                act2.depends_on(act1)
+
+            if len(modgrp) > 0:
+                first_comps.depends_on(modgrp)
+
         # Add module unloading to last component group, if needed.
         if need_unload and last_comps is not None:
             localsrv.unload_modules().depends_on(last_comps)
@@ -510,8 +527,7 @@ class FileSystem:
                 MDT.START_ORDER, OST.START_ORDER = \
                                                OST.START_ORDER, MDT.START_ORDER
 
-        actions = self._prepare('start', comps, groupby='START_ORDER',
-                                need_load=True, **kwargs)
+        actions = self._prepare('start', comps, groupby='START_ORDER', **kwargs)
         actions.launch()
         self._run_actions()
 
@@ -530,7 +546,7 @@ class FileSystem:
     def mount(self, comps=None, **kwargs):
         """Mount FS clients."""
         comps = (comps or self.components).managed(supports='mount')
-        actions = self._prepare('mount', comps, need_load=True, **kwargs)
+        actions = self._prepare('mount', comps, **kwargs)
         actions.launch()
         self._run_actions()
 

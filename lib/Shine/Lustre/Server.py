@@ -146,7 +146,7 @@ class Server(object):
             modlist = open('/proc/modules')
             for line in modlist:
                 modname, _, count, _ = line.split(' ', 3)
-                if modname in ('libcfs', 'lustre', 'ldiskfs'):
+                if modname in ('libcfs', 'lustre', 'ldiskfs', 'fsfilt_ldiskfs'):
                     self.modules[modname] = int(count)
         finally:
             modlist.close()

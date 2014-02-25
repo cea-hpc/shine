@@ -432,8 +432,8 @@ class ActionsTest(CommonTestCase):
         self.fs._run_actions()
 
         # Status check
-        self.assertEqual(sorted(srv.modules.keys()),
-                         ['ldiskfs', 'libcfs', 'lustre'])
+        self.assertTrue(set(['ldiskfs', 'libcfs', 'lustre']).issubset(
+                        set(srv.modules.keys())))
         self.assertEqual(act.status(), ACT_OK)
 
 

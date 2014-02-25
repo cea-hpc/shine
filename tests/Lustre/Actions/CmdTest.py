@@ -47,6 +47,7 @@ class ActionsTest(unittest.TestCase):
         """test command line start router"""
         rtr = self.fs.new_router(self.srv1)
         action = StartRouter(rtr)
+        self.assertEquals(sorted(action.needed_modules()), [])
         self.check_cmd(action, "/sbin/modprobe ptlrpc")
 
     def test_stop_router(self):
@@ -64,6 +65,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client)
+        self.assertEquals(sorted(action.needed_modules()), ['lustre'])
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
                              '/bin/mount -t lustre localhost@tcp:/action /foo')
 
@@ -176,6 +178,27 @@ class ActionsTest(unittest.TestCase):
 
     # XXX: All full_check() calls should be replaced by a real call to the
     # method dedicated action for the Target.
+
+    def test_start_target_modules_v2_1x(self):
+        Globals().replace('lustre_version', '2.1')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = StartTarget(tgt)
+        self.assertEquals(sorted(action.needed_modules()),
+                          ['ldiskfs', 'lustre'])
+
+    def test_start_target_modules_v2_4x(self):
+        Globals().replace('lustre_version', '2.4')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = StartTarget(tgt)
+        self.assertEquals(sorted(action.needed_modules()),
+                          ['fsfilt_ldiskfs', 'lustre'])
+
+    def test_start_target_modules_v2_5x(self):
+        Globals().replace('lustre_version', '2.5')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
+        action = StartTarget(tgt)
+        self.assertEquals(sorted(action.needed_modules()),
+                          ['ldiskfs', 'lustre'])
 
     def test_start_target(self):
         """test command line start target"""
@@ -341,6 +364,7 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         tgt.full_check(mountdata=False)
         action = Format(tgt)
+        self.assertEquals(sorted(action.needed_modules()), ['ldiskfs'])
         self.check_cmd_format(action, '--mgs /dev/root')
 
     def test_format_target_loopback(self):
@@ -531,6 +555,7 @@ class ActionsTest(unittest.TestCase):
         """test command line tunefs writeconf (MGT)"""
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root')
         action = Tunefs(tgt, writeconf=True)
+        self.assertEquals(sorted(action.needed_modules()), ['ldiskfs'])
         self.check_cmd_tunefs(action, '--writeconf /dev/root')
 
     def test_tunefs_mgs_addl(self):

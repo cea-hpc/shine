@@ -101,7 +101,7 @@ class LoadModules(ServerAction):
         self._options = options
 
     def _already_done(self):
-        if 'lustre' in self.server.modules:
+        if self._modname in self.server.modules:
             return True
 
     def _shell(self):

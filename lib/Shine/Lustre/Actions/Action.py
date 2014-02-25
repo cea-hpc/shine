@@ -253,6 +253,8 @@ class FSAction(CommonAction):
     # full_check() should also check mountdata?
     CHECK_MOUNTDATA = True
 
+    NEEDED_MODULES = []
+
     def __init__(self, comp, task=task_self(), **kwargs):
         CommonAction.__init__(self, task)
         self.comp = comp
@@ -378,3 +380,10 @@ class FSAction(CommonAction):
             result = ErrorResult(worker.read(), self.duration, worker.retcode())
             self.comp.action_failed(self.NAME, result)
             self.set_status(ACT_ERROR)
+
+    def needed_modules(self):
+        """
+        Some modules may need to be loaded before this action is performed.
+        The module list depends on the action and the component.
+        """
+        return self.NEEDED_MODULES

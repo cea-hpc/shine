@@ -26,6 +26,8 @@ import os
 
 from ClusterShell.Task import task_self
 
+from Shine.Configuration.Globals import Globals
+
 from Shine.Lustre.Actions.Action import FSAction, Result
 
 class StartTarget(FSAction):
@@ -125,3 +127,11 @@ class StartTarget(FSAction):
         command.append(mount_path)
 
         return command
+
+    def needed_modules(self):
+        if Globals().lustre_version_is_smaller('2.4') or \
+           not Globals().lustre_version_is_smaller('2.5'):
+            return ['lustre', 'ldiskfs']
+        else:
+            # lustre 2.4 needs fsfilt_ldiskfs
+            return ['lustre', 'fsfilt_ldiskfs']

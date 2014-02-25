@@ -39,6 +39,8 @@ class CommonFormat(FSAction):
     arguments.
     """
 
+    NEEDED_MODULES = ['ldiskfs']
+
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)
 
