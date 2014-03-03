@@ -438,7 +438,7 @@ class FileSystem:
                 last_comps = compgrp
 
                 # Build module loading list, if needed
-                for comp_action in compgrp._members:
+                for comp_action in compgrp:
                     modules.update(comp_action.needed_modules())
 
             if len(proxygrp) > 0:
@@ -448,12 +448,11 @@ class FileSystem:
         # Add module loading, if needed.
         if first_comps is not None:
             modgrp = ActionGroup()
-            modlist = []
             for module in modules:
-                modlist.append(localsrv.load_modules(modname=module))
-                modgrp.add(modlist[-1])
+                modgrp.add(localsrv.load_modules(modname=module))
 
             # Serialize modules loading actions
+            modlist = list(modgrp)
             for act1, act2 in zip(modlist, modlist[1:]):
                 act2.depends_on(act1)
 

@@ -224,6 +224,10 @@ class ActionGroup(CommonAction):
         """Number or group members."""
         return len(self._members)
 
+    def __iter__(self):
+        """Iterate over group members."""
+        return iter(self._members)
+
     def add(self, action):
         """Add an action to this group."""
         self._members.add(action)

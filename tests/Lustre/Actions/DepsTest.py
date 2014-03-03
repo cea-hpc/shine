@@ -45,14 +45,17 @@ class TestAction(CommonAction):
 
 class DepsTests(unittest.TestCase):
 
-    def test_group_len(self):
-        """Action group length is correct"""
+    def test_group_len_and_iter(self):
+        """Action group length and __iter__ are correct"""
         grp = ActionGroup()
         self.assertEqual(len(grp), 0)
-        grp.add(TestAction('/bin/foo'))
+        act1 = TestAction('/bin/foo')
+        grp.add(act1)
         self.assertEqual(len(grp), 1)
-        grp.add(TestAction('/bin/bar'))
+        act2 = TestAction('/bin/bar')
+        grp.add(act2)
         self.assertEqual(len(grp), 2)
+        self.assertEqual(list(iter(grp)), [act1, act2])
 
     def test_simple_ok(self):
         """Action can run a simple command"""
