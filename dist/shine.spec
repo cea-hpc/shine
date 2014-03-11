@@ -48,5 +48,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc %{_mandir}/man5/shine.conf.5.gz
 
 %changelog
+* Tue Mar 11 2014 <aurelien.degremont@cea.fr> - 1.3.1-1
+- Update to shine 1.3.1
+
 * Thu Oct 10 2013 <aurelien.degremont@cea.fr> - 1.3-1
 - Update to shine 1.3
