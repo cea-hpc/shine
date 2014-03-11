@@ -1,3 +1,6 @@
+2014-03-11 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Release: 1.3.1
+
 2014-02-25 Florent Thery <florent.thery@bull.net>
 	* Select module loading list depending on action and component
 	(ticket #170).
