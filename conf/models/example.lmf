@@ -146,7 +146,7 @@ quota: no
 #  $fs_name:  Filesystem name defined in 'fs_name:'
 #  $label:    Component label (ie: foo-OST0002)
 #  $type:     Component type ('mdt', 'mgt', 'ost', 'router', 'client')
-#  $index:    Target index, in decimal (ie: 1, 2, 36, ...)
+#  $index:    Target index, in decimal (ie: 1, 2, 36, ...) or in hex (ie. 0x2, 0xa5, 0x00FA)
 #  $dev:      Base name of target device path (ie: sdc)
 #  $jdev:     Base name of target journal device path
 mgt_mount_path: /mnt/$fs_name/mgt

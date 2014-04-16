@@ -148,7 +148,10 @@ class SimpleElement(object):
         """
         if self._check == 'digit':
             try:
-                retval = int(value)
+                if str(value)[0:2] == "0x":
+                    retval = int(value, base=16)
+                else:
+                    retval = int(value)
             except ValueError, error:
                 raise ModelFileValueError(str(error))
             return retval

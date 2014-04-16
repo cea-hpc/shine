@@ -107,6 +107,10 @@ class SimpleElementTest(unittest.TestCase):
         self.common_checking(elem, 45, 45, 54)
         self.assertRaises(ModelFileValueError, elem.add, 'notadigit')
 
+        elem = SimpleElement('digit')
+        self.common_checking(elem, "0xe", 0xe, 0x4)
+        self.assertRaises(ModelFileValueError, elem.add, 'notadigit')
+
     def testEnumSimpleElement(self):
         """test SimpleElement(check='enum')"""
         elem = SimpleElement('enum', values=[.25, .50, .75])
@@ -407,9 +411,15 @@ class ModelFileTest(unittest.TestCase):
         self.assertEqual(len(model.get('ost')), 2)
         self.assertEqual(model.get('ost')[1].get('dev'), '/dev/sdd')
         self.assertEqual(model.get('ost')[1].get('index'), 5)
+        # test hexadecimal index
+        model.parse("ost: dev=/dev/sde index=0x12")
+        self.assertEqual(len(model.get('ost')), 3)
+        self.assertEqual(model.get('ost')[2].get('dev'), '/dev/sde')
+        self.assertEqual(model.get('ost')[2].get('index'), 18)
 
         self.assertEqual(str(model), "ost:index=4 dev=/dev/sdb\n"
-                "ost:index=5 dev=/dev/sdd")
+                "ost:index=5 dev=/dev/sdd\n"
+                "ost:index=18 dev=/dev/sde")
 
     def testDiffSimpleElement(self):
         """diff between 2 modelfiles with a SimpleElement"""
