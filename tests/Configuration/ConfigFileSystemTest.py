@@ -371,10 +371,11 @@ mgt: node=foo1 dev=/dev/sda
 mdt: node=foo2 dev=/dev/sda
 ost: node=foo3 dev=/dev/sda
 """)
-        self.assertEqual(len(actions), 3)
-        self.assertTrue(actions.get('copyconf', False))
-        self.assertTrue(actions.get('writeconf', False))
-        self.assertTrue(actions.get('stop', False))
+        self.assertEqual(len(actions), 4)
+        self.assertEqual(actions.get('copyconf'), True)
+        self.assertEqual(actions.get('writeconf'), True)
+        self.assertEqual(len(actions.get('stop', [])), 1)
+        self.assertEqual(len(actions.get('remove', [])), 1)
 
     def test_remove_router(self):
         actions = self._compare(
@@ -487,7 +488,7 @@ client: node=foo2
         self.assertEqual(len(actions.get('mount', [])), 1)
         self.assertEqual(len(actions.get('unmount', [])), 1)
 
-    def test_client_mount_options_and_remove(self):
+    def test_client_mount_path_and_remove(self):
         actions = self._compare(
 """fs_name: compare
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
@@ -506,3 +507,48 @@ client: node=foo2
         self.assertTrue(actions.get('copyconf', False))
         self.assertTrue(actions.get('unmount', False))
         self.assertTrue(actions.get('mount', False))
+
+    def test_per_client_mount_options_update(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /foo
+mgt: node=foo1 dev=/dev/sda
+client: node=foo2
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mount_path: /foo
+mgt: node=foo1 dev=/dev/sda
+client: node=foo2 mount_options=ro
+""")
+        self.assertEqual(sorted(actions.keys()),
+                         ['copyconf', 'mount', 'unmount'])
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('unmount', False))
+        self.assertTrue(actions.get('mount', False))
+
+    def test_update_target_ha_node(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda ha_node=foo1
+ost: node=foo3 dev=/dev/sda
+""")
+        self.assertEqual(len(actions), 3)
+        self.assertEqual(actions.get('copyconf'), True)
+        self.assertEqual(len(actions.get('stop', [])), 1)
+        # So far, stop maps the new element definition.
+        # This should be improved in the future
+        self.assertEqual(actions.get('stop')[0].dic,
+                          {'node':'foo2', 'dev':'/dev/sda', 'ha_node':['foo1']})
+        self.assertEqual(len(actions.get('start', [])), 1)
+        self.assertEqual(actions.get('start')[0].dic,
+                          {'node':'foo2', 'dev':'/dev/sda', 'ha_node':['foo1']})

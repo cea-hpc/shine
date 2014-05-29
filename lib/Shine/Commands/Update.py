@@ -1,5 +1,5 @@
 # Update.py -- Update a file system with a new model file
-# Copyright (C) 2011-2013 CEA
+# Copyright (C) 2011-2014 CEA
 #
 # This file is part of shine
 #
@@ -84,26 +84,42 @@ class Update(Command):
             print "DEBUG ", message
 
     @classmethod
-    def display_changes(cls, changes):
+    def display_details(cls, comps):
+        """Display detailed lines of components and servers."""
+        txt = []
+        for server, comps in comps.groupbyserver():
+            txt.append(" %12s   %s on %s" % (' ', comps.labels(), server))
+        return txt
+
+    def display_changes(self, changes):
         """Display changes detected in a filesystem comparison."""
         
-        txt = []
-        for action in ('unmount', 'stop'):
+        txt, txt_new = [], []
+        for action in ('unmount', 'stop', 'remove'):
             if action in changes:
                 comps = changes[action]
-                txt.append(" %10s: %d component(s) on %s" % 
+                txt.append(" %12s: %d component(s) on %s" %
                            (action.capitalize(), len(comps), comps.servers()))
-                if action == 'stop':
-                    txt.append("Warning: A target should be empty before" \
-                               " being removed.")
+                if action == 'remove':
+                    txt.append(" %12s  WARNING! Be sure targets are empty"
+                                   " before being removed." % ' ')
+                if self.options.verbose > 1:
+                    txt += self.display_details(comps)
+
         for action in ('tunefs', 'writeconf', 'reformat', 'restart'):
             if action in changes:
-                txt.append(" %10s: Yes" % action.capitalize())
+                txt_new.append(" %12s: Yes" % ('* ' + action.capitalize()))
         for action in ('format', 'start', 'mount'):
             if action in changes:
                 comps = changes[action]
-                txt.append(" %10s: %d component(s) on %s" % 
-                           (action.capitalize(), len(comps), comps.servers()))
+                txt_new.append(" %12s: %d component(s) on %s" %
+                      ('* ' + action.capitalize(), len(comps), comps.servers()))
+                if self.options.verbose > 1:
+                    txt_new += self.display_details(comps)
+        if txt_new:
+            txt_new.append("* Will not be done automatically")
+            txt += txt_new
+
         if txt:
             print "FILESYSTEM CHANGES\n%s\n" % "\n".join(txt)
 
@@ -219,14 +235,16 @@ class Update(Command):
         # Convert Configuration objects to ComponentGroup
         # for old filesystem
         oldcomps = ComponentGroup()
-        for action in ('unmount', 'stop'):
+        for action in ('unmount', 'stop', 'remove'):
             if action in actions:
                 actions[action] = convert_comparison(oldconf, oldfs,
                                                      actions[action]).managed()
                 if len(actions[action]) == 0:
                     del actions[action]
                 else:
-                    oldcomps.update(actions[action])
+                    for comp in actions[action]:
+                        if comp not in oldcomps:
+                            oldcomps.add(comp)
         # for new filesystem
         for action in ('format', 'start', 'mount'):
             if action in actions:
@@ -255,12 +273,12 @@ class Update(Command):
             if len(oldcomps):
                 self._precheck(oldfs, oldfs.status, 'verify', comps=oldcomps)
 
-            # Unmount what will be removed
+            # Unmount what will be removed or remounted
             if 'unmount' in actions:
                 comps = actions['unmount']
                 self._apply(oldfs, oldfs.umount, 'unmount', comps, OFFLINE)
 
-            # Stop what will be removed
+            # Stop what need to be stopped or will be removed
             if 'stop' in actions:
                 self._apply(oldfs, oldfs.stop, 'stop', actions['stop'], OFFLINE)
 
@@ -281,10 +299,10 @@ class Update(Command):
             
 
         # Unregister from backend
-        if 'stop' in actions:
-            self.__verbose("Remove target(s) %s from backend." % 
-                           actions['stop'].labels())
-            for comp in actions['stop'].filter(supports='dev'):
+        if 'remove' in actions:
+            self.__verbose("Remove target(s) %s from backend." %
+                           actions['remove'].labels())
+            for comp in actions['remove'].filter(supports='dev'):
                 tgtlist = [oldconf.get_target_from_tag_and_type(
                                  comp.tag, comp.TYPE.upper())]
                 oldconf.unregister_targets(tgtlist)

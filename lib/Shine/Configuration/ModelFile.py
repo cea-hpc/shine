@@ -1,4 +1,4 @@
-# Copyright (C) 2010-2012 CEA
+# Copyright (C) 2010-2014 CEA
 #
 # This file is part of shine
 #
@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 ModelFile handles ModelFile configuration file manipulation.
@@ -96,6 +95,13 @@ class SimpleElement(object):
     def __len__(self):
         return int(self._content is not None)
 
+    def key(self):
+        """
+        Unique identifier used for comparison in MultipleElement list.
+        By default this is self.
+        """
+        return self
+
     def __hash__(self):
         return hash(self.__class__) ^ hash(self._content) ^ hash(self._check)
 
@@ -171,7 +177,8 @@ class SimpleElement(object):
 
         elif self._check == 'enum':
             if str(value) not in [str(val) for val in self._values]:
-                raise ModelFileValueError("%s not in %s" % (value, self._values))
+                msg = "%s not in %s" % (value, self._values)
+                raise ModelFileValueError(msg)
             return [val for val in self._values if str(val) == str(value)].pop()
 
         elif self._check == 'path':
@@ -236,6 +243,13 @@ class MultipleElement(object):
         """
         return list(self) or default
 
+    def key(self):
+        """
+        Unique identifier used for comparison in MultipleElement list.
+        By default this is self.
+        """
+        return self
+
     def content(self, default=None):
         """For MultipleElement, it behaves like get()."""
         return self.get(default)
@@ -274,27 +288,33 @@ class MultipleElement(object):
 
         Return a tuple of three new MultipleElements.
         First one contains only the elements added in other.
-        Second one contains an empty MultipleElement.
+        Second one contains the modified elements, from other.
         Third one contains only the elements removed from self.
         """
-        localkeys = set(self.elements())
-        otherkeys = set(other.elements())
+        localdict = dict((elem.key(), elem) for elem in self.elements())
+        otherdict = dict((elem.key(), elem) for elem in other.elements())
 
         # Detect new elements in other. Add them keeping order.
         added = self.emptycopy()
-        added_elems = otherkeys - localkeys
-        for elem in other.elements():
-            if elem in added_elems:
+        for key, elem in otherdict.items():
+            if key not in localdict:
                 added.elements().append(elem.copy())
 
         # Detect missing elements in other. Add them keeping order.
         removed = self.emptycopy()
-        removed_elems = localkeys - otherkeys
-        for elem in self.elements():
-            if elem in removed_elems:
+        for key, elem in localdict.items():
+            if key not in otherdict:
                 removed.elements().append(elem.copy())
 
+        # Detect modified element in other.
+        # Add the new one from other
         changed = self.emptycopy()
+        for key, elem in localdict.items():
+            if key in otherdict:
+                otherelem = otherdict[key]
+                e_added, e_changed, e_removed = elem.diff(otherelem)
+                if e_added or e_changed or e_removed:
+                    changed.elements().append(otherelem.copy())
 
         return added, changed, removed
 
@@ -358,7 +378,7 @@ class MultipleElement(object):
         elem = self._origelem.emptycopy()
         elem.add(value)
         if elem not in self.elements():
-            raise KeyError("%s not in MultipleElement", value)
+            raise KeyError("%s not in MultipleElement" % value)
         self.elements().remove(elem)
 
     def clear(self):
@@ -441,6 +461,13 @@ class ModelFile(object):
         """Test if `name` is declared. It could be empty."""
         return name in self._elements
 
+    def key(self):
+        """
+        Unique identifier used for comparison in MultipleElement list.
+        By default this is self.
+        """
+        return self
+
     # Readers
     def get(self, key, default=None):
         """Return data associated to element pointed by key.
@@ -506,6 +533,8 @@ class ModelFile(object):
         return self.iterkeys()
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return NotImplemented
         return self._sep == other._sep and self._linesep == self._linesep \
                 and self.elements() == other.elements()
 
@@ -565,7 +594,10 @@ class ModelFile(object):
                     key, value = line.split(self._sep, 1)
                 except ValueError:
                     raise ModelFileValueError("Wrong syntax '%s'" % line)
-                self._elements[key.strip()].parse(value.strip())
+                try:
+                    self._elements[key.strip()].parse(value.strip())
+                except KeyError, exp:
+                    raise ModelFileValueError("Unknown key %s" % exp)
 
     # File handling
     def load(self, filename):

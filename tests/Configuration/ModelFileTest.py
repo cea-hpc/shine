@@ -51,6 +51,8 @@ class SimpleElementTest(unittest.TestCase):
         self.assertEqual(elem.as_dict(), toread)
 
         # diff()
+        # key()
+        self.assertEqual(elem.key(), elem)
         # ==
         added, changed, removed = elem.diff(elem)
         self.assertTrue(len(changed) == len(added) == len(removed) == 0)
@@ -136,6 +138,11 @@ class SimpleElementTest(unittest.TestCase):
         """test SimpleElement with a wrong check"""
         elem = SimpleElement('wrong')
         self.assertRaises(TypeError, elem.add, 1)
+
+    def test_bad_eq(self):
+        """test SimpleElement equality with another type."""
+        elem = SimpleElement('wrong')
+        self.assertNotEqual(elem, 'not a SimpleElement')
 
 class MultipleElementTest(unittest.TestCase):
 
@@ -237,9 +244,61 @@ class MultipleElementTest(unittest.TestCase):
         other.remove(4)
         other.add(5)
         added, changed, removed = elem.diff(other)
-        self.assertTrue(len(changed) == 0)
+        self.assertEqual(changed.get(), None)
         self.assertEqual(added.get(), [5])
         self.assertEqual(removed.get(), [4])
+
+    def test_diff_key_simple_element(self):
+        """MultipleElement diff method with simple elements with a specific key"""
+
+        class MyElement(SimpleElement):
+            def __init__(self, check='digit', default=None, value=None):
+                SimpleElement.__init__(self, check, default, value)
+            def key(self):
+                return self.get() / 2
+
+        elem = MultipleElement(MyElement())
+        elem.add(7)
+        elem.add(4)
+
+        other = elem.copy()
+        other.remove(7)
+        other.add(6)
+
+        added, changed, removed = elem.diff(other)
+        self.assertEqual(added.get(), None)
+        self.assertEqual(removed.get(), None)
+        self.assertEqual(changed.get(), [6])
+
+    def test_diff_key_model_file(self):
+        """MultipleElement diff method with ModelFile elements with a specific key"""
+
+        class MyElement(ModelFile):
+            def __init__(self, sep='=', linesep=" "):
+                ModelFile.__init__(self, sep, linesep)
+                self.add_element('node', check='string')
+                self.add_element('data', check='string')
+            def key(self):
+                return self.get('node')
+
+        elem = MultipleElement(MyElement())
+        elem.parse("node=foo data=bar")
+
+        other = elem.emptycopy()
+        other.parse("node=foo data=bar")
+        other.parse("node=foo2 data=else")
+
+        added, changed, removed = elem.diff(other)
+        self.assertEqual(added.as_dict(), [{'node':'foo2', 'data':'else'}])
+        self.assertEqual(removed.get(), None)
+        self.assertEqual(changed.get(), None)
+
+        other.clear()
+        other.parse("node=foo data=else")
+        added, changed, removed = elem.diff(other)
+        self.assertEqual(added.get(), None)
+        self.assertEqual(removed.get(), None)
+        self.assertEqual(changed.as_dict(), [{'node':'foo', 'data':'else'}])
 
 
 class ModelFileTest(unittest.TestCase):
@@ -302,8 +361,10 @@ class ModelFileTest(unittest.TestCase):
         # Only key with non-empty value are taken in account
         self.assertEqual(len(model), 0)
 
-        # parse() 
+        # parse() bad syntax
         self.assertRaises(ModelFileValueError, model.parse, "foo one two")
+        # parse() with good syntax, but unknown key
+        self.assertRaises(ModelFileValueError, model.parse, "good: syntax")
 
         # __contains__() False
         self.assertFalse('foo' in model)
@@ -315,6 +376,18 @@ class ModelFileTest(unittest.TestCase):
 
         # __contains__() True
         self.assertTrue('foo' in model)
+
+        # replace()
+        model.replace('foo', "other")
+        self.assertEqual(model.get('foo'), ['other'])
+
+        # __eq__()
+        other = model.emptycopy()
+        self.assertNotEqual(model, other)
+        other.add("foo", "other")
+        self.assertEqual(model, other)
+        self.assertNotEqual(model, "bad type object")
+
 
     def testModelStandardElement(self):
         """ModelFile with simple Element"""

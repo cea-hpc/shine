@@ -1,4 +1,4 @@
-# Copyright (C) 2007-2012 CEA
+# Copyright (C) 2007-2014 CEA
 #
 # This file is part of shine
 #
@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Provides classes to load/read and save Shine model files or cache files.
@@ -137,6 +136,13 @@ class Target(ModelFile):
         self.add_element('network', check='string')
         self.add_element('tag',     check='string')
 
+    def key(self):
+        """
+        A unique Target is identified by its index or, if missing, node and
+        device path.
+        """
+        return self.get('index', (self.get('node'), self.get('dev')))
+
     def match_device(self, candidates):
         """
         Filter the `candidates` list with only those who shared the same key,
@@ -191,7 +197,10 @@ class Router(ModelFile):
 
 
 class Client(ModelFile):
-    """Define 'client' in model file: nodes=<NODES> [mount_path=<PATH>]"""
+    """
+    Define 'client' in model file:
+    nodes=<NODES> [mount_path=<PATH>] [mount_options=<PATH>]
+    """
 
     def __init__(self, sep='=', linesep=' '):
         ModelFile.__init__(self, sep, linesep)
@@ -199,3 +208,6 @@ class Client(ModelFile):
         self.add_element('mount_options', check='string')
         self.add_element('mount_path',    check='path')
 
+    def key(self):
+        """A unique client is identified by its node and mount path."""
+        return (self.get('node'), self.get('mount_path'))

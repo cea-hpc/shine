@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2014 CEA
 #
 # This file is part of shine
 #
@@ -227,7 +227,8 @@ class FileSystem(object):
                 fs_name = None
                 if update_mode == True:
                     fs_name = self.fs_name
-                candidates = self.backend.get_target_devices(target, fs_name=fs_name, update_mode=update_mode)
+                candidates = self.backend.get_target_devices(target,
+                                      fs_name=fs_name, update_mode=update_mode)
 
                 # Save the model target selection
                 target_models = copy.copy(self.model.get(target))
@@ -413,7 +414,15 @@ class FileSystem(object):
             actions.setdefault('mount', [])
             actions['mount'] += [Clients(elem) for elem
                                  in added.elements('client')]
-        assert 'client' not in changed, 'Client change is not supported'
+
+        if 'client' in changed:
+            actions.setdefault('unmount', [])
+            actions.setdefault('mount', [])
+            # XXX: Not exact, the old object should be added to unmount list
+            actions['unmount'] += [Clients(elem) for elem
+                                   in changed.elements('client')]
+            actions['mount'] += [Clients(elem) for elem
+                                 in changed.elements('client')]
 
         # Router has changed
         if 'router' in removed:
@@ -430,12 +439,23 @@ class FileSystem(object):
                 actions['writeconf'] = True
                 actions.setdefault('stop', []).extend(
                         [Target(tgt, elem) for elem in removed.elements(tgt)])
+                actions.setdefault('remove', []).extend(
+                        [Target(tgt, elem) for elem in removed.elements(tgt)])
             if tgt in added:
                 actions.setdefault('format', []).extend(
                         [Target(tgt, elem) for elem in added.elements(tgt)])
                 actions.setdefault('start', []).extend(
                         [Target(tgt, elem) for elem in added.elements(tgt)])
-            assert tgt not in changed, '%s change is not supported' % tgt.upper()
+            if tgt in changed:
+                for elem in changed.elements(tgt):
+                    # XXX: Not exact, the old object should be added to stop
+                    # list
+                    actions.setdefault('stop', []).append(Target(tgt, elem))
+                    actions.setdefault('start', []).append(Target(tgt, elem))
+                    # - Possible changes -
+                    # ha_node, network: stop, writeconf, start
+                    # jdev: stop, fsck, tune2fs, start
+                    # tag, group: <nothing>
 
         # If some actions is required, we need to update config files.
         if len(actions) > 0:
@@ -447,7 +467,8 @@ class FileSystem(object):
         try:
             return self.nid_map[node]
         except KeyError:
-            raise ConfigException("Cannot get NID for %s, aborting. Please verify `nid_map' configuration." % node)
+            raise ConfigException("Cannot get NID for %s, aborting. Please "
+                                  "verify `nid_map' configuration." % node)
 
     def close(self):
         if self.backend:
