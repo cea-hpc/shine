@@ -254,6 +254,27 @@ mgt: node=foo1
 """)
         self.assertEqual(len(fs.get('mgt')), 2)
 
+    def test_backend_same_indexed_defined(self):
+        """filesystem with backend and same index used twice"""
+
+        # Dummy backend
+        class DummyBackend(Backend):
+            def start(self):
+                pass
+            def get_target_devices(self, target, fs_name=None, update_mode=None):
+                return [TargetDevice('mgt', {'node': 'foo1', 'ha_node': ['foo2', 'foo3']}),
+                        TargetDevice('mdt', {'node': 'foo2', 'ha_node': ['foo1', 'foo3']}),
+                        TargetDevice('ost', {'node': 'foo1', 'ha_node': ['foo2', 'foo3']}),
+                        TargetDevice('ost', {'node': 'foo2', 'ha_node': ['foo3', 'foo1']})]
+
+        self.assertRaises(ConfigInvalidFileSystem, self.make_fs_with_backend, DummyBackend(), """
+fs_name: example
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp0
+mgt: node=foo1
+mdt: node=foo2
+ost: node=foo2 index=0
+ost: node=foo1 index=0
+""")
 
 class FileSystemCompareTest(unittest.TestCase):
 

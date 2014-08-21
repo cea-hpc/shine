@@ -297,7 +297,7 @@ class FileSystem(object):
 
                 except KeyError, error:
                     raise ConfigInvalidFileSystem(self, \
-                            "Index %d for %s used twice." % \
+                            "Index %s for %s used twice." % \
                             (str(error), target))
 
             # Support for backend None

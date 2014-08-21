@@ -1,3 +1,7 @@
+2014-08-21 Florent Thery <florent.thery@bull.net>
+	* Fix error message format issue when using the same index twice
+	(ticket #181)
+
 2014-06-10 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Correctly detect target updates in model file (ticket #180)
 
