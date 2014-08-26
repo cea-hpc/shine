@@ -269,6 +269,7 @@ class MultipleElementTest(unittest.TestCase):
         self.assertEqual(added.get(), None)
         self.assertEqual(removed.get(), None)
         self.assertEqual(changed.get(), [6])
+        self.assertEqual(changed.elements()[0].old.get(), 7)
 
     def test_diff_key_model_file(self):
         """MultipleElement diff method with ModelFile elements with a specific key"""
@@ -299,6 +300,7 @@ class MultipleElementTest(unittest.TestCase):
         self.assertEqual(added.get(), None)
         self.assertEqual(removed.get(), None)
         self.assertEqual(changed.as_dict(), [{'node':'foo', 'data':'else'}])
+        self.assertEqual(str(changed.elements()[0].old), "node=foo data=bar")
 
 
 class ModelFileTest(unittest.TestCase):

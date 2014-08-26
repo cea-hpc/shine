@@ -209,6 +209,26 @@ class SimpleElement(object):
         """
         self.add(data)
 
+def _changify(newobj, oldobj):
+    """
+    Store comparison information into `newobj' based on `oldobj'.
+
+    MultipleElement can have different type of elements, based on different
+    classes. These classes have no common super class.
+    MultipleElement.diff() method returns a list of changed objects. For
+    convenience, those objects will be polymorphic and will contain their
+    update information and also the old ones.
+    """
+    setattr(newobj, 'old', oldobj)
+    setattr(newobj, 'chgkeys', set())
+    # For convenience, pre-compute the list of modified keys
+    for data in newobj.old.diff(newobj):
+        newobj.chgkeys.update(data)
+    # If needed, we can also add some methods dynamically.
+
+    # This function could evolve to a generic class which will be used by
+    # SimpleElement, MultipleElement and ModelFile if needed.
+    return newobj
 
 class MultipleElement(object):
     """
@@ -314,7 +334,8 @@ class MultipleElement(object):
                 otherelem = otherdict[key]
                 e_added, e_changed, e_removed = elem.diff(otherelem)
                 if e_added or e_changed or e_removed:
-                    changed.elements().append(otherelem.copy())
+                    newelem = _changify(otherelem.copy(), elem.copy())
+                    changed.elements().append(newelem)
 
         return added, changed, removed
 

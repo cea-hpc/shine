@@ -300,6 +300,19 @@ nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
 """)
 
+    def test_forbidden_target(self):
+        self.assertRaises(ConfigException, self._compare,
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+ost: node=foo2 dev=/dev/sda jdev=/dev/sdb
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+ost: node=foo2 dev=/dev/sda jdev=/dev/sdc
+""")
+
     def test_only_description(self):
         actions = self._compare(
 """fs_name: compare
@@ -563,13 +576,29 @@ mgt: node=foo1 dev=/dev/sda
 mdt: node=foo2 dev=/dev/sda ha_node=foo1
 ost: node=foo3 dev=/dev/sda
 """)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(actions.get('copyconf'), True)
+        self.assertEqual(actions.get('writeconf'), True)
         self.assertEqual(len(actions.get('stop', [])), 1)
-        # So far, stop maps the new element definition.
-        # This should be improved in the future
         self.assertEqual(actions.get('stop')[0].dic,
-                          {'node':'foo2', 'dev':'/dev/sda', 'ha_node':['foo1']})
+                          {'node':'foo2', 'dev':'/dev/sda'})
         self.assertEqual(len(actions.get('start', [])), 1)
         self.assertEqual(actions.get('start')[0].dic,
                           {'node':'foo2', 'dev':'/dev/sda', 'ha_node':['foo1']})
+
+    def test_update_target_tag(self):
+        actions = self._compare(
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda tag=ost_foo3_dev_sda
+""",
+"""fs_name: compare
+nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+mgt: node=foo1 dev=/dev/sda
+mdt: node=foo2 dev=/dev/sda
+ost: node=foo3 dev=/dev/sda tag=ost_fooE_dev_sda
+""")
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(actions.get('copyconf'), True)

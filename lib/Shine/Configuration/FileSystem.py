@@ -416,13 +416,9 @@ class FileSystem(object):
                                  in added.elements('client')]
 
         if 'client' in changed:
-            actions.setdefault('unmount', [])
-            actions.setdefault('mount', [])
-            # XXX: Not exact, the old object should be added to unmount list
-            actions['unmount'] += [Clients(elem) for elem
-                                   in changed.elements('client')]
-            actions['mount'] += [Clients(elem) for elem
-                                 in changed.elements('client')]
+            for elem in changed.elements('client'):
+                actions.setdefault('unmount', []).append(Clients(elem.old))
+                actions.setdefault('mount', []).append(Clients(elem))
 
         # Router has changed
         if 'router' in removed:
@@ -448,14 +444,21 @@ class FileSystem(object):
                         [Target(tgt, elem) for elem in added.elements(tgt)])
             if tgt in changed:
                 for elem in changed.elements(tgt):
-                    # XXX: Not exact, the old object should be added to stop
-                    # list
-                    actions.setdefault('stop', []).append(Target(tgt, elem))
-                    actions.setdefault('start', []).append(Target(tgt, elem))
-                    # - Possible changes -
-                    # ha_node, network: stop, writeconf, start
-                    # jdev: stop, fsck, tune2fs, start
-                    # tag, group: <nothing>
+                    if set(['ha_node', 'network', 'node', 'dev']) & \
+                       elem.chgkeys:
+                        actions.setdefault('stop', []).append(
+                                                          Target(tgt, elem.old))
+                        actions.setdefault('start', []).append(
+                                                          Target(tgt, elem))
+
+                    if set(['ha_node', 'network', 'node']) & elem.chgkeys:
+                        actions['writeconf'] = True
+
+                    if set(['tag', 'group']) & elem.chgkeys:
+                        actions['copyconf'] = True
+
+                    if 'jdev' in elem.chgkeys:
+                        raise ConfigException("'jdev' change is not supported")
 
         # If some actions is required, we need to update config files.
         if len(actions) > 0:
