@@ -31,7 +31,8 @@ from ClusterShell.NodeSet import NodeSet
  INPROGRESS, \
  CLIENT_ERROR, \
  TARGET_ERROR, \
- RUNTIME_ERROR) = range(8)
+ RUNTIME_ERROR, \
+ INACTIVE) = range(9)
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
@@ -58,7 +59,8 @@ class Component(object):
     # Text mapping for each possible states
     STATE_TEXT_MAP = {}
 
-    def __init__(self, fs, server, enabled = True, mode = 'managed'):
+    def __init__(self, fs, server, enabled = True, mode = 'managed',
+                 active = 'manual'):
 
         # File system
         self.fs = fs
@@ -77,6 +79,9 @@ class Component(object):
 
         # Component behaviour change depending on its mode.
         self._mode = mode
+
+        # Component active state
+        self.active = active
 
     @property
     def label(self):
@@ -131,6 +136,9 @@ class Component(object):
     def is_external(self):
         return self._mode == 'external'
  
+    def is_active(self):
+        return self.active != 'no'
+
     # 
     # Component printing methods.
     #
@@ -341,9 +349,17 @@ class ComponentGroup(object):
         key = attrgetter('action_enabled')
         return self.filter(key=key)
 
-    def managed(self, supports=None):
+    def managed(self, supports=None, inactive=False):
         """Uses filter() to return only the enabled and managed components."""
-        key = lambda comp: not comp.is_external() and comp.action_enabled
+        if inactive == True:
+            # targets that are inactive _and_ external are also selected
+            key = lambda comp: comp.action_enabled and \
+                               ((not comp.is_external()) or \
+                               (comp.is_external() and not comp.is_active()))
+        else:
+            key = lambda comp: comp.action_enabled and \
+                               not comp.is_external() and \
+                               comp.is_active()
         return self.filter(supports, key=key)
 
     #

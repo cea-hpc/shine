@@ -135,6 +135,8 @@ class Target(ModelFile):
                 default='managed', values=['managed', 'external'])
         self.add_element('network', check='string')
         self.add_element('tag',     check='string')
+        self.add_element('active',  check='enum',
+                default='yes', values=['yes', 'no', 'nocreate', 'manual'])
 
     def key(self):
         """
@@ -155,8 +157,9 @@ class Target(ModelFile):
 
             # Verify my keys match its attributes
             for key, regexp in self.as_dict().iteritems():
-                # Index as a special meaning and should not be considered
-                if key == 'index':
+                # Index and active have a special meaning
+                # and should not be considered
+                if key in ('index', 'active'):
                     continue
                 # Key is missing, this does not match
                 if key not in target:

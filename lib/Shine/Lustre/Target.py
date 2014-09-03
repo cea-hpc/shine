@@ -30,7 +30,7 @@ from Shine.Lustre.Actions.Fsck import Fsck
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
-                                   TARGET_ERROR, RUNTIME_ERROR
+                                   TARGET_ERROR, RUNTIME_ERROR, INACTIVE
 from Shine.Lustre.Server import Server, ServerGroup
 
 
@@ -48,16 +48,18 @@ class Target(Component, Disk):
         OFFLINE:       "offline", 
         TARGET_ERROR:  "ERROR", 
         MOUNTED:       "online", 
-        RUNTIME_ERROR: "CHECK FAILURE" 
+        RUNTIME_ERROR: "CHECK FAILURE",
+        INACTIVE:      "inactive"
     }
 
     def __init__(self, fs, server, index, dev, jdev=None, group=None,
-            tag=None, enabled=True, mode='managed', network=None):
+            tag=None, enabled=True, mode='managed', network=None,
+            active='yes'):
         """
         Initialize a Lustre target object.
         """
         Disk.__init__(self, dev)
-        Component.__init__(self, fs, server, enabled, mode)
+        Component.__init__(self, fs, server, enabled, mode, active)
 
         self.defaultserver = server      # Default server the target runs on
         self.failservers = ServerGroup() # All failover servers
@@ -78,6 +80,10 @@ class Target(Component, Disk):
         # If target mode is external then set target state accordingly
         if self.is_external():
             self.state = EXTERNAL
+
+        # If target is inactive, then set target state accordingly
+        if not self.is_active():
+            self.state = INACTIVE
 
     @property
     def label(self):

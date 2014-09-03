@@ -98,6 +98,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         cf_t_group = cf_target.get_group()
         cf_t_tag = cf_target.get_tag()
         cf_t_net = cf_target.get_network()
+        cf_t_active = cf_target.get_active()
 
         # filter on target types, indexes, groups and nodes
         target_action_enabled = True
@@ -109,7 +110,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         target = fs.new_target(server, cf_t_type, cf_t_index, cf_t_dev,
                                cf_t_jdev, cf_t_group, cf_t_tag,
-                               target_action_enabled, cf_t_mode, cf_t_net)
+                               target_action_enabled, cf_t_mode, cf_t_net,
+                               cf_t_active)
 
         # Now the device is instanciated, we could check label name
         if labels is not None and target.label not in labels:

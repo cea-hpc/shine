@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.Lustre.Component test suite
 # Written by A. Degremont 2011-01-19
-# $Id$
 
 
 """Unit test for Component"""
@@ -220,3 +219,24 @@ class ComponentGroupTest(unittest.TestCase):
         self.assertEqual(len(results), 2)
         self.assertTrue([srv1, [comp1, comp3]] in results)
         self.assertTrue([srv2, [comp2, comp4]] in results)
+
+    def test_managed_active(self):
+        """test ComponentGroup.managed() with active option"""
+        fs = FileSystem('active')
+        grp = ComponentGroup()
+        srv = Server('foo1', ['foo1@tcp'])
+        comp1 = Component(fs, srv)
+        comp1.TYPE = 'A'
+        grp.add(comp1)
+        comp2 = Component(fs, srv, active='no')
+        comp2.TYPE = 'B'
+        grp.add(comp2)
+        comp3 = Component(fs, srv, active='nocreate')
+        comp3.TYPE = 'C'
+        grp.add(comp3)
+        comp4 = Component(fs, srv, active='no', mode='external')
+        comp4.TYPE = 'D'
+        grp.add(comp4)
+        self.assertEqual(str(grp.managed()), 'active-A,active-C')
+        self.assertEqual(str(grp.managed(inactive=True)),
+                         'active-A,active-B,active-C,active-D')

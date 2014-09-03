@@ -47,6 +47,20 @@ class ModelTest(unittest.TestCase):
 mgt: node=foo1 dev=/dev/sda ha_node=foo2 ha_node=foo3""")
         self.assertEqual(model.get('mgt')[0].get('ha_node'), ['foo2', 'foo3'])
 
+    def test_active(self):
+        """Test active option."""
+        model = self.makeTempModel("""fs_name: active
+mgt: node=foo1 dev=/dev/sda""")
+        self.assertEqual(model.get('mgt')[0].get('active'), 'yes')
+
+        model = self.makeTempModel("""fs_name: active
+mgt: node=foo1 dev=/dev/sda active=nocreate""")
+        self.assertEqual(model.get('mgt')[0].get('active'), 'nocreate')
+
+        model = self.makeTempModel("""fs_name: active
+mgt: node=foo1 dev=/dev/sda active=no""")
+        self.assertEqual(model.get('mgt')[0].get('active'), 'no')
+
     def test_unbalanced_nid_map(self):
         """Model with nid_map with several ranges."""
         model = self.makeTempModel("""fs_name: nids

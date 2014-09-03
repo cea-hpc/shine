@@ -24,6 +24,7 @@ Classes for Shine framework to manage Lustre clients.
 
 from glob import glob
 import os 
+import re
 
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, OFFLINE, CLIENT_ERROR, RUNTIME_ERROR
@@ -164,6 +165,16 @@ class Client(Component):
             for line in f_state:
                 if line.startswith('current_state:'):
                     state_name = line.split(None, 1)[1].strip()
+
+                    # Ignore inactive targets
+                    if state_name is not 'FULL':
+                        m = re.search(r'/(%s-\w{3}[0-9a-fA-F]{4})-' %  \
+                                      self.fs.fs_name, entry)
+                        if m is not None and \
+                           m.group(1) in self.fs.components.labels() and \
+                           not self.fs.components[m.group(1)].is_active():
+                            break
+
                     self.proc_states.setdefault(state_name, 0)
                     self.proc_states[state_name] += 1
                     break

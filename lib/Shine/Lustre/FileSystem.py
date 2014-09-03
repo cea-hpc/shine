@@ -209,7 +209,8 @@ class FileSystem:
             self.mgt = comp
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
-                   tag=None, enabled=True, mode='managed', network=None):
+                   tag=None, enabled=True, mode='managed', network=None,
+                   active='yes'):
         """
         Create a new attached target.
         """
@@ -223,7 +224,7 @@ class FileSystem:
         module_name = sys.modules[self.__class__.__module__]
         target = getattr(module_name, type.upper())(fs=self, server=server,
                 index=index, dev=dev, jdev=jdev, group=group, tag=tag,
-                enabled=enabled, mode=mode, network=network)
+                enabled=enabled, mode=mode, network=network, active=active)
         
         self._attach_component(target)
 

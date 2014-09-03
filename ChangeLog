@@ -1,5 +1,7 @@
 2014-09-03 Florent Thery <florent.thery@bull.net>
 	* Trigger different actions based on modified options (ticket #180)
+	* Add a new 'active' option to handle (de)activation of targets
+	(ticket #83)
 
 2014-08-21 Florent Thery <florent.thery@bull.net>
 	* Fix error message format issue when using the same index twice

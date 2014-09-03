@@ -142,7 +142,7 @@ def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
     pat_fields.difference_update(grp_fields)
 
     # Grouped by visible fields
-    comps = fs.components.managed(supports=supports)
+    comps = fs.components.managed(supports=supports, inactive=True)
     if viewsupports is not None:
         comps = comps.filter(supports=viewsupports)
     def fieldvals(comp):

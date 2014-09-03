@@ -92,7 +92,7 @@ class Start(FSTargetLiveCommand):
         if rc == RC_OK:
             if vlevel > 0:
                 print "Start successful."
-            tuning = Tune.get_tuning(fs_conf)
+            tuning = Tune.get_tuning(fs_conf, fs.components)
             status = fs.tune(tuning, comps=comps)
             if status == MOUNTED:
                 if vlevel > 1:

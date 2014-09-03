@@ -106,7 +106,7 @@ class Update(Command):
                 if self.options.verbose > 1:
                     txt += self.display_details(comps)
 
-        for action in ('tunefs', 'writeconf', 'reformat', 'restart'):
+        for action in ('tunefs', 'writeconf', 'reformat', 'restart', 'tune'):
             if action in changes:
                 txt_new.append(" %12s: Yes" % ('* ' + action.capitalize()))
         for action in ('format', 'start', 'mount'):
@@ -375,6 +375,11 @@ class Update(Command):
                                 len(actions['mount']))
             next_actions.append(self._next_action_cmd('mount', newfs, 
                                 '-n %s' % actions['mount'].servers()))
+
+        # Tune if needed
+        if 'tune' in actions:
+            next_actions.append("Need tu run `tune' on all components.")
+            next_actions.append(self._next_action_cmd('tune', newfs))
 
         # Print this line only if there is other actions to be performed
         if next_actions:

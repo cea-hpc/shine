@@ -87,6 +87,10 @@ class Target:
     def get_network(self):
         return self.dic.get('network')
 
+    def get_active(self):
+        return self.dic.get('active', 'yes')
+
+
 class Clients:
     def __init__(self, cf_client):
         self.dic = cf_client.as_dict()
@@ -285,6 +289,10 @@ class FileSystem(object):
                                     raise KeyError(idx)
                                 indexes.remove(idx)
 
+                            # Copy properties from model
+                            # which do not exist in backend.
+                            matching.add_active(target_model.get('active'))
+
                             # `matching' is a TargetDevice, we want to add it
                             # to the underlying Model object. The current way
                             # to do this to create a configuration line string
@@ -456,6 +464,9 @@ class FileSystem(object):
 
                     if set(['tag', 'group']) & elem.chgkeys:
                         actions['copyconf'] = True
+
+                    if 'active' in elem.chgkeys:
+                        actions['tune'] = True
 
                     if 'jdev' in elem.chgkeys:
                         raise ConfigException("'jdev' change is not supported")

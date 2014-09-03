@@ -58,6 +58,9 @@ class TargetDevice:
     def index(self):
         return int(self.params['index'])
 
+    def add_active(self, active):
+        self.params['active'] = active
+
     def __str__(self):
         node = self.params.get('node', '')
         ha_node = self.params.get('ha_node')

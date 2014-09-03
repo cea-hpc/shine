@@ -83,7 +83,7 @@ class Mount(FSLiveCommand):
                         (fs.fs_name, comps.filter(key=key).servers())
 
                 # Apply tuning after successful mount(s)
-                tuning = Tune.get_tuning(fs_conf)
+                tuning = Tune.get_tuning(fs_conf, fs.components)
                 status = fs.tune(tuning, comps=comps)
                 if status == MOUNTED:
                     if vlevel > 1:

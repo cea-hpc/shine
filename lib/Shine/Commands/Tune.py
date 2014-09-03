@@ -52,7 +52,7 @@ class Tune(FSTargetLiveCommand):
         if not self.check_valid_list(fs.fs_name, all_nodes, "tune"):
             return RC_FAILURE
 
-        tuning = self.get_tuning(fs_conf)
+        tuning = self.get_tuning(fs_conf, fs.components)
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
@@ -79,7 +79,7 @@ class Tune(FSTargetLiveCommand):
         return RC_OK
 
     @classmethod
-    def get_tuning(cls, fs_conf):
+    def get_tuning(cls, fs_conf, comps):
         """
         Tune class method: get TuningModel for a fs configuration.
         """
@@ -97,6 +97,8 @@ class Tune(FSTargetLiveCommand):
         # Add the quota tuning parameters to the tuning model.
         if Globals().lustre_version_is_smaller('2.4'):
             cls._add_quota_tuning(tuning, fs_conf)
+
+        cls._add_active_tuning(tuning, comps)
 
         return tuning
 
@@ -183,3 +185,20 @@ class Tune(FSTargetLiveCommand):
         if need_convertion:
             # Convert the parameter aliases to the real parameter name
             tunings.convert_parameter_aliases(check=False)
+
+
+    @classmethod
+    def _add_active_tuning(cls, tuning, comps):
+        """
+        Add target disable dynamic tuning rules for mds and clients, if any.
+        """
+
+        map_active_state = {'no':       [('0', ['mds', 'client'])],
+                            'nocreate': [('0', ['mds']), ('1', ['client'])],
+                            'yes':      [('1', ['mds', 'client'])]}
+
+        key = lambda c: c.active != 'manual'
+        for comp in comps.filter(key=key):
+            path = "/proc/fs/lustre/osc/%s*/active" % comp.label
+            for data in map_active_state[comp.active]:
+                tuning.create_parameter(path, data[0], data[1])
