@@ -1,5 +1,5 @@
 # Client.py -- Lustre Client
-# Copyright (C) 2008-2013 CEA
+# Copyright (C) 2008-2014 CEA
 #
 # This file is part of shine
 #
@@ -167,17 +167,17 @@ class Client(Component):
                     state_name = line.split(None, 1)[1].strip()
 
                     # Ignore inactive targets
-                    if state_name is not 'FULL':
-                        m = re.search(r'/(%s-\w{3}[0-9a-fA-F]{4})-' %  \
-                                      self.fs.fs_name, entry)
-                        if m is not None and \
-                           m.group(1) in self.fs.components.labels() and \
-                           not self.fs.components[m.group(1)].is_active():
-                            break
+                    if state_name != 'FULL':
+                        mo = re.search(r'/(%s-\w{3}[0-9a-fA-F]{4})-' %
+                                       self.fs.fs_name, entry)
+                        try:
+                            if not self.fs.components[mo.group(1)].is_active():
+                                break
+                        except (AttributeError, KeyError):
+                            pass
 
                     self.proc_states.setdefault(state_name, 0)
                     self.proc_states[state_name] += 1
-                    break
             f_state.close()
 
         if 'EVICTED' in self.proc_states:
