@@ -178,6 +178,8 @@ class Client(Component):
 
                     self.proc_states.setdefault(state_name, 0)
                     self.proc_states[state_name] += 1
+                    # Stop reading other file lines
+                    break
             f_state.close()
 
         if 'EVICTED' in self.proc_states:
