@@ -27,10 +27,14 @@
 #            Supported node type: MGS, MDS, OSS, CLIENT, CLT, ROUTER, RTR
 #            ie:  MDS;OSS;foo[1-5]
 
+#
 # Alias declarations
+#
 alias debug=/proc/sys/lnet/debug
-alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
+#alias max_rpcs_in_flight=/proc/fs/lustre/osc/*${ost}*/max_rpcs_in_flight
 
+#
 # Tuning parameters
-"1"    panic_on_lbug      CLT;MDS;OSS;ROUTER
-"0"    debug              CLT;MDS;OSS;ROUTER
+#
+"-all"     debug               MGS;MDS;OSS;ROUTER;CLT
+#32         max_rpcs_in_flight  CLT

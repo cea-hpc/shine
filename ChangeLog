@@ -1,3 +1,6 @@
+2015-03-03 Aurelien Degremont <aurelien.degremont@cea.fr>
+    * Clean tuning.conf.example (ticket #184).
+
 2014-10-02 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fix 'status' perf regression introduced by #83 (ticket #185)
 
