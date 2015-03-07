@@ -1,6 +1,6 @@
 # Tune.py -- Tune file system
 # Copyright (C) 2007 BULL S.A.S
-# Copyright (C) 2012-2013 CEA
+# Copyright (C) 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -35,6 +35,10 @@ from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
                                               RC_RUNTIME_ERROR
 
+# Lustre events
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
+                                               FSLocalEventHandler
+
 from Shine.Lustre.FileSystem import RUNTIME_ERROR, MOUNTED
 
 
@@ -43,6 +47,9 @@ class Tune(FSTargetLiveCommand):
 
     NAME = "tune"
     DESCRIPTION = "Tune file system servers."
+
+    GLOBAL_EH = FSGlobalEventHandler
+    LOCAL_EH = FSLocalEventHandler
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
@@ -53,10 +60,6 @@ class Tune(FSTargetLiveCommand):
             return RC_FAILURE
 
         tuning = self.get_tuning(fs_conf, fs.components)
-
-        # Will call the handle_pre() method defined by the event handler.
-        if hasattr(eh, 'pre'):
-            eh.pre(fs)
 
         if vlevel > 1:
             print "Tuning filesystem %s..." % fs.fs_name

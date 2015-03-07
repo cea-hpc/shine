@@ -933,8 +933,9 @@ class ClientActionTest(CommonTestCase):
 class TuneActionTest(CommonTestCase):
 
     def setUp(self):
-        self.fs = FileSystem('action')
-        self.srv = Server('localhost', ['localhost@tcp'])
+        self.eh = self.ActionEH()
+        self.fs = FileSystem('action', event_handler=self.eh)
+        self.srv = Server('localhost', ['localhost@tcp'], hdlr=self.eh)
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(self.srv, 'mgt', 0, self.disk.name)
         self.model = TuningModel()
@@ -949,6 +950,11 @@ class TuneActionTest(CommonTestCase):
         act.launch()
         self.fs._run_actions()
 
+        # Callback checks
+        self.assert_events('server', 'tune', ['start', 'done'])
+        self.assert_info('server', 'tune', 'start', self.srv, 'apply tunings')
+        self.assert_info('server', 'tune', 'done', self.srv, 'apply tunings')
+
         # Status checks
         self.assertEqual(act.status(), ACT_OK)
 
@@ -962,6 +968,16 @@ class TuneActionTest(CommonTestCase):
         act = self.srv.tune(self.model, self.fs.components, 'action')
         act.launch()
         self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('server', 'tune', ['start', 'failed'])
+        result = self.eh.result('server', 'tune', 'failed')
+        self.assertEqual(result.retcode, None)
+        self.assertEqual(str(result),
+                         "'echo 1 > /proc/modules' failed\n"
+                         "'echo 1 > /proc/cmdline' failed")
+        self.assert_info('server', 'tune', 'start', self.srv, 'apply tunings')
+        self.assert_info('server', 'tune', 'failed', self.srv, 'apply tunings')
 
         # Status checks
         self.assertEqual(act.status(), ACT_ERROR)

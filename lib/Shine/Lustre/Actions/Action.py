@@ -264,11 +264,10 @@ class ActionGroup(CommonAction):
         for elem1, elem2 in zip(self._members, self._members[1:]):
             elem2.depends_on(elem1)
 
-    def launch(self):
-        """Check dependencies and run the action."""
-
-        if not self._graph_ok(self.deps):
-            return
+    def _launch(self):
+        """Launch each member of this group."""
+        # _graph_ok() wants us WAITING but launch() set us RUNNING
+        self.set_status(ACT_WAITING)
 
         if not self._graph_ok(self._members):
             return

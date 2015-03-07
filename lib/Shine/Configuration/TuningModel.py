@@ -111,7 +111,7 @@ class TuningParameter(object):
 
 
 
-class TuningModel:
+class TuningModel(object):
     """
     This class is used to access  tuning parameters registered in the
     tuning.conf file.

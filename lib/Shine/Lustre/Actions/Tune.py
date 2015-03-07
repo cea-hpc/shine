@@ -1,5 +1,5 @@
 # Tune.py -- Tune Lustre /proc files.
-# Copyright (C) 2013 CEA
+# Copyright (C) 2013-2015 CEA
 #
 # This file is part of shine
 #
@@ -23,7 +23,9 @@ Classes used the apply tuning on local node, either from tuning.conf or
 dynamically created.
 """
 
-from Shine.Lustre.Actions.Action import CommonAction, ActionGroup
+from Shine.Lustre.Actions.Action import CommonAction, ActionGroup, \
+                                        ActionInfo, \
+                                        ACT_OK, ACT_ERROR, ErrorResult
 
 _SRVTYPE_MAP = {
         'mgt': 'mgs',
@@ -59,6 +61,10 @@ class Tune(ActionGroup):
         self._fsname = fsname
         self._init = False
 
+    def info(self):
+        """Return a ActionInfo describing this action."""
+        return ActionInfo(self, self._server, 'apply tunings')
+
     def _add_actions(self):
         """
         Create all individual tunings Action.
@@ -77,11 +83,31 @@ class Tune(ActionGroup):
         # Actions has been added, no need to create them again.
         self._init = True
 
-    def launch(self):
+    def set_status(self, status):
+        """
+        Update action status.
+
+        If this is a final state, raise corresponding events.
+        """
+        if status == ACT_OK:
+            self._server.action_event(self, 'done')
+        elif status == ACT_ERROR:
+            # Build an error string
+            errors = []
+            for act in self:
+                if act.status() == ACT_ERROR:
+                    errors.append("'%s' failed" % act._command)
+            result = ErrorResult("\n".join(errors))
+            self._server.action_event(self, 'failed', result)
+
+        ActionGroup.set_status(self, status)
+
+    def _launch(self):
         # First time launch is called, we need to create all the sub actions.
         # As the graph is calling launch a couple of times, we need to do this
         # only once.
         if not self._init:
+            self._server.action_event(self, 'start')
             self._add_actions()
-        # Then call the real launch().
-        ActionGroup.launch(self)
+        # Then call the real _launch()
+        ActionGroup._launch(self)
