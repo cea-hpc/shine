@@ -405,7 +405,6 @@ class FileSystem:
         """
 
         graph = ActionGroup()
-        subparts = []
 
         first_comps = None
         last_comps = None
@@ -420,8 +419,7 @@ class FileSystem:
         # Iterate over targets, grouping them by start order and server.
         for _order, comps in iterable:
 
-            subparts.append(ActionGroup())
-            graph.add(subparts[-1])
+            graph.add(ActionGroup())
             compgrp = ActionGroup()
             proxygrp = ActionGroup()
 
@@ -436,42 +434,43 @@ class FileSystem:
                     proxygrp.add(act)
 
             if len(compgrp) > 0:
-                subparts[-1].add(compgrp)
+                graph[-1].add(compgrp)
                 # Keep track of first comp group
                 if first_comps is None:
                     first_comps = compgrp
+                    first_comps.parent = graph[-1]
                 # Keep track of last comp group
                 last_comps = compgrp
+                last_comps.parent = graph[-1]
 
                 # Build module loading list, if needed
                 for comp_action in compgrp:
                     modules.update(comp_action.needed_modules())
 
             if len(proxygrp) > 0:
-                subparts[-1].add(proxygrp)
+                graph[-1].add(proxygrp)
 
 
         # Add module loading, if needed.
-        if first_comps is not None:
+        if first_comps is not None and len(modules) > 0:
             modgrp = ActionGroup()
             for module in modules:
                 modgrp.add(localsrv.load_modules(modname=module))
 
             # Serialize modules loading actions
-            modlist = list(modgrp)
-            for act1, act2 in zip(modlist, modlist[1:]):
-                act2.depends_on(act1)
+            modgrp.sequential()
 
-            if len(modgrp) > 0:
-                first_comps.depends_on(modgrp)
+            first_comps.parent.add(modgrp)
+            first_comps.depends_on(modgrp)
 
         # Add module unloading to last component group, if needed.
         if need_unload and last_comps is not None:
-            localsrv.unload_modules().depends_on(last_comps)
+            unload = localsrv.unload_modules()
+            last_comps.parent.add(unload)
+            unload.depends_on(last_comps)
 
         # Join the different part together
-        for sub1, sub2 in zip(subparts, subparts[1::]):
-            sub2.depends_on(sub1)
+        graph.sequential()
 
         return graph
 

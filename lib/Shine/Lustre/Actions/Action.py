@@ -218,7 +218,7 @@ class ActionGroup(CommonAction):
 
     def __init__(self, task=task_self()):
         CommonAction.__init__(self, task)
-        self._members = set()
+        self._members = list()  # Ideally this should be an OrderedSet
 
     def __len__(self):
         """Number or group members."""
@@ -228,11 +228,25 @@ class ActionGroup(CommonAction):
         """Iterate over group members."""
         return iter(self._members)
 
+    def __getitem__(self, idx):
+        """Get element at index `idx'."""
+        return self._members[idx]
+
     def add(self, action):
         """Add an action to this group."""
-        self._members.add(action)
-        # Add a half-dependency
-        action.followers.add(self)
+        if action not in self._members:  # _members should behave like a set
+            self._members.append(action)
+            # Add a half-dependency
+            action.followers.add(self)
+
+    def sequential(self):
+        """Create a dependency between each group element.
+
+        This will make a chain of dependencies, removing all possible
+        parallelism between group members.
+        """
+        for elem1, elem2 in zip(self._members, self._members[1:]):
+            elem2.depends_on(elem1)
 
     def launch(self):
         """Check dependencies and run the action."""

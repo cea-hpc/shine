@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2013 CEA
+# Copyright (C) 2013-2015 CEA
 #
 # This file is part of shine
 #
@@ -44,18 +44,6 @@ class TestAction(CommonAction):
 
 
 class DepsTests(unittest.TestCase):
-
-    def test_group_len_and_iter(self):
-        """Action group length and __iter__ are correct"""
-        grp = ActionGroup()
-        self.assertEqual(len(grp), 0)
-        act1 = TestAction('/bin/foo')
-        grp.add(act1)
-        self.assertEqual(len(grp), 1)
-        act2 = TestAction('/bin/bar')
-        grp.add(act2)
-        self.assertEqual(len(grp), 2)
-        self.assertEqual(list(iter(grp)), [act1, act2])
 
     def test_simple_ok(self):
         """Action can run a simple command"""
@@ -251,6 +239,36 @@ class ActionGroupTests(unittest.TestCase):
 
     def setUp(self):
         self.grp = ActionGroup()
+
+    def test_group_len_and_iter(self):
+        """Action group length and __iter__ are correct"""
+        self.assertEqual(len(self.grp), 0)
+        act1 = TestAction('/bin/foo')
+        self.grp.add(act1)
+        self.assertEqual(len(self.grp), 1)
+        self.assertEqual(self.grp[0], act1)
+        self.assertEqual(self.grp[-1], act1)
+        act2 = TestAction('/bin/bar')
+        self.grp.add(act2)
+        # Add it twice does not raise an error
+        self.grp.add(act2)
+        self.assertEqual(len(self.grp), 2)
+        self.assertEqual(self.grp[0], act1)
+        self.assertEqual(self.grp[1], act2)
+        self.assertEqual(self.grp[-1], act2)
+        self.assertEqual(list(iter(self.grp)), [act1, act2])
+
+    def test_sequential(self):
+        """A group could be easily sequentialized"""
+        act1 = TestAction('/bin/foo')
+        self.grp.add(act1)
+        act2 = TestAction('/bin/foo')
+        self.grp.add(act2)
+        self.grp.sequential()
+        self.assertEqual(act1.deps, set([]))
+        self.assertEqual(act2.deps, set([act1]))
+        self.assertEqual(act1.followers, set([self.grp, act2]))
+        self.assertEqual(act2.followers, set([self.grp]))
 
     def test_empty(self):
         """Launching an empty group is ok"""
