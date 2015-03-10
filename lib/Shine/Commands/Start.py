@@ -85,6 +85,7 @@ class Start(FSTargetLiveCommand):
                           mount_paths=mount_paths,
                           addopts=self.options.additional,
                           failover=self.options.failover,
+                          fanout=self.options.fanout,
                           mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

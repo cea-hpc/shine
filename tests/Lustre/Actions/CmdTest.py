@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # Shine.Lustre.Actions.* test suite
 #
@@ -773,3 +773,8 @@ class ActionsTest(unittest.TestCase):
         """test proxy with a component list and mountdata=auto"""
         action = self._create_proxy(debug=False, mountdata='auto')
         self.check_cmd(action, "nosetests dummy -f action -R")
+
+    def test_proxy_fanout(self):
+        """test proxy with fanout"""
+        action = self._create_proxy(debug=False, fanout=18)
+        self.check_cmd(action, 'nosetests dummy -f action -R --fanout=18')

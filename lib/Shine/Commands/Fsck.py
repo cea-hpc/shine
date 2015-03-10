@@ -1,6 +1,6 @@
 # Fsck.py -- Check backend file system for each target
 # Copyright (C) 2010 BULL S.A.S, CEA
-# Copyright (C) 2012-2013 CEA
+# Copyright (C) 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -84,7 +84,7 @@ class Fsck(FSTargetLiveCriticalCommand):
     """
     shine fsck -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
-    
+
     NAME = "fsck"
     DESCRIPTION = "Fsck on targets backend file system."
 
@@ -114,10 +114,11 @@ class Fsck(FSTargetLiveCriticalCommand):
         # Call a pre_fsck method if defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
-        
+
         # Fsck really.
         status = fs.fsck(addopts=self.options.additional,
                          failover=self.options.failover,
+                         fanout=self.options.fanout,
                          mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

@@ -1,5 +1,5 @@
 # Controller.py -- Controller class
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -44,14 +44,14 @@ from ClusterShell.NodeSet import NodeSet, NodeSetException, NodeSetParseError, \
 
 
 def print_csdebug(task, msg):
-    match = re.search("(\w+): SHINE:\d:", msg)
+    match = re.search(r'(\w+): SHINE:\d:', msg)
     if match:
         print "%s<pickle>" % match.group(0)
     else:
         print msg
 
 
-class Controller:
+class Controller(object):
 
     def __init__(self):
 
@@ -108,8 +108,8 @@ class Controller:
                     lvalue = value.split(",")
                     values.ensure_value(dest, []).extend(lvalue)
                 else:
-                    Option.take_action(
-                                self, action, dest, opt, value, values, parser)
+                    Option.take_action(self, action, dest, opt, value, values,
+                                       parser)
 
         class ShineHelpFormatter(IndentedHelpFormatter):
             def format_description(self, description):
@@ -163,7 +163,7 @@ class Controller:
         comp_grp.add_option("-l", dest="labels", type="nodeset",
                             help="specify component by label (ie: foo-OST0000)")
         comp_grp.add_option("-t", dest="targets", action="extend",
-                            choices=['mgt','mdt','ost','router','client'],
+                            choices=['mgt', 'mdt', 'ost', 'router', 'client'],
                             help="specify components (mgt, mdt, ost, router)")
         parser.add_option_group(comp_grp)
 
@@ -180,8 +180,10 @@ class Controller:
                             help="Nodes to use to fail over")
         parser.add_option_group(node_grp)
 
+        parser.add_option('--fanout', dest='fanout', type='int',
+                          help="fanout for parallel commands")
         parser.add_option("-o", dest="additional", metavar="OPTIONS",
-                           help="additional options for final command")
+                          help="additional options for final command")
         parser.add_option("-f", dest="fsnames", action="extend", metavar="NAME",
                           help="apply command to this file system")
         parser.add_option("-m", dest="model",
@@ -208,6 +210,10 @@ class Controller:
         # Enable clustershell debugging too in debug mode
         if options.debug:
             task_self().set_info("debug", True)
+
+        # Adapt clustershell fanout
+        if options.fanout:
+            task_self().set_info('fanout', options.fanout)
 
         cmdname = args.pop(0)
 

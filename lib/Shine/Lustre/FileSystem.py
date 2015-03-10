@@ -258,8 +258,9 @@ class FileSystem:
 
         failover = kwargs.get('failover')
         mountdata = kwargs.get('mountdata')
+        fanout = kwargs.get('fanout')
         return FSProxyAction(self, action, servers, self.debug, comps, addopts,
-                             failover, mountdata)
+                             failover, mountdata, fanout)
 
     def _run_actions(self):
         """

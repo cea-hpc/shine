@@ -71,7 +71,8 @@ class Mount(FSLiveCommand):
 
         self.copy_tuning(fs, comps=comps)
 
-        status = fs.mount(addopts=self.options.additional)
+        status = fs.mount(addopts=self.options.additional,
+                          fanout=self.options.fanout)
 
         rc = self.fs_status_to_rc(status)
 

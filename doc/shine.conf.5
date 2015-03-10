@@ -22,12 +22,11 @@
 .\" PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
 .\" OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 .\" WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-.\" OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+.\" OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE EVEN IF
 .\" ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-.\" 
-.\" $Id$
-.Dd September 27, 2013   \" DATE
-.Dt shine.conf 5         \" Program name and manual section number 
+.\"
+.Dd March 10, 2015       \" DATE
+.Dt shine.conf 5         \" Program name and manual section number
 .Os Linux
 .Sh NAME                 \" Section Header
 .Nm shine.conf
@@ -129,10 +128,10 @@ Default directory is
 is the file describing Lustre tuning parameters applicable for all installed filesystems.
 If not set, no tuning is applied.
 .El
-.Ss Advanced settings 
+.Ss Advanced settings
 .Bl -tag -width Ds -compact
 .It Ic ssh_fanout Ns = Ns Ar number
-is the maximum number of simultaneous remote ssh commands.
+is the maximum number of simultaneous local commands and remote connections.
 .It Ic ssh_connect_timeout Ns = Ns Ar secs
 is the timeout in seconds for ssh connections.
 .El

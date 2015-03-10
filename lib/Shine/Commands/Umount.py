@@ -1,5 +1,5 @@
 # Umount.py -- Unmount file system on clients
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -67,7 +67,8 @@ class Umount(FSLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        status = fs.umount(addopts=self.options.additional)
+        status = fs.umount(addopts=self.options.additional,
+                           fanout=self.options.fanout)
 
         rc = self.fs_status_to_rc(status)
 

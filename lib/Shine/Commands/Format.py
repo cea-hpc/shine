@@ -1,5 +1,5 @@
 # Format.py -- Format file system targets
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -40,7 +40,7 @@ class Format(FSTargetLiveCriticalCommand):
     """
     shine format -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
-    
+
     NAME = "format"
     DESCRIPTION = "Format file system targets."
 
@@ -78,7 +78,7 @@ class Format(FSTargetLiveCriticalCommand):
         # Call a pre_format method if defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
-        
+
         # Format really.
         status = fs.format(stripecount=fs_conf.get_stripecount(),
                     stripesize=fs_conf.get_stripesize(),
@@ -88,6 +88,7 @@ class Format(FSTargetLiveCriticalCommand):
                     quota_type=fs_conf.get_quota_type(),
                     addopts=self.options.additional,
                     failover=self.options.failover,
+                    fanout=self.options.fanout,
                     mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

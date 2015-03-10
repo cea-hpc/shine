@@ -1,5 +1,5 @@
 # Proxy.py -- Lustre generic FS proxy action class
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -118,7 +118,7 @@ class FSProxyAction(CommonAction):
     NAME = 'proxy'
 
     def __init__(self, fs, action, nodes, debug, comps=None, addopts=None,
-                 failover=None, mountdata=None):
+                 failover=None, mountdata=None, fanout=None):
 
         CommonAction.__init__(self)
 
@@ -133,6 +133,7 @@ class FSProxyAction(CommonAction):
         self.addopts = addopts
         self.failover = failover
         self.mountdata = mountdata
+        self.fanout = fanout
 
         self._outputs = MsgTree()
         self._errpickle = MsgTree()
@@ -160,6 +161,9 @@ class FSProxyAction(CommonAction):
 
         if self.failover:
             command.append("-F '%s'" % self.failover)
+
+        if self.fanout is not None:
+            command.append('--fanout=%d' % self.fanout)
 
         # To be compatible with older clients in most cases, do not set the
         # option when it is its default value.

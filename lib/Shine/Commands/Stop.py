@@ -1,5 +1,5 @@
 # Stop.py -- Stop file system
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -60,7 +60,7 @@ class Stop(FSTargetLiveCommand):
             RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
-    
+
         # Prepare options...
         mount_options = {}
         mount_paths = {}
@@ -76,9 +76,10 @@ class Stop(FSTargetLiveCommand):
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
-            
+
         status = fs.stop(addopts=self.options.additional,
                          failover=self.options.failover,
+                         fanout=self.options.fanout,
                          mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

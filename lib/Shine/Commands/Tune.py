@@ -66,7 +66,8 @@ class Tune(FSTargetLiveCommand):
         if not self.options.remote and vlevel > 1:
             print tuning
 
-        status = fs.tune(tuning, addopts=self.options.additional)
+        status = fs.tune(tuning, addopts=self.options.additional,
+                         fanout=self.options.fanout)
         if status == RUNTIME_ERROR:
             self.display_proxy_errors(fs)
             return RC_RUNTIME_ERROR

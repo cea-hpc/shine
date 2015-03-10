@@ -1,5 +1,5 @@
 # Execute.py -- Execute a custom command for any component.
-# Copyright (C) 2012-2013 CEA
+# Copyright (C) 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -39,7 +39,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
 
 class Execute(FSTargetLiveCommand):
     """
-    shine execute [-f <fsname>] -o "..." 
+    shine execute [-f <fsname>] -o "..."
     """
 
     NAME = "execute"
@@ -78,6 +78,7 @@ class Execute(FSTargetLiveCommand):
 
         fs_result = fs.execute(failover=self.options.failover,
                                addopts=self.options.additional,
+                               fanout=self.options.fanout,
                                mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(fs_result)
