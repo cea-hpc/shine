@@ -1,5 +1,5 @@
 # Components.py - Abstract class for any Lustre filesystem components.
-# Copyright (C) 2010-2013 CEA
+# Copyright (C) 2010-2015 CEA
 #
 # This file is part of shine
 #
@@ -23,16 +23,17 @@ from operator import attrgetter
 
 from ClusterShell.NodeSet import NodeSet
 
-# Constants for component states
-(MOUNTED,    \
- EXTERNAL,   \
- RECOVERING, \
- OFFLINE,    \
- INPROGRESS, \
- CLIENT_ERROR, \
- TARGET_ERROR, \
- RUNTIME_ERROR, \
- INACTIVE) = range(9)
+# Constants for component states.
+# Error codes should have the largest values, see FileSystem._check_errors()
+MOUNTED = 0
+EXTERNAL = 1
+RECOVERING = 2
+OFFLINE = 3
+INPROGRESS = 4
+CLIENT_ERROR = 5
+TARGET_ERROR = 6
+RUNTIME_ERROR = 7
+INACTIVE = 8
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
@@ -41,8 +42,7 @@ from Shine.Lustre.Actions.Execute import Execute
 
 class Component(object):
     """
-    Abstract class for all common part of all Lustre filesystem 
-    components.
+    Abstract class for all common part of all Lustre filesystem components.
     """
 
     # Text name for this component
@@ -155,13 +155,14 @@ class Component(object):
         """
         return self.STATE_TEXT_MAP.get(self.state, "BUG STATE %s" % self.state)
 
-
+    #
+    # State checking methods.
     #
     def lustre_check(self):
         """
         Check component health at Lustre level.
         """
-        raise NotImplemented("Component must implement this.")
+        raise NotImplementedError("Component must implement this.")
 
     def full_check(self, mountdata=True):
         """

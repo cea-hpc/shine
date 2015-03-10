@@ -306,7 +306,11 @@ class FileSystem:
             if comp.state not in expected_states:
                 result = max(result, comp.state)
 
-        return result or expected_states[0]
+        # result could be equal to 0 (MOUNTED)
+        if result is not None:
+            return result
+        else:
+            return expected_states[0]
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
