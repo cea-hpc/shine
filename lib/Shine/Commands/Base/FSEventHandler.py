@@ -89,6 +89,8 @@ class FSLocalEventHandler(LustreEH):
 
     def action_done(self, node, action, comp, result):
         """Display a message when a component action is finished."""
+        if action == 'proxy':
+            return
 
         if result and result.duration >= 100:
             duration = " (%.1f min)" % (result.duration / 60.0)
@@ -192,7 +194,8 @@ class FSGlobalEventHandler(FSLocalEventHandler):
     def event_callback(self, compname, action, status, **kwargs):
         FSLocalEventHandler.event_callback(self, compname, action, status,
                                            **kwargs)
-        if action in ('start', 'done', 'failed'):
+
+        if status in ('start', 'done', 'failed'):
             self._update()
 
 

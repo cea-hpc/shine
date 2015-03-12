@@ -245,7 +245,7 @@ class FSProxyAction(CommonAction):
         if self._comps:
             for comp in self._comps:
                 # XXX: This should be changed using a real event for proxy.
-                comp._del_action('proxy')
+                comp.action_done('proxy')
 
                 if comp.state is None:
                     comp.state = RUNTIME_ERROR
