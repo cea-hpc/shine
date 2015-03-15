@@ -197,15 +197,15 @@ class ProxyTest(unittest.TestCase):
               "Vyc3ErY1NoaW5lLkx1c3RyZS5TZXJ2ZXIKU2VydmVyR3JvdXAKcSwpgXEtfXE" \
               "uVQVfbGlzdHEvXXEwc2J1YlUHbWVzc2FnZXExVQpmYWtlIGVycm9ycTJVAnJj" \
               "cTNLAXUu"
-        self.fs.event_handler = CustomEH()
+        self.fs.hdlr = CustomEH()
         self.act.fakecmd = 'echo "%s"' % msg
         self.act.launch()
         self.fs._run_actions()
 
-        self.assertEqual(self.fs.event_handler.event['info'].actname, 'start')
-        self.assertEqual(self.fs.event_handler.event['status'], 'failed')
-        self.assertEqual(self.fs.event_handler.event['result'].retcode, 1)
-        self.assertEqual(self.fs.event_handler.event['result'].message, 'fake error')
+        self.assertEqual(self.fs.hdlr.event['info'].actname, 'start')
+        self.assertEqual(self.fs.hdlr.event['status'], 'failed')
+        self.assertEqual(self.fs.hdlr.event['result'].retcode, 1)
+        self.assertEqual(self.fs.hdlr.event['result'].message, 'fake error')
 
         self.fs._check_errors([OFFLINE], self.fs.components)
         self.assertEqual(len(self.fs.proxy_errors), 0)

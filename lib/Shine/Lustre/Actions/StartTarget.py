@@ -44,28 +44,6 @@ class StartTarget(FSAction):
         self.mount_options = kwargs.get('mount_options')
         self.mount_paths = kwargs.get('mount_paths')
 
-    def _vars_substitute(self, txt, suppl_vars=None):
-        """
-        Replace symbolic variable from the provided text.
-
-        This function extends FSAction._var_substitute. It adds:
-         $index
-         $dev:     Replaced by the basename of the device.
-         $jdev:    Same as 'dev' for the journal device.
-        """
-        var_map = {
-                    'index'   : str(self.comp.index),
-                    'dev'     : os.path.basename(self.comp.dev),
-                  }
-
-        if self.comp.journal:
-            var_map['jdev'] = os.path.basename(self.comp.journal.dev)
-
-        if suppl_vars:
-            var_map.update(suppl_vars)
-
-        return FSAction._vars_substitute(self, txt, var_map)
-
     def _already_done(self):
         """Return a Result object is the target is already mounted."""
 
@@ -90,7 +68,12 @@ class StartTarget(FSAction):
             mount_path = "/mnt/$fs_name/$type/$index"
 
         # Replace variables
-        mount_path = self._vars_substitute(mount_path)
+        var_map = {'index': str(self.comp.index),
+                   'dev'  : os.path.basename(self.comp.dev)}
+        if self.comp.journal:
+            var_map['jdev'] = os.path.basename(self.comp.journal.dev)
+
+        mount_path = self._vars_substitute(mount_path, var_map)
 
         #
         # Build command
@@ -105,10 +88,10 @@ class StartTarget(FSAction):
         options = []
         # Mount options from configuration
         if self.mount_options and self.mount_options.get(self.comp.TYPE):
-            options += [ self.mount_options.get(self.comp.TYPE) ]
+            options += [self.mount_options.get(self.comp.TYPE)]
         # Mount options from command line
         if self.addopts:
-            options += [ self.addopts ]
+            options += [self.addopts]
 
         # When device detection order is variable, jdev could have a different
         # major/minor than the one it has on previous mount.
@@ -118,7 +101,7 @@ class StartTarget(FSAction):
         # journal UUID if we have issue using directly jdev path.)
         if self.comp.journal:
             majorminor = os.stat(self.comp.journal.dev).st_rdev
-            options += [ "journal_dev=%#x" % majorminor ]
+            options += ["journal_dev=%#x" % majorminor]
 
         if len(options):
             command.append('-o ' + ','.join(options))

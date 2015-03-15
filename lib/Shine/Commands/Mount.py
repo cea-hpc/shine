@@ -73,6 +73,7 @@ class Mount(FSLiveCommand):
 
         status = fs.mount(addopts=self.options.additional,
                           fanout=self.options.fanout,
+                          dryrun=self.options.dryrun,
                           tunings=Tune.get_tuning(fs_conf, fs.components))
 
         rc = self.fs_status_to_rc(status)

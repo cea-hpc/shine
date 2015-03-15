@@ -73,7 +73,7 @@ class Format(FSTargetLiveCriticalCommand):
             format_params[target_type] = \
                     fs_conf.get_target_format_params(target_type)
             mkfs_options[target_type] = \
-                    fs_conf.get_target_mkfs_options(target_type) 
+                    fs_conf.get_target_mkfs_options(target_type)
 
         # Call a pre_format method if defined by the event handler.
         if hasattr(eh, 'pre'):
@@ -89,6 +89,7 @@ class Format(FSTargetLiveCriticalCommand):
                     addopts=self.options.additional,
                     failover=self.options.failover,
                     fanout=self.options.fanout,
+                    dryrun=self.options.dryrun,
                     mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

@@ -36,12 +36,15 @@ def hostname_short():
         _CACHE_HOSTNAME_SHORT = socket.getfqdn().split('.', 1)[0]
     return _CACHE_HOSTNAME_SHORT
 
-
 class EventHandler(object):
     """
     Base class EventHandler. Event-based applications using the Shine library
     should override this class and handle events of their choice.
     """
+
+    def log(self, level, msg, **kwargs):
+        """Send a log message through event handling"""
+        self.local_event('log', level=level, msg=msg, **kwargs)
 
     def local_event(self, evtype, **kwargs):
         """Raise an event, automatically providing local node information."""
@@ -54,4 +57,4 @@ class EventHandler(object):
         This event handler could be overload to implement your own event
         management.
         """
-        raise NotImplementedError
+        pass

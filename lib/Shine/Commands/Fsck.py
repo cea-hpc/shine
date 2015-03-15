@@ -119,6 +119,7 @@ class Fsck(FSTargetLiveCriticalCommand):
         status = fs.fsck(addopts=self.options.additional,
                          failover=self.options.failover,
                          fanout=self.options.fanout,
+                         dryrun=self.options.dryrun,
                          mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(status)

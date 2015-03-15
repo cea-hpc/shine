@@ -70,6 +70,7 @@ class Tune(FSTargetLiveCommand):
             print tuning
 
         status = fs.tune(tuning, addopts=self.options.additional,
+                         dryrun=self.options.dryrun,
                          fanout=self.options.fanout)
         if status == RUNTIME_ERROR:
             self.display_proxy_errors(fs)

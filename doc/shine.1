@@ -172,6 +172,10 @@ show command line help options and exit
 .
 Run command only for local components. Do not connect on other nodes.
 .TP
+.BI \-\-dry-run
+.
+Perform a trial run with no changes made. Commands that should have been run can be displayed with \-vv.
+.TP
 .BI \-\-fanout= <FANOUT>
 .
 Maximum number of simultaneous local commands and remote connections.
@@ -215,7 +219,7 @@ and complain if they do not match Shine configuration. The value read that way c
 .TP
 .B \-v
 .
-Enable verbose mode.
+Enable verbose mode. Multiple -v options increase the verbosity. The maximum is 2.
 .TP
 .B \-q
 .

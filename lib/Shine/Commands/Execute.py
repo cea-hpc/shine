@@ -79,6 +79,7 @@ class Execute(FSTargetLiveCommand):
         fs_result = fs.execute(failover=self.options.failover,
                                addopts=self.options.additional,
                                fanout=self.options.fanout,
+                               dryrun=self.options.dryrun,
                                mountdata=self.options.mountdata)
 
         rc = self.fs_status_to_rc(fs_result)

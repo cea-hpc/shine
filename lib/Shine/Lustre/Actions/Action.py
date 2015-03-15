@@ -92,17 +92,13 @@ class Action(EventHandler):
 
     NAME = "(to be changed)"
 
-    def __init__(self, task=task_self()):
+    def __init__(self):
         EventHandler.__init__(self)
-        self.task = task
+        self.task = task_self()
 
         # Action duration
         self.start = None
         self.duration = None
-
-    def launch(self):
-        """Run the action."""
-        raise NotImplementedError("Derived classes must implement.")
 
     def info(self):
         """Return a ActionInfo describing this action."""
@@ -116,6 +112,10 @@ class Action(EventHandler):
         """Compute the action whole duration."""
         self.duration = time.time() - self.start
 
+    def launch(self):
+        """Run the action."""
+        raise NotImplementedError("Derived classes must implement.")
+
 class CommonAction(Action):
     """
     Abstract class representing an Action with graph dependency features.
@@ -124,8 +124,8 @@ class CommonAction(Action):
     See GroupAction to group them.
     """
 
-    def __init__(self, task=task_self()):
-        Action.__init__(self, task)
+    def __init__(self):
+        Action.__init__(self)
         self.deps = set()
         self.followers = set()
         self._status = ACT_WAITING
@@ -154,14 +154,6 @@ class CommonAction(Action):
         if self._status in (ACT_OK, ACT_ERROR):
             for action in self.followers:
                 action.launch()
-
-    def _launch(self):
-        """
-        Really starts the action, without graph involvement.
-
-        Need to be overloaded in child class.
-        """
-        raise NotImplemented()
 
     def _graph_ok(self, actions):
         """
@@ -198,15 +190,6 @@ class CommonAction(Action):
 
         return True
 
-    def launch(self):
-        """Check dependencies and run the action."""
-
-        if not self._graph_ok(self.deps):
-            return
-
-        self.set_status(ACT_RUNNING)
-        self._launch()
-
     def ev_close(self, worker):
         """
         Check process termination status and generate appropriate events.
@@ -225,6 +208,23 @@ class CommonAction(Action):
         else:
             self.set_status(ACT_ERROR)
 
+    def launch(self):
+        """Check dependencies and run the action."""
+
+        if not self._graph_ok(self.deps):
+            return
+
+        self.set_status(ACT_RUNNING)
+        self._launch()
+
+    def _launch(self):
+        """
+        Really starts the action, without graph involvement.
+
+        Need to be overloaded in child class.
+        """
+        raise NotImplementedError
+
 
 class ActionGroup(CommonAction):
     """
@@ -232,8 +232,8 @@ class ActionGroup(CommonAction):
     inside a graph of CommonAction or ActionGroup.
     """
 
-    def __init__(self, task=task_self()):
-        CommonAction.__init__(self, task)
+    def __init__(self):
+        CommonAction.__init__(self)
         self._members = list()  # Ideally this should be an OrderedSet
 
     def __len__(self):
@@ -286,12 +286,14 @@ class FSAction(CommonAction):
 
     NEEDED_MODULES = []
 
-    def __init__(self, comp, task=task_self(), **kwargs):
-        CommonAction.__init__(self, task)
+    def __init__(self, comp, **kwargs):
+        CommonAction.__init__(self)
         self.comp = comp
 
         # Command should have a separate stderr?
         self.stderr = False
+
+        self.dryrun = kwargs.get('dryrun', False)
 
         self.addopts = self._addopts_substitute(kwargs.get('addopts'))
 
@@ -368,8 +370,13 @@ class FSAction(CommonAction):
         # Add the command to be scheduled
         cmdline = ' '.join(command)
 
-        # XXX: Add timeout
-        self.task.shell(cmdline, handler=self, stderr=self.stderr)
+        self.comp.fs.hdlr.log('detail', msg='[RUN] %s' % cmdline)
+
+        if self.dryrun:
+            self.comp.action_event(self, 'done')
+            self.set_status(ACT_OK)
+        else:
+            self.task.shell(cmdline, handler=self, stderr=self.stderr)
 
     def _launch(self):
         """

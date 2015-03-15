@@ -133,7 +133,8 @@ class Update(Command):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
             fs.event_handler.fs_action = actiontxt
-            result = action(comps=comps, fanout=self.options.fanout)
+            result = action(comps=comps, fanout=self.options.fanout,
+                            dryrun=self.options.dryrun)
 
             # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
@@ -149,7 +150,8 @@ class Update(Command):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
             fs.event_handler.fs_action = actiontxt
-            result = action(comps=comps, fanout=self.options.fanout)
+            result = action(comps=comps, fanout=self.options.fanout,
+                            dryrun=self.options.dryrun)
 
             # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
@@ -167,9 +169,9 @@ class Update(Command):
             self.__verbose("%s configuration from %s ..." %
                             (actiontxt.capitalize(), servers))
             fs.event_handler.fs_action = actiontxt
-            result = action(servers)
+            result = action(servers, dryrun=self.options.dryrun)
 
-            # Got an error if state is not the expected one. 
+            # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
             if result != 0:
                 self.display_proxy_errors(fs)
@@ -178,10 +180,10 @@ class Update(Command):
 
     def _copy(self, fs, conf_file):
         """Install a configuration on needed nodes."""
-        
+
         try:
             self.__verbose("Update configuration file: %s" % conf_file)
-            fs.install(conf_file)
+            fs.install(conf_file, dryrun=self.options.dryrun)
         except FSRemoteError, error:
             self.__warning("Due to error, configuration update skipped on %s" \
                % error.nodes)
@@ -305,7 +307,8 @@ class Update(Command):
             for comp in actions['remove'].filter(supports='dev'):
                 tgtlist = [oldconf.get_target_from_tag_and_type(
                                  comp.tag, comp.TYPE.upper())]
-                oldconf.unregister_targets(tgtlist)
+                if not self.options.dryrun:
+                    oldconf.unregister_targets(tgtlist)
 
         #
         # NewFS
@@ -329,7 +332,8 @@ class Update(Command):
             for comp in actions['format']:
                 tgtlist = [newconf.get_target_from_tag_and_type(comp.tag,
                                                             comp.TYPE.upper())]
-                oldconf.register_targets(tgtlist)
+                if not self.options.dryrun:
+                    oldconf.register_targets(tgtlist)
 
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(neweh, 'pre'):

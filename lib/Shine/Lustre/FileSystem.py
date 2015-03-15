@@ -40,6 +40,7 @@ from Shine.Lustre.Actions.Action import ActionGroup, ACT_ERROR
 from Shine.Lustre.Actions.Proxy import FSProxyAction
 from Shine.Lustre.Actions.Install import Install
 
+from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Component import ComponentGroup
 from Shine.Lustre.Server import Server
 from Shine.Lustre.Client import Client
@@ -93,7 +94,7 @@ class FileSystem:
 
     def __init__(self, fs_name, event_handler=None):
         self.fs_name = fs_name
-        self.event_handler = event_handler
+        self.hdlr = event_handler or EventHandler()
         self.proxy_errors = MsgTree()
 
         # All FS components (MGT, MDT, OST, Clients, ...)
@@ -147,8 +148,7 @@ class FileSystem:
     def local_event(self, evtype, **params):
         # Currently, all event callbacks need a node.
         # When localy called, add the current node
-        if self.event_handler:
-            self.event_handler.local_event(evtype, **params)
+        self.hdlr.local_event(evtype, **params)
 
     def distant_event(self, evtype, node, **params):
 
@@ -176,8 +176,7 @@ class FileSystem:
                 print >> sys.stderr, "ERROR: Component update " \
                                      "failed (%s)" % str(error)
 
-        if self.event_handler:
-            self.event_handler.event_callback(evtype, node=node, **params)
+        self.hdlr.event_callback(evtype, node=node, **params)
 
     def _handle_shine_proxy_error(self, nodes, message):
         """
@@ -240,17 +239,11 @@ class FileSystem:
     # Task management.
     #
 
-    def _proxy_action(self, action, servers, comps=None, addopts=None,
-                      **kwargs):
+    def _proxy_action(self, action, servers, comps=None, **kwargs):
         """Create a proxy action to remotely run a shine action."""
-        assert(isinstance(servers, NodeSet))
-        assert(comps is None or isinstance(comps, ComponentGroup))
-
-        failover = kwargs.get('failover')
-        mountdata = kwargs.get('mountdata')
-        fanout = kwargs.get('fanout')
-        return FSProxyAction(self, action, servers, self.debug, comps, addopts,
-                             failover, mountdata, fanout)
+        assert isinstance(servers, NodeSet)
+        assert comps is None or isinstance(comps, ComponentGroup)
+        return FSProxyAction(self, action, servers, self.debug, comps, **kwargs)
 
     def _run_actions(self):
         """
@@ -339,7 +332,7 @@ class FileSystem:
             if len(err_nodes) > 0:
                 raise FSRemoteError(err_nodes, err_code, err_txt)
 
-    def install(self, fs_config_file, servers=None):
+    def install(self, fs_config_file, servers=None, **kwargs):
         """
         Install filesystem configuration file on its servers. 
         Server list is built from enabled targets and enabled clients only.
@@ -349,9 +342,9 @@ class FileSystem:
         servers = (servers or self.components.managed().allservers())
 
         self._distant_action_by_server(Install, servers,
-                                       config_file=fs_config_file)
-        
-    def remove(self, servers=None):
+                                       config_file=fs_config_file, **kwargs)
+
+    def remove(self, servers=None, **kwargs):
         """
         Remove FS config files.
         """
@@ -367,21 +360,25 @@ class FileSystem:
         # If size is different, we have a local server in the list
         if len(distant_servers) < len(servers):
             # remove local fs configuration file
-            fs_file = os.path.join(Globals().get_conf_dir(), 
+            fs_file = os.path.join(Globals().get_conf_dir(),
                                    "%s.xmf" % self.fs_name)
             if os.path.exists(fs_file):
-                result = os.remove(fs_file)
+                self.hdlr.log('detail', msg='[DEL] %s' % fs_file)
+                if kwargs.get('dryrun', False):
+                    result = 0
+                else:
+                    result = os.remove(fs_file)
 
         if len(distant_servers) > 0:
             # Perform the remove operations on all targets for these nodes.
-            self._proxy_action('remove', distant_servers).launch()
+            self._proxy_action('remove', distant_servers, **kwargs).launch()
 
         # Run local actions and FSProxyAction
         self._run_actions()
 
         if len(self.proxy_errors) > 0:
             return RUNTIME_ERROR
-        
+
         return result
 
     def _prepare(self, action, comps=None, groupby=None, reverse=False,
@@ -447,7 +444,7 @@ class FileSystem:
         if first_comps is not None and len(modules) > 0:
             modgrp = ActionGroup()
             for module in modules:
-                modgrp.add(localsrv.load_modules(modname=module))
+                modgrp.add(localsrv.load_modules(modname=module, **kwargs))
 
             # Serialize modules loading actions
             modgrp.sequential()
@@ -457,13 +454,13 @@ class FileSystem:
 
         # Apply tuning to last component group, if needed
         if tunings is not None and last_comps is not None:
-            tune = localsrv.tune(tunings, localcomps, self.fs_name)
+            tune = localsrv.tune(tunings, localcomps, self.fs_name, **kwargs)
             last_comps.parent.add(tune)
             tune.depends_on(last_comps)
 
         # Add module unloading to last component group, if needed.
         if need_unload and last_comps is not None:
-            unload = localsrv.unload_modules()
+            unload = localsrv.unload_modules(**kwargs)
             last_comps.parent.add(unload)
             unload.depends_on(last_comps)
 
@@ -583,7 +580,8 @@ class FileSystem:
         actions = ActionGroup()
         for server, srvcomps in comps.groupbyserver():
             if server.is_local():
-                actions.add(server.tune(tuning_model, srvcomps, self.fs_name))
+                actions.add(server.tune(tuning_model, srvcomps, self.fs_name,
+                                        **kwargs))
             else:
                 actions.add(self._proxy_action('tune', server.hostname,
                                                srvcomps, **kwargs))

@@ -40,12 +40,19 @@ class _TuningAction(CommonAction):
 
     NAME = "tuning"
 
-    def __init__(self, command):
+    def __init__(self, action, command):
         CommonAction.__init__(self)
+        self._tune = action
         self._command = command
+        self.dryrun = action.dryrun
 
     def _launch(self):
-        self.task.shell(self._command, handler=self)
+        self._tune._server.hdlr.log('detail',
+                                    msg='[RUN] %s' % self._command)
+        if self.dryrun:
+            self.set_status(ACT_OK)
+        else:
+            self.task.shell(self._command, handler=self)
 
 
 class Tune(ActionGroup):
@@ -53,13 +60,14 @@ class Tune(ActionGroup):
 
     NAME = "tune"
 
-    def __init__(self, srv, tuning_conf, comps, fsname):
+    def __init__(self, srv, tuning_conf, comps, fsname, **kwargs):
         ActionGroup.__init__(self)
         self._server = srv
         self._comps = comps
         self._conf = tuning_conf
         self._fsname = fsname
         self._init = False
+        self.dryrun = kwargs.get('dryrun', False)
 
     def info(self):
         """Return a ActionInfo describing this action."""
@@ -78,7 +86,7 @@ class Tune(ActionGroup):
         for tuning in tunings:
             cmds = tuning.build_tuning_command(self._fsname)
             for command in cmds:
-                self.add(_TuningAction(command))
+                self.add(_TuningAction(self, command))
 
         # Actions has been added, no need to create them again.
         self._init = True

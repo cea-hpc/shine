@@ -138,8 +138,9 @@ class Controller(object):
                           help="Run only for local components")
 
         view_grp = OptionGroup(parser, "Display options")
-        view_grp.add_option("-v", dest="verbose", action="store_const",
-                            const=2, help="enable verbose output", default=1)
+        view_grp.add_option("-v", dest="verbose", action="count",
+                            help="be verbose (could be used multiple times)",
+                            default=1)
         view_grp.add_option("-q", dest="verbose", action="store_const",
                             const=0, help="quiet output")
         view_grp.add_option("-d", dest="debug", action="store_true",
@@ -182,6 +183,8 @@ class Controller(object):
 
         parser.add_option('--fanout', dest='fanout', type='int',
                           help="fanout for parallel commands")
+        parser.add_option('--dry-run', dest='dryrun', action='store_true',
+                          help="perform a trial run with no changes made")
         parser.add_option("-o", dest="additional", metavar="OPTIONS",
                           help="additional options for final command")
         parser.add_option("-f", dest="fsnames", action="extend", metavar="NAME",

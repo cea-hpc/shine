@@ -381,7 +381,7 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', '/dev/ram0')
         tgt.full_check(mountdata=False)
         action = Format(tgt, mkfs_options={'mgt': '-m 2'})
-        jaction = JournalFormat(tgt.journal, action)
+        jaction = JournalFormat(tgt.journal)
         self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 /dev/ram0')
         self.check_cmd_format(action, '--mgs ' +
                          '"--mkfsoptions=-j -J device=/dev/ram0 -m 2" /dev/root')
@@ -778,3 +778,8 @@ class ActionsTest(unittest.TestCase):
         """test proxy with fanout"""
         action = self._create_proxy(debug=False, fanout=18)
         self.check_cmd(action, 'nosetests dummy -f action -R --fanout=18')
+
+    def test_proxy_dryrun(self):
+        """test proxy with dryrun"""
+        action = self._create_proxy(debug=False, dryrun=True)
+        self.check_cmd(action, 'nosetests dummy -f action -R --dry-run')

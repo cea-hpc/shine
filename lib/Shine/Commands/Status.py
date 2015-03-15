@@ -82,6 +82,7 @@ class Status(FSTargetLiveCommand):
 
         fs_result = fs.status(comps,
                               failover=self.options.failover,
+                              dryrun=self.options.dryrun,
                               fanout=self.options.fanout)
 
         if fs_result == RUNTIME_ERROR:

@@ -1,3 +1,6 @@
+2015-04-10 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Add dry-run option (ticket #146)
+
 2015-04-09 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Padding in ranges in model file is supported (ticket #188)
 	* Simplify tuning enforcement when starting and mounting (ticket #33)

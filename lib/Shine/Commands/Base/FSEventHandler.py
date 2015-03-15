@@ -46,6 +46,8 @@ class FSLocalEventHandler(LustreEH):
     """
 
     SUMMARY = True
+    NODE_PREFIX = False
+    DEFAULT_LEVEL = 'info'
 
     def __init__(self, command):
         LustreEH.__init__(self)
@@ -58,6 +60,17 @@ class FSLocalEventHandler(LustreEH):
     #
     # Logging methods
     #
+
+    def log(self, level, msg):
+        """Display a level-tagged message."""
+        if level == 'detail':
+            self.log_detail(msg)
+        elif level == 'verbose':
+            self.log_verbose(msg)
+        elif level == 'info':
+            self.log_info(msg)
+        else:
+            self.log_warning(msg)
 
     def log_warning(self, msg):
         """Display a warning message."""
@@ -73,14 +86,30 @@ class FSLocalEventHandler(LustreEH):
         if self.verbose > 1:
             print msg
 
+    def log_detail(self, msg):
+        """Display a 'detail' message (more than verbose).
+
+        Verbosity should be 3 or above.
+        """
+        if self.verbose > 2:
+            print msg
+
     #
     # Event handlers
     #
 
-    def action_log(self, _node, action, text, status):
+    def linefmt(self, node, text):
+        """Format an output line adding node as line header if needed."""
+        if self.NODE_PREFIX:
+            return "%s: %s" % (node, text)
+        else:
+            return str(text)
+
+    def action_log(self, node, action, text, status):
         """Display a standard message giving the status of action component."""
         status = STATUS_TO_TXT.get(status, status)
-        self.log_info("%s%s" % (text, status))
+        txt = self.linefmt(node, "%s%s" % (text, status))
+        self.log(self.DEFAULT_LEVEL, txt)
 
     def action_start(self, node, action, text):
         """Display a message when a component action is started."""
@@ -106,9 +135,12 @@ class FSLocalEventHandler(LustreEH):
         else:
             self.action_log(node, action, text, ' succeeded%s' % duration)
 
-    def action_failed(self, _node, action, text, result):
+    def action_failed(self, node, action, text, result):
         """Display a warning message when a component action failed."""
         txt = "%s failed\n>> %s" % (text, str(result))
+        # Add nodename prefix
+        txt = ''.join([self.linefmt(node, line)
+                       for line in txt.splitlines(True)])
         self.log_warning(txt)
 
     def action_timeout(self, node, action, text):
@@ -119,6 +151,14 @@ class FSLocalEventHandler(LustreEH):
 
     def event_callback(self, evtype, **kwargs):
         node = kwargs['node']
+
+        if evtype == 'log':
+            self.log(kwargs['level'], self.linefmt(node, kwargs['msg']))
+            return
+
+        assert evtype in ('server', 'comp'), \
+                    "%s not in 'server', 'comp'" % evtype
+
         info = kwargs['info']
         action = info.actname
         if evtype in ('server', 'comp'):
@@ -178,22 +218,13 @@ class FSGlobalEventHandler(FSLocalEventHandler):
     This means local and distant commands could be executed.
     """
 
+    NODE_PREFIX = True
+    DEFAULT_LEVEL = 'verbose'
+
     def __init__(self, command):
         FSLocalEventHandler.__init__(self, command)
         self._timer = None
         self.status_changed = False
-
-    def action_log(self, node, action, text, status):
-        """Display a standard message giving the status of action component."""
-        status = STATUS_TO_TXT.get(status, status)
-        self.log_verbose("%s: %s%s" % (node, text, status))
-
-    def action_failed(self, node, action, text, result):
-        txt = "%s failed\n>> %s" % (text, str(result))
-        # Add nodename prefix
-        txt = ''.join(["%s: %s" % (node, line)
-                       for line in txt.splitlines(True)])
-        self.log_warning(txt)
 
     def event_callback(self, evtype, **kwargs):
         FSLocalEventHandler.event_callback(self, evtype, **kwargs)

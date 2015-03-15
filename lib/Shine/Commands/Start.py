@@ -86,6 +86,7 @@ class Start(FSTargetLiveCommand):
                           addopts=self.options.additional,
                           failover=self.options.failover,
                           fanout=self.options.fanout,
+                          dryrun=self.options.dryrun,
                           mountdata=self.options.mountdata,
                           tunings=Tune.get_tuning(fs_conf, fs.components))
 

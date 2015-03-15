@@ -86,6 +86,7 @@ class Tunefs(FSTargetLiveCriticalCommand):
                     quota_type=fs_conf.get_quota_type(),
                     addopts=self.options.additional,
                     fanout=self.options.fanout,
+                    dryrun=self.options.dryrun,
                     failover=self.options.failover,
                     writeconf=True,
                     mountdata=self.options.mountdata)

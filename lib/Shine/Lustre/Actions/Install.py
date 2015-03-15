@@ -1,5 +1,5 @@
 # Install.py -- Install Lustre FS configuration
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -20,31 +20,54 @@
 
 import os.path
 
-from Shine.Lustre.Actions.Action import Action
+from Shine.Lustre.Actions.Action import Action, CommonAction, ACT_OK, ACT_ERROR
 
-class Install(Action):
+class Install(CommonAction):
     """
     Action class: install file configuration requirements on remote nodes.
     """
 
-    def __init__(self, nodes, fs, config_file):
-        Action.__init__(self)
+    def __init__(self, nodes, fs, config_file, **kwargs):
+        CommonAction.__init__(self)
         self.nodes = nodes
         self.fs = fs
         self.config_file = config_file
+        self.dryrun = kwargs.get('dryrun', False)
 
-    def launch(self):
-        """
-        Copy local configuration file to remote nodes.
-        """
-        self.task.copy(self.config_file, self.config_file,
-                nodes=self.nodes, handler=self)
+    def _launch(self):
+        """Copy local configuration file to remote nodes."""
+        msg = '[COPY] %s on %s' % (self.config_file, self.nodes)
+        self.fs.hdlr.log('detail', msg=msg)
+        if self.dryrun:
+            self.set_status(ACT_OK)
+        else:
+            self.task.copy(self.config_file, self.config_file,
+                           nodes=self.nodes, handler=self)
 
     def ev_start(self, worker):
-        Action.ev_start(self, worker)
+        CommonAction.ev_start(self, worker)
         name = os.path.basename(self.config_file)
         if len(self.nodes) > 8:
-            print "Updating configuration file `%s' on %d server(s)" % \
+            msg = "Updating configuration file `%s' on %d servers" % \
                                                         (name, len(self.nodes))
         else:
-            print "Updating configuration file `%s' on %s" % (name, self.nodes)
+            msg = "Updating configuration file `%s' on %s" % (name, self.nodes)
+        self.fs.hdlr.log('info', msg)
+
+    def ev_close(self, worker):
+        """
+        Check process termination status and generate appropriate events.
+        """
+        Action.ev_close(self, worker)
+
+        # Action timed out
+        if worker.did_timeout():
+            self.set_status(ACT_ERROR)
+
+        # Action succeeded
+        elif max(rc for rc, _ in worker.iter_retcodes()) == 0:
+            self.set_status(ACT_OK)
+
+        # Action failed
+        else:
+            self.set_status(ACT_ERROR)

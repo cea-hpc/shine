@@ -68,6 +68,7 @@ class Umount(FSLiveCommand):
             eh.pre(fs)
 
         status = fs.umount(addopts=self.options.additional,
+                           dryrun=self.options.dryrun,
                            fanout=self.options.fanout)
 
         rc = self.fs_status_to_rc(status)

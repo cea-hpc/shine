@@ -26,6 +26,8 @@ from Shine.Lustre.FileSystem import FSRemoteError
 from Shine.Commands.Base.Command import Command, CommandHelpException
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
 
+# Lustre events
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
 
 
 class Install(Command):
@@ -50,6 +52,8 @@ class Install(Command):
             raise CommandHelpException("Lustre model file path"
                                    "(-m <model_file>) argument required.", self)
 
+        eh = FSGlobalEventHandler(self)
+
         # Use this Shine.FSUtils convenience function.
         lmf = self.get_lmf_path()
         if lmf:
@@ -64,12 +68,15 @@ class Install(Command):
         excluded_nodes = self.options.excludes
 
         fs_conf, fs = create_lustrefs(self.get_lmf_path(),
-                event_handler=self, nodes=install_nodes, 
-                excluded=excluded_nodes)
+                                      event_handler=eh, nodes=install_nodes,
+                                      excluded=excluded_nodes)
 
         # Register the filesystem in backend
         print "Registering FS %s to backend..." % fs.fs_name
-        rc = self.register_fs(fs_conf)
+        if self.options.dryrun:
+            rc = 0
+        else:
+            rc = self.register_fs(fs_conf)
         if rc:
             print "Error: failed to register FS to backend (rc=%d)" % rc
         else:
@@ -87,11 +94,12 @@ class Install(Command):
         # all proxy methods are currently handled by it, it is more
         # convenient this way...
         try:
-            fs.install(fs_conf.get_cfg_filename()) 
+            fs.install(fs_conf.get_cfg_filename(),
+                       dryrun=self.options.dryrun)
 
             tuning_conf = Globals().get_tuning_file()
             if tuning_conf:
-                fs.install(tuning_conf)
+                fs.install(tuning_conf, dryrun=self.options.dryrun)
 
         except FSRemoteError, error:
             print "WARNING: Due to error, installation skipped on %s" \

@@ -1,5 +1,5 @@
 # Modules.py -- Load/Unload Lustre modules
-# Copyright (C) 2013 CEA
+# Copyright (C) 2013-2015 CEA
 #
 # This file is part of shine
 #
@@ -35,8 +35,9 @@ class ServerAction(CommonAction):
     At minimum, _shell() method should be overloaded.
     """
 
-    def __init__(self, srv):
+    def __init__(self, srv, **kwargs):
         CommonAction.__init__(self)
+        self.dryrun = kwargs.get('dryrun', False)
         self.server = srv
 
     def info(self):
@@ -91,7 +92,13 @@ class ServerAction(CommonAction):
         # Add the command to be scheduled
         cmdline = ' '.join(command)
 
-        self.task.shell(cmdline, handler=self)
+        self.server.hdlr.log('detail', msg='[RUN] %s' % cmdline)
+
+        if self.dryrun:
+            self.server.action_event(self, 'done')
+            self.set_status(ACT_OK)
+        else:
+            self.task.shell(cmdline, handler=self)
 
     def ev_close(self, worker):
         """
@@ -127,8 +134,8 @@ class LoadModules(ServerAction):
 
     NAME = 'load modules'
 
-    def __init__(self, srv, modname='lustre', options=None):
-        ServerAction.__init__(self, srv)
+    def __init__(self, srv, modname='lustre', options=None, **kwargs):
+        ServerAction.__init__(self, srv, **kwargs)
         self._modname = modname
         self._options = options
 

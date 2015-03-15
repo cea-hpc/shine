@@ -1,6 +1,6 @@
 # Remove.py -- File system removing commands
 # Copyright (C) 2007, 2008 BULL S.A.S
-# Copyright (C) 2009-2012 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -18,7 +18,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Shine 'remove' command classes.
@@ -34,6 +33,8 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, RUNTIME_ERROR
 
+from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
+
 
 class Remove(FSTargetLiveCriticalCommand):
     """
@@ -44,6 +45,8 @@ class Remove(FSTargetLiveCriticalCommand):
  
     NAME = "remove"
     DESCRIPTION = "Remove a previously installed file system"
+
+    GLOBAL_EH = FSGlobalEventHandler
 
     def execute(self):
 
@@ -92,7 +95,7 @@ class Remove(FSTargetLiveCriticalCommand):
 
             # Do the job now!
             print "Removing filesystem %s..." % fs.fs_name
-            if fs.remove():
+            if fs.remove(dryrun=self.options.dryrun):
                 print "WARNING: failed to remove all filesystem %s " \
                       "configuration files" % fs.fs_name
 
@@ -105,7 +108,10 @@ class Remove(FSTargetLiveCriticalCommand):
                and not self.options.indexes:
 
                 print "Unregistering FS %s from backend..." % fs.fs_name
-                retcode = self.unregister_fs(fs_conf)
+                if self.options.dryrun:
+                    retcode = 0
+                else:
+                    retcode = self.unregister_fs(fs_conf)
                 if retcode:
                     print "Error: failed to unregister FS from backend " \
                           "(rc = %d)" % retcode
@@ -115,7 +121,7 @@ class Remove(FSTargetLiveCriticalCommand):
 
         # Local mode (either -R or -L)
         else:
-            if fs.remove():
+            if fs.remove(dryrun=self.options.dryrun):
                 if self.options.local:
                     print "Error: failed to remove filesystem ```%s'' " \
                           "configuration files" % fs.fs_name

@@ -27,6 +27,7 @@ import socket
 from ClusterShell.Task import NodeSet
 
 from Shine.Lustre import ServerError
+from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Actions.Modules import LoadModules, UnloadModules
 from Shine.Lustre.Actions.Tune import Tune
 
@@ -85,7 +86,7 @@ class Server(object):
         self.hostname = NodeSet(hostname)
         self.modules = dict()
 
-        self._hdlr = hdlr
+        self.hdlr = hdlr or EventHandler()
         self._running_actions = []
 
     def __str__(self):
@@ -173,8 +174,7 @@ class Server(object):
     # Event raising methods
     #
     def local_event(self, **kwargs):
-        if self._hdlr is not None:
-            self._hdlr.local_event('server', server=self, **kwargs)
+        self.hdlr.local_event('server', **kwargs)
 
     def action_event(self, act, status, result=None):
         """Send an event."""

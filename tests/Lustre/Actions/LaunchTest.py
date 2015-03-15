@@ -18,13 +18,17 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+import os
+import copy
 import types
 import unittest
 import Utils
 
+
 from Shine.Configuration.TuningModel import TuningModel
 
 from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
+from Shine.Lustre.Actions.Install import Install
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
@@ -37,14 +41,19 @@ class CommonTestCase(unittest.TestCase):
         def __init__(self):
             EventHandler.__init__(self)
             self.evlist = dict()
+            self.msglist = []
 
         def event_callback(self, evtype, **kwargs):
-            status = kwargs.get('status')
-            action = kwargs.get('info').actname
-            self.evlist['%s_%s_%s' % (evtype, action, status)] = kwargs
+            if 'info' in kwargs:
+                status = kwargs.get('status')
+                action = kwargs.get('info').actname
+                self.evlist['%s_%s_%s' % (evtype, action, status)] = kwargs
+            elif 'msg' in kwargs:
+                self.msglist.append(kwargs['msg'])
 
         def clear(self):
             self.evlist.clear()
+            self.msglist = []
 
         def result(self, evtype, action, status, key='result'):
             evname = '%s_%s_%s' % (evtype, action, status)
@@ -57,9 +66,41 @@ class CommonTestCase(unittest.TestCase):
         self.assertEqual(evset, raisedset)
 
     def assert_info(self, evtype, action, status, elem, text):
-        info = self.eh.result(evtype, action, status, key='info')
-        self.assertEqual(info.elem, elem)
-        self.assertEqual(str(info), text)
+        if not isinstance(status, list):
+            status = [status]
+        for sta in status:
+            info = self.eh.result(evtype, action, sta, key='info')
+            self.assertEqual(info.elem, elem)
+            self.assertEqual(str(info), text)
+
+    def check_dryrun(self, act, text, evtype, action, events, elem, desc):
+        self.mock_shell(act)
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        text = '[RUN] ' + text
+        self.assertEqual(self.eh.msglist, [text])
+        self.assert_events(evtype, action, events)
+        self.assertEqual(self.eh.result(evtype, action, events[-1]), None)
+        self.assert_info(evtype, action, events, elem, desc)
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_OK)
+
+    def mock_shell(self, act):
+        def shell(task, command, **kwargs):
+            self.fail("dry-run should have prevent it")
+        new_task = copy.copy(act.task)
+        new_task.shell = types.MethodType(shell, new_task)
+        act.task = new_task
+
+    def mock_copy(self, act):
+        def fake_copy(task, command, **kwargs):
+            self.fail("dry-run should have prevent it")
+        new_task = copy.copy(act.task)
+        new_task.copy = types.MethodType(fake_copy, new_task)
+        act.task = new_task
 
     def setUp(self):
         self.eh = self.ActionEH()
@@ -156,6 +197,17 @@ class TargetActionTest(CommonTestCase):
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_ERROR)
 
+    @Utils.rootonly
+    def test_format_dryrun(self):
+        """Format in dry-run mode"""
+        act = self.tgt.format(dryrun=True)
+        text = 'mkfs.lustre --reformat --quiet "--fsname=action"' \
+               ' --mgs --device-size=204800 %s' % self.tgt.dev
+        self.check_dryrun(act, text, 'comp', 'format', ['start', 'done'],
+                          self.tgt, 'format of MGS (%s)' % self.tgt.dev)
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+
     # XXX: Add tests with Journal
 
     #
@@ -176,6 +228,16 @@ class TargetActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_fsck_dryrun(self):
+        """Fsck in dry-run mode"""
+        self.format()
+        act = self.tgt.fsck(dryrun=True)
+        text = 'e2fsck -f -C2 %s -y' % self.tgt.dev
+        self.check_dryrun(act, text, 'comp', 'fsck', ['start', 'done'],
+                          self.tgt, 'fsck of MGS (%s)' % self.tgt.dev)
+        self.assertEqual(self.tgt.state, OFFLINE)
 
     @Utils.rootonly
     def test_fsck_repairs(self):
@@ -261,6 +323,15 @@ class TargetActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
+
+    def test_execute_dryrun(self):
+        """Execute of a command in dry-run mode"""
+        act = self.tgt.execute(addopts='/bin/echo %device', mountdata='never',
+                               dryrun=True)
+        text = '/bin/echo %s' % self.tgt.dev
+        self.check_dryrun(act, text, 'comp', 'execute', ['start', 'done'],
+                          self.tgt, 'execute of MGS (%s)' % self.tgt.dev)
+        self.assertEqual(self.tgt.state, OFFLINE)
 
     def test_execute_error(self):
         """Execute a bad command fails"""
@@ -538,6 +609,17 @@ class RouterActionTest(CommonTestCase):
         self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
+    def test_start_router_dryrun(self):
+        """Start a router in dry-run mode"""
+        self.net_up('forwarding=enabled')
+        act = self.router.start(dryrun=True)
+        text = '/sbin/modprobe ptlrpc'
+        self.check_dryrun(act, text, 'comp', 'start', ['start', 'done'],
+                          self.router,
+                          'start of router on %s' % self.router.server)
+        self.assertEqual(self.router.state, OFFLINE)
+
+    @Utils.rootonly
     def test_start_router_already_done(self):
         """Start an already started router is ok"""
         self.net_up('forwarding=enabled')
@@ -584,6 +666,23 @@ class RouterActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(self.router.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_stop_router_dryrun(self):
+        """Stop a router in dryrun mode"""
+        self.net_up('forwarding=enabled')
+        # Start the router
+        self.router.start().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        # Then stop it
+        act = self.router.stop(dryrun=True)
+        text = 'lustre_rmmod'
+        self.check_dryrun(act, text, 'comp', 'stop', ['start', 'done'],
+                          self.router, 'stop of router on %s' %
+                          self.router.server)
+        self.assertEqual(self.router.state, MOUNTED)
 
     @Utils.rootonly
     def test_stop_router_already_done(self):
@@ -643,6 +742,15 @@ class ServerActionTest(CommonTestCase):
         # Status check
         self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
         self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_module_load_dryrun(self):
+        """Load lustre modules in dry-run mode"""
+        act = self.srv.load_modules(dryrun=True)
+        text = 'modprobe lustre'
+        self.check_dryrun(act, text, 'server', 'load modules',
+                          ['start', 'done'], self.srv, "load module 'lustre'")
+        self.assertEqual(sorted(self.srv.modules.keys()), [])
 
     @Utils.rootonly
     def test_module_load_custom(self):
@@ -803,6 +911,17 @@ class ClientActionTest(CommonTestCase):
         self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
+    def test_mount_client_dryrun(self):
+        """Mount a client in dry-run mode"""
+        self.start()
+        act = self.client.mount(dryrun=True)
+        text = 'mkdir -p "/mnt/lustre" && /bin/mount -t lustre ' \
+               '%s@tcp:/action /mnt/lustre' % Utils.HOSTNAME
+        self.check_dryrun(act, text, 'comp', 'mount', ['start', 'done'],
+                          self.client, 'mount of action on /mnt/lustre')
+        self.assertEqual(self.client.state, OFFLINE)
+
+    @Utils.rootonly
     def test_mount_client_already_done(self):
         """Mount a client already mounted is ok"""
         self.start()
@@ -876,6 +995,20 @@ class ClientActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(self.client.state, OFFLINE)
         self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_umount_client_dryrun(self):
+        """Umount a client in dry-run mode"""
+        self.start()
+        self.client.mount().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        act = self.client.umount(dryrun=True)
+        text = 'umount /mnt/lustre'
+        self.check_dryrun(act, text, 'comp', 'umount', ['start', 'done'],
+                          self.client, 'umount of action on /mnt/lustre')
+        self.assertEqual(self.client.state, MOUNTED)
 
     @Utils.rootonly
     def test_umount_client_already_done(self):
@@ -955,6 +1088,14 @@ class TuneActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(act.status(), ACT_OK)
 
+    def test_tune_dryrun(self):
+        """Apply tuning in dry-run mode"""
+        act = self.srv.tune(self.model, self.fs.components, 'action',
+                            dryrun=True)
+        text = 'echo 1 > /dev/null'
+        self.check_dryrun(act, text, 'server', 'tune', ['start', 'done'],
+                          self.srv, 'apply tunings')
+
     def test_tune_error(self):
         """Apply a bad tuning is correctly reported"""
         # Add  bad tuning
@@ -975,6 +1116,79 @@ class TuneActionTest(CommonTestCase):
                          "'echo 1 > /proc/cmdline' failed")
         self.assert_info('server', 'tune', 'start', self.srv, 'apply tunings')
         self.assert_info('server', 'tune', 'failed', self.srv, 'apply tunings')
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_ERROR)
+
+
+class InstallActionTest(CommonTestCase):
+
+    def setUp(self):
+        self.eh = self.ActionEH()
+        self.fs = FileSystem('action', event_handler=self.eh)
+        nid = '%s@tcp' % Utils.HOSTNAME
+        self.localname = Server(Utils.HOSTNAME, [nid], hdlr=self.eh).hostname
+        self.badnames = Server('bad[1-15]', ['bad[1-15]@tcp'],
+                               hdlr=self.eh).hostname
+
+    def test_install_ok(self):
+        """Install a simple file"""
+        tmp = Utils.makeTempFile('')
+        act = Install(self.localname, self.fs, tmp.name)
+        act.launch()
+        self.fs._run_actions()
+
+        msgs = ['[COPY] %s on %s' % (tmp.name, self.localname),
+                "Updating configuration file `%s' on %s" % \
+                 (os.path.basename(tmp.name), self.localname)]
+        self.assertEqual(self.eh.msglist, msgs)
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_OK)
+
+    def test_install_dryrun(self):
+        """Install a file in dry-run mode"""
+        tmp = Utils.makeTempFile("")
+        act = Install(self.localname, self.fs, tmp.name, dryrun=True)
+        self.mock_copy(act)
+        act.launch()
+        self.fs._run_actions()
+
+        text = '[COPY] %s on %s' % (tmp.name, self.localname)
+        self.assertEqual(self.eh.msglist[0], text)
+        self.assertEqual(len(self.eh.msglist), 1)
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_OK)
+
+    def test_install_bad_file(self):
+        """Install a non-existent file is corrected reported"""
+        act = Install(self.localname, self.fs, '/bad/file')
+        act.launch()
+        self.fs._run_actions()
+
+        text = '[COPY] /bad/file on %s' % self.localname
+        self.assertEqual(self.eh.msglist[0], text)
+        text = "Updating configuration file `file' on %s" % self.localname
+        self.assertEqual(self.eh.msglist[1], text)
+        self.assertEqual(len(self.eh.msglist), 2)
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_ERROR)
+
+    def test_install_bad_nodes(self):
+        """Install to a bad node is corrected reported"""
+        tmp = Utils.makeTempFile("")
+        act = Install(self.badnames, self.fs, tmp.name)
+        act.launch()
+        self.fs._run_actions()
+
+        text = '[COPY] %s on %s' % (tmp.name, self.badnames)
+        self.assertEqual(self.eh.msglist[0], text)
+        text = "Updating configuration file `%s' on %d servers" % \
+            (os.path.basename(tmp.name), len(self.badnames))
+        self.assertEqual(self.eh.msglist[1], text)
+        self.assertEqual(len(self.eh.msglist), 2)
 
         # Status checks
         self.assertEqual(act.status(), ACT_ERROR)

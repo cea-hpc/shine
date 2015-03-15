@@ -118,8 +118,7 @@ class FSProxyAction(CommonAction):
 
     NAME = 'proxy'
 
-    def __init__(self, fs, action, nodes, debug, comps=None, addopts=None,
-                 failover=None, mountdata=None, fanout=None):
+    def __init__(self, fs, action, nodes, debug, comps=None, **kwargs):
 
         CommonAction.__init__(self)
 
@@ -131,10 +130,10 @@ class FSProxyAction(CommonAction):
 
         self._comps = comps
 
-        self.addopts = addopts
-        self.failover = failover
-        self.mountdata = mountdata
-        self.fanout = fanout
+        self.options = {}
+        for optname in ('addopts', 'failover', 'mountdata', 'fanout',
+                        'dryrun'):
+            self.options[optname] = kwargs.get(optname)
 
         self._outputs = MsgTree()
         self._errpickle = MsgTree()
@@ -160,19 +159,22 @@ class FSProxyAction(CommonAction):
         if self._comps:
             command.append("-l %s" % self._comps.labels())
 
-        if self.addopts:
-            command.append("-o '%s'" % self.addopts)
+        if self.options['addopts']:
+            command.append("-o '%s'" % self.options['addopts'])
 
-        if self.failover:
-            command.append("-F '%s'" % self.failover)
+        if self.options['failover']:
+            command.append("-F '%s'" % self.options['failover'])
 
-        if self.fanout is not None:
-            command.append('--fanout=%d' % self.fanout)
+        if self.options['fanout'] is not None:
+            command.append('--fanout=%d' % self.options['fanout'])
+
+        if self.options['dryrun']:
+            command.append('--dry-run')
 
         # To be compatible with older clients in most cases, do not set the
         # option when it is its default value.
-        if self.mountdata is not None and self.mountdata != 'auto':
-            command.append('--mountdata=%s' % self.mountdata)
+        if self.options['mountdata'] not in (None, 'auto'):
+            command.append('--mountdata=%s' % self.options['mountdata'])
 
         return command
 
