@@ -144,21 +144,11 @@ class FileSystem:
     # file system event handling
     #
 
-    def _invoke(self, evtype, **kwargs):
-        """
-        Inform the filesystem the provided event happened.
-        If an event handler is set, the associated callback will be called.
-        """
-        # New style event handling: One global handler
-        if self.event_handler:
-            self.event_handler.event_callback(evtype, **kwargs)
-
     def local_event(self, evtype, **params):
         # Currently, all event callbacks need a node.
         # When localy called, add the current node
-        node = Server.hostname_short()
-
-        self._invoke(evtype, node=node, **params)
+        if self.event_handler:
+            self.event_handler.local_event(evtype, **params)
 
     def distant_event(self, evtype, node, **params):
 
@@ -186,7 +176,8 @@ class FileSystem:
                 print >> sys.stderr, "ERROR: Component update " \
                                      "failed (%s)" % str(error)
 
-        self._invoke(evtype, node=node, **params)
+        if self.event_handler:
+            self.event_handler.event_callback(evtype, node=node, **params)
 
     def _handle_shine_proxy_error(self, nodes, message):
         """

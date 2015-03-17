@@ -18,12 +18,34 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+__all__ = ['EventHandler']
+
+#
+# Duplicate this method here to avoid cyclic import loop with
+# Shine.Lustre.Server
+#
+import socket
+_CACHE_HOSTNAME_SHORT = None
+def hostname_short():
+    """Return cached short host name.
+
+    If not already cached, resolve and cache it.
+    """
+    global _CACHE_HOSTNAME_SHORT
+    if _CACHE_HOSTNAME_SHORT is None:
+        _CACHE_HOSTNAME_SHORT = socket.getfqdn().split('.', 1)[0]
+    return _CACHE_HOSTNAME_SHORT
+
 
 class EventHandler(object):
     """
     Base class EventHandler. Event-based applications using the Shine library
     should override this class and handle events of their choice.
     """
+
+    def local_event(self, evtype, **kwargs):
+        """Raise an event, automatically providing local node information."""
+        self.event_callback(evtype, node=hostname_short(), **kwargs)
 
     def event_callback(self, evtype, **kwargs):
         """

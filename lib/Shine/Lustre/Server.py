@@ -172,11 +172,9 @@ class Server(object):
     #
     # Event raising methods
     #
-    def _invoke(self, **kwargs):
-        """Raise an event message for this server instance"""
+    def local_event(self, **kwargs):
         if self._hdlr is not None:
-            node = Server.hostname_short()
-            self._hdlr.event_callback('server', node=node, **kwargs)
+            self._hdlr.local_event('server', server=self, **kwargs)
 
     def action_event(self, act, status, result=None):
         """Send an event."""
@@ -184,7 +182,7 @@ class Server(object):
             self._add_action(act.NAME)
         elif status in ('done', 'timeout', 'failed'):
             self._del_action(act.NAME)
-        self._invoke(info=act.info(), status=status, result=result)
+        self.local_event(info=act.info(), status=status, result=result)
 
     #
     # Actions
