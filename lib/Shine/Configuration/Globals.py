@@ -1,5 +1,5 @@
 # Globals.py -- Configuration of global parameters
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -82,8 +82,7 @@ class Globals(object):
                     default=30)
 
             # Commands
-            self.add_element('command_path',        check='path',
-                    default='/usr/lib/lustre')
+            self.add_element('command_path',        check='path')
 
             # Lustre version
             self.add_element('lustre_version',      check='string')
@@ -102,8 +101,8 @@ class Globals(object):
 
         def add_element(self, name, multiple=False, **kwargs):
             """For this class, all elements are replaced by the local
-            DefaultElement class. 
-            
+            DefaultElement class.
+
             Only for convenience."""
             self.add_custom(name, DefaultElement(**kwargs), multiple)
 
@@ -111,7 +110,7 @@ class Globals(object):
             """
             Return true if the Lustre version defined in configuration
             is smaller than the one provided.
-            If no version is speficied in configuration, it always returns 
+            If no version is speficied in configuration, it always returns
             False.
             """
             if 'lustre_version' in self:
