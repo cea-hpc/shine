@@ -80,7 +80,9 @@ class Status(FSTargetLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        fs_result = fs.status(comps, failover=self.options.failover)
+        fs_result = fs.status(comps,
+                              failover=self.options.failover,
+                              fanout=self.options.fanout)
 
         if fs_result == RUNTIME_ERROR:
             self.display_proxy_errors(fs)

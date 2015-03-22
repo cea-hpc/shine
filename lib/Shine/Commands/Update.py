@@ -133,9 +133,9 @@ class Update(Command):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
             fs.event_handler.fs_action = actiontxt
-            result = action(comps=comps)
+            result = action(comps=comps, fanout=self.options.fanout)
 
-            # Got an error if state is not the expected one. 
+            # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
             if result != expected:
                 self.display_proxy_errors(fs)
@@ -149,9 +149,9 @@ class Update(Command):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
             fs.event_handler.fs_action = actiontxt
-            result = action(comps=comps)
+            result = action(comps=comps, fanout=self.options.fanout)
 
-            # Got an error if state is not the expected one. 
+            # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
             if result not in [OFFLINE, RECOVERING, MOUNTED]:
                 self.display_proxy_errors(fs)
