@@ -22,6 +22,8 @@ import types
 import unittest
 import Utils
 
+from Shine.Configuration.TuningModel import TuningModel
+
 from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
@@ -639,6 +641,43 @@ class ServerActionTest(unittest.TestCase):
         # Status check
         self.assertEqual(self.srv.modules, {})
         self.assertEqual(act.status(), ACT_OK)
+
+
+class TuneActionTest(CommonTestCase):
+
+    def setUp(self):
+        self.fs = FileSystem('action')
+        self.srv = Server('localhost', ['localhost@tcp'])
+        self.disk = Utils.make_disk()
+        self.tgt = self.fs.new_target(self.srv, 'mgt', 0, self.disk.name)
+        self.model = TuningModel()
+        self.model.create_parameter('/dev/null', 1, node_type_list=['mgs'])
+
+    def test_tune_ok(self):
+        """Apply simple tuning is ok"""
+        # Create a working tuning
+        self.assertEqual(len(self.model.get_params_for_name(None, ['mgs'])), 1)
+
+        act = self.srv.tune(self.model, self.fs.components, 'action')
+        act.launch()
+        self.fs._run_actions()
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_OK)
+
+    def test_tune_error(self):
+        """Apply a bad tuning is correctly reported"""
+        # Add  bad tuning
+        self.model.create_parameter('/proc/modules', 1, node_type_list=['mgs'])
+        self.model.create_parameter('/proc/cmdline', 1, node_type_list=['mgs'])
+        self.assertEqual(len(self.model.get_params_for_name(None, ['mgs'])), 3)
+
+        act = self.srv.tune(self.model, self.fs.components, 'action')
+        act.launch()
+        self.fs._run_actions()
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_ERROR)
 
 
 class ProxyTest(unittest.TestCase):
