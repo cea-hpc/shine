@@ -370,6 +370,9 @@ class MultipleElement(object):
             raise ModelFileValueError("Range size mismatch %d != %d" %
                              (minsize, maxsize))
 
+        # Need striter() to build padded strings if present
+        rangesets = [list(rng.striter()) for rng in rangesets]
+
         # Generate the new lines based from the rangeset
         return (fmt % tpl for tpl in zip(*rangesets))
 

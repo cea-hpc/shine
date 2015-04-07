@@ -662,7 +662,7 @@ class ModelFileTest(unittest.TestCase):
 
     # File management tests
 
-    def testExpandRange(self):
+    def test_expand_range(self):
         """parse ranged line expand correctly"""
         model = ModelFile()
         model.add_element("foo", check="string", multiple=True)
@@ -673,6 +673,11 @@ class ModelFileTest(unittest.TestCase):
 
         model.parse("foo: mine[10-15] second[1-6]")
         self.assertEqual(len(model.get('foo')), 6)
+        del model['foo']
+
+        # Range supports padding
+        model.parse('foo: bar[01-02]')
+        self.assertEqual(model.get('foo'), ['bar01', 'bar02'])
         del model['foo']
 
         # Ranges mismatch
