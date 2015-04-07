@@ -68,7 +68,7 @@ class CommonTestCase(unittest.TestCase):
     def setUp(self):
         self.eh = self.ActionEH()
 
-class ActionsTest(CommonTestCase):
+class TargetActionTest(CommonTestCase):
 
     def format(self):
         self.tgt.format().launch()
@@ -747,6 +747,187 @@ class ServerActionTest(CommonTestCase):
         # Status check
         self.assertEqual(self.srv.modules, {})
         self.assertEqual(act.status(), ACT_OK)
+
+
+class ClientActionTest(CommonTestCase):
+
+    def start(self):
+        self.mdt.format().launch()
+        self.ost.format().launch()
+        self.mgs.format().launch()
+        self.fs._run_actions()
+        for tgt in (self.mgs, self.mdt, self.ost):
+            tgt.lustre_check()
+            tgt.start().launch()
+            self.fs._run_actions()
+        self.eh.clear()
+
+    def setUp(self):
+        nid = '%s@tcp' % Utils.HOSTNAME
+        self.eh = self.ActionEH()
+        self.fs = FileSystem('action', event_handler=self.eh)
+        srv1 = Server(Utils.HOSTNAME, [nid], hdlr=self.eh)
+        self.disk1 = Utils.make_disk()
+        self.disk2 = Utils.make_disk()
+        self.disk3 = Utils.make_disk()
+        self.mgs = self.fs.new_target(srv1, 'mgt', 0, self.disk1.name)
+        self.mdt = self.fs.new_target(srv1, 'mdt', 0, self.disk2.name)
+        self.ost = self.fs.new_target(srv1, 'ost', 0, self.disk3.name)
+        self.client = self.fs.new_client(srv1, '/mnt/lustre')
+
+    def tearDown(self):
+        # Umount client if mounted
+        self.client.umount().launch()
+        self.fs._run_actions()
+        # Stop filesystem
+        for tgt in (self.mdt, self.ost, self.mgs):
+            tgt.stop().launch()
+            self.fs._run_actions()
+
+    #
+    # Mount Client
+    #
+    @Utils.rootonly
+    def test_mount_client_ok(self):
+        """Mount a simple client"""
+        self.start()
+        act = self.client.mount()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'mount', ['start', 'done'])
+        result = self.eh.result('comp', 'mount', 'done')
+        self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'mount', 'start', self.client,
+                         'mount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_mount_client_already_done(self):
+        """Mount a client already mounted is ok"""
+        self.start()
+
+        self.client.mount().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        # Try to mount it again
+        act = self.client.mount()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'mount', ['start', 'done'])
+        result = self.eh.result('comp', 'mount', 'done')
+        self.assertEqual(result.retcode, None)
+        self.assertEqual(str(result),
+                         'action is already mounted on /mnt/lustre')
+        self.assert_info('comp', 'mount', 'start', self.client,
+                         'mount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_mount_client_failed(self):
+        """Failed mount is correctly reported"""
+        self.start()
+        act = self.client.mount()
+        def _prepare_cmd(_self):
+            # Simulate mount returns ENOENT
+            return ['exit 2']
+        act._prepare_cmd = types.MethodType(_prepare_cmd, act)
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'mount', ['start', 'failed'])
+        result = self.eh.result('comp', 'mount', 'failed')
+        self.assertEqual(result.retcode, 2)
+        self.assertEqual(str(result),
+                         'No such file or directory')
+        self.assert_info('comp', 'mount', 'failed', self.client,
+                         'mount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_ERROR)
+
+    #
+    # Unmount Client
+    #
+    @Utils.rootonly
+    def test_umount_client_ok(self):
+        """Umount a simple client"""
+        self.start()
+        self.client.mount().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        act = self.client.umount()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'umount', ['start', 'done'])
+        result = self.eh.result('comp', 'umount', 'done')
+        self.assertEqual(result.retcode, 0)
+        self.assert_info('comp', 'umount', 'start', self.client,
+                         'umount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_umount_client_already_done(self):
+        """Umount a client already unmounted is ok"""
+        # Do not start anything
+        # Try to unmount
+        act = self.client.umount()
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'umount', ['start', 'done'])
+        result = self.eh.result('comp', 'umount', 'done')
+        self.assertEqual(result.retcode, None)
+        self.assertEqual(str(result),
+                         'action is not mounted')
+        self.assert_info('comp', 'umount', 'start', self.client,
+                         'umount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, OFFLINE)
+        self.assertEqual(act.status(), ACT_OK)
+
+    @Utils.rootonly
+    def test_umount_client_failed(self):
+        """Failed umount is correctly reported"""
+        self.start()
+        self.client.mount().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
+        act = self.client.umount()
+        def _prepare_cmd(_self):
+            # Simulate umount returns ENOENT
+            return ['exit 2']
+        act._prepare_cmd = types.MethodType(_prepare_cmd, act)
+        act.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'umount', ['start', 'failed'])
+        result = self.eh.result('comp', 'umount', 'failed')
+        self.assertEqual(result.retcode, 2)
+        self.assertEqual(str(result),
+                         'No such file or directory')
+        self.assert_info('comp', 'umount', 'failed', self.client,
+                         'umount of action on /mnt/lustre')
+        # Status checks
+        self.assertEqual(self.client.state, MOUNTED)
+        self.assertEqual(act.status(), ACT_ERROR)
 
 
 class TuneActionTest(CommonTestCase):
