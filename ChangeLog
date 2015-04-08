@@ -1,3 +1,6 @@
+2015-04-08 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Display a message when load/unloading modules (ticket #182)
+
 2015-03-10 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Add --fanout command line option (ticket #175)
 	* Correct return code for failed stop and umount (ticket #186)
