@@ -20,20 +20,16 @@
 
 import types
 import unittest
-import binascii
 import Utils
 
 from Shine.Configuration.TuningModel import TuningModel
 
 from Shine.Lustre.Actions.Action import ACT_OK, ACT_ERROR
-from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.Server import Server
 from Shine.Lustre.FileSystem import FileSystem
-from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR, RUNTIME_ERROR
+from Shine.Lustre.Component import MOUNTED, OFFLINE, TARGET_ERROR
 
-from Shine.Lustre.Actions.Proxy import shine_msg_pack, SHINE_MSG_MAGIC, \
-                                       SHINE_MSG_VERSION
 
 class CommonTestCase(unittest.TestCase):
 
@@ -67,6 +63,7 @@ class CommonTestCase(unittest.TestCase):
 
     def setUp(self):
         self.eh = self.ActionEH()
+        self.fs = FileSystem('action', event_handler=self.eh)
 
 class TargetActionTest(CommonTestCase):
 
@@ -981,140 +978,3 @@ class TuneActionTest(CommonTestCase):
 
         # Status checks
         self.assertEqual(act.status(), ACT_ERROR)
-
-
-class ProxyTest(unittest.TestCase):
-
-    def setUp(self):
-        self.fs = FileSystem('proxy')
-        self.srv1 = Server(Utils.HOSTNAME, ["%s@tcp" % Utils.HOSTNAME])
-        disk = Utils.makeTempFilename()
-        self.tgt = self.fs.new_target(self.srv1, 'mgt', 0, disk)
-
-        self.act = self.fs._proxy_action('start', self.srv1.hostname,
-                                         self.fs.components)
-        self.info = StartTarget(self.tgt).info()
-        def fakeprepare(action):
-            return [action.fakecmd]
-        self.act._prepare_cmd = types.MethodType(fakeprepare, self.act)
-
-    def test_exec_fail(self):
-        """simulate unable to run python"""
-        self.act.fakecmd = '/bin/false'
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([MOUNTED], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
-                         "Remote action start failed: No response")
-        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
-        self.assertEqual(self.act.status(), ACT_ERROR)
-
-    def test_start_crash(self):
-        """send a start message then crashes"""
-        msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
-
-        self.act.fakecmd = 'echo "%s"; echo BAD; exit 1' % msg
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([MOUNTED], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
-                         "Remote action start failed: \nBAD\n")
-        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
-        self.assertEqual(self.act.status(), ACT_ERROR)
-
-    def test_start_ok(self):
-        """send a start and done message"""
-        msgs = []
-        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
-                                   status='start'))
-        self.tgt.state = MOUNTED
-        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
-                                   status='done'))
-
-        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([MOUNTED], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 0)
-        self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(self.act.status(), ACT_OK)
-
-    def test_crash_after_start_ok(self):
-        """send a start and done message and then crashes"""
-        msgs = []
-        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
-                                   status='start'))
-        self.tgt.state = MOUNTED
-        msgs.append(shine_msg_pack(evtype='comp', info=self.info,
-                                   status='done'))
-
-        self.act.fakecmd = 'echo "%s"; echo Oops; exit 1' % '\n'.join(msgs)
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([MOUNTED], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
-                         "Remote action start failed: \n\nOops\n")
-        self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(self.act.status(), ACT_ERROR)
-
-    def test_bad_object(self):
-        """send a start message which fails update due to bad property"""
-        msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
-        def buggy_update(self, other):
-            self.wrong_property = other.wrong_property
-        self.tgt.update = types.MethodType(buggy_update, self.tgt)
-
-        self.act.fakecmd = 'echo "%s"' % msg
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([OFFLINE], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
-                         "Cannot read message (check Shine and ClusterShell "
-                         "version): 'MGT' object has no attribute "
-                         "'wrong_property'")
-        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
-        self.assertEqual(self.act.status(), ACT_OK)
-
-    def test_cannot_unpickle(self):
-        """send a forged message which fails due to bad pickle content"""
-        msg = "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
-                           binascii.b2a_base64('bad content'))
-
-        self.act.fakecmd = 'echo "%s"' % msg
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([OFFLINE], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
-                         "Cannot unpickle message (check Shine and ClusterShell"
-                         " versions): pop from empty list")
-        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
-        self.assertEqual(self.act.status(), ACT_OK)
-
-    def test_compat_compname(self):
-        """message with compname value is backward compatible"""
-        msgs = []
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='start', comp=self.tgt))
-        self.tgt.state = MOUNTED
-        msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
-                                   status='done', comp=self.tgt))
-
-        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
-        self.act.launch()
-        self.fs._run_actions()
-        self.fs._check_errors([MOUNTED], self.fs.components)
-
-        self.assertEqual(len(self.fs.proxy_errors), 0)
-        self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(self.act.status(), ACT_OK)
