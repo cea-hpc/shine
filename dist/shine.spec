@@ -1,10 +1,8 @@
-%define name shine
-%define release 1%{?dist}
 
+Name: shine
 Summary: Lustre administration utility
-Name: %{name}
 Version: %{version}
-Release: %{release}
+Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.gz
 License: GPL
 Group: Development/Libraries
@@ -48,6 +46,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc %{_mandir}/man5/shine.conf.5.gz
 
 %changelog
+* Wed Apr 29 2015 <aurelien.degremont@cea.fr> - 1.4-1
+- Update to shine 1.4
+
 * Tue Mar 11 2014 <aurelien.degremont@cea.fr> - 1.3.1-1
 - Update to shine 1.3.1
 

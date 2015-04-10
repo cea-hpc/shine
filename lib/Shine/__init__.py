@@ -1,2 +1,2 @@
-public_version = "1.3.1"
-__version__ = "1.3.1"
+public_version = "1.4"
+__version__ = "1.4"
