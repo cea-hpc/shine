@@ -378,13 +378,14 @@ class ActionsTest(unittest.TestCase):
 
     def test_format_target_jdev(self):
         """test command line format (MGT with jdev and mkfsoptions)"""
-        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', '/dev/ram0')
+        jdev = Utils.config_options('noformat_jdev')
+        tgt = self.fs.new_target(self.srv1, 'mgt', 0, '/dev/root', jdev)
         tgt.full_check(mountdata=False)
         action = Format(tgt, mkfs_options={'mgt': '-m 2'})
         jaction = JournalFormat(tgt.journal)
-        self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 /dev/ram0')
-        self.check_cmd_format(action, '--mgs ' +
-                         '"--mkfsoptions=-j -J device=/dev/ram0 -m 2" /dev/root')
+        self.check_cmd(jaction, 'mke2fs -q -F -O journal_dev -b 4096 %s' % jdev)
+        self.check_cmd_format(action, '--mgs '
+                        '"--mkfsoptions=-j -J device=%s -m 2" /dev/root' % jdev)
 
     def test_format_target_mdt(self):
         """test command line format (MDT)"""

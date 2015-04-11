@@ -1,5 +1,5 @@
 # Format.py -- Lustre action class : format
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -127,11 +127,8 @@ class CommonFormat(FSAction):
                     If LNET network is not set, it is considered as '0'.
                     That means 'x@tcp' and 'x@tcp0' is considered equivalent.
                     """
-                    match = re.match(".*@([a-z0-9]+?)(\d+)?$", nid)
-                    if not match:
-                        return False
-                    else:
-                        return (match.group(1), match.group(2) or '0') == suffix
+                    mo = re.match(r'.*@([a-z0-9]+?)(\d+)?$', nid)
+                    return mo and ((mo.group(1), mo.group(2) or '0') == suffix)
                 nidlist = [nid for nid in nidlist if _same_suffix(nid)]
 
             # if there is still some matching partners, add them
