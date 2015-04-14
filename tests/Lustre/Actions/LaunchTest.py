@@ -1088,6 +1088,28 @@ class TuneActionTest(CommonTestCase):
         # Status checks
         self.assertEqual(act.status(), ACT_OK)
 
+    def test_tuning_depends_on_failed_action(self):
+        """Apply tuning depeding on a failed action does not crash"""
+        # Create a working tuning
+        self.assertEqual(len(self.model.get_params_for_name(None, ['mgs'])), 1)
+
+        act1 = self.tgt.execute(addopts='/bin/false')
+
+        act2 = self.srv.tune(self.model, self.fs.components, 'action')
+        act2.depends_on(act1)
+        act1.launch()
+        self.fs._run_actions()
+
+        # Callback checks
+        self.assert_events('comp', 'execute', ['start', 'failed'])
+        self.assert_info('comp', 'execute', 'start', self.tgt,
+                         'execute of MGS (%s)' % self.tgt.dev)
+        self.assert_info('comp', 'execute', 'failed', self.tgt,
+                         'execute of MGS (%s)' % self.tgt.dev)
+
+        # Status checks
+        self.assertEqual(act1.status(), ACT_ERROR)
+
     def test_tune_dryrun(self):
         """Apply tuning in dry-run mode"""
         act = self.srv.tune(self.model, self.fs.components, 'action',

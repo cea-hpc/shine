@@ -88,25 +88,25 @@ class Tune(ActionGroup):
             for command in cmds:
                 self.add(_TuningAction(self, command))
 
-        # Actions has been added, no need to create them again.
-        self._init = True
-
     def set_status(self, status):
         """
         Update action status.
 
         If this is a final state, raise corresponding events.
         """
-        if status == ACT_OK:
-            self._server.action_event(self, 'done')
-        elif status == ACT_ERROR:
-            # Build an error string
-            errors = []
-            for act in self:
-                if act.status() == ACT_ERROR:
-                    errors.append("'%s' failed" % act._command)
-            result = ErrorResult("\n".join(errors))
-            self._server.action_event(self, 'failed', result)
+        # Do not raise events if start event was not raised.
+        # Start event is raised when init is set.
+        if self._init:
+            if status == ACT_OK:
+                self._server.action_event(self, 'done')
+            elif status == ACT_ERROR:
+                # Build an error string
+                errors = []
+                for act in self:
+                    if act.status() == ACT_ERROR:
+                        errors.append("'%s' failed" % act._command)
+                result = ErrorResult("\n".join(errors))
+                self._server.action_event(self, 'failed', result)
 
         ActionGroup.set_status(self, status)
 
@@ -117,5 +117,6 @@ class Tune(ActionGroup):
         if not self._init:
             self._server.action_event(self, 'start')
             self._add_actions()
+            self._init = True
         # Then call the real _launch()
         ActionGroup._launch(self)

@@ -1,3 +1,6 @@
+2015-04-27 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Fix stacktrace when start/umount command failed (ticket #190)
+
 2015-04-16 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fix stacktrace with update command (ticket #189)
 
