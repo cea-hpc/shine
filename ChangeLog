@@ -1,3 +1,6 @@
+2015-04-16 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Fix stacktrace with update command (ticket #189)
+
 2015-04-10 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Add dry-run option (ticket #146)
 

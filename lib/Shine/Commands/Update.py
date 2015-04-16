@@ -132,7 +132,7 @@ class Update(Command):
         if len(comps):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
-            fs.event_handler.fs_action = actiontxt
+            fs.hdlr.fs_action = actiontxt
             result = action(comps=comps, fanout=self.options.fanout,
                             dryrun=self.options.dryrun)
 
@@ -149,7 +149,7 @@ class Update(Command):
         if len(comps):
             self.__verbose("%s components on %s ..." % (actiontxt.capitalize(),
                                                         comps.servers()))
-            fs.event_handler.fs_action = actiontxt
+            fs.hdlr.fs_action = actiontxt
             result = action(comps=comps, fanout=self.options.fanout,
                             dryrun=self.options.dryrun)
 
@@ -168,7 +168,7 @@ class Update(Command):
         if len(servers):
             self.__verbose("%s configuration from %s ..." %
                             (actiontxt.capitalize(), servers))
-            fs.event_handler.fs_action = actiontxt
+            fs.hdlr.fs_action = actiontxt
             result = action(servers, dryrun=self.options.dryrun)
 
             # Got an error if state is not the expected one.
