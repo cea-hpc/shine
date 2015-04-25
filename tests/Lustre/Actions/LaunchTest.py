@@ -65,28 +65,29 @@ class CommonTestCase(unittest.TestCase):
         raisedset = set(self.eh.evlist.keys())
         self.assertEqual(evset, raisedset)
 
-    def assert_info(self, evtype, action, status, elem, text):
-        if not isinstance(status, list):
-            status = [status]
-        for sta in status:
-            info = self.eh.result(evtype, action, sta, key='info')
-            self.assertEqual(info.elem, elem)
-            self.assertEqual(str(info), text)
-
     def check_dryrun(self, act, text, evtype, action, events, elem, desc):
         self.mock_shell(act)
+        result = self.check_base(elem, evtype, act, ACT_OK, events, desc)
+        self.assertEqual(self.eh.msglist, ['[RUN] ' + text])
+        self.assertEqual(result, None)
+
+    def check_base(self, elem, evtype, act, actstatus, events, desc):
         act.launch()
         self.fs._run_actions()
 
-        # Callback checks
-        text = '[RUN] ' + text
-        self.assertEqual(self.eh.msglist, [text])
-        self.assert_events(evtype, action, events)
-        self.assertEqual(self.eh.result(evtype, action, events[-1]), None)
-        self.assert_info(evtype, action, events, elem, desc)
-
         # Status checks
-        self.assertEqual(act.status(), ACT_OK)
+        self.assertEqual(act.status(), actstatus)
+
+        # Callback checks
+        self.assert_events(evtype, act.NAME, events)
+        if not isinstance(events, list):
+            events = [events]
+        for event in events:
+            info = self.eh.result(evtype, act.NAME, event, key='info')
+            self.assertEqual(info.elem, elem)
+            self.assertEqual(str(info), desc)
+
+        return self.eh.result(evtype, act.NAME, events[-1])
 
     def mock_shell(self, act):
         def shell(task, command, **kwargs):
@@ -113,9 +114,13 @@ class TargetActionTest(CommonTestCase):
         self.fs._run_actions()
         self.eh.clear()
 
+    def start(self):
+        self.tgt.start().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
     def setUp(self):
-        self.eh = self.ActionEH()
-        self.fs = FileSystem('action', event_handler=self.eh)
+        CommonTestCase.setUp(self)
         srv1 = Server("localhost", ["localhost@tcp"], hdlr=self.eh)
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(srv1, 'mgt', 0, self.disk.name)
@@ -134,21 +139,11 @@ class TargetActionTest(CommonTestCase):
     def test_format_ok(self):
         """Format a simple MGT"""
         act = self.tgt.format()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'format', ['start', 'done'])
-        result = self.eh.result('comp', 'format', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'format of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'format', 'start', self.tgt,
-                         'format of MGS (%s)' % self.tgt.dev)
-        self.assert_info('comp', 'format', 'done', self.tgt,
-                         'format of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_format_if_started(self):
@@ -159,30 +154,19 @@ class TargetActionTest(CommonTestCase):
         self.tgt.lustre_check = types.MethodType(check_set_online, self.tgt)
 
         act = self.tgt.format()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'format', ['start', 'failed'])
-        result = self.eh.result('comp', 'format', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'format of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, None)
-        self.assert_info('comp', 'format', 'failed', self.tgt,
-                         'format of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_format_with_error(self):
         """Format with bad options is an error"""
         act = self.tgt.format(addopts="--BAD-OPTIONS")
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'format', ['start', 'failed'])
-        result = self.eh.result('comp', 'format', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'format of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 22)
 
         # Hack for old mkfs.lustre with Lustre 1.8
@@ -190,12 +174,7 @@ class TargetActionTest(CommonTestCase):
         self.assertEqual(resultstr,
                          "mkfs.lustre: unrecognized option '--BAD-OPTIONS'\n"
                          "mkfs.lustre: exiting with 22 (Invalid argument)")
-        self.assert_info('comp', 'format', 'failed', self.tgt,
-                         'format of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_format_dryrun(self):
@@ -218,16 +197,11 @@ class TargetActionTest(CommonTestCase):
         """Fsck on a freshly formatted target is ok"""
         self.format()
         act = self.tgt.fsck()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('comp', 'fsck', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'progress', 'done'],
+                                 'fsck of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_dryrun(self):
@@ -243,67 +217,47 @@ class TargetActionTest(CommonTestCase):
     def test_fsck_repairs(self):
         """Fsck repairs a corruption"""
         self.format()
+
         # Corrupt FS
         self.disk.seek(1024)
         self.disk.write('\0' * 1024)
         self.disk.flush()
-        act = self.tgt.fsck()
-        act.launch()
-        self.fs._run_actions()
 
-        # Callback checks
-        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('comp', 'fsck', 'done')
+        act = self.tgt.fsck()
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'progress', 'done'],
+                                 'fsck of MGS (%s)' % self.tgt.dev)
         self.assertEqual(str(result), "Errors corrected")
         self.assertEqual(result.retcode, 1)
-        self.assert_info('comp', 'fsck', 'done', self.tgt,
-                         'fsck of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_no_repair(self):
         """Fsck detects but does not repair a corruption with -n"""
         self.format()
+
         # Corrupt FS
         self.disk.seek(1024)
         self.disk.write('\0' * 1024)
         self.disk.flush()
-        act = self.tgt.fsck(addopts='-n')
-        act.launch()
-        self.fs._run_actions()
 
-        # Callback checks
-        self.assert_events('comp', 'fsck', ['start', 'progress', 'done'])
-        result = self.eh.result('comp', 'fsck', 'done')
+        act = self.tgt.fsck(addopts='-n')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'progress', 'done'],
+                                 'fsck of MGS (%s)' % self.tgt.dev)
         self.assertEqual(str(result), "Errors found but NOT corrected")
         self.assertEqual(result.retcode, 4)
-        self.assert_info('comp', 'fsck', 'done', self.tgt,
-                         'fsck of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_fsck_with_error(self):
         """Fsck on an unformated device fails"""
         act = self.tgt.fsck()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'fsck', ['start', 'failed'])
-        result = self.eh.result('comp', 'fsck', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'fsck of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 8)
-        self.assert_info('comp', 'fsck', 'start', self.tgt,
-                         'fsck of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Execute
@@ -311,18 +265,11 @@ class TargetActionTest(CommonTestCase):
     def test_execute_ok(self):
         """Execute of a simple command is ok"""
         act = self.tgt.execute(addopts='/bin/echo %device', mountdata='never')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'execute', ['start', 'done'])
-        result = self.eh.result('comp', 'execute', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'execute of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'execute', 'done', self.tgt,
-                         'execute of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     def test_execute_dryrun(self):
         """Execute of a command in dry-run mode"""
@@ -336,34 +283,21 @@ class TargetActionTest(CommonTestCase):
     def test_execute_error(self):
         """Execute a bad command fails"""
         act = self.tgt.execute(addopts='/bin/false', mountdata='never')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'execute', ['start', 'failed'])
-        result = self.eh.result('comp', 'execute', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'execute of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 1)
-        self.assert_info('comp', 'execute', 'failed', self.tgt,
-                         'execute of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_execute_check_mountdata(self):
         """Execute a command with mountdata check"""
         self.format()
         act = self.tgt.execute(addopts="ls %device", mountdata='always')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'execute', ['start', 'done'])
-        result = self.eh.result('comp', 'execute', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'execute of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'execute', 'start', self.tgt,
-                         'execute of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
 
     #
@@ -374,35 +308,21 @@ class TargetActionTest(CommonTestCase):
         """Status on a simple target"""
         self.format()
         act = self.tgt.status()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'status', ['start', 'done'])
-        result = self.eh.result('comp', 'status', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'status of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result, None)
-        self.assert_info('comp', 'status', 'start', self.tgt,
-                         'status of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     def test_status_error(self):
         """Status on a not-formated target fails"""
         act = self.tgt.status()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'status', ['start', 'failed'])
-        result = self.eh.result('comp', 'status', 'failed')
-        self.assertEqual(result.retcode, None)
-        self.assert_info('comp', 'status', 'failed', self.tgt,
-                         'status of MGS (%s)' % self.tgt.dev)
-        # Status checks
-        self.assertEqual(self.tgt.state, TARGET_ERROR)
         # XXX: Should we set an error even if job was done correctly?
-        self.assertEqual(act.status(), ACT_ERROR)
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'status of MGS (%s)' % self.tgt.dev)
+        self.assertEqual(result.retcode, None)
+        self.assertEqual(self.tgt.state, TARGET_ERROR)
 
     #
     # Start Target
@@ -412,18 +332,11 @@ class TargetActionTest(CommonTestCase):
         """Start a simple target"""
         self.format()
         act = self.tgt.start()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'start', ['start', 'done'])
-        result = self.eh.result('comp', 'start', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'start of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'start', 'start', self.tgt,
-                         'start of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_start_already_done(self):
@@ -434,32 +347,22 @@ class TargetActionTest(CommonTestCase):
             return True
         self.tgt.is_started = types.MethodType(is_started, self.tgt)
         act = self.tgt.start()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'start', ['start', 'done'])
-        result = self.eh.result('comp', 'start', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'start of MGS (%s)' % self.tgt.dev)
         self.assertEqual(str(result), "MGS is already started")
         self.assertEqual(result.retcode, None)
-        # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_start_error(self):
         """Start an non-formated target fails"""
         act = self.tgt.start()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'start', ['start', 'failed'])
-        result = self.eh.result('comp', 'start', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'start of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, None)
-        # Status checks
         self.assertEqual(self.tgt.state, TARGET_ERROR)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Stop Target
@@ -469,65 +372,43 @@ class TargetActionTest(CommonTestCase):
         """Stop a simple target"""
         self.format()
         # Start the target, to be able to unmount it after
-        act = self.tgt.start()
-        act.launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.start()
 
         act = self.tgt.stop()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'stop', ['start', 'done'])
-        result = self.eh.result('comp', 'stop', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'stop of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'stop', 'start', self.tgt,
-                         'stop of MGS (%s)' % self.tgt.dev)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_stop_already_done(self):
         """Stop an already stopped target fails"""
         self.format()
         act = self.tgt.stop()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'stop', ['start', 'done'])
-        result = self.eh.result('comp', 'stop', 'done')
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'stop of MGS (%s)' % self.tgt.dev)
         self.assertEqual(str(result), "MGS is already stopped")
         self.assertEqual(result.retcode, None)
-        # Status checks
         self.assertEqual(self.tgt.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_stop_error(self):
         """Stop target failure is an error"""
         self.format()
         # Start the target, to be able to unmount it after
-        self.tgt.start().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.start()
 
         act = self.tgt.stop()
         def _prepare_cmd(_self):
             return ["/bin/false"]
         act._prepare_cmd = types.MethodType(_prepare_cmd, act)
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'stop', ['start', 'failed'])
-        result = self.eh.result('comp', 'stop', 'failed')
+        result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'stop of MGS (%s)' % self.tgt.dev)
         self.assertEqual(result.retcode, 1)
-        # Status checks
         self.assertEqual(self.tgt.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Server test (special)
@@ -539,29 +420,19 @@ class TargetActionTest(CommonTestCase):
         """Unloading module with a started MGS is not considered as an error"""
         self.format()
         # Start the target, to set module busy
-        self.tgt.start().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.start()
 
         srv = self.tgt.server
         act = srv.unload_modules()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', 'unload modules', ['start', 'done'])
-        result = self.eh.result('server', 'unload modules', 'done')
+        result = self.check_base(srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'unload modules')
         # Hack for Lustre < 2.4
         resultstr = str(result).replace('2 in-use', '3 in-use')
         self.assertEqual(resultstr,
                          'ignoring, still 3 in-use lustre device(s)')
-        self.assert_info('server', 'unload modules', 'start', srv,
-                         'unload modules')
-
-        # Status check
-        self.assertTrue(set(['ldiskfs', 'libcfs', 'lustre']).issubset(
-                        set(srv.modules.keys())))
-        self.assertEqual(act.status(), ACT_OK)
+        self.assertTrue(set(['ldiskfs', 'libcfs',
+                             'lustre']).issubset(set(srv.modules.keys())))
 
 
 class RouterActionTest(CommonTestCase):
@@ -572,8 +443,7 @@ class RouterActionTest(CommonTestCase):
         self.eh.clear()
 
     def setUp(self):
-        self.eh = self.ActionEH()
-        self.fs = FileSystem('action', event_handler=self.eh)
+        CommonTestCase.setUp(self)
         self.srv1 = Server("localhost", ["localhost@tcp"])
         self.router = self.fs.new_router(self.srv1)
         self.srv1.unload_modules().launch()
@@ -595,18 +465,11 @@ class RouterActionTest(CommonTestCase):
         """Start a stopped router is ok"""
         self.net_up('forwarding=enabled')
         act = self.router.start()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'start', ['start', 'done'])
-        result = self.eh.result('comp', 'start', 'done')
+        result = self.check_base(self.router, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'start of router on %s' % self.router.server)
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'start', 'start', self.router,
-                         'start of router on %s' % self.router.server)
-        # Status checks
         self.assertEqual(self.router.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_start_router_dryrun(self):
@@ -630,17 +493,12 @@ class RouterActionTest(CommonTestCase):
 
         # Then try to restart it
         act = self.router.start()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'start', ['start', 'done'])
-        result = self.eh.result('comp', 'start', 'done')
+        result = self.check_base(self.router, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'start of router on %s' % self.router.server)
         self.assertEqual(str(result), "router is already enabled")
         self.assertEqual(result.retcode, None)
-        # Status checks
         self.assertEqual(self.router.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     #
     # Stop Router
@@ -656,16 +514,11 @@ class RouterActionTest(CommonTestCase):
 
         # Then stop it
         act = self.router.stop()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'stop', ['start', 'done'])
-        result = self.eh.result('comp', 'stop', 'done')
+        result = self.check_base(self.router, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'stop of router on %s' % self.router.server)
         self.assertEqual(result.retcode, 0)
-        # Status checks
         self.assertEqual(self.router.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_stop_router_dryrun(self):
@@ -689,17 +542,12 @@ class RouterActionTest(CommonTestCase):
         """Stop an already stopped router fails"""
         self.net_up('forwarding=enabled')
         act = self.router.stop()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'stop', ['start', 'done'])
-        result = self.eh.result('comp', 'stop', 'done')
+        result = self.check_base(self.router, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'stop of router on %s' % self.router.server)
         self.assertEqual(str(result), "router is already disabled")
         self.assertEqual(result.retcode, None)
-        # Status checks
         self.assertEqual(self.router.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
 
 class ServerActionTest(CommonTestCase):
@@ -713,9 +561,8 @@ class ServerActionTest(CommonTestCase):
             self.eh.clear()
 
     def setUp(self):
-        self.eh = self.ActionEH()
+        CommonTestCase.setUp(self)
         self.srv = Server('localhost', ['127.0.0.1@lo'], hdlr=self.eh)
-        self.fs = FileSystem('srvaction')
         self._clean_modules()
 
     def tearDown(self):
@@ -729,19 +576,11 @@ class ServerActionTest(CommonTestCase):
     def test_module_load(self):
         """Load lustre modules is ok"""
         act = self.srv.load_modules()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', "load modules", ['start', 'done'])
-        result = self.eh.result('server', "load modules", 'done')
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 "load module 'lustre'")
         self.assertEqual(result.retcode, 0)
-        self.assert_info('server', 'load modules', 'start', self.srv,
-                         "load module 'lustre'")
-
-        # Status check
         self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_module_load_dryrun(self):
@@ -756,37 +595,20 @@ class ServerActionTest(CommonTestCase):
     def test_module_load_custom(self):
         """Load a custom module is ok"""
         act = self.srv.load_modules(modname='ldiskfs')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', "load modules", ['start', 'done'])
-        result = self.eh.result('server', "load modules", 'done')
-        self.assertEqual(result.retcode, 0)
-        self.assert_info('server', 'load modules', 'done', self.srv,
-                         "load module 'ldiskfs'")
-
-        # Status check
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 "load module 'ldiskfs'")
         self.assertEqual(self.srv.modules.keys(), ['ldiskfs'])
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_module_load_error(self):
         """Load a bad module is an error"""
         act = self.srv.load_modules(modname='ERROR')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', "load modules", ['start', 'failed'])
-        result = self.eh.result('server', "load modules", 'failed')
+        result = self.check_base(self.srv, 'server', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 "load module 'ERROR'")
         self.assertEqual(result.retcode, 1)
-        self.assert_info('server', 'load modules', 'failed', self.srv,
-                         "load module 'ERROR'")
-
-        # Status check
         self.assertEqual(self.srv.modules, {})
-        self.assertEqual(act.status(), ACT_ERROR)
 
     @Utils.rootonly
     def test_module_load_already_done(self):
@@ -795,20 +617,12 @@ class ServerActionTest(CommonTestCase):
             self.modules = {'lustre': 0, 'libcfs': 1}
         self.srv.lustre_check = types.MethodType(lustre_check, self.srv)
         act = self.srv.load_modules()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', "load modules", ['start', 'done'])
-        result = self.eh.result('server', "load modules", 'done')
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 "load module 'lustre'")
         self.assertEqual(str(result), "'lustre' is already loaded")
         self.assertEqual(result.retcode, None)
-        self.assert_info('server', 'load modules', 'start', self.srv,
-                         "load module 'lustre'")
-
-        # Status check
         self.assertEqual(sorted(self.srv.modules.keys()), ['libcfs', 'lustre'])
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_module_unload(self):
@@ -819,39 +633,23 @@ class ServerActionTest(CommonTestCase):
         self.eh.clear()
 
         act = self.srv.unload_modules()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', 'unload modules', ['start', 'done'])
-        result = self.eh.result('server', 'unload modules', 'done')
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'unload modules')
         self.assertEqual(result.retcode, 0)
-        self.assert_info('server', 'unload modules', 'start', self.srv,
-                         'unload modules')
-
-        # Status check
         self.assertEqual(self.srv.modules, {})
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_module_unload_already_done(self):
         """Unload modules when already done is ok"""
         # By default modules are not loaded
         act = self.srv.unload_modules()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', 'unload modules', ['start', 'done'])
-        result = self.eh.result('server', 'unload modules', 'done')
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'unload modules')
         self.assertEqual(str(result), 'modules already unloaded')
         self.assertEqual(result.retcode, None)
-        self.assert_info('server', 'unload modules', 'done', self.srv,
-                         'unload modules')
-
-        # Status check
         self.assertEqual(self.srv.modules, {})
-        self.assertEqual(act.status(), ACT_OK)
 
 
 class ClientActionTest(CommonTestCase):
@@ -867,10 +665,14 @@ class ClientActionTest(CommonTestCase):
             self.fs._run_actions()
         self.eh.clear()
 
+    def mount(self):
+        self.client.mount().launch()
+        self.fs._run_actions()
+        self.eh.clear()
+
     def setUp(self):
+        CommonTestCase.setUp(self)
         nid = '%s@tcp' % Utils.HOSTNAME
-        self.eh = self.ActionEH()
-        self.fs = FileSystem('action', event_handler=self.eh)
         srv1 = Server(Utils.HOSTNAME, [nid], hdlr=self.eh)
         self.disk1 = Utils.make_disk()
         self.disk2 = Utils.make_disk()
@@ -897,18 +699,11 @@ class ClientActionTest(CommonTestCase):
         """Mount a simple client"""
         self.start()
         act = self.client.mount()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'mount', ['start', 'done'])
-        result = self.eh.result('comp', 'mount', 'done')
+        result = self.check_base(self.client, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'mount of action on /mnt/lustre')
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'mount', 'start', self.client,
-                         'mount of action on /mnt/lustre')
-        # Status checks
         self.assertEqual(self.client.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_mount_client_dryrun(self):
@@ -925,27 +720,17 @@ class ClientActionTest(CommonTestCase):
     def test_mount_client_already_done(self):
         """Mount a client already mounted is ok"""
         self.start()
-
-        self.client.mount().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.mount()
 
         # Try to mount it again
         act = self.client.mount()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'mount', ['start', 'done'])
-        result = self.eh.result('comp', 'mount', 'done')
+        result = self.check_base(self.client, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'mount of action on /mnt/lustre')
         self.assertEqual(result.retcode, None)
         self.assertEqual(str(result),
                          'action is already mounted on /mnt/lustre')
-        self.assert_info('comp', 'mount', 'start', self.client,
-                         'mount of action on /mnt/lustre')
-        # Status checks
         self.assertEqual(self.client.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_mount_client_failed(self):
@@ -956,20 +741,12 @@ class ClientActionTest(CommonTestCase):
             # Simulate mount returns ENOENT
             return ['exit 2']
         act._prepare_cmd = types.MethodType(_prepare_cmd, act)
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'mount', ['start', 'failed'])
-        result = self.eh.result('comp', 'mount', 'failed')
+        result = self.check_base(self.client, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'mount of action on /mnt/lustre')
         self.assertEqual(result.retcode, 2)
-        self.assertEqual(str(result),
-                         'No such file or directory')
-        self.assert_info('comp', 'mount', 'failed', self.client,
-                         'mount of action on /mnt/lustre')
-        # Status checks
+        self.assertEqual(str(result), 'No such file or directory')
         self.assertEqual(self.client.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_ERROR)
 
     #
     # Unmount Client
@@ -978,31 +755,20 @@ class ClientActionTest(CommonTestCase):
     def test_umount_client_ok(self):
         """Umount a simple client"""
         self.start()
-        self.client.mount().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.mount()
 
         act = self.client.umount()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'umount', ['start', 'done'])
-        result = self.eh.result('comp', 'umount', 'done')
+        result = self.check_base(self.client, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'umount of action on /mnt/lustre')
         self.assertEqual(result.retcode, 0)
-        self.assert_info('comp', 'umount', 'start', self.client,
-                         'umount of action on /mnt/lustre')
-        # Status checks
         self.assertEqual(self.client.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_umount_client_dryrun(self):
         """Umount a client in dry-run mode"""
         self.start()
-        self.client.mount().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.mount()
 
         act = self.client.umount(dryrun=True)
         text = 'umount /mnt/lustre'
@@ -1016,55 +782,36 @@ class ClientActionTest(CommonTestCase):
         # Do not start anything
         # Try to unmount
         act = self.client.umount()
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'umount', ['start', 'done'])
-        result = self.eh.result('comp', 'umount', 'done')
+        result = self.check_base(self.client, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'umount of action on /mnt/lustre')
         self.assertEqual(result.retcode, None)
-        self.assertEqual(str(result),
-                         'action is not mounted')
-        self.assert_info('comp', 'umount', 'start', self.client,
-                         'umount of action on /mnt/lustre')
-        # Status checks
+        self.assertEqual(str(result), 'action is not mounted')
         self.assertEqual(self.client.state, OFFLINE)
-        self.assertEqual(act.status(), ACT_OK)
 
     @Utils.rootonly
     def test_umount_client_failed(self):
         """Failed umount is correctly reported"""
         self.start()
-        self.client.mount().launch()
-        self.fs._run_actions()
-        self.eh.clear()
+        self.mount()
 
         act = self.client.umount()
         def _prepare_cmd(_self):
             # Simulate umount returns ENOENT
             return ['exit 2']
         act._prepare_cmd = types.MethodType(_prepare_cmd, act)
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'umount', ['start', 'failed'])
-        result = self.eh.result('comp', 'umount', 'failed')
+        result = self.check_base(self.client, 'comp', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'umount of action on /mnt/lustre')
         self.assertEqual(result.retcode, 2)
-        self.assertEqual(str(result),
-                         'No such file or directory')
-        self.assert_info('comp', 'umount', 'failed', self.client,
-                         'umount of action on /mnt/lustre')
-        # Status checks
+        self.assertEqual(str(result), 'No such file or directory')
         self.assertEqual(self.client.state, MOUNTED)
-        self.assertEqual(act.status(), ACT_ERROR)
 
 
 class TuneActionTest(CommonTestCase):
 
     def setUp(self):
-        self.eh = self.ActionEH()
-        self.fs = FileSystem('action', event_handler=self.eh)
+        CommonTestCase.setUp(self)
         self.srv = Server('localhost', ['localhost@tcp'], hdlr=self.eh)
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(self.srv, 'mgt', 0, self.disk.name)
@@ -1077,16 +824,9 @@ class TuneActionTest(CommonTestCase):
         self.assertEqual(len(self.model.get_params_for_name(None, ['mgs'])), 1)
 
         act = self.srv.tune(self.model, self.fs.components, 'action')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', 'tune', ['start', 'done'])
-        self.assert_info('server', 'tune', 'start', self.srv, 'apply tunings')
-        self.assert_info('server', 'tune', 'done', self.srv, 'apply tunings')
-
-        # Status checks
-        self.assertEqual(act.status(), ACT_OK)
+        result = self.check_base(self.srv, 'server', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'apply tunings')
 
     def test_tuning_depends_on_failed_action(self):
         """Apply tuning depeding on a failed action does not crash"""
@@ -1097,18 +837,9 @@ class TuneActionTest(CommonTestCase):
 
         act2 = self.srv.tune(self.model, self.fs.components, 'action')
         act2.depends_on(act1)
-        act1.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('comp', 'execute', ['start', 'failed'])
-        self.assert_info('comp', 'execute', 'start', self.tgt,
-                         'execute of MGS (%s)' % self.tgt.dev)
-        self.assert_info('comp', 'execute', 'failed', self.tgt,
-                         'execute of MGS (%s)' % self.tgt.dev)
-
-        # Status checks
-        self.assertEqual(act1.status(), ACT_ERROR)
+        result = self.check_base(self.tgt, 'comp', act1, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'execute of MGS (%s)' % self.tgt.dev)
 
     def test_tune_dryrun(self):
         """Apply tuning in dry-run mode"""
@@ -1126,28 +857,19 @@ class TuneActionTest(CommonTestCase):
         self.assertEqual(len(self.model.get_params_for_name(None, ['mgs'])), 3)
 
         act = self.srv.tune(self.model, self.fs.components, 'action')
-        act.launch()
-        self.fs._run_actions()
-
-        # Callback checks
-        self.assert_events('server', 'tune', ['start', 'failed'])
-        result = self.eh.result('server', 'tune', 'failed')
+        result = self.check_base(self.srv, 'server', act, ACT_ERROR,
+                                 ['start', 'failed'],
+                                 'apply tunings')
         self.assertEqual(result.retcode, None)
         self.assertEqual(str(result),
                          "'echo 1 > /proc/modules' failed\n"
                          "'echo 1 > /proc/cmdline' failed")
-        self.assert_info('server', 'tune', 'start', self.srv, 'apply tunings')
-        self.assert_info('server', 'tune', 'failed', self.srv, 'apply tunings')
-
-        # Status checks
-        self.assertEqual(act.status(), ACT_ERROR)
 
 
 class InstallActionTest(CommonTestCase):
 
     def setUp(self):
-        self.eh = self.ActionEH()
-        self.fs = FileSystem('action', event_handler=self.eh)
+        CommonTestCase.setUp(self)
         nid = '%s@tcp' % Utils.HOSTNAME
         self.localname = Server(Utils.HOSTNAME, [nid], hdlr=self.eh).hostname
         self.badnames = Server('bad[1-15]', ['bad[1-15]@tcp'],
