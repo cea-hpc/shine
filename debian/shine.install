@@ -1,0 +1,5 @@
+conf/*.conf etc/shine
+debian/shine.yaml /usr/share/vim/registry
+doc/extras/vim/ftdetect/shine.vim /usr/share/vim/addons/ftdetect
+doc/extras/vim/syntax/shine.vim /usr/share/vim/addons/syntax
+doc/extras/vim/syntax/shinefs.vim /usr/share/vim/addons/syntax

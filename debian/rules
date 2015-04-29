@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+export SHINEVERSION=$(VERSION)
+
+override_dh_auto_install:
+	dh_auto_install
+	rm -rf debian/shine/usr/share/vim/vim70/
+	rm -rf debian/shine/usr/share/shine/
+	rm -f  debian/shine/var/cache/shine/conf/README
+
+override_dh_installdocs:
+	dh_installdocs
+	mv debian/shine/usr/share/doc/shine/ChangeLog debian/shine/usr/share/doc/shine/changelog
+
+%:
+	dh $@ --with python2 --buildsystem=python_distutils

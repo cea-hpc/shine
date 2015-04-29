@@ -1,0 +1,9 @@
+# Configuration for the Lustre shine mounting script
+
+# Should shine be enabled?
+#ENABLED=1
+
+# Filesystems to start/stop.
+# If empty, all configured filesystems are started/stopped. They can be seen
+# with `shine show fs -v`.
+#FSLIST=ptmp,testfs

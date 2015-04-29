@@ -1,0 +1,17 @@
+Source: shine
+Section: admin
+Priority: optional
+Maintainer: Arnaud Guignard <arnaud.guignard@cea.fr>
+Build-Depends: debhelper (>= 9),python (>= 2.6.6-3), python-setuptools (>= 0.6)
+X-Python-Version: >= 2.4
+Standards-Version: 3.9.5
+Vcs-Git: http://git.code.sf.net/p/lustre-shine/git
+Vcs-Browser: http://sourceforge.net/p/lustre-shine/git/ci/master/tree/
+
+Package: shine
+Architecture: all
+Depends:  ${python:Depends}, ${misc:Depends}, clustershell
+Recommends: vim-addon-manager
+Description: Lustre file system administration utility
+ Command line tools designed to setup and manage a Lustre file system on a 
+ cluster.

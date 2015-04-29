@@ -1,0 +1,92 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          shine
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Lustre shine mounting
+# Description:       This script mounts the Lustre filesystems with shine.
+### END INIT INFO
+
+# Author: Arnaud Guignard <arnaud.guignard@cea.fr>
+
+# Do NOT "set -e"
+
+# PATH should only include /usr/* if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=shine
+DAEMON=/usr/sbin/$NAME
+SCRIPTNAME=/etc/init.d/$NAME
+LOCKFILE=/var/lock/subsys/$NAME
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+ENABLED=0
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+test "$ENABLED" != "0" || exit 0
+
+. /lib/lsb/init-functions
+
+do_start()
+{
+	$DAEMON mount -L -q ${FSLIST:+-f $FSLIST}
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && touch $LOCKFILE
+	return $RETVAL
+}
+
+do_stop()
+{
+	$DAEMON umount -L -q ${FSLIST:+-f $FSLIST}
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+	return $RETVAL
+}
+
+do_status()
+{
+	$DAEMON status -L ${FSLIST:+-f $FSLIST}
+}
+
+case "$1" in
+  start)
+	log_begin_msg "Starting $NAME:"
+	do_start
+	log_end_msg $?
+	;;
+  stop)
+	log_begin_msg "Stopping $NAME:"
+	do_stop
+	log_end_msg $?
+	;;
+  status)
+	do_status
+	;;
+  restart|force-reload)
+	log_daemon_msg "Restarting $NAME:"
+	do_stop
+	case "$?" in
+	  0)
+		do_start
+		case "$?" in
+			0) log_end_msg 0 ;;
+			*) log_end_msg 1 ;; # Failed to start
+		esac
+		;;
+	  *)
+		# Failed to stop
+		log_end_msg 1
+		;;
+	esac
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+	exit 3
+	;;
+esac
+
+:
