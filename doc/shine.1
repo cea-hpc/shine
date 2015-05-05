@@ -457,6 +457,30 @@ If multiple targets (of possibly multiple filesystems) are concerned by the scop
 .TP
 .B # pydoc Shine.Commands.Base.CommandRCDefs
 .UNINDENT
+.SH OUTPUT
+.INDENT 0.0
+Most of Shine commands display a summary table after running requested action.
+.
+.TP
+.B Status column
+.
+.UNINDENT
+A '*' (star) character could be displayed after a target status, only for target with HA nodes.
+It means the status is partial and errors were reported for this component on other nodes.
+
+    # shine status -f scratch
+    puma3: Status of scratch-OST0000 (/dev/mapper/ost1) failed
+    puma3: >> [Errno 2] No such file or directory: '/dev/mapper/ost1'
+    = FILESYSTEM STATUS (scratch) =
+    TYPE # STATUS   NODES
+    ---- - -------  -----
+    ROU  1 online   puma4
+    MGT  1 online   puma1
+    MDT  1 online   puma1
+    OST  1 online*  puma2
+    OST  1 online   puma2
+
+.UNINDENT
 .SH EXAMPLES
 .INDENT 0.0
 .TP
