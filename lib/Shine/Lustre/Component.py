@@ -34,6 +34,7 @@ CLIENT_ERROR = 5
 TARGET_ERROR = 6
 RUNTIME_ERROR = 7
 INACTIVE = 8
+MIGRATED = 9
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
@@ -228,6 +229,10 @@ class Component(object):
     def execute(self, **kwargs):
         """Exec a custom command."""
         return Execute(self, **kwargs)
+
+
+    def set_server(self):
+        pass
 
 
 class ComponentGroup(object):
