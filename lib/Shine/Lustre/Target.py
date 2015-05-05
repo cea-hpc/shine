@@ -30,8 +30,11 @@ from Shine.Lustre.Actions.Fsck import Fsck
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
-                                   TARGET_ERROR, RUNTIME_ERROR, INACTIVE
+                                   TARGET_ERROR, RUNTIME_ERROR, INACTIVE, \
+                                   MIGRATED
 from Shine.Lustre.Server import Server, ServerGroup
+from operator import itemgetter
+from itertools import groupby
 
 
 class Target(Component, Disk):
@@ -49,7 +52,8 @@ class Target(Component, Disk):
         TARGET_ERROR:  "ERROR", 
         MOUNTED:       "online", 
         RUNTIME_ERROR: "CHECK FAILURE",
-        INACTIVE:      "inactive"
+        INACTIVE:      "inactive",
+        MIGRATED:      "migrated"
     }
 
     def __init__(self, fs, server, index, dev, jdev=None, group=None,
@@ -59,6 +63,7 @@ class Target(Component, Disk):
         Initialize a Lustre target object.
         """
         Disk.__init__(self, dev)
+        self._states = {}
         Component.__init__(self, fs, server, enabled, mode, active)
 
         self.defaultserver = server      # Default server the target runs on
@@ -104,21 +109,84 @@ class Target(Component, Disk):
         # add_server() is called.
         return self.label
 
+    def get_state(self):
+        """
+        Compute target global state based on remote nodes results.
+        """
+        # Group target's remote nodes statuses by state.
+        sdict = {}
+        sorted_states = sorted(self._states.iteritems(), key=itemgetter(1))
+        for state, nodes in groupby(sorted_states, key=itemgetter(1)):
+            sdict[state] = map(itemgetter(0), nodes)
+
+        if None in sdict and (len(sdict[None]) == len(self.allservers())):
+            return None
+
+        elif INACTIVE in sdict:
+            return INACTIVE
+
+        elif MOUNTED in sdict:
+            if len(sdict[MOUNTED]) > 1 or RECOVERING in sdict:
+                return TARGET_ERROR
+            elif self.defaultserver in sdict[MOUNTED]:
+                return MOUNTED
+            else:
+                return MIGRATED
+
+        elif RECOVERING in sdict:
+            if len(sdict[RECOVERING]) > 1 or MOUNTED in sdict:
+                return TARGET_ERROR
+            else:
+                return RECOVERING
+
+        elif OFFLINE in sdict:
+            return OFFLINE
+
+        elif TARGET_ERROR in sdict:
+            return TARGET_ERROR
+
+        elif RUNTIME_ERROR in sdict:
+            return RUNTIME_ERROR
+
+    def set_state(self, value):
+        self._states[self.server] = value
+
+    state = property(get_state, set_state)
+
+    def get_local_state(self):
+        return self._states[self.fs.local_server]
+
+    def set_local_state(self, value):
+        self._states[self.fs.local_server] = value
+
+    local_state = property(get_local_state, set_local_state)
+
     def update(self, other):
         """
         Update my serializable fields from other/distant object.
         """
         Disk.update(self, other)
-        Component.update(self, other)
+        # We used to call Component.update(). Be careful if it is updated.
+        for srv in self._states:
+            if str(srv.hostname) == str(other.server.hostname):
+                for othersrv in other._states:
+                    if str(othersrv.hostname) == str(srv.hostname):
+                        self._states[srv] = other._states[othersrv]
+                        if other._states[othersrv] in (MOUNTED, RECOVERING):
+                            # Compat v0.910: 'recov_info' value depends
+                            # on remote version
+                            self.recov_info = getattr(other, 'recov_info',
+                                                      getattr(other,
+                                                              'status_info',
+                                                              None))
+                        break
+                break
         self.index = other.index
-
-        # Compat v0.910: 'recov_info' value depends on remote version
-        self.recov_info = getattr(other, 'recov_info',
-                                  getattr(other, 'status_info', None))
 
     def add_server(self, server):
         assert isinstance(server, Server)
         self.failservers.append(server)
+        self._states[server] = None
 
     def allservers(self):
         """
@@ -205,7 +273,7 @@ class Target(Component, Disk):
                 self.journal.full_check()
 
         except (ComponentError, DiskDeviceError), error:
-            self.state = TARGET_ERROR
+            self.local_state = TARGET_ERROR
             raise ComponentError(self, str(error))
 
         # check for Lustre level status
@@ -216,7 +284,7 @@ class Target(Component, Disk):
         Check target health at Lustre level.
         """
 
-        self.state = None   # Unknown
+        self.local_state = None   # Unknown
 
         # find pathnames matching wanted lustre procfs
         # (Since Lustre 2.4. More than one path could be returned.
@@ -228,9 +296,9 @@ class Target(Component, Disk):
 
         # check for label presence in /proc : is this lustre target started?
         if len(mntdev_path) == 0 and len(recov_path) == 0:
-            self.state = OFFLINE
+            self.local_state = OFFLINE
         elif len(mntdev_path) == 0:
-            self.state = TARGET_ERROR
+            self.local_state = TARGET_ERROR
             raise ComponentError(self, "incoherent state in " \
                                        "/proc/fs/lustre for %s" % self.label)
         else:
@@ -250,34 +318,34 @@ class Target(Component, Disk):
                     if line.find("%s " % self.mntdev) == 0:
                         if line.split(' ', 3)[2] == "lustre":
                             if loaded:
-                                self.state = MOUNTED
+                                self.local_state = MOUNTED
                             else:
-                                self.state = TARGET_ERROR
+                                self.local_state = TARGET_ERROR
                                 raise ComponentError(self, "multiple " \
                                         " mounts detected for %s" % self.label)
             finally:
                 f_proc_mounts.close()
 
-            if self.state != MOUNTED and loaded:
-                self.state = TARGET_ERROR
+            if self.local_state != MOUNTED and loaded:
+                self.local_state = TARGET_ERROR
                 # up but not mounted = incoherent state
                 # check for loaded state: ST, UP...
                 raise ComponentError(self, "incoherent state for %s " \
                                      "(started but not mounted?)" % self.label)
 
-            if self.state == MOUNTED and not loaded:
-                self.state = TARGET_ERROR
+            if self.local_state == MOUNTED and not loaded:
+                self.local_state = TARGET_ERROR
                 # mounted but not up = incoherent state
                 # /etc/fstab was not correctly cleaned
                 raise ComponentError(self, "incoherent state for %s " \
                                      "(mounted but not started?)" % self.label)
 
-            if self.state == MOUNTED and self.TYPE != MGT.TYPE:
+            if self.local_state == MOUNTED and self.TYPE != MGT.TYPE:
                 # check for MDT or OST recovery (MGS doesn't make any recovery)
                 try:
                     fproc = open(recov_path[0], 'r')
                 except (IOError, IndexError):
-                    self.state = TARGET_ERROR
+                    self.local_state = TARGET_ERROR
                     raise ComponentError(self, "recovery_state file not " \
                                                   "found for %s" % self.label)
 
@@ -316,7 +384,7 @@ class Target(Component, Disk):
                             elif line.startswith("completed_clients:"):
                                 completed = line.split(' ', 1)[1]
                                 completed = int(completed.split('/', 1)[0])
-                        self.state = RECOVERING
+                        self.local_state = RECOVERING
                         self.recov_info = "%ss (%s/%s)" % (time_remaining,
                                                     completed + evicted, total)
                 finally:
@@ -328,16 +396,16 @@ class Target(Component, Disk):
 
     def is_started(self):
         """Return True if the target device is mounted."""
-        return self.state in (MOUNTED, RECOVERING)
+        return self.local_state in (MOUNTED, RECOVERING)
 
     def raise_if_started(self, message):
         """Raise a ComponentError if the target device is mounted."""
-        if self.state != OFFLINE:
+        if self.local_state != OFFLINE:
             if self.is_started():
                 reason = "%s: target %s (%s) is started"
             else:
                 reason = "%s: target %s (%s) is busy"
-            self.state = TARGET_ERROR
+            self.local_state = TARGET_ERROR
             raise ComponentError(self, reason % (message, self.label, self.dev))
 
     #
@@ -375,6 +443,18 @@ class Target(Component, Disk):
     def stop(self, **kwargs):
         """Stop the local Target and check for system sanity."""
         return StopTarget(self, **kwargs)
+
+
+    def set_server(self):
+        server = [srv for srv, state in self._states.iteritems()
+                  if state in (MOUNTED, RECOVERING)]
+        if len(server) >= 1:
+            self.server = server[0]
+        else:
+            server = [srv for srv, state in self._states.iteritems()
+                      if state is not None]
+            if len(server) == 1:
+                self.server = server[0]
 
 
 class MGT(Target):
