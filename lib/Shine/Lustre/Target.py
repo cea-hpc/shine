@@ -199,18 +199,19 @@ class Target(Component, Disk):
         If the component is stopped or on error, server is the default server.
         """
         srvname = None
+        self.server = self.defaultserver
+
         servers = [srv for srv, state in self._states.iteritems()
                   if state in (MOUNTED, RECOVERING)]
-        if len(servers) >= 1:
+        if len(servers) > 1:
+            return 1
+        elif len(servers) == 1:
             srvname = servers[0]
-        else:
-            servers = [srv for srv, state in self._states.iteritems()
-                      if state is not None]
-            if len(servers) == 1:
-                srvname = servers[0]
 
         if srvname is not None:
             self.server = self.allservers().select(NodeSet(srvname))[0]
+
+        return 0
 
     def allservers(self):
         """
