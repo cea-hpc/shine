@@ -88,7 +88,8 @@ class Status(FSTargetLiveCommand):
                               dryrun=self.options.dryrun,
                               fanout=self.options.fanout)
 
-        if fs_result == RUNTIME_ERROR:
+        # Display error messages for each node that failed.
+        if len(fs.proxy_errors) > 0:
             self.display_proxy_errors(fs)
             print
 

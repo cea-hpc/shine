@@ -33,8 +33,8 @@ from Shine.Lustre.Actions.Fsck import Fsck
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
-                                   TARGET_ERROR, RUNTIME_ERROR, INACTIVE, \
-                                   MIGRATED
+                                   INPROGRESS, TARGET_ERROR, RUNTIME_ERROR, \
+                                   INACTIVE, MIGRATED
 from Shine.Lustre.Server import Server, ServerGroup
 from operator import itemgetter
 from itertools import groupby
@@ -165,6 +165,14 @@ class Target(Component, Disk):
 
     local_state = property(get_local_state, set_local_state)
 
+    def sanitize_state(self, nodes=None):
+        """
+        Clean component state if it is wrong.
+        """
+        for nodename in nodes:
+            if self._states[nodename] is None:
+                self._states[nodename] = RUNTIME_ERROR
+
     def update(self, other):
         """
         Update my serializable fields from other/distant object.
@@ -272,11 +280,12 @@ class Target(Component, Disk):
         """
         Return a human text form for the target state.
         """
+        state = Component.text_status(self)
+        if RUNTIME_ERROR in self._states.values():
+            state += "*"
         if self.state == RECOVERING:
-            return "%s for %s" % (self.STATE_TEXT_MAP.get(RECOVERING),
-                                  self.recov_info)
-        else:
-            return Component.text_status(self)
+            state += " for %s" % self.recov_info
+        return state
 
     #
     # Target sanity checks

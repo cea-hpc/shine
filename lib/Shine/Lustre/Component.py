@@ -158,6 +158,27 @@ class Component(object):
                   "\tTo avoid this, please synchronize shine versions."
             self.fs._handle_shine_proxy_error(str(self.server.hostname), msg)
 
+    def sanitize_state(self, nodes=None):
+        """
+        Clean component state if it is wrong.
+        """
+        if self.state is None:
+            self.state = RUNTIME_ERROR
+
+        # At this step, there should be no more INPROGRESS component.
+        # If yes, this is a bug, change state to RUNTIME_ERROR.
+        # INPROGRESS management could be change using running action
+        # list.
+        # Starting with v1.3, there is no more code setting INPROGRESS.
+        # This is for compatibility with older clients.
+        elif self.state == INPROGRESS:
+            actions = ""
+            if len(self._list_action()):
+                actions = "actions: " + ", ".join(self._list_action())
+            print >> sys.stderr, "ERROR: bad state for %s: %d %s" % \
+                            (self.label, self.state, actions)
+            self.state = RUNTIME_ERROR
+
     def __getstate__(self):
         odict = self.__dict__.copy()
         del odict['fs']
@@ -275,7 +296,6 @@ class Component(object):
     def execute(self, **kwargs):
         """Exec a custom command."""
         return Execute(self, **kwargs)
-
 
 class ComponentGroup(object):
     """
