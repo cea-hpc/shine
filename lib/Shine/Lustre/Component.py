@@ -34,6 +34,7 @@ CLIENT_ERROR = 5
 TARGET_ERROR = 6
 RUNTIME_ERROR = 7
 INACTIVE = 8
+MIGRATED = 9
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
@@ -107,6 +108,13 @@ class Component(object):
         Return a string describing this component, for output purposes.
         """
         return self.label
+
+    def update_server(self):
+        """
+        Compute the server to display for the component.
+        This method does nothing on all components except for Target ones.
+        """
+        pass
 
     def update(self, other):
         """

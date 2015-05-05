@@ -261,7 +261,7 @@ Here is a rough equivalent of Views and custom formats:
 "%type %>count %status %nodes"
 .TP
 .I "\-V target"
-"%target %type %>index %servers %device %status"
+"%target %type %>index %node %primary %servers %device %status"
 .TP
 .I "\-V disk"
 "%device %servers %>size %>jdev %type %>index %tag %label %flags %fsname %status"
@@ -324,6 +324,9 @@ Target lustre network, if a limited one was defined (target only).
 .TP
 .B %node
 Main server where the component is located.
+.TP
+.B %primary
+Node where target is located by default (target only).
 .TP
 .B %size
 Device size (target only).
