@@ -115,8 +115,8 @@ class ProxyTest(unittest.TestCase):
         self.assertEqual(self.act.status(), ACT_ERROR)
 
     def test_bad_object(self):
-        """send a start message which fails update due to bad property"""
-        msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
+        """send a done message which fails update due to bad property"""
+        msg = shine_msg_pack(evtype='comp', info=self.info, status='done')
         def buggy_update(self, other):
             self.wrong_property = other.wrong_property
         self.tgt.update = types.MethodType(buggy_update, self.tgt)

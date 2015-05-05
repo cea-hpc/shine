@@ -121,7 +121,8 @@ class TargetActionTest(CommonTestCase):
 
     def setUp(self):
         CommonTestCase.setUp(self)
-        srv1 = Server("localhost", ["localhost@tcp"], hdlr=self.eh)
+        srv1 = Server(Utils.HOSTNAME, ["%s@tcp" % Utils.HOSTNAME], hdlr=self.eh)
+        self.fs.local_server = srv1
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(srv1, 'mgt', 0, self.disk.name)
 
@@ -444,7 +445,7 @@ class RouterActionTest(CommonTestCase):
 
     def setUp(self):
         CommonTestCase.setUp(self)
-        self.srv1 = Server("localhost", ["localhost@tcp"])
+        self.srv1 = Server(Utils.HOSTNAME, ["%s@tcp" % Utils.HOSTNAME])
         self.router = self.fs.new_router(self.srv1)
         self.srv1.unload_modules().launch()
         self.fs._run_actions()
@@ -562,7 +563,8 @@ class ServerActionTest(CommonTestCase):
 
     def setUp(self):
         CommonTestCase.setUp(self)
-        self.srv = Server('localhost', ['127.0.0.1@lo'], hdlr=self.eh)
+        self.srv = Server(Utils.HOSTNAME, ["%s@lo" % Utils.HOSTNAME],
+                          hdlr=self.eh)
         self._clean_modules()
 
     def tearDown(self):
@@ -674,6 +676,7 @@ class ClientActionTest(CommonTestCase):
         CommonTestCase.setUp(self)
         nid = '%s@tcp' % Utils.HOSTNAME
         srv1 = Server(Utils.HOSTNAME, [nid], hdlr=self.eh)
+        self.fs.local_server = srv1
         self.disk1 = Utils.make_disk()
         self.disk2 = Utils.make_disk()
         self.disk3 = Utils.make_disk()
@@ -812,7 +815,8 @@ class TuneActionTest(CommonTestCase):
 
     def setUp(self):
         CommonTestCase.setUp(self)
-        self.srv = Server('localhost', ['localhost@tcp'], hdlr=self.eh)
+        self.srv = Server(Utils.HOSTNAME, ["%s@tcp" % Utils.HOSTNAME],
+                          hdlr=self.eh)
         self.disk = Utils.make_disk()
         self.tgt = self.fs.new_target(self.srv, 'mgt', 0, self.disk.name)
         self.model = TuningModel()
