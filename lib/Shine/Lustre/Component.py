@@ -25,15 +25,23 @@ from ClusterShell.NodeSet import NodeSet
 
 # Constants for component states.
 # Error codes should have the largest values, see FileSystem._check_errors()
+# Beware when creating a new state, as larger values overwrite smaller ones
+# in _check_errors() (i.e. if two components respectively have states
+# 2 and 7, _check_errors() will save 7 in the global result, whatever the
+# semantics of 2 and 7 states are).
+# Ticket #14 needs to rearrange values to accomodate the statement above.
+# Empty values have been left between values in order to avoid breaking
+# further backward compatibility.
 MOUNTED = 0
-EXTERNAL = 1
-RECOVERING = 2
-OFFLINE = 3
-INPROGRESS = 4
-CLIENT_ERROR = 5
-TARGET_ERROR = 6
-RUNTIME_ERROR = 7
-INACTIVE = 8
+MIGRATED = 4
+EXTERNAL = 8
+RECOVERING = 12
+OFFLINE = 16
+INPROGRESS = 20
+INACTIVE = 24
+CLIENT_ERROR = 28
+TARGET_ERROR = 32
+RUNTIME_ERROR = 36
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
@@ -59,6 +67,24 @@ class Component(object):
     # Text mapping for each possible states
     STATE_TEXT_MAP = {}
 
+    # Backward states mapping.
+    # As ticket #14 rearranges error codes, this mapping is needed
+    # in Target.__setstate__() and Component.__setstate__()
+    # to avoid breaking compatibility with older clients/servers.
+    # This mapping will hopefully become useless if a future version of shine
+    # claims non-backward compatibility with pre-#14 versions.
+    PRE_14_MAPPING = {
+        0: MOUNTED,
+        1: EXTERNAL,
+        2: RECOVERING,
+        3: OFFLINE,
+        4: INPROGRESS,
+        5: CLIENT_ERROR,
+        6: TARGET_ERROR,
+        7: RUNTIME_ERROR,
+        8: INACTIVE
+    }
+
     def __init__(self, fs, server, enabled = True, mode = 'managed',
                  active = 'manual'):
 
@@ -82,6 +108,9 @@ class Component(object):
 
         # Component active state
         self.active = active
+
+        # Begining with ticket #14, each component has a version attribute
+        self.version = None
 
     @property
     def label(self):
@@ -108,11 +137,26 @@ class Component(object):
         """
         return self.label
 
+    def update_server(self):
+        """
+        Compute the server to display for the component.
+        This method does nothing on all components except for Target ones.
+        """
+        pass
+
     def update(self, other):
         """
         Update my serializable fields from other/distant object.
         """
         self.state = other.state
+
+        # other could be a pre-v1.4 object, in this case, let's report it.
+        if not hasattr(other, 'version'):
+            msg = "WARNING: shine version mismatch !!!\n" \
+                  "\tPartial results may show up.\n" \
+                  "\tMigrated targets may not be detected.\n" \
+                  "\tTo avoid this, please synchronize shine versions."
+            self.fs._handle_shine_proxy_error(str(self.server.hostname), msg)
 
     def __getstate__(self):
         odict = self.__dict__.copy()
@@ -122,6 +166,10 @@ class Component(object):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.fs = None
+
+        # Backward mapping with old component states
+        if not hasattr(self, 'version'):
+            self.state = self.PRE_14_MAPPING.get(self.state)
 
     #
     # Component behaviour
