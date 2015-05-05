@@ -50,7 +50,7 @@ from Shine.Lustre.Target import MGT, MDT, OST, Journal
 # Shine.Commands.*
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, \
                                    RECOVERING, OFFLINE, RUNTIME_ERROR, \
-                                   CLIENT_ERROR, TARGET_ERROR
+                                   CLIENT_ERROR, TARGET_ERROR, MIGRATED
 
 
 class FSError(Exception):
@@ -102,6 +102,9 @@ class FileSystem:
 
         # file system MGT
         self.mgt = None
+
+        # Local server reference
+        self.local_server = None
 
         self.debug = False
         self.logger = self._setup_logging()
@@ -167,8 +170,16 @@ class FileSystem:
                     other = target.journal
                 else:
                     other = self.components[comp.uniqueid()]
-                    # update target from remote one
-                    other.update(comp)
+                    # other.update() updates the component state
+                    # and disk information if the component is a target.
+                    # These information don't need to be updated unless
+                    # we are on a completion event.
+                    if params['status'] not in ('start', 'progress'):
+                        # ensure comp.server is the actual distant server
+                        comp.server = other.allservers().select(
+                                                            NodeSet(node))[0]
+                        # update target from remote one
+                        other.update(comp)
 
                 # substitute target parameter by local one
                 params['comp'] = other
@@ -288,6 +299,9 @@ class FileSystem:
 
             if comp.state not in expected_states:
                 result = max(result, comp.state)
+
+            # Set right server for component
+            comp.update_server()
 
         # result could be equal to 0 (MOUNTED)
         if result is not None:

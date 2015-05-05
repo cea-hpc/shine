@@ -56,6 +56,8 @@ COMP_FIELDS = {
 
         'fsname':  { 'supports': 'fs', 'getter': lambda comp: comp.fs.fs_name },
         'label':   { 'supports': 'label', 'getter': attrgetter('label') },
+        'defaultnode': { 'supports': 'defaultserver',
+                         'getter': lambda comp: str(comp.defaultserver.hostname) },
         'node':    { 'supports': 'server',
                      'getter': lambda comp: str(comp.server.hostname) },
         'servers': { 'supports': 'allservers',
@@ -227,8 +229,10 @@ def display(cmd, fs, supports=None):
         # Display each targets (component which support an index), sorted by
         # display order and index
         tbl.title = "FILESYSTEM TARGETS (%s)" % fs.fs_name
-        tbl.fmt = "%target %type %>index %servers %device %status"
+        tbl.fmt = "%target %type %>index %defaultnode %servers " \
+                  "%device %status %node"
         tbl.header_labels = {'index': 'idx'}
+        tbl.header_labels = {'defaultnode': 'master'}
         key = lambda t: (t.DISPLAY_ORDER, t.label)
         viewsupports = "index"
 
