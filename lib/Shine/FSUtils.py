@@ -62,18 +62,23 @@ def convert_comparison(fsconf, fs, actions):
     return ComponentGroup((_create_comp(fsconf, fs, elem) for elem in actions))
 
 
-def _get_server(nodename, fs, fs_conf, handler):
+def _get_server(nodename, fs, fs_conf, handler, nodes=None, excluded=None):
     """Instantiate Server and cache them in fs.servers"""
     if nodename not in fs.servers:
-        fs.servers[nodename] = Server(nodename, fs_conf.get_nid(nodename),
-                                      handler)
+        server = Server(nodename, fs_conf.get_nid(nodename), handler)
+
+        if (nodes is not None and server.hostname not in nodes) or \
+           (excluded is not None and server.hostname in excluded):
+            server.action_enabled = False
+        fs.servers[nodename] = server
+
     if fs.servers[nodename].is_local():
         fs.local_server = fs.servers[nodename]
     return fs.servers[nodename]
 
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
         failover=None, indexes=None, labels=None, groups=None,
-        event_handler=None):
+        event_handler=None, extended=False):
     """
     Instantiate shine Lustre filesystem classes from configuration.
     """
@@ -87,7 +92,9 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     # Create attached file system targets...
     for cf_target in fs_conf.iter_targets():
 
-        server = _get_server(cf_target.get_nodename(), fs, fs_conf, event_handler)
+        server = _get_server(cf_target.get_nodename(), fs, fs_conf,
+                             event_handler, nodes=nodes,
+                             excluded=excluded)
 
         # retrieve config variables
         cf_t_type = cf_target.get_type()
@@ -119,7 +126,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         # add failover hosts
         for ha_node in cf_target.ha_nodes():
-            server = _get_server(ha_node, fs, fs_conf, event_handler)
+            server = _get_server(ha_node, fs, fs_conf, event_handler,
+                                 nodes=nodes, excluded=excluded)
             target.add_server(server)
 
         # Change current server if failover nodes are used.
@@ -127,14 +135,22 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
             target.action_enabled = target.failover(failover)
 
         # Now that server is set, check explicit nodes and exclusion
-        if (nodes is not None and target.server.hostname not in nodes) or \
-           (excluded is not None and target.server.hostname in excluded):
-            target.action_enabled = False
+        if extended is True:
+            if (nodes is not None and \
+                not nodes.intersection(target.allservers().nodeset())) or \
+               (excluded is not None and \
+                not target.allservers().nodeset().difference(excluded)):
+                 target.action_enabled = False
+        else:
+            if (nodes is not None and target.server.hostname not in nodes) or \
+               (excluded is not None and target.server.hostname in excluded):
+                target.action_enabled = False
 
 
     # Create attached file system clients...
     for client_node, mount_path, mount_options in fs_conf.iter_clients():
-        server = _get_server(client_node, fs, fs_conf, event_handler)
+        server = _get_server(client_node, fs, fs_conf, event_handler,
+                             nodes=nodes, excluded=excluded)
 
         # filter on target types and nodes
         client_action_enabled = True
@@ -152,7 +168,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system routers...
     for router_node in fs_conf.iter_routers():
-        server = _get_server(router_node, fs, fs_conf, event_handler)
+        server = _get_server(router_node, fs, fs_conf, event_handler,
+                             nodes=nodes, excluded=excluded)
 
         # filter on target types and nodes
         router_action_enabled = True
@@ -188,7 +205,7 @@ def create_lustrefs(fs_model_file, event_handler=None, nodes=None,
 
 def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
           failover=None, indexes=None, labels=None, groups=None,
-          event_handler=None):
+          event_handler=None, extended=False):
     """
     Helper function used to build an instantiated Lustre.FileSystem
     from installed shine configuration.
@@ -198,7 +215,7 @@ def open_lustrefs(fs_name, target_types=None, nodes=None, excluded=None,
 
     fs = instantiate_lustrefs(fs_conf, target_types, nodes, excluded,
                               failover, indexes, labels, groups,
-                              event_handler)
+                              event_handler, extended=extended)
 
     return fs_conf, fs
 
