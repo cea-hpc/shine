@@ -265,23 +265,7 @@ class FSProxyAction(CommonAction):
                 # This special event helps to keep track of undergoing actions
                 # (see ev_start())
                 comp.action_event(self, 'done')
-
-                if comp.state is None:
-                    comp.state = RUNTIME_ERROR
-
-                # At this step, there should be no more INPROGRESS component.
-                # If yes, this is a bug, change state to RUNTIME_ERROR.
-                # INPROGRESS management could be change using running action
-                # list.
-                # Starting with v1.3, there is no more code setting INPROGRESS.
-                # This is for compatibility with older clients.
-                elif comp.state == INPROGRESS:
-                    actions = ""
-                    if len(comp._list_action()):
-                        actions = "actions: " + ", ".join(comp._list_action())
-                    print >> sys.stderr, "ERROR: bad state for %s: %d %s" % \
-                                    (comp.label, comp.state, actions)
-                    comp.state = RUNTIME_ERROR
+                comp.sanitize_state(nodes=worker.nodes)
 
         # Gather nodes by return code
         for rc, nodes in worker.iter_retcodes():
