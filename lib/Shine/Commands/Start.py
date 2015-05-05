@@ -38,7 +38,8 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
                                                FSLocalEventHandler
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
-                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
+                                    MIGRATED
 
 
 class Start(FSTargetLiveCommand):
@@ -54,6 +55,7 @@ class Start(FSTargetLiveCommand):
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
+            MIGRATED : RC_OK,
             RECOVERING : RC_OK,
             EXTERNAL : RC_ST_EXTERNAL,
             OFFLINE : RC_FAILURE,
