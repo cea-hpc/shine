@@ -247,10 +247,15 @@ class Target(Component, Disk):
         Return a human text form for the target state.
         """
         if self.state == RECOVERING:
-            return "%s for %s" % (self.STATE_TEXT_MAP.get(RECOVERING),
-                                  self.recov_info)
+            state = self.STATE_TEXT_MAP.get(RECOVERING)
+            if RUNTIME_ERROR in self._states.values():
+                state += "*"
+            return "%s for %s" % (state, self.recov_info)
         else:
-            return Component.text_status(self)
+            state = Component.text_status(self)
+            if RUNTIME_ERROR in self._states.values():
+                state += "*"
+            return state
 
     #
     # Target sanity checks
@@ -458,6 +463,11 @@ class Target(Component, Disk):
 
         if srvname is not None:
             self.server = self.allservers().select(NodeSet(srvname))[0]
+
+    def sanitize_state(self, nodes=None):
+        for nodename in nodes:
+            if self._states[nodename] is None:
+                self._states[nodename] = RUNTIME_ERROR
 
 
 class MGT(Target):
