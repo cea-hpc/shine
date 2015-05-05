@@ -19,7 +19,7 @@
 #
 
 from itertools import ifilter, groupby
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 
 from ClusterShell.NodeSet import NodeSet
 
@@ -185,7 +185,6 @@ class Component(object):
         """
         Add the named action to the running action list.
         """
-        assert act not in self._running_actions
         self._running_actions.append(act)
 
     def _del_action(self, act):
@@ -385,6 +384,29 @@ class ComponentGroup(object):
         grouped = groupby(sortlist, key)
         return ((grpkey, ComponentGroup(comps)) for grpkey, comps in grouped)
 
-    def groupbyserver(self):
+    def groupbyallservers(self):
+        """
+        Group components per server taking into account
+        all possible servers for each component.
+        """
+        # Create a list of (server, component) tuples
+        srvcomps = []
+        for comp in self:
+            for srv in comp.allservers():
+                srvcomps.append((srv, comp))
+
+        # Sort the components using the server name in each tuple as key,
+        # and then, group results using the same key.
+        sortlist = sorted(srvcomps, key=itemgetter(0))
+        grouped = groupby(sortlist, key=itemgetter(0))
+
+        return ((grpkey, ComponentGroup(map(itemgetter(1), tuples)))
+                for grpkey, tuples in grouped)
+
+
+    def groupbyserver(self, extended=False):
         """Uses groupby() to group component per server."""
-        return self.groupby(attr='server')
+        if extended is False:
+            return self.groupby(attr='server')
+        else:
+            return self.groupbyallservers()
