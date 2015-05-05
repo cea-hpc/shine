@@ -238,3 +238,51 @@ class GetStateTest(unittest.TestCase):
                             self.srv2name: OFFLINE,
                             self.srv3name: MOUNTED}
         self.assertEqual(self.tgt.state, MIGRATED)
+
+    def test_update_server(self):
+        """test update_server"""
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.tgt.update_server()
+        self.assertEqual(self.tgt.server, self.srv1)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: OFFLINE}
+        self.assertEqual(self.tgt.update_server(), 0)
+        self.assertEqual(self.tgt.server, self.srv1)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: OFFLINE}
+        self.tgt.update_server()
+        self.assertEqual(self.tgt.update_server(), 0)
+        self.assertEqual(self.tgt.server, self.srv1)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: MOUNTED,
+                            self.srv3name: OFFLINE}
+        self.tgt.update_server()
+        self.assertEqual(self.tgt.update_server(), 0)
+        self.assertEqual(self.tgt.server, self.srv2)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: TARGET_ERROR}
+        self.tgt.update_server()
+        self.assertEqual(self.tgt.update_server(), 0)
+        self.assertEqual(self.tgt.server, self.srv1)
+
+        self.tgt._states = {self.srv1name: RUNTIME_ERROR,
+                            self.srv2name: TARGET_ERROR,
+                            self.srv3name: RECOVERING}
+        self.tgt.update_server()
+        self.assertEqual(self.tgt.update_server(), 0)
+        self.assertEqual(self.tgt.server, self.srv3)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: RECOVERING}
+        self.assertEqual(self.tgt.update_server(), 1)
+        self.assertEqual(self.tgt.server, self.srv1)
