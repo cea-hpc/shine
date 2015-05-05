@@ -302,13 +302,13 @@ CLI  1 unknown foo0""")
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs)
         self.assertEqual(txt,
-"""========== FILESYSTEM TARGETS (display) =========
-TARGET          TYPE IDX SERVERS DEVICE    STATUS
-------          ---- --- ------- ------    ------
-MGS             MGT    0 foo1    /dev/mgt  unknown
-display-MDT0000 MDT    0 foo2    /dev/mdt  unknown
-display-OST0000 OST    0 foo3    /dev/ost0 unknown
-display-OST0001 OST    1 foo3    /dev/ost1 unknown""")
+"""================== FILESYSTEM TARGETS (display) ==================
+TARGET          TYPE IDX DEFAULTNODE NODE SERVERS DEVICE    STATUS
+------          ---- --- ----------- ---- ------- ------    ------
+MGS             MGT    0 foo1        foo1 foo1    /dev/mgt  unknown
+display-MDT0000 MDT    0 foo2        foo2 foo2    /dev/mdt  unknown
+display-OST0000 OST    0 foo3        foo3 foo3    /dev/ost0 unknown
+display-OST0001 OST    1 foo3        foo3 foo3    /dev/ost1 unknown""")
 
     def test_view_target_with_supports(self):
         """display with target view with a force 'supports'"""
@@ -316,13 +316,13 @@ display-OST0001 OST    1 foo3    /dev/ost1 unknown""")
         cmd = DummyCommand(opts)
         txt = display(cmd, self._fs, supports='status')
         self.assertEqual(txt,
-"""========== FILESYSTEM TARGETS (display) =========
-TARGET          TYPE IDX SERVERS DEVICE    STATUS
-------          ---- --- ------- ------    ------
-MGS             MGT    0 foo1    /dev/mgt  unknown
-display-MDT0000 MDT    0 foo2    /dev/mdt  unknown
-display-OST0000 OST    0 foo3    /dev/ost0 unknown
-display-OST0001 OST    1 foo3    /dev/ost1 unknown""")
+"""================== FILESYSTEM TARGETS (display) ==================
+TARGET          TYPE IDX DEFAULTNODE NODE SERVERS DEVICE    STATUS
+------          ---- --- ----------- ---- ------- ------    ------
+MGS             MGT    0 foo1        foo1 foo1    /dev/mgt  unknown
+display-MDT0000 MDT    0 foo2        foo2 foo2    /dev/mdt  unknown
+display-OST0000 OST    0 foo3        foo3 foo3    /dev/ost0 unknown
+display-OST0001 OST    1 foo3        foo3 foo3    /dev/ost1 unknown""")
 
     def test_view_disk(self):
         """display with disk view"""

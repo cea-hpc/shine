@@ -14,6 +14,8 @@ from ClusterShell.NodeSet import NodeSet
 from Shine.Lustre.FileSystem import FileSystem
 from Shine.Lustre.Server import Server
 from Shine.Lustre.Target import Target, ComponentError
+from Shine.Lustre.Component import MOUNTED, RECOVERING, OFFLINE, MIGRATED, \
+                                   TARGET_ERROR, RUNTIME_ERROR
 
 class TargetTest(unittest.TestCase):
 
@@ -89,3 +91,150 @@ class TargetTest(unittest.TestCase):
         # Could not switch if more than one node matches
         self.assertRaises(ComponentError, Target.failover, tgt,
                           NodeSet("foo[2,3]"))
+
+
+class GetStateTest(unittest.TestCase):
+
+    def setUp(self):
+        fs1 = FileSystem('allsrvr')
+        self.srv1 = Server('foo1', ['foo1@tcp'])
+        self.srv2 = Server('foo2', ['foo2@tcp'])
+        self.srv3 = Server('foo3', ['foo3@tcp'])
+
+        self.srv1name = str(self.srv1.hostname)
+        self.srv2name = str(self.srv2.hostname)
+        self.srv3name = str(self.srv3.hostname)
+
+        self.tgt = fs1.new_target(self.srv1, 'ost', 0, '/dev/null')
+        self.tgt.add_server(self.srv2)
+        self.tgt.add_server(self.srv3)
+
+    def test_master_and_none(self):
+        """test master node has a state and all others have none"""
+        # Master has a state, all others have none
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, MOUNTED)
+
+        self.tgt._states = {self.srv1name: RECOVERING,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, RECOVERING)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+        self.tgt._states = {self.srv1name: TARGET_ERROR,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, TARGET_ERROR)
+
+        self.tgt._states = {self.srv1name: RUNTIME_ERROR,
+                            self.srv2name: None,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+
+    def test_failover_and_none(self):
+        """test failover node has a state and all others have none"""
+        # One failover has a state, all others have none
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: MOUNTED,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, MIGRATED)
+
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: RECOVERING,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, RECOVERING)
+
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: TARGET_ERROR,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, TARGET_ERROR)
+
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: RUNTIME_ERROR,
+                            self.srv3name: None}
+        self.assertEqual(self.tgt.state, RUNTIME_ERROR)
+
+    def test_two_nodes_started(self):
+        """test component started on two different nodes"""
+        # Two nodes have state MOUNTED or RECOVERING
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: MOUNTED,
+                            self.srv3name: MOUNTED}
+        self.assertEqual(self.tgt.state, TARGET_ERROR)
+
+        self.tgt._states = {self.srv1name: None,
+                            self.srv2name: MOUNTED,
+                            self.srv3name: RECOVERING}
+        self.assertEqual(self.tgt.state, TARGET_ERROR)
+
+    def test_recovering_stays_recovering(self):
+        """test recovering is displayed whatever the node"""
+        # Recovering is always Recovering
+        self.tgt._states = {self.srv1name: RECOVERING,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: OFFLINE}
+        self.assertEqual(self.tgt.state, RECOVERING)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: RECOVERING}
+        self.assertEqual(self.tgt.state, RECOVERING)
+
+    def test_various_states(self):
+        """test various states"""
+        # Various states
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: OFFLINE}
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: TARGET_ERROR}
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: RUNTIME_ERROR}
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: OFFLINE}
+        self.assertEqual(self.tgt.state, MOUNTED)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: TARGET_ERROR}
+        self.assertEqual(self.tgt.state, MOUNTED)
+
+        self.tgt._states = {self.srv1name: MOUNTED,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: RUNTIME_ERROR}
+        self.assertEqual(self.tgt.state, MOUNTED)
+
+        self.tgt._states = {self.srv1name: OFFLINE,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: MOUNTED}
+        self.assertEqual(self.tgt.state, MIGRATED)
+
+        self.tgt._states = {self.srv1name: TARGET_ERROR,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: MOUNTED}
+        self.assertEqual(self.tgt.state, MIGRATED)
+
+        self.tgt._states = {self.srv1name: RUNTIME_ERROR,
+                            self.srv2name: OFFLINE,
+                            self.srv3name: MOUNTED}
+        self.assertEqual(self.tgt.state, MIGRATED)
