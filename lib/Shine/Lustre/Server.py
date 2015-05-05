@@ -85,6 +85,7 @@ class Server(object):
         self.nids = nids
         self.hostname = NodeSet(hostname)
         self.modules = dict()
+        self.action_enabled = True
 
         self.hdlr = hdlr or EventHandler()
         self._running_actions = []
