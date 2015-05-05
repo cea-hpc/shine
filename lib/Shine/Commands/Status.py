@@ -42,6 +42,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
                                     MIGRATED
 
+from Shine.FSUtils import open_lustrefs
 
 class Status(FSTargetLiveCommand):
     """
@@ -67,7 +68,7 @@ class Status(FSTargetLiveCommand):
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
         # Warn if trying to act on wrong nodes
-        all_nodes = fs.components.managed().servers()
+        all_nodes = fs.components.managed().allservers()
         if not self.check_valid_list(fs.fs_name, all_nodes, "check"):
             return RC_FAILURE
 
@@ -98,3 +99,17 @@ class Status(FSTargetLiveCommand):
             eh.post(fs)
 
         return result
+
+    def _open_fs(self, fsname, eh):
+        # Status command needs to open the filesystem in extended mode.
+        # See FSUtils.instantiate_lustrefs() for the use of this argument.
+        fs_conf, fs = open_lustrefs(fsname,
+                                    self.options.targets,
+                                    nodes=self.options.nodes,
+                                    excluded=self.options.excludes,
+                                    failover=self.options.failover,
+                                    indexes=self.options.indexes,
+                                    labels=self.options.labels,
+                                    event_handler=eh,
+                                    extended=True)
+        return fs_conf, fs
