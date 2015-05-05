@@ -220,6 +220,30 @@ class ComponentGroupTest(unittest.TestCase):
         self.assertTrue([srv1, [comp1, comp3]] in results)
         self.assertTrue([srv2, [comp2, comp4]] in results)
 
+    def test_group_by_all_servers(self):
+        """test ComponentGroup.groupbyallservers()"""
+        fs = FileSystem('comp')
+        grp = ComponentGroup()
+        srv1 = Server('foo1', ['foo1@tcp'])
+        srv2 = Server('foo2', ['foo2@tcp'])
+        comp1 = Target(fs, srv1, 0, '/dev/sda')
+        comp1.add_server(srv2)
+        grp.add(comp1)
+        comp2 = Target(fs, srv2, 1, '/dev/sdb')
+        comp2.add_server(srv1)
+        grp.add(comp2)
+        comp3 = Target(fs, srv1, 2, '/dev/sdc')
+        comp3.add_server(srv2)
+        grp.add(comp3)
+        comp4 = Target(fs, srv2, 3, '/dev/sdd')
+        comp4.add_server(srv1)
+        grp.add(comp4)
+        key = lambda c: c.TYPE
+        results = [[srv, sorted(comps, key=key)] for srv, comps in grp.groupbyallservers()]
+        self.assertEqual(len(results), 2)
+        self.assertTrue([srv1, [comp1, comp2, comp3, comp4]] in results)
+        self.assertTrue([srv2, [comp1, comp2, comp3, comp4]] in results)
+
     def test_managed_active(self):
         """test ComponentGroup.managed() with active option"""
         fs = FileSystem('active')

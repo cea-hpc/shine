@@ -405,7 +405,7 @@ class FileSystem:
         return result
 
     def _prepare(self, action, comps=None, groupby=None, reverse=False,
-                 need_unload=False, tunings=None, **kwargs):
+                 need_unload=False, tunings=None, allservers=False, **kwargs):
         """
         Instanciate all actions for the component list and but them in a graph
         of ActionGroup().
@@ -434,16 +434,17 @@ class FileSystem:
             compgrp = ActionGroup()
             proxygrp = ActionGroup()
 
-            for srv, comps in comps.groupbyserver():
-                if srv.is_local():
-                    localsrv = srv
-                    localcomps = comps
-                    for comp in comps:
-                        compgrp.add(getattr(comp, action)(**kwargs))
-                else:
-                    act = self._proxy_action(action, srv.hostname,
-                                             comps, **kwargs)
-                    proxygrp.add(act)
+            for srv, comps in comps.groupbyserver(allservers=allservers):
+                if srv.action_enabled is True:
+                    if srv.is_local():
+                        localsrv = srv
+                        localcomps = comps
+                        for comp in comps:
+                            compgrp.add(getattr(comp, action)(**kwargs))
+                    else:
+                        act = self._proxy_action(action, srv.hostname,
+                                                 comps, **kwargs)
+                        proxygrp.add(act)
 
             if len(compgrp) > 0:
                 graph[-1].add(compgrp)
@@ -528,10 +529,10 @@ class FileSystem:
     def status(self, comps=None, **kwargs):
         """Get status of filesystem."""
         comps = (comps or self.components).managed(supports='status')
-        actions = self._prepare('status', comps, **kwargs)
+        actions = self._prepare('status', comps, allservers=True, **kwargs)
         actions.launch()
         self._run_actions()
-        
+
         # Here we check MOUNTED but in fact, any status is OK.
         return self._check_errors([MOUNTED], comps)
 
