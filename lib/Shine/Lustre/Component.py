@@ -233,6 +233,23 @@ class Component(object):
     def set_server(self):
         pass
 
+    def sanitize_state(self, nodes=None):
+        if self.state is None:
+            self.state = RUNTIME_ERROR
+
+        # At this step, there should be no more INPROGRESS component.
+        # If yes, this is a bug, change state to RUNTIME_ERROR.
+        # INPROGRESS management could be change using running action
+        # list.
+        # Starting with v1.3, there is no more code setting INPROGRESS.
+        # This is for compatibility with older clients.
+        elif self.state == INPROGRESS:
+            actions = ""
+            if len(self._list_action()):
+                actions = "actions: " + ", ".join(self._list_action())
+            print >> sys.stderr, "ERROR: bad state for %s: %d %s" % \
+                            (self.label, self.state, actions)
+            self.state = RUNTIME_ERROR
 
 class ComponentGroup(object):
     """
