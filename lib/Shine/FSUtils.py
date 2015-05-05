@@ -63,11 +63,15 @@ def convert_comparison(fsconf, fs, actions):
 
 
 _SERVERS = {}
-def _get_server(nodename, fs_conf, handler):
+def _get_server(nodename, fs, fs_conf, handler):
     """Instantiate Server and cache them in _SERVERS"""
     if nodename not in _SERVERS:
         _SERVERS[nodename] = Server(nodename, fs_conf.get_nid(nodename),
                                     handler)
+
+    if _SERVERS[nodename].is_local():
+        fs.local_server = _SERVERS[nodename]
+
     return _SERVERS[nodename]
 
 def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
@@ -88,7 +92,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
     # Create attached file system targets...
     for cf_target in fs_conf.iter_targets():
 
-        server = _get_server(cf_target.get_nodename(), fs_conf, event_handler)
+        server = _get_server(cf_target.get_nodename(), fs, fs_conf, event_handler)
 
         # retrieve config variables
         cf_t_type = cf_target.get_type()
@@ -120,7 +124,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
         # add failover hosts
         for ha_node in cf_target.ha_nodes():
-            server = _get_server(ha_node, fs_conf, event_handler)
+            server = _get_server(ha_node, fs, fs_conf, event_handler)
             target.add_server(server)
 
         # Change current server if failover nodes are used.
@@ -135,7 +139,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system clients...
     for client_node, mount_path, mount_options in fs_conf.iter_clients():
-        server = _get_server(client_node, fs_conf, event_handler)
+        server = _get_server(client_node, fs, fs_conf, event_handler)
 
         # filter on target types and nodes
         client_action_enabled = True
@@ -153,7 +157,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
     # Create attached file system routers...
     for router_node in fs_conf.iter_routers():
-        server = _get_server(router_node, fs_conf, event_handler)
+        server = _get_server(router_node, fs, fs_conf, event_handler)
 
         # filter on target types and nodes
         router_action_enabled = True

@@ -50,7 +50,7 @@ from Shine.Lustre.Target import MGT, MDT, OST, Journal
 # Shine.Commands.*
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, \
                                    RECOVERING, OFFLINE, RUNTIME_ERROR, \
-                                   CLIENT_ERROR, TARGET_ERROR
+                                   CLIENT_ERROR, TARGET_ERROR, MIGRATED
 
 
 class FSError(Exception):
@@ -102,6 +102,9 @@ class FileSystem:
 
         # file system MGT
         self.mgt = None
+
+        # Local server reference
+        self.local_server = None
 
         self.debug = False
         self.logger = self._setup_logging()
@@ -155,23 +158,32 @@ class FileSystem:
         # Update the local component instance with the provided instance
         # if one is available in params.
         if evtype == 'comp':
-            comp = params['info'].elem
-            comp.fs = self
+            other = params['info'].elem
+            other.fs = self
             try:
                 # Special hack for Journal object as they are not put in
                 # components list.
-                if comp.TYPE == Journal.TYPE:
-                    comp.target.fs = self
-                    target = self.components[comp.target.uniqueid()]
-                    target.journal.update(comp)
-                    other = target.journal
+                if other.TYPE == Journal.TYPE:
+                    other.target.fs = self
+                    target = self.components[other.target.uniqueid()]
+                    target.journal.update(other)
+                    comp = target.journal
                 else:
-                    other = self.components[comp.uniqueid()]
-                    # update target from remote one
-                    other.update(comp)
+                    comp = self.components[other.uniqueid()]
+                    # comp.update() updates the component state
+                    # and disk information if the component is a target.
+                    # These information don't need to be updated unless
+                    # we are on a completion event.
+                    if params['status'] not in ('start', 'progress'):
+                        # ensure other.server is the actual distant server
+                        other.server = comp.allservers().select(
+                                                            NodeSet(node))[0]
+
+                        # update target from remote one
+                        comp.update(other)
 
                 # substitute target parameter by local one
-                params['comp'] = other
+                params['comp'] = comp
             except KeyError, error:
                 print >> sys.stderr, "ERROR: Component update " \
                                      "failed (%s)" % str(error)
@@ -288,6 +300,17 @@ class FileSystem:
 
             if comp.state not in expected_states:
                 result = max(result, comp.state)
+
+            # Compute component's server.
+            # Although not the best place semantically speaking to perform this
+            # task, update_server() is meaningful only when all the component
+            # states have been filled, and here, we are sure it is the case.
+            # So, waiting for a better solution, _check_errors() is the
+            # best place to compute the component server.
+            if comp.update_server() is False:
+                msg = "WARNING: %s is mounted multiple times" % \
+                       (comp.label, nodes)
+                self._handle_shine_proxy_error(nodes, msg)
 
         # result could be equal to 0 (MOUNTED)
         if result is not None:
