@@ -104,7 +104,7 @@ class TuningParameter(object):
         # Walk through path list and create a command for each one
         command_list = []
         for path in glob.glob(path_pattern):
-            command_list.append("echo %s > %s" % (self.value, path))
+            command_list.append("echo -n %s > %s" % (self.value, path))
 
         # Return the newly created commands to the caller
         return command_list

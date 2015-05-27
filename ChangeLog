@@ -1,3 +1,6 @@
+2015-05-27 Dominique Martinet <dominique.martinet@cea.fr>
+	* Fix tune errors by adding -n to echo into /proc/fs files (ticket #192)
+
 2015-04-29 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Release: 1.4
 

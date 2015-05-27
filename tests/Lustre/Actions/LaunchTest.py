@@ -845,7 +845,7 @@ class TuneActionTest(CommonTestCase):
         """Apply tuning in dry-run mode"""
         act = self.srv.tune(self.model, self.fs.components, 'action',
                             dryrun=True)
-        text = 'echo 1 > /dev/null'
+        text = 'echo -n 1 > /dev/null'
         self.check_dryrun(act, text, 'server', 'tune', ['start', 'done'],
                           self.srv, 'apply tunings')
 
@@ -862,8 +862,8 @@ class TuneActionTest(CommonTestCase):
                                  'apply tunings')
         self.assertEqual(result.retcode, None)
         self.assertEqual(str(result),
-                         "'echo 1 > /proc/modules' failed\n"
-                         "'echo 1 > /proc/cmdline' failed")
+                         "'echo -n 1 > /proc/modules' failed\n"
+                         "'echo -n 1 > /proc/cmdline' failed")
 
 
 class InstallActionTest(CommonTestCase):
