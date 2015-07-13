@@ -54,6 +54,11 @@ class Install(CommonAction):
             msg = "Updating configuration file `%s' on %s" % (name, self.nodes)
         self.fs.hdlr.log('info', msg)
 
+    def ev_read(self, worker):
+        """Log any configuration file copy messages."""
+        self.fs.hdlr.log('info', "%s: %s" % (worker.current_node,
+                                             worker.current_msg))
+
     def ev_close(self, worker):
         """
         Check process termination status and generate appropriate events.
