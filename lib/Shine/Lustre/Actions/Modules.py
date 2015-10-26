@@ -167,7 +167,19 @@ class UnloadModules(ServerAction):
         count = 0
         try:
             devices = open('/proc/fs/lustre/devices')
-            count = len(devices.readlines())
+
+            for line in devices.readlines():
+
+                # Workaround for racy Lustre behaviour.
+                # When unmounting, some lustre devs could be a little bit slow
+                # to be cleared, ignore it as module unloading will probably be
+                # ok.
+                _, state, _, _, _, refcnt = line.split()
+                if state == 'ST' and refcnt == '0':
+                    continue
+
+                count += 1
+
             devices.close()
         except IOError:
             pass
@@ -180,10 +192,9 @@ class UnloadModules(ServerAction):
 
         # If some devices are still loaded, do not try to unload
         # and do not consider this as an error.
-        if self._device_count() > 0:
-            msg = 'ignoring, still %d in-use lustre device(s)' % \
-                    self._device_count()
-            return Result(msg)
+        count = self._device_count()
+        if count > 0:
+            return Result('ignoring, still %d in-use lustre device(s)' % count)
 
         # Check still in use?
         self.server.raise_if_mod_in_use()
