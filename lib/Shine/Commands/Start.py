@@ -29,7 +29,7 @@ for any filesystems previously installed and formatted.
 from Shine.Commands.Tune import Tune
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
@@ -42,7 +42,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     MIGRATED
 
 
-class Start(FSTargetLiveCommand):
+class Start(FSLiveCommand):
     """
     shine start [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """

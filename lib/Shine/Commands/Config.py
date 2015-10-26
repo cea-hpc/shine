@@ -1,5 +1,5 @@
 # Config.py -- Display component configuration
-# Copyright (C) 2012 CEA
+# Copyright (C) 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -17,11 +17,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 from Shine.CLI.Display import display
 
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 
 #
 # NOTE: This command is declared as a FSLiveCommand but it does not do any live
@@ -29,7 +28,7 @@ from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
 # This is for convenience only as FSLiveCommand has already most of what this
 # needs to run.
 #
-class Config(FSTargetLiveCommand):
+class Config(FSLiveCommand):
     """
     shine config -f foo -O "%fsname"
     """

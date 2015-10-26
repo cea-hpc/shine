@@ -28,7 +28,7 @@ This will interact with the backend and will remove local cached files.
 
 from Shine.Configuration.FileSystem import ModelFileIOError
 
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE
 
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, RUNTIME_ERROR
@@ -36,15 +36,17 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, RUNTIME_ERROR
 from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler
 
 
-class Remove(FSTargetLiveCriticalCommand):
+class Remove(FSLiveCommand):
     """
     This Remove Command object is used to completly remove the
     File System description from the Shine environment.
     All datas are lost after the Remove command completion.
     """
- 
+
     NAME = "remove"
     DESCRIPTION = "Remove a previously installed file system"
+
+    CRITICAL = True
 
     GLOBAL_EH = FSGlobalEventHandler
 
@@ -54,7 +56,7 @@ class Remove(FSTargetLiveCriticalCommand):
         self.forbidden(self.options.model, "-m, use -f")
 
         try:
-            return FSTargetLiveCriticalCommand.execute(self)
+            return FSLiveCommand.execute(self)
         except ModelFileIOError:
             if self.has_local_flag():
                 return 0
@@ -129,7 +131,7 @@ class Remove(FSTargetLiveCriticalCommand):
 
             elif self.options.local:
                 print "Filesystem %s removed." % fs.fs_name
-        
+
         return rc
 
     def unregister_fs(self, fs_conf):

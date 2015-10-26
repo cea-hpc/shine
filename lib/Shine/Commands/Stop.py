@@ -27,7 +27,7 @@ for any filesystems previously installed and formatted.
 """
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
@@ -39,7 +39,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class Stop(FSTargetLiveCommand):
+class Stop(FSLiveCommand):
     """
     shine stop [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """

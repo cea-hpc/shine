@@ -1,5 +1,5 @@
 # FSLiveCommand.py -- Base commands class : live filesystem
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2015 CEA
 #
 # This file is part of shine
 #
@@ -35,11 +35,16 @@ from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
 class FSLiveCommand(RemoteCommand):
     """
     shine <cmd> [-f <fsname>] [-n <nodes>] [-dqv]
+
+    'CRITICAL' could be set if command will run action that can
+    damage filesystems.
     """
-    
+
     GLOBAL_EH = None
     LOCAL_EH = None
-    
+
+    CRITICAL = False
+
     TARGET_STATUS_RC_MAP = { }
 
     def fs_status_to_rc(self, status):
@@ -62,22 +67,28 @@ class FSLiveCommand(RemoteCommand):
                 fs.install(tuning_conf, servers=servers)
 
     def _open_fs(self, fsname, eh):
-        fs_conf, fs = open_lustrefs(fsname, None,
-                                    nodes=self.options.nodes,
-                                    excluded=self.options.excludes,
-                                    labels=self.options.labels,
-                                    event_handler=eh)
-        return fs_conf, fs
+        return open_lustrefs(fsname,
+                             self.options.targets,
+                             nodes=self.options.nodes,
+                             excluded=self.options.excludes,
+                             failover=self.options.failover,
+                             indexes=self.options.indexes,
+                             labels=self.options.labels,
+                             event_handler=eh)
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
         raise NotImplemented("Derived class must implement.")
 
     def execute(self):
-
         first = True
 
         # Option sanity check
         self.forbidden(self.options.model, "-m, use -f")
+
+        # Do not allow implicit filesystems format.
+        if self.CRITICAL and not self.options.fsnames:
+            msg = "A filesystem is required (use -f)."
+            raise CommandHelpException(msg, self)
 
         result = 0
 
@@ -110,35 +121,3 @@ class FSLiveCommand(RemoteCommand):
             result = max(result, self.execute_fs(fs, fs_conf, eh, vlevel))
 
         return result
-
-
-class FSTargetLiveCommand(FSLiveCommand):
-    """
-    Base class for all command dealing with filesystem Target.
-    """
-
-    def _open_fs(self, fsname, eh):
-        fs_conf, fs = open_lustrefs(fsname, 
-                                    self.options.targets,
-                                    nodes=self.options.nodes,
-                                    excluded=self.options.excludes,
-                                    failover=self.options.failover,
-                                    indexes=self.options.indexes,
-                                    labels=self.options.labels,
-                                    event_handler=eh)
-        return fs_conf, fs
-
-class FSTargetLiveCriticalCommand(FSTargetLiveCommand):
-    """
-    Base class for any command dealing with filesystem Target which require a
-    confirmation. This is useful for any critical action we do not want to be
-    done automatically, to avoid command line error by example.
-    """
-
-    def execute(self):
-        # Do not allow implicit filesystems format.
-        if not self.options.fsnames:
-            msg = "A filesystem is required (use -f)."
-            raise CommandHelpException(msg, self)
-
-        return FSTargetLiveCommand.execute(self)

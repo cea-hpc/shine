@@ -29,7 +29,7 @@ detailed states.
 """
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
                                               RC_ST_ONLINE, RC_ST_RECOVERING, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
@@ -44,7 +44,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
 
 from Shine.FSUtils import open_lustrefs
 
-class Status(FSTargetLiveCommand):
+class Status(FSLiveCommand):
     """
     shine status [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
     """

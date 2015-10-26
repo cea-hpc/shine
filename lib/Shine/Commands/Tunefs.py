@@ -26,7 +26,7 @@ it.
 """
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
@@ -38,13 +38,15 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class Tunefs(FSTargetLiveCriticalCommand):
+class Tunefs(FSLiveCommand):
     """
     shine tunefs -f <fsname> [...]
     """
 
     NAME = "tunefs"
     DESCRIPTION = "Tune file system targets."
+
+    CRITICAL = True
 
     GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler

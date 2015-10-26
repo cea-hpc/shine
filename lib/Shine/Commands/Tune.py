@@ -31,7 +31,7 @@ from Shine.Configuration.Globals import Globals
 from Shine.Configuration.TuningModel import TuningModel
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
                                               RC_RUNTIME_ERROR
 
@@ -42,7 +42,7 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
 from Shine.Lustre.FileSystem import RUNTIME_ERROR, MOUNTED
 
 
-class Tune(FSTargetLiveCommand):
+class Tune(FSLiveCommand):
     """shine tune [-v]"""
 
     NAME = "tune"

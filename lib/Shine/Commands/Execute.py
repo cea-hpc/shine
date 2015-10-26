@@ -24,7 +24,7 @@ Shine `execute' command classes.
 """
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCommand, \
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand, \
                                               CommandHelpException
 from Shine.Commands.Base.CommandRCDefs import RC_OK, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
@@ -37,7 +37,7 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR
 
 
-class Execute(FSTargetLiveCommand):
+class Execute(FSLiveCommand):
     """
     shine execute [-f <fsname>] -o "..."
     """
@@ -63,7 +63,7 @@ class Execute(FSTargetLiveCommand):
             msg = "A custom command (-o) is required."
             raise CommandHelpException(msg, self)
 
-        return FSTargetLiveCommand.execute(self)
+        return FSLiveCommand.execute(self)
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 

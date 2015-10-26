@@ -27,7 +27,7 @@ Run a low-level filesystem check for filesystem targets.
 import sys
 
 # Command base class
-from Shine.Commands.Base.FSLiveCommand import FSTargetLiveCriticalCommand
+from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
@@ -80,13 +80,15 @@ class LocalFsckEventHandler(FSLocalEventHandler):
             sys.stdout.write("\n")
 
 
-class Fsck(FSTargetLiveCriticalCommand):
+class Fsck(FSLiveCommand):
     """
     shine fsck -f <fsname> [-t <target>] [-i <index(es)>] [-n <nodes>]
     """
 
     NAME = "fsck"
     DESCRIPTION = "Fsck on targets backend file system."
+
+    CRITICAL = True
 
     GLOBAL_EH = GlobalFsckEventHandler
     LOCAL_EH = LocalFsckEventHandler
