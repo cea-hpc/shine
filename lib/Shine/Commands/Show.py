@@ -1,5 +1,5 @@
 # Show.py -- Show command
-# Copyright (C) 2008-2013 CEA
+# Copyright (C) 2008-2015 CEA
 #
 # This file is part of shine
 #
@@ -24,9 +24,11 @@ Shine `show' command classes.
 The show command aims to show various shine configuration parameters.
 """
 
+import sys
+
 # Configuration
 from Shine.Configuration.Configuration import Configuration
-from Shine.Configuration.Globals import Globals 
+from Shine.Configuration.Globals import Globals
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 # Command base class
@@ -53,7 +55,7 @@ class Show(Command):
             tbl.append({'param': key, 'value': str(value)})
         print str(tbl)
         return 0
-    
+
     def cmd_show_fs(self):
         """Show filesystems"""
         # XXX: Use a constant here
@@ -79,7 +81,7 @@ class Show(Command):
 
     def cmd_show_info(self):
         """Show filesystem info"""
-        # Walk through the list of file system managed 
+        # Walk through the list of file system managed
         # by the current node and specified by the user.
         for fsname in self.iter_fsname():
 
@@ -89,9 +91,10 @@ class Show(Command):
             except:
                 # We fail to get current file system configuration information.
                 # Display an error message.
-                print "Error with FS ``%s'' configuration files." % fsname
+                msg = "Error with FS ``%s'' configuration files." % fsname
+                print >> sys.stderr, msg
                 raise
-                
+
             # Retrieve quota configuration information
             if Globals().lustre_version_is_smaller('2.4'):
                 quota_info = ''
@@ -156,7 +159,7 @@ class Show(Command):
             print "Storage backend is disabled, please check storage " \
                   "information as a per-filesystem basis with ``show info''."
         else:
-            backend.start() 
+            backend.start()
             cnt = 0
             for tgt in [ 'mgt', 'mdt', 'ost']:
                 for dev in backend.get_target_devices(tgt):

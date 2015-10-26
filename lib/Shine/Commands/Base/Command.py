@@ -1,5 +1,5 @@
 # Command.py -- Base command class
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2015 CEA
 #
 # This file is part of shine
 #
@@ -71,7 +71,7 @@ class Command(object):
     def ask_confirm(self, prompt):
         """
         Ask user for confirmation if -y not specified.
-        
+
         Return True when the user confirms the action, False otherwise.
         """
         if self.options.yes:
@@ -174,10 +174,10 @@ class Command(object):
         for msg, nodes in fs.proxy_errors.walk():
             nodes = str(NodeSet.fromlist(nodes))
             msg = str(msg).replace('THIS_SHINE_HOST', nodes)
-            print "%s: %s" % (nodes, msg)
+            print >> sys.stderr, "%s: %s" % (nodes, msg)
 
 class RemoteCommand(Command):
-    
+
     def __init__(self, options=None, args=None):
         Command.__init__(self, options, args)
         self.eventhandler = None

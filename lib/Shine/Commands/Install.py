@@ -18,7 +18,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-from Shine.Configuration.Globals import Globals 
+import sys
+
+from Shine.Configuration.Globals import Globals
 
 from Shine.FSUtils import create_lustrefs
 from Shine.Lustre.FileSystem import FSRemoteError
@@ -34,7 +36,7 @@ class Install(Command):
     """
     shine install -m /path/to/model.lmf
     """
- 
+
     NAME = "install"
     DESCRIPTION = "Install a new file system."
 
@@ -78,7 +80,8 @@ class Install(Command):
         else:
             rc = self.register_fs(fs_conf)
         if rc:
-            print "Error: failed to register FS to backend (rc=%d)" % rc
+            msg = "Error: failed to register FS to backend (rc=%d)" % rc
+            print >> sys.stderr, msg
         else:
             print "Filesystem %s registered." % fs.fs_name
 
