@@ -1,3 +1,12 @@
+2015-10-27 Florent Thery <florent.thery@atos.net>
+	* Detect and display target migrated status (ticket #14)
+
+2015-10-26 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Do not wrongly prevent module unloading (ticket #194)
+
+2015-10-26 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Display error messages on stderr (ticket #193)
+
 2015-05-27 Dominique Martinet <dominique.martinet@cea.fr>
 	* Fix tune errors by adding -n to echo into /proc/fs files (ticket #192)
 
