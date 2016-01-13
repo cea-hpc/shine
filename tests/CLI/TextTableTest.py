@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.CLI.TextTable test suite
-# Written by A. Degremont 2012-04-26
-# $Id$
+# Written by A. Degremont
 
 """Unit test for TextTable"""
 
@@ -57,29 +56,36 @@ class TextTableTest(unittest.TestCase):
         tbl.append({'one': 'foo'})
         self.assertEqual(str(tbl), "foo")
 
+    def test_padding_noheader(self):
+        """ignore header labels for padding when disabled"""
+        tbl = TextTable("%longer %foo")
+        tbl.show_header = False
+        tbl.append({'longer': 'short', 'foo': 'data'})
+        self.assertEqual(str(tbl), 'short data')
+
     def test_header_label(self):
         """output with header label"""
         tbl = TextTable("%fsname")
         tbl.header_labels = {'fsname': 'filesystem'}
         tbl.append({'fsname': 'foo'})
         self.assertEqual(str(tbl), "FILESYSTEM\n----------\nfoo")
-        
+
     def test_column_width_values(self):
         """column width with longer values"""
         tbl = TextTable("%one %two")
         tbl.append({'one': 'foo1', 'two': 'bar1'})
         tbl.append({'one': 'foofoo2', 'two': 'barbar2'})
-        self.assertEqual(str(tbl), 
+        self.assertEqual(str(tbl),
 """ONE     TWO
 ---     ---
 foo1    bar1
 foofoo2 barbar2""")
 
-    def test_column_alignement_header(self):
+    def test_header_column_alignment(self):
         """column alignment with longer header"""
         tbl = TextTable("%filesystem %two")
         tbl.append({'filesystem': 'foo', 'two': 'bar'})
-        self.assertEqual(str(tbl), 
+        self.assertEqual(str(tbl),
                          "FILESYSTEM TWO\n---------- ---\nfoo        bar")
 
     def test_row_with_none_value(self):
@@ -93,7 +99,7 @@ foofoo2 barbar2""")
         tbl = TextTable("%one is %nice")
         tbl.append({'one': 'bar'})
         self.assertRaises(KeyError, str, tbl)
-        
+
     def test_ignore_bad_keys(self):
         """bad keys are displayed as-is."""
         tbl = TextTable("%one is %nice")
@@ -120,11 +126,11 @@ foofoo2 barbar2""")
         tbl.append({'label': 'lustre-OST0000', 'two': 'bar'})
         self.assertEqual(str(tbl), "L... TWO\n---- ---\nl... bar")
 
-    def test_column_alignement_explicit(self):
+    def test_explicit_column_alignment(self):
         """force an explicit column width"""
         tbl = TextTable("%>10one %two")
         tbl.append({'one': 'foo', 'two': 'bar'})
-        self.assertEqual(str(tbl), 
+        self.assertEqual(str(tbl),
                          "       ONE TWO\n       --- ---\n       foo bar")
 
     def test_color(self):
@@ -147,7 +153,7 @@ foofoo2 barbar2""")
         tbl.title = "title"
         tbl.color = True
         tbl.append({'filesystem': 'foo', 'two': 'bar'})
-        self.assertEqual(str(tbl), 
+        self.assertEqual(str(tbl),
 "====\033[34m title \033[0m===\n"
 "\033[34mFILESYSTEM TWO\033[0m\n"
 "---------- ---\n"

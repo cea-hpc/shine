@@ -1,4 +1,4 @@
-# Copyright or (c) or Copr. 2012, CEA
+# Copyright or (c) or Copr. 2012-2015 CEA
 #
 # This file is part of shine
 #
@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 """
 Table formatting classes for text-based interface.
@@ -24,10 +23,9 @@ Table formatting classes for text-based interface.
 
 import re
 
-COLORS = {
-        'header': '\033[34m',
-        'stop': '\033[0m',
-    }
+COLORS = {'header': '\033[34m',
+          'stop': '\033[0m',
+         }
 
 class TextTable(object):
     """
@@ -53,22 +51,22 @@ class TextTable(object):
 
     Display properties:
         fmt               Format used to display each row and header.
-        show_header       If True, display a uppercase header a the top of 
+        show_header       If True, display a uppercase header a the top of
                           the table (default: True)
-        header_labels     Mapping of key to header text. 
+        header_labels     Mapping of key to header text.
                           Default is to use the key as the header value.
         color             if True, displays table using colors.
         title             A title to display on top of the table
         optional_cols     Column list to not display if they are empty.
     """
 
-    RE_PATTERN = "%(>)?(\d+)?(?P<name>[a-z]+)"
+    RE_PATTERN = r'%(>)?(\d+)?(?P<name>[a-z]+)'
 
     def __init__(self, fmt=""):
         self._rows = []
         self._max_width = {}
         self._non_empty_cols = set()
-        
+
         # Behavior
         self.ignore_bad_keys = False
         self.aliases = {}
@@ -98,15 +96,18 @@ class TextTable(object):
 
     def pattern_fields(self):
         """Return the list of all field place holder name used in fmt.  """
-        return [ match.group('name')
-                 for match in re.finditer(self.RE_PATTERN, self.fmt) ]
+        return [match.group('name')
+                for match in re.finditer(self.RE_PATTERN, self.fmt)]
 
     def append(self, row):
         """Append a new row to be displayed. `row' should be a dict."""
         # Keep track of wider value for each field
         for key, value in row.iteritems():
-            header_length = len(self._header(key))
             real_value_len = len(str(value or ''))
+            if self.show_header:
+                header_length = len(self._header(key))
+            else:
+                header_length = 0
 
             # Keep track of the wider value in each col (header or value)
             self._max_width[key] = max(self._max_width.get(key, header_length),

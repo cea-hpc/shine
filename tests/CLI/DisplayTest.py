@@ -143,19 +143,19 @@ class SimpleFillTests(unittest.TestCase):
     def test_simple_fs(self):
         """fill with a MGT only filesystem"""
         self._fs.new_target(Server('foo', ['foo@tcp']), 'mgt', 0, '/dev/foo')
-        self._fmt_str("%fsname %node", 'foofs  foo')
+        self._fmt_str("%fsname %node", 'foofs foo')
 
     def test_simple_fs_group_fields(self):
         """fill with a MGT only filesystem with group fields"""
         self._fs.new_target(Server('foo', ['foo@tcp']), 'mgt', 0, '/dev/foo')
         self._fmt_str("%fsname %node %count %labels %nodes",
-                      'foofs  foo  1     MGS    foo')
+                      'foofs foo 1 MGS foo')
 
     def test_common_fields(self):
         """fill with component common fields"""
         self._fs.new_target(Server('foo', ['foo@tcp']), 'mgt', 0, '/dev/foo')
         self._fmt_str("%fsname %label %node %status %statusonly %type %servers",
-                      'foofs  MGS   foo  unknown unknown    MGT  foo')
+                      'foofs MGS foo unknown unknown MGT foo')
 
     def test_status_evicted(self):
         """fill with status/statusonly field with different values"""
@@ -173,7 +173,7 @@ class SimpleFillTests(unittest.TestCase):
         tgt.journal.dev_size = 123
 
         fmt = "%device %2flags %hanodes %1index %jdev %3jsize"
-        self._fmt_str(fmt, '/dev/foo    foo2    0 /dev/jfoo 123')
+        self._fmt_str(fmt, '/dev/foo    foo2 0 /dev/jfoo 123')
 
         fmt = "%3network %tag %servers"
         self._fmt_str(fmt, 'tcp footag foo,foo2')
