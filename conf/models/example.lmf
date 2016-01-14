@@ -2,7 +2,6 @@
 # This is an example of lustre model file. It contains a set of
 # configuration directives to install a simple Lustre filesystem.
 #
-# $Id$
 
 ### Section 1 - Required directives
 
@@ -27,7 +26,7 @@ mount_path: /example
 
 # Defines your Lustre filesystem targets.
 #
-# mgt|mdt|ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ] 
+# mgt|mdt|ost: [ tag=<RegExp> ] [ node=<RegExp> ] [ dev=<RegExp> ]
 #              [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
 #              [ group=<RegExp> ] [ mode={external|managed} ]
 #              [ network=<RegExp> ] [ active={yes|nocreate|no|manual} ]
@@ -36,15 +35,18 @@ mount_path: /example
 # fully describe our targets (no RegExp accepted). For this simple
 # example, only minimum target information is provided.
 
-# mgt
+# MGS
 # Management Target
 mgt: node=nova4 dev=/dev/sde1
 
-# mdt
+# Example of MGS with HA (device must have same path on both nodes)
+#mgt: node=nova4 ha_node=nova3 dev=/dev/mapper/mgt-persistent-name
+
+# MDT
 # MetaData Target
 mdt: node=nova4 dev=/dev/sdf
 
-# ost
+# OST
 # Object Storage Target(s)
 ost: node=nova5 dev=/dev/sdd
 ost: node=nova5 dev=/dev/sde
@@ -60,13 +62,17 @@ client: node=nova[33-34]
 # mount point (not the default mount_path). In that case, use the
 # optional client parameter mount_path.
 # Some variables could be used in 'mount_path', see -Path Variables- below.
-# 
+#
 client: node=nova[35-38] mount_path=/my/specific/example
 
 # Also, to override default client mount options, add the following
 # mount_options inline option:
 client: node=nova39 mount_path=/my/specific/example mount_options=noatime
 
+# Lustre routers
+#
+# Example: nova7 and nova8 are declared as LNET routers.
+#router: node=nova[7-8]
 
 ### Section 3 - Additionnal directives
 
@@ -100,12 +106,12 @@ stripe_size: 1048576
 # mdt_mkfs_options:
 # ost_mkfs_options:
 #
-# Optional argument for --mkfsoptions, by target type. You can use ext3 format
+# Optional argument for --mkfsoptions, by target type. You can use ext4 format
 # options here. Defaults is no option.
-# ie: do not reserve blocks for super-user.
-mgt_mkfs_options: -m 0
-mdt_mkfs_options: -m 0
-ost_mkfs_options: -m 0
+# eg: reduce reserved blocks for super-user.
+#mgt_mkfs_options: -m 2
+#mdt_mkfs_options: -m 2
+#ost_mkfs_options: -m 2
 
 #
 # mgt_mount_options:
@@ -120,7 +126,7 @@ mdt_mount_options: acl
 
 # mount_options
 # This define the default options to mount the filesystem on clients.
-mount_options: acl,user_xattr
+mount_options: user_xattr
 
 #
 # Quota
@@ -152,10 +158,3 @@ quota: no
 mgt_mount_path: /mnt/$fs_name/mgt
 mdt_mount_path: /mnt/$fs_name/mdt/$index
 ost_mount_path: /mnt/$fs_name/ost/$index
-
-#
-# Routers
-#
-
-# nova7 and nova8 are declared as LNET routers.
-router: node=nova[7-8]
