@@ -38,7 +38,7 @@ class FileSystemTest(unittest.TestCase):
     def testLoadFile(self):
         """create a FileSystem from model example.lmf"""
         fs = FileSystem(filename="../conf/models/example.lmf")
-        self.assertEqual(len(fs.model), 19)
+        self.assertEqual(len(fs.model), 15)
 
     def test_missing_config_file(self):
         """test missing config file detection"""
