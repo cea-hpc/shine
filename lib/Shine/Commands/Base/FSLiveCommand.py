@@ -22,6 +22,8 @@
 Base class for live filesystem commands (start, stop, status, etc.).
 """
 
+import sys
+
 from Shine.Configuration.Globals import Globals
 
 from Shine.Commands.Base.Command import RemoteCommand, CommandHelpException
@@ -31,6 +33,7 @@ from Shine.FSUtils import open_lustrefs
 
 # Error handling
 from Shine.Commands.Base.CommandRCDefs import RC_RUNTIME_ERROR
+from Shine.Lustre.FileSystem import FSRemoteError
 
 class FSLiveCommand(RemoteCommand):
     """
@@ -64,7 +67,10 @@ class FSLiveCommand(RemoteCommand):
                     if self.options.excludes is not None:
                         servers.difference_update(self.options.excludes)
 
-                fs.install(tuning_conf, servers=servers)
+                try:
+                    fs.install(tuning_conf, servers=servers)
+                except FSRemoteError, err:
+                    print >> sys.stderr, str(err)
 
     def _open_fs(self, fsname, eh):
         return open_lustrefs(fsname,

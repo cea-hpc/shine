@@ -1,3 +1,6 @@
+2016-02-17 Florent Thery <florent.thery@atos.net>
+	* Don't quit if a node is unreachable during tuning file copy (ticket #46)
+
 2015-10-27 Florent Thery <florent.thery@atos.net>
 	* Detect and display target migrated status (ticket #14)
 

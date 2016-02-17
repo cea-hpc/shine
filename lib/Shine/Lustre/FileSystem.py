@@ -84,7 +84,7 @@ class FSRemoteError(FSError):
         self.rc = int(rc)
 
     def __str__(self):
-        return "%s: %s [rc=%d]" % (self.nodes, self.msg, self.rc)
+        return "%s: %s" % (self.nodes, self.msg)
 
 
 class FileSystem:
@@ -340,7 +340,9 @@ class FileSystem:
                 timeout_ns = NodeSet.fromlist(task_self().iter_keys_timeout())
                 err_nodes.update(timeout_ns)
                 err_code = -1
-                err_txt = "Node timed out"
+                for node in timeout_ns:
+                    msg = "Node timed out [rc=-1]"
+                    self._handle_shine_proxy_error(node, msg)
 
             if task_self().max_retcode():
 
@@ -348,10 +350,19 @@ class FileSystem:
                 for rc, nodelist in task_self().iter_retcodes():
                     if rc > 0:
                         err_nodes.update(NodeSet.fromlist(nodelist))
+                        for node in nodelist:
+                            msg = task_self().node_buffer(node) + \
+                                  ' [rc=%d]' % task_self().node_retcode(node)
+                            self._handle_shine_proxy_error(node, msg)
+
                 err_code = task_self().max_retcode()
-                err_txt = task_self().node_buffer(err_nodes[0])
 
             if len(err_nodes) > 0:
+                for msg, nodes in self.proxy_errors.walk():
+                    nodes = str(NodeSet.fromlist(nodes))
+                    err_txt += "%s\n" % \
+                                str(msg).replace('THIS_SHINE_HOST', nodes)
+
                 raise FSRemoteError(err_nodes, err_code, err_txt)
 
     def install(self, fs_config_file, servers=None, **kwargs):
