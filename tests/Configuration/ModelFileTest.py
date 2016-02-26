@@ -223,6 +223,7 @@ class MultipleElementTest(unittest.TestCase):
         self.assertTrue(len(added) == len(removed) == len(changed) == 0)
 
         elem.add(3)
+        elem.add(9)
         elem.add(4)
 
         # itself
@@ -232,12 +233,12 @@ class MultipleElementTest(unittest.TestCase):
         # elem <=> (empty)
         added, changed, removed = elem.diff(elem.emptycopy())
         self.assertTrue(len(added) == len(changed) == 0)
-        self.assertEqual(removed.get(), [3, 4])
+        self.assertEqual(removed.get(), [3, 9, 4])
 
         # (empty) <=> elem
         added, changed, removed = elem.emptycopy().diff(elem)
         self.assertTrue(len(removed) == len(changed) == 0)
-        self.assertEqual(added.get(), [3, 4])
+        self.assertEqual(added.get(), [3, 9, 4])
 
         # Mixed
         other = elem.copy()

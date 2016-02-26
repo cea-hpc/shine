@@ -316,20 +316,21 @@ class MultipleElement(object):
 
         # Detect new elements in other. Add them keeping order.
         added = self.emptycopy()
-        for key, elem in otherdict.items():
-            if key not in localdict:
+        for elem in other.elements():
+            if elem.key() not in localdict:
                 added.elements().append(elem.copy())
 
         # Detect missing elements in other. Add them keeping order.
         removed = self.emptycopy()
-        for key, elem in localdict.items():
-            if key not in otherdict:
+        for elem in self.elements():
+            if elem.key() not in otherdict:
                 removed.elements().append(elem.copy())
 
         # Detect modified element in other.
         # Add the new one from other
         changed = self.emptycopy()
-        for key, elem in localdict.items():
+        for elem in self.elements():
+            key = elem.key()
             if key in otherdict:
                 otherelem = otherdict[key]
                 e_added, e_changed, e_removed = elem.diff(otherelem)
