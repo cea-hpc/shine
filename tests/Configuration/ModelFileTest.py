@@ -5,6 +5,7 @@
 """Unit test for ModelFile"""
 
 import os
+import time
 import unittest
 
 from Utils import makeTempFile, makeTempFilename
@@ -167,7 +168,7 @@ class MultipleElementTest(unittest.TestCase):
         self.assertEqual(elem.get(), ["3", "5", "7"])
         self.assertEqual(elem.content(), ["3", "5", "7"])
         self.assertEqual(elem[1], "5")
-        self.assertEqual(str(elem), "3 5 7")
+        self.assertEqual(str(elem), "3\n5\n7")
         self.assertEqual(len(elem), 3)
 
         # Remove an item
@@ -302,6 +303,27 @@ class MultipleElementTest(unittest.TestCase):
         self.assertEqual(removed.get(), None)
         self.assertEqual(changed.as_dict(), [{'node':'foo', 'data':'else'}])
         self.assertEqual(str(changed.elements()[0].old), "node=foo data=bar")
+
+    def test_str_fold(self):
+        """MultipleElement uses range-based folding when format to str"""
+        elem = MultipleElement(SimpleElement(check='string'))
+
+        # By default, no folding is done when cast to str
+        elem.add('3')
+        elem.add('4')
+        elem.add('5')
+        self.assertEqual(str(elem), "3\n4\n5")
+
+        # With enabled folding
+        elem.fold = True
+        self.assertEqual(str(elem), '[3-5]')
+
+        # Folding keeps order
+        elem.clear()
+        elem.add('3')
+        elem.add('5')
+        elem.add('4')
+        self.assertEqual(str(elem), "[3,5]\n4")
 
 
 class ModelFileTest(unittest.TestCase):
@@ -663,26 +685,90 @@ class ModelFileTest(unittest.TestCase):
 
     # File management tests
 
-    def test_expand_range(self):
-        """parse ranged line expand correctly"""
+    def test_expand_fold_range(self):
+        """parse line with range expand and fold correctly"""
         model = ModelFile()
-        model.add_element("foo", check="string", multiple=True)
+        model.add_element("foo", check="string", multiple=True, fold=True)
 
         model.parse("foo: mine[10-15]")
         self.assertEqual(len(model.get('foo')), 6)
+        self.assertEqual(str(model.elements('foo')), 'mine[10-15]')
         del model['foo']
 
         model.parse("foo: mine[10-15] second[1-6]")
         self.assertEqual(len(model.get('foo')), 6)
+        self.assertEqual(str(model.elements('foo')), 'mine[10-15] second[1-6]')
         del model['foo']
 
         # Range supports padding
         model.parse('foo: bar[01-02]')
         self.assertEqual(model.get('foo'), ['bar01', 'bar02'])
+        self.assertEqual(str(model.elements('foo')), 'bar[01-02]')
         del model['foo']
 
         # Ranges mismatch
         self.assertRaises(ModelFileValueError, model.parse, "foo: five[1-5] two[1-2]")
+
+    def test_various_fold_range(self):
+        """fold complex patterns involving ordering"""
+        model = ModelFile()
+        model.add_element("foo", check="string", multiple=True, fold=True)
+
+        # Folding without digit is fine
+        model.parse('foo: cat')
+        model.parse('foo: dog')
+        self.assertEqual(len(model.get('foo')), 2)
+        self.assertEqual(str(model.elements('foo')), 'cat\ndog')
+        copy = model.emptycopy()
+        copy.parse(str(model))
+        self.assertEqual(copy, model)
+        del model['foo']
+
+        # Keeps order
+        model.parse('foo: foo1')
+        model.parse('foo: foo3')
+        model.parse('foo: foo2')
+        self.assertEqual(len(model.get('foo')), 3)
+        self.assertEqual(str(model.elements('foo')), 'foo[1,3]\nfoo2')
+        copy = model.emptycopy()
+        copy.parse(str(model))
+        self.assertEqual(copy, model)
+        del model['foo']
+
+        # Complex ordering
+        model.parse("foo: mine[10-15] second[1-6]")
+        model.parse("foo: mine[8] second[7]")
+        model.parse("foo: mine[16] second[8]")
+        self.assertEqual(len(model.get('foo')), 8)
+        self.assertEqual(str(model.elements('foo')), 'mine[10-15] second[1-6]\n'
+                         'mine[8,16] second[7-8]')
+        copy = model.emptycopy()
+        copy.parse(str(model))
+        self.assertEqual(copy, model)
+        del model['foo']
+
+        # Static column
+        model.parse("foo: mine[10-15] second1")
+        model.parse("foo: mine[16] second1")
+        model.parse("foo: mine[16] second2")
+        self.assertEqual(len(model.get('foo')), 8)
+        self.assertEqual(str(model.elements('foo')), 'mine[10-16] second1\n'
+                         'mine16 second2')
+        copy = model.emptycopy()
+        copy.parse(str(model))
+        self.assertEqual(copy, model)
+        del model['foo']
+
+    def test_huge_folding_scales(self):
+        """folding a lot of elements is fast enough"""
+        model = ModelFile()
+        model.add_element("foo", check="string", multiple=True, fold=True)
+        for i in range(0, 10000):
+            model.parse('foo: first%s second%s' % (i, i + 10))
+        before = time.time()
+        self.assertEqual(str(model), 'foo:first[0-9999] second[10-10009]')
+        elapsed = time.time() - before
+        self.assertTrue(elapsed < 0.5, "%.2fs exceeds 0.5s threshold" % elapsed)
 
     def testLoadModelFromFile(self):
         """load a ModelFile from file"""

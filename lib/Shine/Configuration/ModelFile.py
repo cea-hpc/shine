@@ -163,9 +163,9 @@ class SimpleElement(object):
             return retval
 
         elif self._check == 'boolean':
-            if value.lower() in ['yes', 'true', '1' ]:
+            if value.lower() in ('yes', 'true', '1'):
                 return True
-            elif value.lower() in ['no', 'false', '0' ]:
+            elif value.lower() in ('no', 'false', '0'):
                 return False
             else:
                 raise ModelFileValueError("'%s' not a boolean value" % value)
@@ -182,7 +182,7 @@ class SimpleElement(object):
             return [val for val in self._values if str(val) == str(value)].pop()
 
         elif self._check == 'path':
-            if not re.match("^\/([\.\w:-]+/)*[\.\w:-]+/?$", value):
+            if not re.match(r"^\/([\.\w:-]+/)*[\.\w:-]+/?$", value):
                 raise ModelFileValueError("'%s' is not a valid path" % value)
             return value
 
@@ -192,8 +192,8 @@ class SimpleElement(object):
     def add(self, value):
         """Validate and set the SimpleElement value.
 
-        Raises aModelFileValueError is called twice. See MultipleElement if you need
-        multiple values.
+        Raises a ModelFileValueError if called twice. See MultipleElement if
+        you need multiple values.
         """
         # Simple element could not 'add' several times. See MultipleElement.
         if self._content is not None:
@@ -232,16 +232,17 @@ def _changify(newobj, oldobj):
 
 class MultipleElement(object):
     """
-    This is a container over a list of non-multiple element, like SimpleElement or
-    ModelFile.
+    This is a container over a list of non-multiple element, like SimpleElement
+    or ModelFile.
 
     It uses the provided instance, at init, as a reference for all the data that
     it will have to manage.
     """
 
-    def __init__(self, orig_elem):
+    def __init__(self, orig_elem, fold=False):
         self._origelem = orig_elem
         self._elements = []
+        self.fold = fold
 
     def emptycopy(self):
         """Return a new empty copy of this element, with the same attributes."""
@@ -284,7 +285,11 @@ class MultipleElement(object):
         return len(self.elements())
 
     def __str__(self):
-        return " ".join([str(elem) for elem in self])
+        if self.fold:
+            items = self._strfold()
+        else:
+            items = (str(elem) for elem in self)
+        return "\n".join(items)
 
     def __eq__(self, other):
         return self._origelem == other._origelem \
@@ -369,13 +374,79 @@ class MultipleElement(object):
         maxsize = max([len(rng) for rng in rangesets])
         if minsize != maxsize:
             raise ModelFileValueError("Range size mismatch %d != %d" %
-                             (minsize, maxsize))
+                                      (minsize, maxsize))
 
         # Need striter() to build padded strings if present
         rangesets = [list(rng.striter()) for rng in rangesets]
 
         # Generate the new lines based from the rangeset
         return (fmt % tpl for tpl in zip(*rangesets))
+
+    def _fold_range(self):
+        """Compute (pattern, (range, padding)) info and iterate over them."""
+        pattern = None
+        indexes = None
+        for elem in self:
+            prev_pattern = pattern
+
+            # Detect numeric values and push them in a list
+            parts = []
+            cidx = []
+            for mobj in re.finditer(r"(\D*)((0*)\d+)?", str(elem)):
+                rng = mobj.group(2) and '%s' or ''
+                parts.append("%s%s" % (mobj.group(1), rng))
+                if mobj.group(2):
+                    padding = mobj.group(3) and len(mobj.group(2)) or 0
+                    cidx.append([[int(mobj.group(2))], padding])
+            pattern = ''.join(parts)
+
+            # If pattern is different, create a new line
+            if prev_pattern and prev_pattern != pattern:
+                yield prev_pattern, indexes
+
+            # Try to merge cidx into indexes
+            elif indexes:
+
+                largest = max(len(elem[0]) for elem in indexes)
+                for idxelem, elem in zip(indexes, cidx):
+                    colsize = len(idxelem[0])
+                    # Lines can be merged only if current column:
+                    #  has only 1 element and still adding the same one
+                    #  adding a new element bigger than all the other ones
+                    if not(colsize == 1 and elem[0] == idxelem[0]) and \
+                       not(colsize == largest and elem[0][0] > idxelem[0][-1]):
+
+                        yield prev_pattern, indexes
+                        break
+
+                # No mismatch was detected, merge this line with previous ones
+                else:
+                    for idxelem, elem in zip(indexes, cidx):
+                        if elem[0] != idxelem[0]:
+                            idxelem[0].append(elem[0][0])
+                        idxelem[1] = max(idxelem[1], elem[1])
+                    continue
+
+            indexes = cidx
+
+        if pattern:
+            yield pattern, indexes
+
+    def _strfold(self):
+        """Convert to string grouping elements using ranges when possible."""
+        for pattern, indexes in self._fold_range():
+            if indexes:
+                rngs = []
+                for elem in indexes:
+                    rng = RangeSet(elem[0])
+                    rng.padding = elem[1]
+                    if len(rng) > 1:
+                        rngs.append('[%s]' % rng)
+                    else:
+                        rngs.append(str(rng))
+                yield pattern % tuple(rngs)
+            else:
+                yield pattern
 
     def add(self, value):
         """Add a new element to this MultipleElement and call add() on it."""
@@ -450,7 +521,7 @@ class ModelFile(object):
             return self._elements.get(key)
         return self._elements
 
-    def add_element(self, name, multiple=False, **kwargs):
+    def add_element(self, name, multiple=False, fold=False, **kwargs):
         """Add a new supported SimpleElement with key `name`.
 
         - multiple: If several values could be associated to this key.
@@ -460,9 +531,9 @@ class ModelFile(object):
 
         See `SimpleElement`.
         """
-        self.add_custom(name, SimpleElement(**kwargs), multiple)
+        self.add_custom(name, SimpleElement(**kwargs), multiple, fold)
 
-    def add_custom(self, name, custom_elem, multiple=False):
+    def add_custom(self, name, custom_elem, multiple=False, fold=False):
         """Add a custom Element type.
 
         This could be any element that supports needed interface.
@@ -471,7 +542,7 @@ class ModelFile(object):
             raise KeyError("%s is already declared" % name)
 
         if multiple:
-            self._elements[name] = MultipleElement(custom_elem)
+            self._elements[name] = MultipleElement(custom_elem, fold=fold)
         else:
             self._elements[name] = custom_elem
 
@@ -512,8 +583,10 @@ class ModelFile(object):
 
     def __str__(self):
         elems = []
-        for key, values in self.iteritems():
-            elems.append(''.join([key, self._sep, str(values)]))
+        for key, values in self._elements.iteritems():
+            if len(values):
+                for value in str(values).splitlines():
+                    elems.append(''.join([key, self._sep, value]))
         return self._linesep.join(elems)
 
     def __len__(self):
@@ -533,14 +606,6 @@ class ModelFile(object):
     def iterkeys(self):
         """Iterate over the keys with non-empty value."""
         return (key for key, value in self._elements.iteritems() if len(value))
-
-    def iteritems(self):
-        """Iterate over the keys and non-empty values.
-        Multiple elements will yield for each element in it."""
-        for key, element in self._elements.iteritems():
-            if len(element):
-                for value in element:
-                    yield key, value
 
     # Content access
 
@@ -609,7 +674,7 @@ class ModelFile(object):
         """Return a dict containing all elements and content using only Python
         built-in objects."""
         return dict([(key, self._elements[key].as_dict())
-            for key in self.iterkeys()])
+                     for key in self.iterkeys()])
 
     def parse(self, data):
         """Parse @data based on separators and declared elements."""
