@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # Shine.Configuration.FileSystem class
-# Copyright (C) 2009-2013 CEA
+# Copyright (C) 2009-2017 CEA
 
 
 """Unit test for Shine.Configuration.FileSystem"""
 
 import unittest
+import time
 
 from Utils import makeTempFile, setup_tempdirs, clean_tempdirs
 from Shine.Configuration.FileSystem import FileSystem, ModelFileIOError, ConfigDeviceNotFoundError
@@ -114,13 +115,25 @@ mgt: node=foo1 ha_node=foo2
         """filesystem with nids with several ranges."""
         self._fs = self.makeConfFileSystem("""
 fs_name: nids
-nid_map: nodes=foo[1-2],bar[1-3] nids=foo[1-2]@tcp,bar[1-3]@tcp
+nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp
+nid_map: nodes=bar[1-3] nids=bar[1-3]@tcp
 """)
         self.assertEqual(self._fs.get_nid('foo1'), ['foo1@tcp'])
         self.assertEqual(self._fs.get_nid('foo2'), ['foo2@tcp'])
         self.assertEqual(self._fs.get_nid('bar1'), ['bar1@tcp'])
         self.assertEqual(self._fs.get_nid('bar2'), ['bar2@tcp'])
         self.assertEqual(self._fs.get_nid('bar3'), ['bar3@tcp'])
+
+    def test_big_nid_map_scalable(self):
+        """filesystem with nids with several ranges."""
+        before = time.time()
+        self._fs = self.makeConfFileSystem("""
+fs_name: nids
+nid_map: nodes=foo[1-9999] nids=bar[1-9999]@tcp
+""")
+        elapsed = time.time() - before
+        self.assertTrue(elapsed < 2, "%.2fs exceeds 2s threshold" % elapsed)
+        self.assertEqual(len(self._fs.nid_map), 9999)
 
     def testNoIndexDefined(self):
         """filesystem with no index set"""

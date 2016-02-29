@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # Shine.Configuration.Model test suite
-# Copyright (C) 2009-2014 CEA
+# Copyright (C) 2009-2017 CEA
 
 
 """Unit test for Model"""
 
 import unittest
-import time
 import textwrap
 
 from Utils import makeTempFile
 
-from Shine.Configuration.NidMap import NidMap
 from Shine.Configuration.Model import Model, ModelFileValueError
 
 class ModelTest(unittest.TestCase):
@@ -63,31 +61,44 @@ mgt: node=foo1 dev=/dev/sda active=no""")
         self.assertEqual(model.get('mgt')[0].get('active'), 'no')
 
     def test_unbalanced_nid_map(self):
-        """Model with nid_map with several ranges."""
-        model = self.makeTempModel("""fs_name: nids
-nid_map: nodes=foo[1-2],bar[1-9] nids=foo[1-2],bar[1-9]@tcp""")
-        self.assertEqual(len(model.elements('nid_map')), 1)
-        self.assertEqual(model.elements('nid_map')[0].as_dict(),
-             { 'nodes': 'foo[1-2],bar[1-9]', 'nids': 'foo[1-2],bar[1-9]@tcp' })
-
-    def test_big_nid_map_scalable(self):
-        """check big nid mapping is scalable."""
+        """size mismatch in nid_map raises an exception"""
         model = Model()
-        model.parse("nid_map: nodes=foo[1-9999] nids=bar[1-9999]@tcp")
-        before = time.time()
-        NidMap.fromlist(model.get('nid_map'))
-        self.assertTrue(time.time() - before < .5)
+        txt = textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[1-2] nids=foo[1-9]@tcp""")
+        self.assertRaises(ModelFileValueError, model.parse, txt)
 
-    def testSeveralNidMap(self):
+    def test_2_nid_map_diff_pattern(self):
+        """Model with nid_map with several ranges"""
+        model = Model()
+        model.parse(textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp
+            nid_map: nodes=bar[1-9] nids=bar[1-9]@tcp"""))
+        self.assertEqual(len(model.elements('nid_map')), 11)
+        self.assertEqual(model.elements('nid_map')[0].as_dict(),
+                         {'nodes': 'foo1', 'nids': 'foo1@tcp'})
+        self.assertEqual(model.elements('nid_map')[10].as_dict(),
+                         {'nodes': 'bar9', 'nids': 'bar9@tcp'})
+
+    def test_multi_pattern_nid_map(self):
+        """multiple patterns in nid_map is detected"""
+        model = Model()
+        txt = textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[1-2],bar[1-2] nids=foo[1-2]@tcp,bar[1-2]@tcp""")
+        self.assertRaises(ModelFileValueError, model.parse, txt)
+
+    def test_several_nid_map(self):
         """Model with several nid_map lines."""
-        model = self.makeTempModel("""fs_name: nids
+        model = Model()
+        model.parse("""fs_name: nids
 nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp
 nid_map: nodes=foo[7] nids=foo[7]@tcp""")
-        self.assertEqual(len(model.elements('nid_map')), 2)
+        self.assertEqual(len(model.elements('nid_map')), 3)
         self.assertEqual(model.elements('nid_map')[0].as_dict(),
-                { 'nodes': 'foo[1-2]', 'nids': 'foo[1-2]@tcp' })
+                         {'nodes': 'foo1', 'nids': 'foo1@tcp'})
         self.assertEqual(model.elements('nid_map')[1].as_dict(),
-                { 'nodes': 'foo[7]', 'nids': 'foo[7]@tcp' })
+                         {'nodes': 'foo2', 'nids': 'foo2@tcp'})
+        self.assertEqual(model.elements('nid_map')[2].as_dict(),
+                         {'nodes': 'foo7', 'nids': 'foo7@tcp'})
 
     def test_match_device_ignore_index(self):
         """test match_device() does not try to match index property"""
@@ -126,7 +137,7 @@ mgt:  node=foo7 """)
         self.assertEqual(model.get('fs_name'), 'spaces')
         self.assertEqual(len(model.elements('nid_map')), 1)
         self.assertEqual(model.elements('nid_map')[0].as_dict(),
-                { 'nodes': 'foo[7]', 'nids': 'foo[7]@tcp' })
+                         {'nodes': 'foo7', 'nids': 'foo7@tcp'})
 
     def test_diff_ost(self):
         """check diff detects updated targets."""

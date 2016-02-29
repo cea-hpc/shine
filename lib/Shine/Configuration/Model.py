@@ -1,4 +1,4 @@
-# Copyright (C) 2007-2014 CEA
+# Copyright (C) 2007-2017 CEA
 #
 # This file is part of shine
 #
@@ -24,7 +24,7 @@ Provides classes to load/read and save Shine model files or cache files.
 import re
 
 from Shine.Configuration.ModelFile import ModelFile, SimpleElement, \
-                                          MultipleElement, ModelFileValueError
+                                          ModelFileValueError
 
 class Model(ModelFile):
     """Represent a Shine model file.
@@ -67,7 +67,7 @@ class Model(ModelFile):
         self.add_element('quota_itune',       check='digit')
 
         # NidMapping
-        self.add_custom('nid_map', NidMaps())
+        self.add_custom('nid_map', NidMap(), multiple=True, fold=True)
 
         # Targets
         self.add_custom('mgt', Target(), multiple=True)
@@ -104,21 +104,13 @@ class NidMap(ModelFile):
         self.add_element('nodes', check='string')
         self.add_element('nids',  check='string')
 
-
-class NidMaps(MultipleElement):
-    """Group all 'nid_map' declarations."""
-
-    def __init__(self, orig_elem=None):
-        MultipleElement.__init__(self, NidMap())
-
-    def _expand_range(self, data):
-        """
-        This function is a no-op for NidMaps.
-
-        NidMaps declaration should not be expanded like target.
-        """
-        return iter([data])
-
+    def parse(self, data):
+        """Parse @data based on separators and declared elements."""
+        # Different node pattern should be put on different nid_map lines
+        if ',' in data:
+            msg = "Do not use comma in nid_map: %s" % data
+            raise ModelFileValueError(msg)
+        ModelFile.parse(self, data)
 
 class Target(ModelFile):
     """Define 'mgt', 'mdt', 'ost' in model file."""

@@ -1,5 +1,5 @@
 # FileSystem.py -- Lustre file system configuration
-# Copyright (C) 2007-2014 CEA
+# Copyright (C) 2007-2017 CEA
 #
 # This file is part of shine
 #
@@ -27,7 +27,6 @@ from Shine.Configuration.Exceptions import ConfigInvalidFileSystem, \
                                            ConfigDeviceNotFoundError, \
                                            ConfigException
 from Shine.Configuration.TuningModel import TuningModel
-from Shine.Configuration.NidMap import NidMap
 from Shine.Configuration.Backend.BackendRegistry import BackendRegistry
 
 
@@ -149,8 +148,10 @@ class FileSystem(object):
         except IOError:
             raise ModelFileIOError("Could not read %s" % filename)
 
-        # Set nodes to nids mapping using the NidMap helper class
-        self.nid_map = NidMap.fromlist(self.get('nid_map'))
+        # Model expands nid_map automatically, just iterate other them
+        self.nid_map = {}
+        for elem in self.get('nid_map'):
+            self.nid_map.setdefault(elem['nodes'], []).append(elem['nids'])
 
         # Initialize the tuning model to None if no special tuning configuration
         # is provided
