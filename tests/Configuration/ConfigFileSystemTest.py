@@ -6,6 +6,7 @@
 """Unit test for Shine.Configuration.FileSystem"""
 
 import unittest
+import textwrap
 import time
 
 from Utils import makeTempFile, setup_tempdirs, clean_tempdirs
@@ -298,9 +299,9 @@ class FileSystemCompareTest(unittest.TestCase):
         clean_tempdirs()
 
     def _compare(self, orig, new):
-        tmpfile = makeTempFile(orig)
+        tmpfile = makeTempFile(textwrap.dedent(orig))
         origconf = FileSystem(tmpfile.name)
-        newfile = makeTempFile(new)
+        newfile = makeTempFile(textwrap.dedent(new))
         newconf = FileSystem(newfile.name)
         return origconf.compare(newconf)
 
@@ -614,4 +615,42 @@ mdt: node=foo2 dev=/dev/sda
 ost: node=foo3 dev=/dev/sda tag=ost_fooE_dev_sda
 """)
         self.assertEqual(len(actions), 1)
+        self.assertEqual(actions.get('copyconf'), True)
+
+    def test_update_nid_map_targets(self):
+        actions = self._compare(
+            """fs_name: compare
+            nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp
+            mgt: node=foo1 dev=/dev/sda
+            mdt: node=foo2 dev=/dev/sda
+            ost: node=foo3 dev=/dev/sda
+            """,
+            """fs_name: compare
+            nid_map: nodes=foo[1-3] nids=foo[1-3]@o2ib
+            mgt: node=foo1 dev=/dev/sda
+            mdt: node=foo2 dev=/dev/sda
+            ost: node=foo3 dev=/dev/sda
+            """)
+        self.assertEqual(len(actions), 2)
+        self.assertEqual(actions.get('copyconf'), True)
+        self.assertEqual(actions.get('writeconf'), True)
+
+    def test_update_nid_map_clients(self):
+        actions = self._compare(
+            """fs_name: compare
+            nid_map: nodes=foo[1-3] nids=foo[1-3]@tcp
+            mgt: node=foo1 dev=/dev/sda
+            mdt: node=foo2 dev=/dev/sda
+            ost: node=foo3 dev=/dev/sda
+            mount_path: /foo
+            """,
+            """fs_name: compare
+            nid_map: nodes=foo[1-4] nids=foo[1-4]@tcp
+            mgt: node=foo1 dev=/dev/sda
+            mdt: node=foo2 dev=/dev/sda
+            ost: node=foo3 dev=/dev/sda
+            client: node=foo4
+            """)
+        self.assertEqual(len(actions), 2)
+        self.assertTrue(actions.get('mount', False))
         self.assertEqual(actions.get('copyconf'), True)

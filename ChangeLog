@@ -1,3 +1,6 @@
+2017-04-03 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Smart analysis of nid_map updates (ticket #111)
+
 2017-03-30 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fold 'client' and 'router' options in XMF files (ticket #177)
 

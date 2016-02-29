@@ -386,8 +386,17 @@ class FileSystem(object):
         # Need a writeconf
         writeconfkeys = set(['nid_map'])
         if writeconfkeys & anyset:
-            # Note: Target removal could also set this flag.
-            actions['writeconf'] = True
+            hosts = set()
+            for content in (added, changed, removed):
+                hosts |= set([elem.get('nodes')
+                              for elem in content.elements('nid_map')])
+
+            for tag in ('mgt', 'mdt', 'ost'):
+                for tgt in self.model.get(tag, []):
+                    if tgt.get('node') in hosts:
+                        # Note: Target removal could also set this flag.
+                        actions['writeconf'] = True
+                        break
 
         # Need to unmount then remount clients
         remountkeys = set(['mount_options', 'mount_path'])
