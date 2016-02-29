@@ -7,6 +7,7 @@
 
 import unittest
 import time
+import textwrap
 
 from Utils import makeTempFile
 
@@ -162,3 +163,19 @@ client: node=foo1 mount_options=ro""")
         self.assertEqual(len(added), 0)
         self.assertEqual(len(removed), 0)
         self.assertEqual(str(changed), "client:node=foo1 mount_options=ro")
+
+    def test_folding(self):
+        """config lines are grouped when possible"""
+        model = Model()
+        model.parse(textwrap.dedent("""
+            fs_name: fold
+            nid_map: nodes=foo[1-2] nids=foo[1-2]@tcp2
+            client: node=foo1
+            client: node=foo2
+            router: node=foo1
+            router: node=foo2"""))
+        self.assertEqual(str(model), textwrap.dedent("""
+            fs_name:fold
+            client:node=foo[1-2]
+            router:node=foo[1-2]
+            nid_map:nids=foo[1-2]@tcp2 nodes=foo[1-2]""").lstrip())

@@ -74,9 +74,9 @@ class Model(ModelFile):
         self.add_custom('mdt', Target(), multiple=True)
         self.add_custom('ost', Target(), multiple=True)
         # Client
-        self.add_custom('client', Client(), multiple=True)
+        self.add_custom('client', Client(), multiple=True, fold=True)
         # Router
-        self.add_custom('router', Router(), multiple=True)
+        self.add_custom('router', Router(), multiple=True, fold=True)
 
 
 class FSName(SimpleElement):
