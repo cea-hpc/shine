@@ -81,8 +81,6 @@ class Start(FSLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        self.copy_tuning(fs, comps=comps)
-
         status = fs.start(mount_options=mount_options,
                           mount_paths=mount_paths,
                           addopts=self.options.additional,

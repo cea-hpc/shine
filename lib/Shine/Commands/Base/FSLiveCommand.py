@@ -22,8 +22,6 @@
 Base class for live filesystem commands (start, stop, status, etc.).
 """
 
-from Shine.Configuration.Globals import Globals
-
 from Shine.Commands.Base.Command import RemoteCommand, CommandHelpException
 
 # Command helper
@@ -49,22 +47,6 @@ class FSLiveCommand(RemoteCommand):
 
     def fs_status_to_rc(self, status):
         return self.TARGET_STATUS_RC_MAP.get(status, RC_RUNTIME_ERROR)
-
-    def copy_tuning(self, fs, comps=None):
-        """Copy tuning.conf if defined."""
-        if not self.has_local_flag():
-            tuning_conf = Globals().get_tuning_file()
-            if tuning_conf:
-                servers = None
-                if comps:
-                    # take into account -n and -x options
-                    servers = comps.allservers()
-                    if self.options.nodes is not None:
-                        servers.intersection_update(self.options.nodes)
-                    if self.options.excludes is not None:
-                        servers.difference_update(self.options.excludes)
-
-                fs.install(tuning_conf, servers=servers)
 
     def _open_fs(self, fsname, eh):
         return open_lustrefs(fsname,

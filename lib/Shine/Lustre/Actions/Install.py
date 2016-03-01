@@ -29,11 +29,12 @@ class Install(CommonAction):
     Action class: install file configuration requirements on remote nodes.
     """
 
-    def __init__(self, nodes, fs, config_file, **kwargs):
+    def __init__(self, nodes, fs, config_file, comps=None, **kwargs):
         CommonAction.__init__(self)
         self.nodes = nodes
         self.fs = fs
         self.config_file = config_file
+        self._comps = comps
         self.dryrun = kwargs.get('dryrun', False)
 
     def _launch(self):
@@ -54,7 +55,7 @@ class Install(CommonAction):
                                                         (name, len(self.nodes))
         else:
             msg = "Updating configuration file `%s' on %s" % (name, self.nodes)
-        self.fs.hdlr.log('info', msg)
+        self.fs.hdlr.log('verbose', msg)
 
     def ev_close(self, worker):
         """
@@ -77,6 +78,11 @@ class Install(CommonAction):
             for rc, nodes in worker.iter_retcodes():
                 if rc == 0:
                     continue
+
+                # Avoid warnings, flag this component in error state
+                for comp in self._comps or []:
+                    comp.sanitize_state(nodes=worker.nodes)
+
                 for output, nodes in worker.iter_buffers(match_keys=nodes):
                     nodes = NodeSet.fromlist(nodes)
                     msg = "Copy failed: %s" % output
