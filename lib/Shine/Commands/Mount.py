@@ -69,8 +69,6 @@ class Mount(FSLiveCommand):
         if hasattr(eh, 'pre'):
             eh.pre(fs)
 
-        self.copy_tuning(fs, comps=comps)
-
         status = fs.mount(addopts=self.options.additional,
                           fanout=self.options.fanout,
                           dryrun=self.options.dryrun,

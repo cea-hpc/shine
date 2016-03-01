@@ -1,3 +1,6 @@
+2017-05-24 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* On error, still apply tuning on other nodes (ticket #46)
+
 2017-04-03 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Smart analysis of nid_map updates (ticket #111)
 

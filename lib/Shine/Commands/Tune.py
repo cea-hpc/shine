@@ -64,8 +64,6 @@ class Tune(FSLiveCommand):
         if vlevel > 1:
             print "Tuning filesystem %s..." % fs.fs_name
 
-        self.copy_tuning(fs, comps=comps)
-
         if not self.options.remote and vlevel > 1:
             print tuning
 
@@ -76,12 +74,10 @@ class Tune(FSLiveCommand):
         status = fs.tune(tuning, addopts=self.options.additional,
                          dryrun=self.options.dryrun,
                          fanout=self.options.fanout)
-        if status == RUNTIME_ERROR:
-            self.display_proxy_errors(fs)
-            return RC_RUNTIME_ERROR
-        elif status == MOUNTED:
+        if status == MOUNTED:
             print "Filesystem %s successfully tuned." % fs.fs_name
         else:
+            self.display_proxy_errors(fs)
             print "Tuning of filesystem %s failed." % fs.fs_name
             return RC_RUNTIME_ERROR
 
@@ -101,7 +97,8 @@ class Tune(FSLiveCommand):
         # Is the tuning configuration file name specified?
         if Globals().get_tuning_file():
             # Load the tuning configuration file
-            tuning.parse(filename=Globals().get_tuning_file())
+            tuning.filename = Globals().get_tuning_file()
+            tuning.parse()
 
         # Add the quota tuning parameters to the tuning model.
         if Globals().lustre_version_is_smaller('2.4'):

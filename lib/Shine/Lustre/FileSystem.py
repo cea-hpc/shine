@@ -383,6 +383,8 @@ class FileSystem:
 
         graph = ActionGroup()
 
+        comps = comps or self.components
+
         first_comps = None
         last_comps = None
         localsrv = None
@@ -411,6 +413,11 @@ class FileSystem:
                     else:
                         act = self._proxy_action(action, srv.hostname,
                                                  comps, **kwargs)
+                        if tunings:
+                            copy = Install(srv.hostname, self, tunings.filename,
+                                           comps=comps, **kwargs)
+                            act.depends_on(copy)
+                            proxygrp.add(copy)
                         proxygrp.add(act)
 
             if len(compgrp) > 0:
@@ -575,8 +582,13 @@ class FileSystem:
                 actions.add(server.tune(tuning_model, srvcomps, self.fs_name,
                                         **kwargs))
             else:
-                actions.add(self._proxy_action('tune', server.hostname,
-                                               srvcomps, **kwargs))
+                act = self._proxy_action('tune', server.hostname, srvcomps,
+                                         **kwargs)
+                copy = Install(server.hostname, self, tuning_model.filename,
+                               comps=srvcomps, **kwargs)
+                act.depends_on(copy)
+                actions.add(act)
+                actions.add(copy)
 
         # Run local actions and FSProxyAction
         actions.launch()
