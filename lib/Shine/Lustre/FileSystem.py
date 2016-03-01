@@ -247,7 +247,6 @@ class FileSystem:
         launches all FSProxyAction prepared before by example.
         """
         self.proxy_errors = MsgTree()
-        # XXX: Warning, also update _distant_action_by_server()
         task_self().set_default("stderr_msgtree", False)
         task_self().set_info('connect_timeout', 
                              Globals().get_ssh_connect_timeout())
@@ -306,35 +305,22 @@ class FileSystem:
 
         # perform action on distant servers
         if len(distant_servers) > 0:
-            action_class(nodes=distant_servers, fs=self, **kwargs).launch()
-            # XXX: merge with _run_actions()
-            task_self().set_default("stderr_msgtree", False)
-            task_self().set_info('connect_timeout', 
-                                 Globals().get_ssh_connect_timeout())
-            task_self().resume()
+            action = action_class(nodes=distant_servers, fs=self, **kwargs)
+            action.launch()
+            self._run_actions()
 
-            err_nodes = NodeSet()
-            err_code = 0
-            err_txt = ""
+            if action.status() == ACT_ERROR:
+                err_code = None
+                if task_self().num_timeout():
+                    err_code = -1
+                elif task_self().max_retcode():
+                    err_code = task_self().max_retcode()
 
-            if task_self().num_timeout():
-                # Add timeout nodes
-                timeout_ns = NodeSet.fromlist(task_self().iter_keys_timeout())
-                err_nodes.update(timeout_ns)
-                err_code = -1
-                err_txt = "Node timed out"
-
-            if task_self().max_retcode():
-
-                # Ignore nodes which returned 0
-                for rc, nodelist in task_self().iter_retcodes():
-                    if rc > 0:
-                        err_nodes.update(NodeSet.fromlist(nodelist))
-                err_code = task_self().max_retcode()
-                err_txt = task_self().node_buffer(err_nodes[0])
-
-            if len(err_nodes) > 0:
-                raise FSRemoteError(err_nodes, err_code, err_txt)
+                # FSRemoteError is limited and cannot handle more than 1 error
+                msg, nodes = list(self.proxy_errors.walk())[0]
+                nodes = NodeSet.fromlist(nodes)
+                msg = str(msg).replace('THIS_SHINE_HOST', str(nodes))
+                raise FSRemoteError(nodes, err_code, msg)
 
     def install(self, fs_config_file, servers=None, **kwargs):
         """

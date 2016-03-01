@@ -20,6 +20,8 @@
 
 import os.path
 
+from ClusterShell.NodeSet import NodeSet
+
 from Shine.Lustre.Actions.Action import Action, CommonAction, ACT_OK, ACT_ERROR
 
 class Install(CommonAction):
@@ -62,6 +64,8 @@ class Install(CommonAction):
 
         # Action timed out
         if worker.did_timeout():
+            nodes = NodeSet.fromlist(worker.iter_keys_timeout())
+            self.fs._handle_shine_proxy_error(nodes, "Nodes timed out")
             self.set_status(ACT_ERROR)
 
         # Action succeeded
@@ -70,4 +74,11 @@ class Install(CommonAction):
 
         # Action failed
         else:
+            for rc, nodes in worker.iter_retcodes():
+                if rc == 0:
+                    continue
+                for output, nodes in worker.iter_buffers(match_keys=nodes):
+                    nodes = NodeSet.fromlist(nodes)
+                    msg = "Copy failed: %s" % output
+                    self.fs._handle_shine_proxy_error(nodes, msg)
             self.set_status(ACT_ERROR)

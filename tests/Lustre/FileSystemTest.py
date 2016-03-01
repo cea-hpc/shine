@@ -23,8 +23,43 @@ import unittest
 import Utils
 
 from Shine.Lustre.Server import ServerGroup
-from Shine.Lustre.FileSystem import FileSystem, Server, \
+from Shine.Lustre.FileSystem import FileSystem, Server, FSRemoteError, \
                                     MOUNTED, OFFLINE, MIGRATED
+
+class SimpleFileSystemTest(unittest.TestCase):
+    """Tests which do not setup a real Lustre filesystem."""
+
+    def setUp(self):
+        self.fs = FileSystem('testfs')
+
+    def test_install_nothing(self):
+        """install only using local node does nothing"""
+        class MyFS(FileSystem):
+            def _run_actions(self):
+                self.fail("should not be called")
+        srv = Server(Utils.HOSTNAME, ['%s@tcp' % Utils.HOSTNAME])
+        self.fs.local_server = srv
+        self.fs.new_target(srv, 'mgt', 0, '/dev/fakedev')
+        self.fs.install(fs_config_file=Utils.makeTempFilename())
+
+    def test_install_unreachable(self):
+        """install on unreachable nodes raises an error"""
+        badsrv1 = Server('badnode1', ['127.0.0.2@tcp'])
+        badsrv2 = Server('badnode2', ['127.0.0.3@tcp'])
+        self.fs.new_target(badsrv1, 'mgt', 0, '/dev/fakedev')
+        self.fs.new_client(badsrv2, '/testfs')
+        try:
+            self.fs.install(fs_config_file=Utils.makeTempFilename())
+        except FSRemoteError, ex:
+            self.assertEqual(str(ex.nodes), 'badnode[1-2]')
+            self.assertEqual(ex.rc, 1)
+            # Partial comparison to support RHEL5 OpenSSH output
+            self.assertTrue(str(ex).startswith("badnode[1-2]: Copy failed: "))
+            self.assertTrue(str(ex).endswith("badnode[1-2]: Name or service not"
+                                             " known\nlost connection [rc=1]"))
+        else:
+            self.fail("did not raise FSRemoteError")
+
 
 class FileSystemTest(unittest.TestCase):
 

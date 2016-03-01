@@ -1,5 +1,5 @@
 # test suite for launch() method in Shine.Lustre.Actions.*
-# Copyright (C) 2013-2015 CEA
+# Copyright (C) 2013-2017 CEA
 #
 # This file is part of shine
 #
@@ -890,6 +890,7 @@ class InstallActionTest(CommonTestCase):
                 "Updating configuration file `%s' on %s" % \
                  (os.path.basename(tmp.name), self.localname)]
         self.assertEqual(self.eh.msglist, msgs)
+        self.assertEqual(len(self.fs.proxy_errors), 0)
 
         # Status checks
         self.assertEqual(act.status(), ACT_OK)
@@ -910,7 +911,7 @@ class InstallActionTest(CommonTestCase):
         self.assertEqual(act.status(), ACT_OK)
 
     def test_install_bad_file(self):
-        """Install a non-existent file is corrected reported"""
+        """Install a non-existent file is correctly reported"""
         act = Install(self.localname, self.fs, '/bad/file')
         act.launch()
         self.fs._run_actions()
@@ -921,11 +922,13 @@ class InstallActionTest(CommonTestCase):
         self.assertEqual(self.eh.msglist[1], text)
         self.assertEqual(len(self.eh.msglist), 2)
 
+        self.assertEqual(len(self.fs.proxy_errors), 1)
+
         # Status checks
         self.assertEqual(act.status(), ACT_ERROR)
 
     def test_install_bad_nodes(self):
-        """Install to a bad node is corrected reported"""
+        """Install to a bad node is correctly reported"""
         tmp = Utils.makeTempFile("")
         act = Install(self.badnames, self.fs, tmp.name)
         act.launch()
@@ -937,6 +940,27 @@ class InstallActionTest(CommonTestCase):
             (os.path.basename(tmp.name), len(self.badnames))
         self.assertEqual(self.eh.msglist[1], text)
         self.assertEqual(len(self.eh.msglist), 2)
+
+        self.assertEqual(len(self.fs.proxy_errors), 15)
+
+        # Status checks
+        self.assertEqual(act.status(), ACT_ERROR)
+
+    def test_install_mix_nodes(self):
+        """Install to a mix of bad and good nodes is correctly reported"""
+        tmp = Utils.makeTempFile("")
+        act = Install(self.badnames | self.localname, self.fs, tmp.name)
+        act.launch()
+        self.fs._run_actions()
+
+        text = '[COPY] %s on %s' % (tmp.name, self.badnames | self.localname)
+        self.assertEqual(self.eh.msglist[0], text)
+        text = "Updating configuration file `%s' on %d servers" % \
+            (os.path.basename(tmp.name), len(self.badnames | self.localname))
+        self.assertEqual(self.eh.msglist[1], text)
+        self.assertEqual(len(self.eh.msglist), 2)
+
+        self.assertEqual(len(self.fs.proxy_errors), 15)
 
         # Status checks
         self.assertEqual(act.status(), ACT_ERROR)
