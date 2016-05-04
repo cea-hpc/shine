@@ -86,7 +86,8 @@ class Status(FSLiveCommand):
         fs_result = fs.status(comps,
                               failover=self.options.failover,
                               dryrun=self.options.dryrun,
-                              fanout=self.options.fanout)
+                              fanout=self.options.fanout,
+                              mountdata=self.options.mountdata)
 
         # Display error messages for each node that failed.
         if len(fs.proxy_errors) > 0:
