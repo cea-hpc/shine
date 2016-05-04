@@ -301,6 +301,12 @@ class Target(Component, Disk):
         Sanity checks for device files and Lustre status.
         If mountdata is set to False, target content will not be analyzed.
         """
+        # check for Lustre level status
+        self.lustre_check()
+
+        # stop here if offline
+        if self.local_state == OFFLINE:
+            return
 
         # check for disk level status
         try:
@@ -314,9 +320,6 @@ class Target(Component, Disk):
         except (ComponentError, DiskDeviceError), error:
             self.local_state = TARGET_ERROR
             raise ComponentError(self, str(error))
-
-        # check for Lustre level status
-        self.lustre_check()
 
     def lustre_check(self):
         """
