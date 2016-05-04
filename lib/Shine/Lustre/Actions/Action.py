@@ -48,6 +48,10 @@ ACT_RUNNING = 1
 ACT_OK = 2
 ACT_ERROR = 3
 
+# Possible values for mountdata
+MOUNTDATA_NEVER  = 0
+MOUNTDATA_AUTO   = 1
+MOUNTDATA_ALWAYS = 2
 
 class Result(object):
     """
@@ -282,7 +286,7 @@ class FSAction(CommonAction):
     """
 
     # full_check() should also check mountdata?
-    CHECK_MOUNTDATA = True
+    CHECK_MOUNTDATA = MOUNTDATA_AUTO
 
     NEEDED_MODULES = []
 
@@ -298,11 +302,12 @@ class FSAction(CommonAction):
         self.addopts = self._addopts_substitute(kwargs.get('addopts'))
 
         # If mountdata is not set, use the default value of each action.
-        if kwargs.get('mountdata', 'auto') != 'auto':
-            # 'always' for True, 'never' for False
-            self.check_mountdata = (kwargs['mountdata'] == 'always')
-        else:
-            self.check_mountdata = self.__class__.CHECK_MOUNTDATA
+        ck_mntdata = {
+            'never':  MOUNTDATA_NEVER,
+            'auto':   self.__class__.CHECK_MOUNTDATA,
+            'always': MOUNTDATA_ALWAYS,
+        }
+        self.check_mountdata = ck_mntdata[kwargs.get('mountdata', 'auto')]
 
     def info(self):
         """Return a ActionInfo describing this action."""

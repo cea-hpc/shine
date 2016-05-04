@@ -29,7 +29,7 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import FSAction, MOUNTDATA_NEVER
 
 import Shine.Lustre.Target
 
@@ -187,7 +187,7 @@ class Format(CommonFormat):
     """
 
     NAME = 'format'
-    CHECK_MOUNTDATA = False
+    CHECK_MOUNTDATA = MOUNTDATA_NEVER
 
     def __init__(self, target, **kwargs):
         CommonFormat.__init__(self, target, **kwargs)

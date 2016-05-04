@@ -28,6 +28,7 @@ from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
+from Shine.Lustre.Actions.Action import MOUNTDATA_AUTO, MOUNTDATA_ALWAYS
 
 from Shine.Lustre.Disk import Disk, DiskDeviceError
 from Shine.Lustre.Component import Component, ComponentError, \
@@ -296,16 +297,19 @@ class Target(Component, Disk):
     # Target sanity checks
     #
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata=MOUNTDATA_AUTO):
         """
         Sanity checks for device files and Lustre status.
         If mountdata is set to False, target content will not be analyzed.
         """
+        # check for Lustre level status
+        self.lustre_check()
 
         # check for disk level status
         try:
             self._device_check()
-            if mountdata:
+            if (mountdata == MOUNTDATA_ALWAYS or
+               (mountdata == MOUNTDATA_AUTO and self.local_state != OFFLINE)):
                 self._mountdata_check(self.label)
 
             if self.journal:
@@ -314,9 +318,6 @@ class Target(Component, Disk):
         except (ComponentError, DiskDeviceError), error:
             self.local_state = TARGET_ERROR
             raise ComponentError(self, str(error))
-
-        # check for Lustre level status
-        self.lustre_check()
 
     def lustre_check(self):
         """
@@ -554,7 +555,7 @@ class Journal(Component):
     def longtext(self):
         return "%s journal (%s)" % (self.target.get_id(), self.dev)
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata=MOUNTDATA_AUTO):
         """Device type check."""
 
         try:

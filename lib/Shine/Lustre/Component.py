@@ -42,6 +42,7 @@ from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
 from Shine.Lustre.Actions.Status import Status
 from Shine.Lustre.Actions.Execute import Execute
+from Shine.Lustre.Actions.Action import MOUNTDATA_AUTO
 
 class Component(object):
     """
@@ -195,7 +196,7 @@ class Component(object):
         """
         raise NotImplementedError("Component must implement this.")
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata=MOUNTDATA_AUTO):
         """
         Check component states, at Lustre level, and any other required ones.
         """

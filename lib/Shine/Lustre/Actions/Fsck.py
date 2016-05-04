@@ -26,7 +26,7 @@ import time
 import logging
 
 from Shine.Lustre.Actions.Action import Action, FSAction, Result, ErrorResult, \
-                                        ACT_OK, ACT_ERROR
+                                        ACT_OK, ACT_ERROR, MOUNTDATA_NEVER
 
 
 class FsckProgress(Result):
@@ -56,7 +56,7 @@ class Fsck(FSAction):
     NAME = 'fsck'
 
     # No mountdata check for fsck has it could be corrupted
-    CHECK_MOUNTDATA = False
+    CHECK_MOUNTDATA = MOUNTDATA_NEVER
 
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)

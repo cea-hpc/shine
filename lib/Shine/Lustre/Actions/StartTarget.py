@@ -28,7 +28,7 @@ from ClusterShell.Task import task_self
 
 from Shine.Configuration.Globals import Globals
 
-from Shine.Lustre.Actions.Action import FSAction, Result
+from Shine.Lustre.Actions.Action import FSAction, Result, MOUNTDATA_ALWAYS
 
 class StartTarget(FSAction):
     """
@@ -38,6 +38,8 @@ class StartTarget(FSAction):
     """
 
     NAME = 'start'
+
+    CHECK_MOUNTDATA = MOUNTDATA_ALWAYS
 
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)

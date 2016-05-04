@@ -24,14 +24,14 @@ This module contains the specific version of FSAction class to implement
 Execute Action.
 """
 
-from Shine.Lustre.Actions.Action import FSAction
+from Shine.Lustre.Actions.Action import FSAction, MOUNTDATA_NEVER
 
 class Execute(FSAction):
     """Generic command execution for any component."""
 
     NAME = 'execute'
 
-    CHECK_MOUNTDATA = False
+    CHECK_MOUNTDATA = MOUNTDATA_NEVER
 
     def _prepare_cmd(self):
         """
