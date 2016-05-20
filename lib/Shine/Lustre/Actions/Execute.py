@@ -31,7 +31,7 @@ class Execute(FSAction):
 
     NAME = 'execute'
 
-    CHECK_MOUNTDATA = False
+    CHECK_MOUNTDATA = 'never'
 
     def _prepare_cmd(self):
         """
