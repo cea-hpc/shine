@@ -198,7 +198,7 @@ class Component(object):
         """
         raise NotImplementedError("Component must implement this.")
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata):
         """
         Check component states, at Lustre level, and any other required ones.
         """

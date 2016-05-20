@@ -187,7 +187,7 @@ class Format(CommonFormat):
     """
 
     NAME = 'format'
-    CHECK_MOUNTDATA = False
+    CHECK_MOUNTDATA = 'blockonly'
 
     def __init__(self, target, **kwargs):
         CommonFormat.__init__(self, target, **kwargs)
