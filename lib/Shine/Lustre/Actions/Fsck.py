@@ -55,8 +55,8 @@ class Fsck(FSAction):
 
     NAME = 'fsck'
 
-    # No mountdata check for fsck has it could be corrupted
-    CHECK_MOUNTDATA = False
+    # No mountdata check for fsck as it could be corrupted
+    CHECK_MOUNTDATA = 'blockonly'
 
     def __init__(self, target, **kwargs):
         FSAction.__init__(self, target, **kwargs)

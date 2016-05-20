@@ -296,7 +296,7 @@ class Target(Component, Disk):
     # Target sanity checks
     #
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata):
         """
         Sanity checks for device files and Lustre status.
         If mountdata is set to False, target content will not be analyzed.
@@ -304,12 +304,14 @@ class Target(Component, Disk):
 
         # check for disk level status
         try:
-            self._device_check()
-            if mountdata:
+            if mountdata in ('always', 'blockonly'):
+                self._device_check()
+
+            if mountdata == 'always':
                 self._mountdata_check(self.label)
 
             if self.journal:
-                self.journal.full_check()
+                self.journal.full_check(mountdata=mountdata)
 
         except (ComponentError, DiskDeviceError), error:
             self.local_state = TARGET_ERROR
@@ -554,7 +556,7 @@ class Journal(Component):
     def longtext(self):
         return "%s journal (%s)" % (self.target.get_id(), self.dev)
 
-    def full_check(self, mountdata=True):
+    def full_check(self, mountdata):
         """Device type check."""
 
         try:
