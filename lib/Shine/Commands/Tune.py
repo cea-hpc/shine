@@ -69,6 +69,10 @@ class Tune(FSLiveCommand):
         if not self.options.remote and vlevel > 1:
             print tuning
 
+        # Call a pre_format method if defined by event handler
+        if hasattr(eh, 'pre'):
+            eh.pre(fs)
+
         status = fs.tune(tuning, addopts=self.options.additional,
                          dryrun=self.options.dryrun,
                          fanout=self.options.fanout)
