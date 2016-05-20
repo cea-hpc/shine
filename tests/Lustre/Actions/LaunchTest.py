@@ -315,9 +315,18 @@ class TargetActionTest(CommonTestCase):
         self.assertEqual(result, None)
         self.assertEqual(self.tgt.state, OFFLINE)
 
-    def test_status_error(self):
-        """Status on a not-formated target fails"""
+    def test_status_offline(self):
+        """Status on a not-formated target offline without mountdata"""
         act = self.tgt.status()
+        result = self.check_base(self.tgt, 'comp', act, ACT_OK,
+                                 ['start', 'done'],
+                                 'status of MGS (%s)' % self.tgt.dev)
+        self.assertEqual(result, None)
+        self.assertEqual(self.tgt.state, OFFLINE)
+
+    def test_status_error(self):
+        """Status on a not-formated target fails with mountdata = always"""
+        act = self.tgt.status(mountdata='always')
         # XXX: Should we set an error even if job was done correctly?
         result = self.check_base(self.tgt, 'comp', act, ACT_ERROR,
                                  ['start', 'failed'],

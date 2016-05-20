@@ -543,7 +543,7 @@ class FileSystem:
         key = lambda t: t.TYPE == MDT.TYPE
         for target in comps.filter(key=key):
             # Found enabled MDT: perform writeconf check.
-            self.status(comps=ComponentGroup([target]))
+            self.status(comps=ComponentGroup([target]), mountdata='always')
             if target.has_first_time_flag() or target.has_writeconf_flag():
                 # first_time or writeconf flag found, start MDT before OSTs
                 MDT.START_ORDER, OST.START_ORDER = \

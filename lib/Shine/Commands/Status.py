@@ -44,6 +44,9 @@ from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
 
 from Shine.FSUtils import open_lustrefs
 
+# For device_check autoconf
+from Shine.CLI.TextTable import TextTable
+
 class Status(FSLiveCommand):
     """
     shine status [-f <fsname>] [-t <target>] [-i <index(es)>] [-n <nodes>] [-qv]
@@ -82,6 +85,14 @@ class Status(FSLiveCommand):
         # Will call the handle_pre() method defined by the event handler.
         if hasattr(eh, 'pre'):
             eh.pre(fs)
+
+        if self.options.mountdata in (None, 'auto'):
+            if self.options.view == 'disk':
+                self.options.mountdata = 'always'
+            if self.options.viewfmt and \
+              'flags' in TextTable(self.options.viewfmt).pattern_fields():
+                self.options.mountdata = 'always'
+
 
         fs_result = fs.status(comps,
                               failover=self.options.failover,
