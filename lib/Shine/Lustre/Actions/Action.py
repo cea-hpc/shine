@@ -282,7 +282,7 @@ class FSAction(CommonAction):
     """
 
     # full_check() should also check mountdata?
-    CHECK_MOUNTDATA = True
+    CHECK_MOUNTDATA = 'always'
     CHECK_DEVICE = True
 
     NEEDED_MODULES = []
