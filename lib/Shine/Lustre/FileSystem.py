@@ -540,14 +540,17 @@ class FileSystem:
         comps = (comps or self.components).managed(supports='start')
 
         # What starting order to use?
+        mdt_first = False
         key = lambda t: t.TYPE == MDT.TYPE
         for target in comps.filter(key=key):
             # Found enabled MDT: perform writeconf check.
             self.status(comps=ComponentGroup([target]))
             if target.has_first_time_flag() or target.has_writeconf_flag():
-                # first_time or writeconf flag found, start MDT before OSTs
-                MDT.START_ORDER, OST.START_ORDER = \
-                                               OST.START_ORDER, MDT.START_ORDER
+                mdt_first = True
+
+        # first_time or writeconf flag found, start MDT before OSTs
+        if mdt_first:
+            MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
 
         actions = self._prepare('start', comps, groupby='START_ORDER', **kwargs)
         actions.launch()
