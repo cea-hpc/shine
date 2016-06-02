@@ -500,10 +500,11 @@ class FileSystem:
         return self._check_errors([OFFLINE], comps, actions)
 
 
-    def status(self, comps=None, **kwargs):
+    def status(self, comps=None, allservers=True, **kwargs):
         """Get status of filesystem."""
         comps = (comps or self.components).managed(supports='status')
-        actions = self._prepare('status', comps, allservers=True, **kwargs)
+        actions = self._prepare('status', comps, allservers=allservers,
+                                **kwargs)
         actions.launch()
         self._run_actions()
 

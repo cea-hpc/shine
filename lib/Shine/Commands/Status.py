@@ -92,13 +92,16 @@ class Status(FSLiveCommand):
                 self.options.mountdata = 'always'
             if self.options.viewfmt and 'flags' in TextTable(self.options.viewfmt).pattern_fields():
                 self.options.mountdata = 'always'
+            if self.options.no_check_ha:
+                self.options.mountdata = 'always'
 
 
         fs_result = fs.status(comps,
                               failover=self.options.failover,
                               dryrun=self.options.dryrun,
                               fanout=self.options.fanout,
-                              mountdata=self.options.mountdata)
+                              mountdata=self.options.mountdata,
+                              allservers=(not self.options.no_check_ha))
 
         # Display error messages for each node that failed.
         if len(fs.proxy_errors) > 0:
@@ -124,5 +127,5 @@ class Status(FSLiveCommand):
                                     indexes=self.options.indexes,
                                     labels=self.options.labels,
                                     event_handler=eh,
-                                    extended=True)
+                                    extended=(not self.options.no_check_ha))
         return fs_conf, fs

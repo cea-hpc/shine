@@ -198,6 +198,8 @@ class Controller(object):
                           default='auto',
                           help="analyze target mountdata (never, always,"
                                " blockonly or auto)", metavar='WHEN')
+        parser.add_option("--no-ha", dest='no_check_ha', action='store_true',
+                          help="do not check HA nodes")
         # Parse command line
         (options, args) = parser.parse_args()
 
