@@ -32,6 +32,7 @@ detailed states.
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
                                               RC_ST_ONLINE, RC_ST_RECOVERING, \
+                                              RC_ST_MIGRATED, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 
@@ -57,7 +58,7 @@ class Status(FSLiveCommand):
 
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_ST_ONLINE,
-            MIGRATED : RC_ST_ONLINE,
+            MIGRATED : RC_ST_MIGRATED,
             RECOVERING : RC_ST_RECOVERING,
             EXTERNAL : RC_ST_EXTERNAL,
             OFFLINE : RC_ST_OFFLINE,

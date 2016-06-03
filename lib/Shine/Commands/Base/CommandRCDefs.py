@@ -50,6 +50,7 @@ RC_FAILURE          = 1
 
 # Status
 RC_ST_ONLINE        = 0
+RC_ST_MIGRATED      = 2
 RC_ST_RECOVERING    = 4
 RC_ST_OFFLINE       = 8
 RC_ST_EXTERNAL      = 16
