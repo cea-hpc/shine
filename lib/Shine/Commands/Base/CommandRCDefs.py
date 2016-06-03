@@ -1,5 +1,5 @@
 # CommandRCDefs.py -- Shine command return code constants
-# Copyright (C) 2009 CEA
+# Copyright (C) 2009-2016 CEA
 #
 # This file is part of shine
 #
@@ -17,7 +17,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
-# $Id$
 
 
 """
@@ -50,6 +49,7 @@ RC_FAILURE          = 1
 
 # Status
 RC_ST_ONLINE        = 0
+RC_ST_MIGRATED      = 2
 RC_ST_RECOVERING    = 4
 RC_ST_OFFLINE       = 8
 RC_ST_EXTERNAL      = 16

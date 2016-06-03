@@ -1,5 +1,5 @@
 # Start.py -- Start file system
-# Copyright (C) 2007-2015 CEA
+# Copyright (C) 2007-2016 CEA
 #
 # This file is part of shine
 #
@@ -53,6 +53,10 @@ class Start(FSLiveCommand):
     GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler
 
+    # return RC_OK for MIGRATED and RECOVERING as the *start* action
+    # worked as expected. If in the future start becomes omniscient
+    # and decides to start targets on failover nodes we might want to
+    # reconsider this
     TARGET_STATUS_RC_MAP = { \
             MOUNTED : RC_OK,
             MIGRATED : RC_OK,
