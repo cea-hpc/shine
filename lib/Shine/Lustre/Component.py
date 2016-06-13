@@ -29,14 +29,14 @@ from ClusterShell.NodeSet import NodeSet
 # Error codes should have the largest values, see FileSystem._check_errors()
 MOUNTED = 0
 EXTERNAL = 1
-RECOVERING = 2
-OFFLINE = 3
-INPROGRESS = 4
-CLIENT_ERROR = 5
-TARGET_ERROR = 6
-RUNTIME_ERROR = 7
-INACTIVE = 8
-MIGRATED = 9
+MIGRATED = 2
+RECOVERING = 3
+OFFLINE = 4
+INPROGRESS = 5
+CLIENT_ERROR = 6
+TARGET_ERROR = 7
+RUNTIME_ERROR = 8
+INACTIVE = 9
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup
