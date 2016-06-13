@@ -181,7 +181,7 @@ class FileSystemTest(unittest.TestCase):
         mgt = self.fs.new_target(self.srv1, 'mgt', 0, self.disk1.name)
         mdt = self.fs.new_target(self.srv1, 'mdt', 0, self.disk2.name)
         mdt.add_server(srv2)
-        self.assertEqual(self.fs.format(), OFFLINE)
+        self.assertEqual(self.fs.format(), set([OFFLINE]))
 
         # For a simpler test environment, simulate local node is the failover
         # node.
@@ -198,6 +198,6 @@ class FileSystemTest(unittest.TestCase):
         srv2.action_enabled = False
 
         # Start should succeed and detect migration
-        self.assertEqual(self.fs.start(), MIGRATED)
+        self.assertEqual(self.fs.start(), set([MIGRATED]))
         self.assertEqual(mgt.state, MOUNTED)
         self.assertEqual(mdt.state, MIGRATED)
