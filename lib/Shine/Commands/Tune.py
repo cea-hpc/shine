@@ -39,7 +39,9 @@ from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_FAILURE, \
 from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
                                                FSLocalEventHandler
 
-from Shine.Lustre.FileSystem import RUNTIME_ERROR, MOUNTED
+from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
+                                    TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
+                                    MIGRATED
 
 
 class Tune(FSLiveCommand):
@@ -50,6 +52,16 @@ class Tune(FSLiveCommand):
 
     GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler
+
+    TARGET_STATUS_RC_MAP = { \
+            MOUNTED : RC_OK,
+            MIGRATED : RC_OK,
+            RECOVERING : RC_OK,
+            EXTERNAL : RC_OK,
+            OFFLINE : RC_FAILURE,
+            TARGET_ERROR : RC_FAILURE,
+            CLIENT_ERROR : RC_FAILURE,
+            RUNTIME_ERROR : RC_RUNTIME_ERROR }
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 
@@ -74,14 +86,16 @@ class Tune(FSLiveCommand):
         status = fs.tune(tuning, addopts=self.options.additional,
                          dryrun=self.options.dryrun,
                          fanout=self.options.fanout)
-        if status == MOUNTED:
+
+        rc = self.fs_status_to_rc(status)
+
+        if rc == RC_OK:
             print "Filesystem %s successfully tuned." % fs.fs_name
         else:
             self.display_proxy_errors(fs)
             print "Tuning of filesystem %s failed." % fs.fs_name
-            return RC_RUNTIME_ERROR
 
-        return RC_OK
+        return rc
 
     @classmethod
     def get_tuning(cls, fs_conf, comps):

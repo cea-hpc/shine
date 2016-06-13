@@ -47,8 +47,9 @@ class FSLiveCommand(RemoteCommand):
 
     TARGET_STATUS_RC_MAP = { }
 
-    def fs_status_to_rc(self, status):
-        return self.TARGET_STATUS_RC_MAP.get(status, RC_RUNTIME_ERROR)
+    def fs_status_to_rc(self, status_set):
+        mapped_status = [ self.TARGET_STATUS_RC_MAP.get(st, RC_RUNTIME_ERROR) for st in status_set ]
+        return max(mapped_status)
 
     def _open_fs(self, fsname, eh):
         return open_lustrefs(fsname,
