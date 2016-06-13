@@ -138,7 +138,7 @@ class Update(Command):
 
             # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
-            if result != expected:
+            if result - set([expected]):
                 self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "this component")
 
@@ -155,7 +155,7 @@ class Update(Command):
 
             # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
-            if result not in [OFFLINE, RECOVERING, MOUNTED]:
+            if result - set([OFFLINE, RECOVERING, MOUNTED]):
                 self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "this component")
 
@@ -173,7 +173,7 @@ class Update(Command):
 
             # Got an error if state is not the expected one.
             # Proxy errors set result to RUNTIME_ERROR
-            if result != 0:
+            if result - set([0]):
                 self.display_proxy_errors(fs)
                 raise CannotApplyError(actiontxt, "those servers")
 
