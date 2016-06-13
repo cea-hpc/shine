@@ -281,10 +281,10 @@ class FileSystem:
         If there is no error, it returns the expected state.
         """
         assert type(expected_states) is list
-        result = None
+        result = set()
 
         if actions and actions.status() == ACT_ERROR:
-            result = TARGET_ERROR
+            result.add(TARGET_ERROR)
 
         # If a component list is provided, check that all components from it
         # have expected state.
@@ -299,7 +299,7 @@ class FileSystem:
                 comp.state = RUNTIME_ERROR
 
             if comp.state not in expected_states:
-                result = max(result, comp.state)
+                result.add(comp.state)
 
             # Compute component's server.
             # Although not the best place semantically speaking to perform this
@@ -311,11 +311,11 @@ class FileSystem:
                 msg = "WARNING: %s is mounted multiple times" % comp.label
                 self._handle_shine_proxy_error(str(comp.server.hostname), msg)
 
-        # result could be equal to 0 (MOUNTED)
-        if result is not None:
-            return result
-        else:
-            return expected_states[0]
+        # if empty set, add expected_states[0]
+        if not result:
+            result.add(expected_states[0])
+
+        return result
 
     def _distant_action_by_server(self, action_class, servers, **kwargs):
 
