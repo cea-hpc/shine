@@ -44,7 +44,7 @@ from ClusterShell.NodeSet import NodeSet, NodeSetException, NodeSetParseError, \
 
 
 def print_csdebug(task, msg):
-    match = re.search(r'(\w+): SHINE:\d:', msg)
+    match = re.match(r'\w+: SHINE:\d:', msg)
     if match:
         print "%s<pickle>" % match.group(0)
     else:
