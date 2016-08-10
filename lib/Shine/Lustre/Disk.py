@@ -114,7 +114,7 @@ class Disk:
     def _mountdata_check(self, label_check=None):
         """Read device flags using 'tunefs.lustre'"""
 
-        cmd = "tunefs.lustre --noformat %s" % self.dev
+        cmd = "tunefs.lustre --dryrun %s" % self.dev
         path = Globals().get('command_path')
         if path:
             cmd = "export PATH=%s:${PATH}; %s" % (path, cmd)
