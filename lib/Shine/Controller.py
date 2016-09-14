@@ -202,6 +202,11 @@ class Controller(object):
                                " blockonly or auto)", metavar='WHEN')
         parser.add_option("--no-ha", dest='no_check_ha', action='store_true',
                           help="do not check HA nodes")
+        parser.add_option("--nounload", dest="need_unload",
+                          action="store_false",
+                          help="Do not unload modules when no longer used",
+                          default='true')
+
         # Parse command line
         (options, args) = parser.parse_args()
 
