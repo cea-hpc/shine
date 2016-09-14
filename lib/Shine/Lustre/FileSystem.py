@@ -412,7 +412,9 @@ class FileSystem:
                             compgrp.add(getattr(comp, action)(**kwargs))
                     else:
                         act = self._proxy_action(action, srv.hostname,
-                                                 comps, **kwargs)
+                                                 comps=comps,
+                                                 need_unload=need_unload,
+                                                 **kwargs)
                         if tunings:
                             copy = Install(srv.hostname, self, tunings.filename,
                                            comps=comps, **kwargs)
@@ -532,11 +534,12 @@ class FileSystem:
 
         return self._check_errors([MOUNTED, RECOVERING], comps, actions)
 
-    def stop(self, comps=None, **kwargs):
+    def stop(self, comps=None, need_unload=True, **kwargs):
         """Stop file system."""
         comps = (comps or self.components).managed(supports='stop')
         actions = self._prepare('stop', comps, groupby='START_ORDER',
-                                reverse=True, need_unload=True, **kwargs)
+                                reverse=True, need_unload=need_unload,
+                                **kwargs)
         actions.launch()
         self._run_actions()
 
@@ -552,10 +555,11 @@ class FileSystem:
         # Ok, workers have completed, perform late status check...
         return self._check_errors([MOUNTED], comps, actions)
 
-    def umount(self, comps=None, **kwargs):
+    def umount(self, comps=None, need_unload=True, **kwargs):
         """Unmount FS clients."""
         comps = (comps or self.components).managed(supports='umount')
-        actions = self._prepare('umount', comps, need_unload=True, **kwargs)
+        actions = self._prepare('umount', comps, need_unload=need_unload,
+                                **kwargs)
         actions.launch()
         self._run_actions()
 
