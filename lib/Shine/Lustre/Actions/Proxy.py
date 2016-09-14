@@ -133,7 +133,7 @@ class FSProxyAction(CommonAction):
 
         self.options = {}
         for optname in ('addopts', 'failover', 'mountdata', 'fanout',
-                        'dryrun'):
+                        'dryrun', 'need_unload'):
             self.options[optname] = kwargs.get(optname)
 
         self._outputs = MsgTree()
@@ -175,6 +175,9 @@ class FSProxyAction(CommonAction):
         # option when it is its default value.
         if self.options['mountdata'] not in (None, 'auto'):
             command.append('--mountdata=%s' % self.options['mountdata'])
+
+        if self.options['need_unload'] not in (None, True):
+            command.append('--nounload')
 
         return command
 

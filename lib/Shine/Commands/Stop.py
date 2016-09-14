@@ -85,7 +85,8 @@ class Stop(FSLiveCommand):
                          failover=self.options.failover,
                          fanout=self.options.fanout,
                          dryrun=self.options.dryrun,
-                         mountdata=self.options.mountdata)
+                         mountdata=self.options.mountdata,
+                         need_unload=self.options.need_unload)
 
         rc = self.fs_status_to_rc(status)
 

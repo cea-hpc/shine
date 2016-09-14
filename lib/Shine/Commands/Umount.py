@@ -71,7 +71,8 @@ class Umount(FSLiveCommand):
 
         status = fs.umount(addopts=self.options.additional,
                            dryrun=self.options.dryrun,
-                           fanout=self.options.fanout)
+                           fanout=self.options.fanout,
+                           need_unload=self.options.need_unload)
 
         rc = self.fs_status_to_rc(status)
 
