@@ -299,8 +299,7 @@ class FSAction(CommonAction):
 
         # If mountdata is not set, use the default value of each action.
         if kwargs.get('mountdata', 'auto') != 'auto':
-            # 'always' for True, 'never' for False
-            self.check_mountdata = (kwargs['mountdata'] == 'always')
+            self.check_mountdata = kwargs['mountdata']
         else:
             self.check_mountdata = self.__class__.CHECK_MOUNTDATA
 
