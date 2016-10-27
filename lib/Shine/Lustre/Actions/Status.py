@@ -33,6 +33,9 @@ class Status(FSAction):
     """
 
     NAME = 'status'
+    # No mountdata unless explicitely requested
+    CHECK_MOUNTDATA = 'never'
+
 
     def _shell(self):
         """

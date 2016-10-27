@@ -196,9 +196,10 @@ class Controller(object):
         parser.add_option("-y", dest="yes", action="store_true",
                           help="assume a \"yes\" response to all prompts")
         parser.add_option("--mountdata", dest="mountdata", type="choice",
-                          choices=['auto', 'never', 'always'], default='auto',
-                          help="analyze target mountdata (never, always"
-                               " or auto)", metavar='WHEN')
+                          choices=['auto', 'never', 'always', 'blockonly'],
+                          default='auto',
+                          help="analyze target mountdata (never, always,"
+                               " blockonly or auto)", metavar='WHEN')
         # Parse command line
         (options, args) = parser.parse_args()
 
