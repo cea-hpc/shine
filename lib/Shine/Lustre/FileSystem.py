@@ -514,17 +514,6 @@ class FileSystem:
         """Start Lustre file system servers."""
         comps = (comps or self.components).managed(supports='start')
 
-        # What starting order to use?
-        key = lambda t: t.TYPE == MDT.TYPE
-        mdt_comps = comps.filter(key=key)
-        if mdt_comps:
-            # Found enabled MDT(s): perform writeconf check.
-            self.status(comps=mdt_comps)
-        for target in mdt_comps:
-            if target.has_first_time_flag() or target.has_writeconf_flag():
-                MDT.START_ORDER, OST.START_ORDER = OST.START_ORDER, MDT.START_ORDER
-                break
-
         actions = self._prepare('start', comps, groupby='START_ORDER', **kwargs)
         actions.launch()
         self._run_actions()

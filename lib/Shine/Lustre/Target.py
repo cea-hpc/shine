@@ -523,20 +523,15 @@ class MGT(Target):
 class MDT(Target):
 
     TYPE = 'mdt'
-    # START_ORDER needs to have OST class declared.
-    # See value below.
+    START_ORDER = MGT.START_ORDER + 1
     DISPLAY_ORDER = MGT.DISPLAY_ORDER + 1
 
 
 class OST(Target):
 
     TYPE = 'ost'
-    START_ORDER = MGT.START_ORDER + 1
+    START_ORDER = MDT.START_ORDER + 1
     DISPLAY_ORDER = MDT.DISPLAY_ORDER + 1
-
-# This is declared here due to cycling-dependencies.
-# See MDT class.
-MDT.START_ORDER = OST.START_ORDER + 1
 
 class Journal(Component):
     """
