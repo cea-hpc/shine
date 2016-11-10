@@ -211,7 +211,6 @@ class Target(Component, Disk):
         Returns False if target is started twice, True in all other cases.
         """
         srvname = None
-        self.server = self.defaultserver
 
         servers = [srv for srv, state in self._states.iteritems()
                    if state in (MOUNTED, RECOVERING)]
@@ -219,6 +218,12 @@ class Target(Component, Disk):
             return False
         elif len(servers) == 1:
             srvname = servers[0]
+        else:
+            servers = [srv for srv, state in self._states.iteritems()
+                       if state is not None]
+            if len(servers) == 1:
+                srvname = servers[0]
+
 
         if srvname is not None:
             self.server = self.allservers().select(NodeSet(srvname))[0]
