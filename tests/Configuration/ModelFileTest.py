@@ -819,3 +819,21 @@ bar: 2""")
         # Compare the two files. They should have no difference
         added, changed, removed = model.diff(model2)
         self.assertTrue(len(changed) == len(added) == len(removed) == 0)
+
+    def testLoadModelWithInlineQuotes(self):
+        """load files with inline quotes"""
+
+        class MyCompound(ModelFile):
+            def __init__(self, sep='=', linesep=' '):
+                ModelFile.__init__(self, sep, linesep)
+                self.add_element('bar', check='string')
+                self.add_element('id', check='digit')
+
+        testfile1 = makeTempFile('foo: bar="my test" id=7')
+
+        model = ModelFile()
+        model.add_custom('foo', MyCompound())
+
+        model.load(testfile1.name)
+        self.assertEqual(model.get('foo').get('bar'), 'my test')
+        self.assertEqual(model.get('foo').get('id'), 7)
