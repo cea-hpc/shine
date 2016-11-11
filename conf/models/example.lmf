@@ -30,6 +30,7 @@ mount_path: /example
 #              [ index=<RegExp> ] [ jdev=<RegExp> ] [ ha_node=<RegExp> ]
 #              [ group=<RegExp> ] [ mode={external|managed} ]
 #              [ network=<RegExp> ] [ active={yes|nocreate|no|manual} ]
+#              [ dev_run=<dev_action_alias> ]
 #
 # Here, we don't use any backend (no File nor ClusterDB), so we have to
 # fully describe our targets (no RegExp accepted). For this simple
@@ -161,3 +162,13 @@ quota: no
 mgt_mount_path: /mnt/$fs_name/mgt
 mdt_mount_path: /mnt/$fs_name/mdt/$index
 ost_mount_path: /mnt/$fs_name/ost/$index
+
+# Device actions
+#
+# You may want define start/stop commands to be performed on a target device below.
+# Each target can be associated with a device action using dev_run=alias
+# Valid variables are: $fs_name, $label, $type, $index, $dev and $jdev
+#
+# Example of device action with mdraid:
+#
+#dev_action: alias=mdadm start="mdadm -Q $dev || mdadm -Ac /etc/mdadm.conf.lustre $dev" stop="mdadm -Sc /dev/mdadm.conf.lustre $dev"

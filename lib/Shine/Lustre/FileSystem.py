@@ -205,7 +205,7 @@ class FileSystem:
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
                    tag=None, enabled=True, mode='managed', network=None,
-                   active='yes'):
+                   active='yes', dev_run_action=None):
         """
         Create a new attached target.
         """
@@ -216,7 +216,8 @@ class FileSystem:
         target = TYPE_CLASSES[type](fs=self, server=server, index=index,
                                     dev=dev, jdev=jdev, group=group, tag=tag,
                                     enabled=enabled, mode=mode, network=network,
-                                    active=active)
+                                    active=active,
+                                    dev_run_action=dev_run_action)
         self._attach_component(target)
         return target
 

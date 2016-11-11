@@ -24,6 +24,7 @@ from glob import glob
 
 from ClusterShell.NodeSet import NodeSet
 
+from Shine.Lustre.Actions.Devices import StartDevice, StopDevice
 from Shine.Lustre.Actions.Format import Format, Tunefs, JournalFormat
 from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
@@ -60,7 +61,7 @@ class Target(Component, Disk):
 
     def __init__(self, fs, server, index, dev, jdev=None, group=None,
             tag=None, enabled=True, mode='managed', network=None,
-            active='yes'):
+            active='yes', dev_run_action=None):
         """
         Initialize a Lustre target object.
         """
@@ -83,6 +84,8 @@ class Target(Component, Disk):
             self.journal = Journal(self, jdev)
         else:
             self.journal = None
+
+        self.dev_run_action = dev_run_action
 
         # If target mode is external then set target state accordingly
         if self.is_external():
@@ -468,8 +471,19 @@ class Target(Component, Disk):
         format.
         """
         action = Format(self, **kwargs)
+
         if self.journal:
-            action.depends_on(JournalFormat(self.journal, **kwargs))
+            jaction = JournalFormat(self.journal, **kwargs)
+            action.depends_on(jaction)
+        else:
+            jaction = None
+
+        if self.dev_run_action:
+            if jaction:
+                jaction.depends_on(StartDevice(self, **kwargs))
+            else:
+                action.depends_on(StartDevice(self, **kwargs))
+
         return action
 
     def tunefs(self, **kwargs):
@@ -488,11 +502,19 @@ class Target(Component, Disk):
 
     def start(self, **kwargs):
         """Start the local Target and check for system sanity."""
-        return StartTarget(self, **kwargs)
+        action = StartTarget(self, **kwargs)
+        if self.dev_run_action:
+            action.depends_on(StartDevice(self, **kwargs))
+        return action
 
     def stop(self, **kwargs):
         """Stop the local Target and check for system sanity."""
-        return StopTarget(self, **kwargs)
+        stop_target = StopTarget(self, **kwargs)
+        if self.dev_run_action:
+            action = StopDevice(self, **kwargs)
+            action.depends_on(stop_target)
+            return action
+        return stop_target
 
     def __setstate__(self, state):
         """
