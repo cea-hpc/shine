@@ -283,6 +283,7 @@ class FSAction(CommonAction):
 
     # full_check() should also check mountdata?
     CHECK_MOUNTDATA = True
+    CHECK_DEVICE = True
 
     NEEDED_MODULES = []
 
@@ -386,7 +387,8 @@ class FSAction(CommonAction):
         """
         self.comp.action_event(self, 'start')
         try:
-            self.comp.full_check(mountdata=self.check_mountdata)
+            if self.CHECK_DEVICE:
+                self.comp.full_check(mountdata=self.check_mountdata)
 
             result = self._already_done()
             if not result:
