@@ -21,6 +21,7 @@
 from ClusterShell.NodeSet import NodeSet
 
 from Shine.Configuration.FileSystem import FileSystem, Target, Routers, Clients
+from Shine.Configuration.FileSystem import DeviceRunAction
 from Shine.Configuration.Exceptions import ConfigException
 
 
@@ -199,6 +200,13 @@ class Configuration:
 
     def get_stripesize(self):
         return self._fs.get('stripe_size', None)
+
+    def get_dev_action(self, alias):
+        dev_acts = self._fs.get('dev_action')
+        for act in dev_acts:
+            if act['alias'] == alias:
+                return DeviceRunAction(act)
+        raise KeyError('dev_action "%s" not found' % alias)
 
     # Target status setters
     #

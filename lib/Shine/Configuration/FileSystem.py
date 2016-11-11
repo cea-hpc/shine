@@ -90,6 +90,8 @@ class Target:
     def get_active(self):
         return self.dic.get('active', 'yes')
 
+    def get_dev_run(self):
+        return self.dic.get('dev_run')
 
 class Clients:
     def __init__(self, cf_client):
@@ -528,3 +530,19 @@ class FileSystem(object):
         """
         if self._start_backend():
             return self.backend.unregister_target(self, target)
+
+class DeviceRunAction(object):
+    def __init__(self, cf_dev_action):
+        self.dic = cf_dev_action.as_dict()
+
+    def get(self, key, default=None):
+        return self.dic.get(key, default)
+
+    def get_alias(self):
+        return self.dic.get('alias')
+
+    def get_start_command(self):
+        return self.dic.get('start')
+
+    def get_stop_command(self):
+        return self.dic.get('stop')

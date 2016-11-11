@@ -78,6 +78,9 @@ class Model(ModelFile):
         # Router
         self.add_custom('router', Router(), multiple=True)
 
+        # Device action
+        self.add_custom('dev_action', DeviceAction(), multiple=True)
+
 
 class FSName(SimpleElement):
     """
@@ -137,6 +140,7 @@ class Target(ModelFile):
         self.add_element('tag',     check='string')
         self.add_element('active',  check='enum',
                 default='yes', values=['yes', 'no', 'nocreate', 'manual'])
+        self.add_element('dev_run', check='string')
 
     def key(self):
         """
@@ -214,3 +218,16 @@ class Client(ModelFile):
     def key(self):
         """A unique client is identified by its node and mount path."""
         return (self.get('node'), self.get('mount_path'))
+
+
+class DeviceAction(ModelFile):
+    """
+    Define 'dev_action' in model file:
+    alias=<ACTION_ALIAS> start=<COMMAND> stop=<COMMAND>
+    """
+
+    def __init__(self, sep='=', linesep=' '):
+        ModelFile.__init__(self, sep, linesep)
+        self.add_element('alias', check='string')
+        self.add_element('start', check='string')
+        self.add_element('stop', check='string')

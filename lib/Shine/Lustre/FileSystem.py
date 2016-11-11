@@ -211,7 +211,7 @@ class FileSystem:
 
     def new_target(self, server, type, index, dev, jdev=None, group=None,
                    tag=None, enabled=True, mode='managed', network=None,
-                   active='yes'):
+                   active='yes', dev_run_action=None):
         """
         Create a new attached target.
         """
@@ -225,7 +225,8 @@ class FileSystem:
         module_name = sys.modules[self.__class__.__module__]
         target = getattr(module_name, type.upper())(fs=self, server=server,
                 index=index, dev=dev, jdev=jdev, group=group, tag=tag,
-                enabled=enabled, mode=mode, network=network, active=active)
+                enabled=enabled, mode=mode, network=network, active=active,
+                dev_run_action=dev_run_action)
         
         self._attach_component(target)
 
@@ -294,8 +295,8 @@ class FileSystem:
             # there is some uncatched bug somewhere.
             # (ie: cannot unpickle due to ClusterShell version mismatch)
             if comp.state is None:
-                msg = "WARNING: no state report from node %s" % comp.server
-                print >> sys.stderr, msg
+                msg = "WARNING: no state report from node %s (%s)" \
+                      % (comp.server, comp)
                 comp.state = RUNTIME_ERROR
 
             if comp.state not in expected_states:
