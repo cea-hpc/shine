@@ -9,7 +9,7 @@ import unittest
 from subprocess import Popen, PIPE, STDOUT
 
 import Utils
-from Shine.Lustre.Disk import Disk, DiskDeviceError
+from Shine.Lustre.Disk import Disk, DiskDeviceError, DiskNoDeviceError
 
 class DiskLoopbackTest(unittest.TestCase):
 
@@ -134,7 +134,7 @@ class DiskOtherTest(unittest.TestCase):
     def testErrorDevCheck(self):
         """test device check with a wrong device"""
         disk = Disk(dev='wrong path')
-        self.assertRaises(DiskDeviceError, disk._device_check)
+        self.assertRaises(DiskNoDeviceError, disk._device_check)
 
     def testBadDevCheck(self):
         """test device check with a bad file"""

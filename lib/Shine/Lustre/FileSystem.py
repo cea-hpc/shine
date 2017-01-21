@@ -52,7 +52,8 @@ from Shine.Lustre.Target import MGT, MDT, OST, Journal
 # Shine.Commands.*
 from Shine.Lustre.Component import INPROGRESS, EXTERNAL, MOUNTED, \
                                    RECOVERING, OFFLINE, RUNTIME_ERROR, \
-                                   CLIENT_ERROR, TARGET_ERROR, MIGRATED
+                                   CLIENT_ERROR, TARGET_ERROR, MIGRATED, \
+                                   NO_DEVICE
 
 
 class FSError(Exception):
