@@ -79,7 +79,8 @@ class Model(ModelFile):
         self.add_custom('router', Router(), multiple=True)
 
         # Device action
-        self.add_custom('dev_action', DeviceAction(), multiple=True)
+        self.add_custom('dev_action', DeviceAction(), multiple=True,
+                        expand_range=False)
 
 
 class FSName(SimpleElement):

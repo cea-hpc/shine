@@ -37,6 +37,7 @@ TARGET_ERROR = 6
 RUNTIME_ERROR = 7
 INACTIVE = 8
 MIGRATED = 9
+NO_DEVICE = 10
 
 from Shine.Lustre import ComponentError
 from Shine.Lustre.Server import ServerGroup

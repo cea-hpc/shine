@@ -240,9 +240,10 @@ class MultipleElement(object):
     it will have to manage.
     """
 
-    def __init__(self, orig_elem):
+    def __init__(self, orig_elem, enable_ranges=True):
         self._origelem = orig_elem
         self._elements = []
+        self._enable_ranges = enable_ranges
 
     def emptycopy(self):
         """Return a new empty copy of this element, with the same attributes."""
@@ -386,7 +387,12 @@ class MultipleElement(object):
 
     def parse(self, data):
         """Add a new element to this MultipleElement and call parse() on it."""
-        for data in self._expand_range(data):
+        if self._enable_ranges:
+            lines = self._expand_range(data)
+        else:
+            lines = [data]
+
+        for data in lines:
             newone = self._origelem.emptycopy()
             newone.parse(data)
             self._elements.append(newone)
@@ -463,7 +469,7 @@ class ModelFile(object):
         """
         self.add_custom(name, SimpleElement(**kwargs), multiple)
 
-    def add_custom(self, name, custom_elem, multiple=False):
+    def add_custom(self, name, custom_elem, multiple=False, expand_range=True):
         """Add a custom Element type.
 
         This could be any element that supports needed interface.
@@ -472,7 +478,7 @@ class ModelFile(object):
             raise KeyError("%s is already declared" % name)
 
         if multiple:
-            self._elements[name] = MultipleElement(custom_elem)
+            self._elements[name] = MultipleElement(custom_elem, expand_range)
         else:
             self._elements[name] = custom_elem
 

@@ -32,7 +32,7 @@ detailed states.
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
                                               RC_ST_ONLINE, RC_ST_RECOVERING, \
-                                              RC_ST_MIGRATED, \
+                                              RC_ST_MIGRATED, RC_ST_NO_DEVICE, \
                                               RC_FAILURE, RC_TARGET_ERROR, \
                                               RC_CLIENT_ERROR, RC_RUNTIME_ERROR
 
@@ -41,7 +41,7 @@ from Shine.Commands.Base.FSEventHandler import FSGlobalEventHandler, \
                                                FSLocalEventHandler
 from Shine.Lustre.FileSystem import MOUNTED, RECOVERING, EXTERNAL, OFFLINE, \
                                     TARGET_ERROR, CLIENT_ERROR, RUNTIME_ERROR, \
-                                    MIGRATED
+                                    MIGRATED, NO_DEVICE
 
 from Shine.FSUtils import open_lustrefs
 
@@ -56,15 +56,16 @@ class Status(FSLiveCommand):
     GLOBAL_EH = FSGlobalEventHandler
     LOCAL_EH = FSLocalEventHandler
 
-    TARGET_STATUS_RC_MAP = { \
-            MOUNTED : RC_ST_ONLINE,
-            MIGRATED : RC_ST_MIGRATED,
-            RECOVERING : RC_ST_RECOVERING,
-            EXTERNAL : RC_ST_EXTERNAL,
-            OFFLINE : RC_ST_OFFLINE,
-            TARGET_ERROR : RC_TARGET_ERROR,
-            CLIENT_ERROR : RC_CLIENT_ERROR,
-            RUNTIME_ERROR : RC_RUNTIME_ERROR }
+    TARGET_STATUS_RC_MAP = {
+            MOUNTED: RC_ST_ONLINE,
+            MIGRATED: RC_ST_MIGRATED,
+            RECOVERING: RC_ST_RECOVERING,
+            EXTERNAL: RC_ST_EXTERNAL,
+            OFFLINE: RC_ST_OFFLINE,
+            NO_DEVICE: RC_ST_NO_DEVICE,
+            TARGET_ERROR: RC_TARGET_ERROR,
+            CLIENT_ERROR: RC_CLIENT_ERROR,
+            RUNTIME_ERROR: RC_RUNTIME_ERROR }
 
     def execute_fs(self, fs, fs_conf, eh, vlevel):
 

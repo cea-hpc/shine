@@ -53,6 +53,7 @@ RC_ST_MIGRATED      = 2
 RC_ST_RECOVERING    = 4
 RC_ST_OFFLINE       = 8
 RC_ST_EXTERNAL      = 16
+RC_ST_NO_DEVICE     = 32
 
 # Errors
 RC_TARGET_ERROR     = 16

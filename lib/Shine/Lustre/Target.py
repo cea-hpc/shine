@@ -30,11 +30,11 @@ from Shine.Lustre.Actions.StartTarget import StartTarget
 from Shine.Lustre.Actions.StopTarget import StopTarget
 from Shine.Lustre.Actions.Fsck import Fsck
 
-from Shine.Lustre.Disk import Disk, DiskDeviceError
+from Shine.Lustre.Disk import Disk, DiskDeviceError, DiskNoDeviceException
 from Shine.Lustre.Component import Component, ComponentError, \
                                    MOUNTED, EXTERNAL, RECOVERING, OFFLINE, \
                                    TARGET_ERROR, RUNTIME_ERROR, INACTIVE, \
-                                   MIGRATED
+                                   MIGRATED, NO_DEVICE
 from Shine.Lustre.Server import Server, ServerGroup
 from operator import itemgetter
 from itertools import groupby
@@ -56,7 +56,8 @@ class Target(Component, Disk):
         MOUNTED:       "online", 
         RUNTIME_ERROR: "CHECK FAILURE",
         INACTIVE:      "inactive",
-        MIGRATED:      "migrated"
+        MIGRATED:      "migrated",
+        NO_DEVICE:     "no_device"
     }
 
     def __init__(self, fs, server, index, dev, jdev=None, group=None,
@@ -150,6 +151,9 @@ class Target(Component, Disk):
 
         elif RUNTIME_ERROR in sdict:
             return RUNTIME_ERROR
+
+        elif NO_DEVICE in sdict:
+            return NO_DEVICE
 
     def set_state(self, value):
         """Update target state on the current node."""
@@ -318,6 +322,10 @@ class Target(Component, Disk):
 
             if self.journal:
                 self.journal.full_check()
+
+        except DiskNoDeviceException, error:
+            self.local_state = NO_DEVICE
+            return
 
         except (ComponentError, DiskDeviceError), error:
             self.local_state = TARGET_ERROR

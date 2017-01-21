@@ -24,6 +24,7 @@ Lustre Disk abstraction module.
 """
 
 import copy
+import errno
 import os
 import stat
 import subprocess
@@ -48,6 +49,14 @@ class DiskDeviceError(Exception):
     """
     def __init__(self, disk, message=None):
         Exception.__init__(self, message)
+        self._disk = disk
+
+class DiskNoDeviceException(Exception):
+    """
+    No device found.
+    """
+    def __init__(self, disk):
+        Exception.__init__(self)
         self._disk = disk
 
 
@@ -84,7 +93,10 @@ class Disk:
         try:
             info = os.stat(self.dev)
         except OSError, error:
-            raise DiskDeviceError(self, str(error))
+            if error.errno == errno.ENOENT:
+                raise DiskNoDeviceException(self)
+            else:
+                raise DiskDeviceError(self, str(error))
 
         mode = info[stat.ST_MODE]
 
