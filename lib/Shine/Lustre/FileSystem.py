@@ -109,6 +109,11 @@ class FileSystem:
         else:
             logger.setLevel(logging.INFO)
 
+        if logger.handlers:
+            # If some handlers already exist, the logger singleton is already
+            # configured, so just return it to avoid duplicate handlers.
+            return logger
+
         # Formatter
         formatter = logging.Formatter(datefmt="%Y-%m-%d %X",
                       fmt='%(name)s %(levelname)s  %(message)s')
@@ -128,7 +133,7 @@ class FileSystem:
 
     def get_mgs_nids(self):
         return self.mgt.get_nids()
-    
+
     #
     # file system event handling
     #
