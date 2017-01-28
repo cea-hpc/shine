@@ -20,8 +20,6 @@
 
 from __future__ import print_function
 
-import os
-import sys
 import binascii, pickle
 
 from ClusterShell.MsgTree import MsgTree
@@ -124,7 +122,6 @@ class FSProxyAction(CommonAction):
 
         CommonAction.__init__(self)
 
-        self.progpath = os.path.abspath(sys.argv[0])
         self.fs = fs
         self.action = action
         self.nodes = nodes
@@ -150,7 +147,7 @@ class FSProxyAction(CommonAction):
     def _prepare_cmd(self):
         """Create the command line base on proxy properties."""
 
-        command = ["%s" % self.progpath]
+        command = ["shine"] # launch remote shine executable
         command.append(self.action)
         command.append("-f %s" % self.fs.fs_name)
         command.append("-R")

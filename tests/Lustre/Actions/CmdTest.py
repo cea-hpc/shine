@@ -738,27 +738,25 @@ class ActionsTest(unittest.TestCase):
     #
 
     def _create_proxy(self, **kwargs):
-        """Instanciate a FSProxyAction with a fake progpath for tests."""
-        action = FSProxyAction(self.fs, 'dummy', 'foo', **kwargs)
-        action.progpath = 'nosetests'
-        return action
+        """Instanciate a FSProxyAction."""
+        return FSProxyAction(self.fs, 'dummy', 'foo', **kwargs)
 
     def test_simple_proxy(self):
         """test proxy with minimal arguments"""
         action = self._create_proxy(debug=False)
-        self.check_cmd(action, 'nosetests dummy -f action -R')
+        self.check_cmd(action, 'shine dummy -f action -R')
 
     def test_proxy_debug(self):
         """test proxy with debug"""
         action = self._create_proxy(debug=True)
-        self.check_cmd(action, 'nosetests dummy -f action -R -d')
+        self.check_cmd(action, 'shine dummy -f action -R -d')
 
     def test_proxy_comps(self):
         """test proxy with a component list"""
         self.fs.new_router(self.srv1)
         self.fs.new_client(self.srv1, "/foo")
         action = self._create_proxy(debug=False, comps=self.fs.components)
-        self.check_cmd(action, 'nosetests dummy -f action -R'
+        self.check_cmd(action, 'shine dummy -f action -R'
                                ' -l action-client,action-router')
 
     def test_proxy_comps_addopts(self):
@@ -767,7 +765,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_client(self.srv1, "/foo")
         action = self._create_proxy(debug=False, comps=self.fs.components,
                                     addopts="-y")
-        self.check_cmd(action, "nosetests dummy -f action -R"
+        self.check_cmd(action, "shine dummy -f action -R"
                                " -l action-client,action-router -o '-y'")
 
     def test_proxy_comps_failover(self):
@@ -776,26 +774,26 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_client(self.srv1, "/foo")
         action = self._create_proxy(debug=False, comps=self.fs.components,
                                     failover=NodeSet('failnode'))
-        self.check_cmd(action, "nosetests dummy -f action -R"
+        self.check_cmd(action, "shine dummy -f action -R"
                                " -l action-client,action-router -F 'failnode'")
 
     def test_proxy_comps_mountdata_never(self):
         """test proxy with a component list and mountdata=never"""
         action = self._create_proxy(debug=False, mountdata='never')
-        self.check_cmd(action, "nosetests dummy -f action -R"
+        self.check_cmd(action, "shine dummy -f action -R"
                                " --mountdata=never")
 
     def test_proxy_comps_mountdata_auto(self):
         """test proxy with a component list and mountdata=auto"""
         action = self._create_proxy(debug=False, mountdata='auto')
-        self.check_cmd(action, "nosetests dummy -f action -R")
+        self.check_cmd(action, "shine dummy -f action -R")
 
     def test_proxy_fanout(self):
         """test proxy with fanout"""
         action = self._create_proxy(debug=False, fanout=18)
-        self.check_cmd(action, 'nosetests dummy -f action -R --fanout=18')
+        self.check_cmd(action, 'shine dummy -f action -R --fanout=18')
 
     def test_proxy_dryrun(self):
         """test proxy with dryrun"""
         action = self._create_proxy(debug=False, dryrun=True)
-        self.check_cmd(action, 'nosetests dummy -f action -R --dry-run')
+        self.check_cmd(action, 'shine dummy -f action -R --dry-run')
