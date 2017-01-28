@@ -124,6 +124,11 @@ class FileSystem:
         else:
             logger.setLevel(logging.INFO)
 
+        if logger.handlers:
+            # If logger already exists, it is already configured, so just
+            # return it to avoid duplicate handlers.
+            return logger
+
         # Formatter
         formatter = logging.Formatter(datefmt="%Y-%m-%d %X",
                       fmt='%(name)s %(levelname)s  %(message)s')
@@ -143,7 +148,7 @@ class FileSystem:
 
     def get_mgs_nids(self):
         return self.mgt.get_nids()
-    
+
     #
     # file system event handling
     #
@@ -226,7 +231,6 @@ class FileSystem:
         target = getattr(module_name, type.upper())(fs=self, server=server,
                 index=index, dev=dev, jdev=jdev, group=group, tag=tag,
                 enabled=enabled, mode=mode, network=network, active=active)
-        
         self._attach_component(target)
 
         return target
