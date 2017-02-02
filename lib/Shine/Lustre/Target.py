@@ -506,7 +506,13 @@ class Target(Component, Disk):
         Apply a filesystem coherency check on the Target. This does not
         check coherency between several targets.
         """
-        return Fsck(self, **kwargs)
+        action = Fsck(self, **kwargs)
+
+        if self.dev_run_action:
+            dev_start_act = StartDevice(self, **kwargs)
+            action.depends_on(dev_start_act)
+
+        return action
 
     def start(self, **kwargs):
         """Start the local Target and check for system sanity."""
