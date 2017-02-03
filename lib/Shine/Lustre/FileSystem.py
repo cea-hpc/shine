@@ -222,8 +222,8 @@ class FileSystem:
             raise FSStructureError("A Lustre FS has only one MGT.")
 
         # Instantiate matching target class (eg. 'ost' -> OST).
-        module_name = sys.modules[self.__class__.__module__]
-        target = getattr(module_name, type.upper())(fs=self, server=server,
+        mod = __import__('Shine.Lustre.Target', fromlist=[None])
+        target = getattr(mod, type.upper())(fs=self, server=server,
                 index=index, dev=dev, jdev=jdev, group=group, tag=tag,
                 enabled=enabled, mode=mode, network=network, active=active)
         
