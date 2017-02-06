@@ -1,5 +1,11 @@
 %define vimdatadir %{_datadir}/vim/vimfiles
 
+%if 0%{?fedora} >= 19 || 0%{?rhel} >= 7
+%global with_systemd 1
+%else
+%global with_systemd 0
+%endif
+
 Name:      shine
 Version:   1.5
 Release:   1%{?dist}
@@ -11,6 +17,9 @@ Source0:   https://github.com/cea-hpc/shine/archive/v%{version}.tar.gz#/%{name}-
 Group:     Development/Libraries
 BuildArch: noarch
 Requires:  clustershell >= 1.5.1
+%if %{with_systemd}
+BuildRequires: systemd-units
+%endif
 
 %description
 Python-based Lustre utility to easily control Lustre filesystem
@@ -31,12 +40,16 @@ mv %{buildroot}/usr/bin %{buildroot}/usr/sbin
 install -d %{buildroot}/%{_mandir}/{man1,man5}
 install -p -m 0644 doc/shine.1 %{buildroot}/%{_mandir}/man1/
 install -p -m 0644 doc/shine.conf.5 %{buildroot}/%{_mandir}/man5/
+%if %{with_systemd}
+install -p -D -m 644 scripts/shine-ha.service %{buildroot}%{_unitdir}/shine-ha.service
+%endif
 
 %files
 %defattr(-,root,root)
 %{_sysconfdir}/shine/*.conf.example
 %config(noreplace) %{_sysconfdir}/shine/*.conf
 %config(noreplace) %{_sysconfdir}/shine/models/*.lmf
+%config(noreplace) %{_sysconfdir}/shine/ha.yaml
 %{_sbindir}/shine
 %{python_sitelib}/Shine/
 %{python_sitelib}/shine-*-py?.?.egg-info
@@ -48,8 +61,15 @@ install -p -m 0644 doc/shine.conf.5 %{buildroot}/%{_mandir}/man5/
 %{_usr}/share/shine/shine.init.redhat
 %dir %{_localstatedir}/cache/shine/conf
 %{_localstatedir}/cache/shine/conf/README
+%if %{with_systemd}
+%{_unitdir}/shine-ha.service
+%endif
 
 %changelog
+* Wed Sep 11 2024 <sthiell@stanford.edu> - 1.5-2
+- Update from oak_ha branch at Stanford
+- Add shine-ha.service
+
 * Wed May 24 2017 <aurelien.degremont@cea.fr> - 1.5-1
 - Update to shine 1.5
 
