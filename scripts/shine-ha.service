@@ -1,0 +1,12 @@
+[Unit]
+Description=Shine Monitoring and High Availability for Lustre
+After=syslog.target systemd-user-sessions.service
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/shine
+ExecStart=/usr/bin/python -m Shine.HA.main -f /etc/shine/ha.yaml --debug --run $OPTS
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
