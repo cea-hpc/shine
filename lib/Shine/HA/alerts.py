@@ -35,19 +35,20 @@ ALERT_CLS_LNET = 1
 
 
 class Alert(object):
+    """Base Alert class"""
 
     def __init__(self, name):
         self.name = name
         self.levels = set()
 
     def info(self, aclass, message, ctx=None):
-        pass
+        raise NotImplementedError
 
     def warning(self, aclass, message, ctx=None):
-        pass
+        raise NotImplementedError
 
     def critical(self, aclass, message, ctx=None):
-        pass
+        raise NotImplementedError
 
 
 class AlertManager(object):
@@ -86,15 +87,18 @@ class AlertManager(object):
         if 'alerts' in config_dic:
             alerts = config_dic['alerts']
             for level, level_name in enumerate(('INFO', 'WARN', 'CRIT')):
-                for alert in alerts.get(level_name, []):
-                    LOGGER.info('Enabling alert level %s for %s', level_name,
-                                alert)
-                    inst.alerts[alert].levels.add(level)
+                for alert_name in alerts.get(level_name, []):
+                    inst.enable_alert(alert_name, level)
         return inst
 
     def define_alert(self, alert):
         LOGGER.debug('%s add alert definition %s', self, alert)
         self.alerts[alert.name] = alert
+
+    def enable_alert(self, alert_name, level):
+        LEVELS = ['INFO', 'WARN', 'CRIT']
+        LOGGER.info('Enabling alert level %s for %s', LEVELS[level], alert_name)
+        self.alerts[alert_name].levels.add(level)
 
     def info(self, aclass, message, ctx=None):
         """Trigger an informative alert"""

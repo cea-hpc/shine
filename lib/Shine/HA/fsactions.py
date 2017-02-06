@@ -55,7 +55,7 @@ class StatusThread(Thread):
         comps = fs.components.filter(supports='index')
 
         fs_result = fs.status(comps, extended=True)
-        LOGGER.debug('StatusThread: fs.status=%d', fs_result)
+        LOGGER.debug('StatusThread: fs.status=%s', fs_result)
 
         for msg, nodelist in fs.proxy_errors.walk():
             nodeset = NodeSet.fromlist(nodelist)
