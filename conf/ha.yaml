@@ -1,0 +1,88 @@
+#
+# Lustre Advanced Monitoring and Standalone High Availability
+#
+# --*-*- Stanford University Research Computing Center -*-*--
+#
+# EXAMPLE of config file for shine-ha.service
+#
+
+#
+# Filesystem name, must match an installed Shine filesystem.
+#
+fs_name: example
+
+#
+# Check filesystem status every polling_interval seconds.
+#
+polling_interval: 30
+
+#
+# Alert plugins (definition section)
+#
+# An Alert plugin is a Python module that implements a single class derived
+# on Alert from Shine.HA.alerts.
+#
+alert_plugins:
+    email:
+        module: 'Shine.HA.plugins.email'
+        args:
+            # These args are passed as is to the Alert Plugin constructor.
+            email_from: 'shine-ha@cluster.domain'
+            email_to: 'admin@example.com'
+            reply_to: 'no-reply@cluster.domain'
+            subject_prefix: '[shine-HA] '
+            sendmail_cmd: '/usr/sbin/sendmail'
+            sendmail_args: '-t -oi'
+    slack:
+        module: 'Shine.HA.plugins.slack'
+        args:
+            # These args are passed as is to the Alert Plugin constructor.
+            webhook_url: "https://hooks.slack.com/services/SECRETTOKEN"
+            channel: "#shine-ha-alerts"
+            bot_username: "shine-HA"
+            bot_emoji: ":tada:"
+
+#
+# Assign Alert channels (defined above) for each Alert level.
+#
+# There are three available Alert levels: INFO, WARNING and CRITICAL.
+#
+alerts:
+    INFO: [ slack ]
+    WARN: [ slack ]
+    CRIT: [ slack, email ]
+
+##
+# Lustre filesystem monitoring
+##
+
+#
+# fs_monitor_state_count_thresholds is used to set the max number of acceptable
+# occurrences of a component in the same state (by state).
+#
+# The maximum corresponding time is (value x polling_interval)
+#
+# A value of 2 means that if the state is only seen once during one
+# polling_interval run loop, no alert is triggered.
+#
+# You can mitigate alerts on transcient states (like a failover) by adjusting
+# these values.
+#
+# NOTE: shine-HA will alert on:
+#   NO_DEVICE, OFFLINE, TARGET_ERROR, RECOVERING
+#
+# Target OK if state is MOUNTED or MIGRATED
+# Target IGNORED if state is EXTERNAL or INACTIVE
+#
+fs_monitor_state_count_thresholds:
+    #
+    # COMPONENT_STATE: [INFO, WARN, CRIT]
+    #
+    # Note: if for example INFO == WARN, this will disable INFO alerting.
+    #
+    # Again, multiply these values by polling_interval to get time in seconds.
+    #
+    NO_DEVICE: [2, 2, 4]        # both target and md device not started
+    OFFLINE: [4, 4, 6]          # target offline but block device started
+    TARGET_ERROR: [10, 10, 20]  # this can be a transient state and not an error
+    RECOVERING: [4, 20, 30]     # alert if recovery takes a very long time
