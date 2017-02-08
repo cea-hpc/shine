@@ -28,7 +28,7 @@ import time
 
 from ClusterShell.NodeSet import NodeSet
 import Shine.CLI.Display as Display
-from Shine.HA.alerts import Alert, ALERT_CLS_FS
+from Shine.HA.alerts import Alert, ALERT_CLS_FS, ALERT_CLS_LNET
 from Shine.HA.fsmon import STATE_IDTXT_MAP
 
 # HTML colors from Slack logo
@@ -71,30 +71,49 @@ class SlackWebhookAlert(Alert):
 
     def info(self, aclass, message, ctx=None):
         if aclass == ALERT_CLS_FS:
-            comps = ctx['FileSystem'].components.managed(inactive=True)
+            self._fs_info(message, ctx, ':postal_horn:', COLOR_GREEN)
+        elif aclass == ALERT_CLS_LNET:
+            LOGGER.debug('info ALERT_CLS_LNET %s %s', message, ctx)
+            self._lnet_info(message, ctx, ':satellite_antenna:', COLOR_GREEN)
 
-            # Display FS Status (part of the code from Shine.CLI.Display)
-            pat_fields = set(['status', 'type'])
+    def warning(self, aclass, message, ctx=None):
+        if aclass == ALERT_CLS_FS:
+            self._fs_error(message, ctx, ':warning:', COLOR_YELLOW)
+        elif aclass == ALERT_CLS_LNET:
+            LOGGER.debug('warning ALERT_CLS_LNET %s %s', message, ctx)
+            self._lnet_error(message, ctx, ':warning:', COLOR_YELLOW)
 
-            def fieldvals(comp):
-                """Get the value list of field for ``comp''."""
-                return Display._get_fields(comp, pat_fields).values()
+    def critical(self, aclass, message, ctx=None):
+        if aclass == ALERT_CLS_FS:
+            self._fs_error(message, ctx, ':rotating_light:', COLOR_RED)
+        elif aclass == ALERT_CLS_LNET:
+            LOGGER.debug('critical ALERT_CLS_LNET %s %s', message, ctx)
+            self._lnet_error(message, ctx, ':rotating_light:', COLOR_RED)
 
-            grplst = [(list(compgrp)[0], compgrp)
-                      for _, compgrp in comps.groupby(key=fieldvals)]
+    def _fs_info(self, message, ctx, emoji, color):
+        comps = ctx['FileSystem'].components.managed(inactive=True)
 
-            att_fields = []
-            for first, compgrp in grplst:
-                # Get component fields
-                fields = Display._get_fields(first, pat_fields)
+        # Display FS Status (part of the code from Shine.CLI.Display)
+        pat_fields = set(['status', 'type'])
 
-                att_fields.append({"title": '%s (%d)' % (str(compgrp.labels()),
-                                                         len(compgrp.labels())),
-                                   "value": fields['status'],
-                                   "short": True})
+        def fieldvals(comp):
+            """Get the value list of field for ``comp''."""
+            return Display._get_fields(comp, pat_fields).values()
 
-            self.post_attachment(':postal_horn: ' + message, att_fields,
-                                 color=COLOR_GREEN)
+        grplst = [(list(compgrp)[0], compgrp)
+                  for _, compgrp in comps.groupby(key=fieldvals)]
+
+        att_fields = []
+        for first, compgrp in grplst:
+            # Get component fields
+            fields = Display._get_fields(first, pat_fields)
+
+            att_fields.append({"title": '%s (%d)' % (str(compgrp.labels()),
+                                                     len(compgrp.labels())),
+                               "value": fields['status'],
+                               "short": True})
+
+        self.post_attachment(emoji + ' ' + message, att_fields, color=color)
 
     def _fs_error(self, message, ctx, emoji, color):
         comp_st_cnt_list = ctx['comp_st_cnt_list']
@@ -107,13 +126,20 @@ class SlackWebhookAlert(Alert):
                   {"title": "Status", "value": ','.join(status), "short": True}]
         self.post_attachment(emoji + ' ' + message, fields, color=color)
 
-    def warning(self, aclass, message, ctx=None):
-        if aclass == ALERT_CLS_FS:
-            self._fs_error(message, ctx, ':warning:', COLOR_YELLOW)
+    def _lnet_error(self, message, ctx, emoji, color):
+        nodeset = NodeSet.fromlist(ctx['nodelist'])
+        nids = NodeSet()
+        for nidss in ctx['down_cnt_list']:
+            nids.updaten(nidss.nids())
+        LOGGER.debug('SlackWebhookAlert._lnet_error: %s', nodeset)
+        fields = [{"title": "Servers", "value": str(nodeset), "short": True},
+                  {"title": 'NIDs', 'value': str(nids), "short": True}]
+        self.post_attachment(emoji + ' ' + message, fields, color=color)
 
-    def critical(self, aclass, message, ctx=None):
-        if aclass == ALERT_CLS_FS:
-            self._fs_error(message, ctx, ':rotating_light:', COLOR_RED)
-
+    def _lnet_info(self, message, ctx, emoji, color):
+        if 'nodelist' in ctx and 'down_cnt_list' in ctx:
+            self._lnet_error(message, ctx, ":satellite_antenna:", COLOR_GREEN)
+        else:
+            self.post_attachment(emoji + ' ' + message, [], color=color)
 
 ALERT_CLASS = SlackWebhookAlert
