@@ -28,6 +28,7 @@ import time
 
 from ClusterShell.NodeSet import NodeSet
 import Shine.CLI.Display as Display
+from Shine.CLI.TextTable import TextTable
 from Shine.HA.alerts import Alert, ALERT_CLS_FS, ALERT_CLS_LNET
 from Shine.HA.fsmon import STATE_IDTXT_MAP
 
@@ -91,29 +92,16 @@ class SlackWebhookAlert(Alert):
             self._lnet_error(message, ctx, ':rotating_light:', COLOR_RED)
 
     def _fs_info(self, message, ctx, emoji, color):
-        comps = ctx['FileSystem'].components.managed(inactive=True)
-
-        # Display FS Status (part of the code from Shine.CLI.Display)
-        pat_fields = set(['status', 'type'])
-
-        def fieldvals(comp):
-            """Get the value list of field for ``comp''."""
-            return Display._get_fields(comp, pat_fields).values()
-
-        grplst = [(list(compgrp)[0], compgrp)
-                  for _, compgrp in comps.groupby(key=fieldvals)]
-
-        att_fields = []
-        for first, compgrp in grplst:
-            # Get component fields
-            fields = Display._get_fields(first, pat_fields)
-
-            att_fields.append({"title": '%s (%d)' % (str(compgrp.labels()),
-                                                     len(compgrp.labels())),
-                               "value": fields['status'],
-                               "short": True})
-
-        self.post_attachment(emoji + ' ' + message, att_fields, color=color)
+        # Create table with wanted parameters
+        tbl = TextTable("%status %labels %count %type")
+        # Feed table directly from Shine FileSystem instance
+        Display.table_fill(tbl, ctx['FileSystem'])
+        fields = []
+        for row in tbl:
+            fields.append({"title": '%s (%s)' % (row['labels'], row['count']),
+                           "value": row['status'],
+                           "short": True})
+        self.post_attachment(emoji + ' ' + message, fields, color=color)
 
     def _fs_error(self, message, ctx, emoji, color):
         comp_st_cnt_list = ctx['comp_st_cnt_list']
