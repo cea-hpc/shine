@@ -86,3 +86,13 @@ fs_monitor_state_count_thresholds:
     OFFLINE: [4, 4, 6]          # target offline but block device started
     TARGET_ERROR: [10, 10, 20]  # this can be a transient state and not an error
     RECOVERING: [4, 20, 30]     # alert if recovery takes a very long time
+
+
+##
+# Lustre Networking monitoring (LNet)
+##
+
+lnet_monitoring:
+    command: '/usr/bin/clush -NS --nostdin --pick 1 -w @oss lctl ping %s'
+    command_timeout: 4
+    failure_count_thresholds: [2, 2, 4]

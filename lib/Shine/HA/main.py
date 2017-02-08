@@ -32,12 +32,13 @@ import pprint
 import yaml
 import sys
 
-from ClusterShell.Task import task_self, task_terminate
 from ClusterShell.Event import EventHandler
+from ClusterShell.Task import task_self, task_terminate
 
+from Shine.HA.alerts import AlertManager
 from Shine.HA.fsactions import StatusThread
 from Shine.HA.fsmon import FSMonitor
-from Shine.HA.alerts import AlertManager
+from Shine.HA.lnetmon import LNetMonitor
 
 
 DEFAULT_POLLING_INTERVAL = '60'
@@ -88,9 +89,10 @@ def init_logger(log_file, debug):
 class MainEventHandler(EventHandler):
     """shine-HA main event handler class"""
 
-    def __init__(self, fsmon, port=None):
+    def __init__(self, fsmon, lnetmon, port=None):
         EventHandler.__init__(self)
         self.fsmon = fsmon
+        self.lnetmon = lnetmon
         self.port = port
         self.got_response = True # True the first time
 
@@ -107,6 +109,9 @@ class MainEventHandler(EventHandler):
         # Check status of Lustre components using shine API in another thread
         StatusThread(self.fsmon.fs_name, self.port).start()
 
+        # Check Lnet status
+        self.lnetmon.ping()
+
     def ev_msg(self, port, msg):
         """ClusterShell async msg event"""
         # We received an update from a shine thread
@@ -119,6 +124,10 @@ class MainEventHandler(EventHandler):
                 task_terminate()
             else:
                 self.got_response = True
+
+                # LNet: set or update filesystem configuration
+                self.lnetmon.fs_conf = fs_conf
+
                 # Update FSMonitor instance with the resulting fs
                 self.fsmon.update(fs_conf, fs)
         elif cmd == 'abort':
@@ -128,7 +137,8 @@ class MainEventHandler(EventHandler):
             LOGGER.error('MainEventHandler.ev_msg: unrecognized cmd %s', cmd)
 
 
-def start(fs_name, polling_interval, alert_mgr, comp_alert_thresolds):
+def start(fs_name, polling_interval, alert_mgr, comp_alert_thresolds,
+          lnet_args):
     """Start shine-HA runloop"""
     # Get ClusterShell task object (thread specific)
     task = task_self()
@@ -136,8 +146,11 @@ def start(fs_name, polling_interval, alert_mgr, comp_alert_thresolds):
     # FSMonitor receives fs status updates and generates alerts
     fsmon = FSMonitor(task, fs_name, alert_mgr, comp_alert_thresolds)
 
+    # LNet Monitoring
+    lnetmon = LNetMonitor(task, fs_name, alert_mgr, lnet_args)
+
     # Initialize main event handler
-    meh = MainEventHandler(fsmon)
+    meh = MainEventHandler(fsmon, lnetmon)
 
     # Create a task port to receive async messages from the action threads
     meh.port = task.port(handler=meh)
@@ -179,13 +192,15 @@ def main():
         else:
             comp_alert_thresholds = DEFAULT_COMP_ALERT_THRESHOLDS
 
+        lnet_args = confd.get('lnet_monitoring')
+
     except KeyError as exc:
         LOGGER.error('missing mandatory configuration keyword: %s', exc)
         sys.exit(1)
 
     try:
         start(fs_name, polling_interval, AlertManager.fromcfg(confd),
-              comp_alert_thresholds)
+              comp_alert_thresholds, lnet_args)
     except KeyboardInterrupt:
         LOGGER.error('Exiting on KeyboardInterrupt')
         sys.exit(1)

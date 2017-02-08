@@ -102,11 +102,13 @@ class ShineHATest(unittest.TestCase):
         alert_mgr.enable_alert('test_alert', 1)
         alert_mgr.enable_alert('test_alert', 2)
 
+        lnet_args = {'command': 'echo %s'}
         #
         # Start shine-HA engine with default alert thresholds
         #
         start(fs_name='testfs', polling_interval=1, alert_mgr=alert_mgr,
-              comp_alert_thresolds=DEFAULT_COMP_ALERT_THRESHOLDS)
+              comp_alert_thresolds=DEFAULT_COMP_ALERT_THRESHOLDS,
+              lnet_args=lnet_args)
 
         # Test completed - check TestAlert state
         self.assertEqual(len(test_alert.info_alerts), 1)
