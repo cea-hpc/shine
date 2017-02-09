@@ -64,3 +64,34 @@ class StatusThread(Thread):
 
         self.reply_port.msg_send(('status', fs_conf, fs))
         task_terminate()
+
+
+class StartThread(Thread):
+    """
+    Thread used by shine-HA to start failover targets using Shine API.
+    """
+    def __init__(self, fs_name, reply_port, comps, failover=None):
+        Thread.__init__(self)
+        self.fs_name = fs_name
+        self.reply_port = reply_port
+        self.comps = comps # ComponentGroup
+        self.failover = failover
+
+    def run(self):
+        try:
+            fs_conf, fs = FSUtils.open_lustrefs(self.fs_name, 'mgt,mdt,ost')
+        except ModelFileIOError as exc:
+            LOGGER.error('StartThread: %s' % exc)
+            self.reply_port.msg_send(('abort', None, None))
+            return
+
+        fs_result = fs.start(self.comps, failover=self.failover)
+        LOGGER.debug('StartThread: fs.status=%s', fs_result)
+
+        for msg, nodelist in fs.proxy_errors.walk():
+            nodeset = NodeSet.fromlist(nodelist)
+            LOGGER.error("StartThread: proxy error msg from %s: %s", nodeset,
+                         msg)
+
+        self.reply_port.msg_send(('start', self.fs_name, self.comps, fs_result))
+        task_terminate()
