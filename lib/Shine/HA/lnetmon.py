@@ -125,6 +125,10 @@ class LNetMonitor(EventHandler):
         # Global optimal state
         self.state_optimal = True
 
+    def is_down(self, node):
+        """Return True if we are sure LNet is down on the node."""
+        return self.nnidss[node].get_state() != NID_STATE_UP
+
     def ping(self):
         if not self.fs_conf:
             LOGGER.debug('LNetMonitor.ping: fs_conf not set')
@@ -189,13 +193,13 @@ class LNetMonitor(EventHandler):
                 self.state_optimal = True
             return
 
-        self.state_optimal = False
 
         for level, level_name in enumerate(('info', 'warning', 'critical')):
 
             if not down_cnt_mtx[level]:
                 continue
 
+            self.state_optimal = False
             msg = 'LNet ping failed (%s)' % level_name
             LOGGER.warning('[%s] %s', level_name, msg)
 

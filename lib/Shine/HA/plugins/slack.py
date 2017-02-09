@@ -29,7 +29,7 @@ import time
 from ClusterShell.NodeSet import NodeSet
 import Shine.CLI.Display as Display
 from Shine.CLI.TextTable import TextTable
-from Shine.HA.alerts import Alert, ALERT_CLS_FS, ALERT_CLS_LNET
+from Shine.HA.alerts import Alert, ALERT_CLS_FS, ALERT_CLS_LNET, ALERT_CLS_HA
 from Shine.HA.fsmon import STATE_IDTXT_MAP
 
 # HTML colors from Slack logo
@@ -74,21 +74,24 @@ class SlackWebhookAlert(Alert):
         if aclass == ALERT_CLS_FS:
             self._fs_info(message, ctx, ':postal_horn:', COLOR_GREEN)
         elif aclass == ALERT_CLS_LNET:
-            LOGGER.debug('info ALERT_CLS_LNET %s %s', message, ctx)
             self._lnet_info(message, ctx, ':satellite_antenna:', COLOR_GREEN)
+        elif aclass == ALERT_CLS_HA:
+            LOGGER.debug('info ALERT_CLS_HA %s %s', message, ctx)
+            self._ha_info(message, ctx, ':zap:', COLOR_DARK_RED)
 
     def warning(self, aclass, message, ctx=None):
         if aclass == ALERT_CLS_FS:
             self._fs_error(message, ctx, ':warning:', COLOR_YELLOW)
         elif aclass == ALERT_CLS_LNET:
-            LOGGER.debug('warning ALERT_CLS_LNET %s %s', message, ctx)
             self._lnet_error(message, ctx, ':warning:', COLOR_YELLOW)
+        #elif aclass == ALERT_CLS_HA:
+        #    LOGGER.debug('warning ALERT_CLS_HA %s %s', message, ctx)
+        #    self._ha_info(message, ctx, ':zap:', COLOR_DARK_RED)
 
     def critical(self, aclass, message, ctx=None):
         if aclass == ALERT_CLS_FS:
             self._fs_error(message, ctx, ':rotating_light:', COLOR_RED)
         elif aclass == ALERT_CLS_LNET:
-            LOGGER.debug('critical ALERT_CLS_LNET %s %s', message, ctx)
             self._lnet_error(message, ctx, ':rotating_light:', COLOR_RED)
 
     def _fs_info(self, message, ctx, emoji, color):
@@ -129,5 +132,14 @@ class SlackWebhookAlert(Alert):
             self._lnet_error(message, ctx, ":satellite_antenna:", COLOR_GREEN)
         else:
             self.post_attachment(emoji + ' ' + message, [], color=color)
+
+    def _ha_info(self, message, ctx, emoji, color):
+        fields = []
+        for server, complist in ctx['failover_servers'].items():
+            compset = NodeSet.fromlist(comp.uniqueid() for comp in complist)
+            fields.append({"title": "Migrating to %s" % server,
+                           "value": str(compset),
+                           "short": False})
+        self.post_attachment(emoji + ' ' + message, fields, color=color)
 
 ALERT_CLASS = SlackWebhookAlert

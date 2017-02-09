@@ -115,9 +115,11 @@ class MainEventHandler(EventHandler):
     def ev_msg(self, port, msg):
         """ClusterShell async msg event"""
         # We received an update from a shine thread
-        cmd, fs_conf, fs = msg
+
+        cmd = msg[0]
 
         if cmd == 'status':
+            cmd, fs_conf, fs = msg
             LOGGER.info('MainEventHandler.ev_msg: %s fs_name=%s', cmd,
                         fs.fs_name)
             if hasattr(fs, 'TEST_COMPLETED'): # just a hook for the tests
@@ -130,8 +132,14 @@ class MainEventHandler(EventHandler):
 
                 # Update FSMonitor instance with the resulting fs
                 self.fsmon.update(fs_conf, fs)
+
+        elif cmd == 'start':
+            cmd, fs_name, comps, fs_result = msg
+            LOGGER.info('MainEventHandler.ev_msg: %s fs_result=%s', cmd,
+                        fs_result)
+            # Nothing - we do not really trust start result
         elif cmd == 'abort':
-            LOGGER.info('MainEventHandler.ev_msg: abort')
+            LOGGER.info('MainEventHandler.ev_msg: %s', cmd)
             sys.exit(1)
         else:
             LOGGER.error('MainEventHandler.ev_msg: unrecognized cmd %s', cmd)
@@ -149,11 +157,18 @@ def start(fs_name, polling_interval, alert_mgr, comp_alert_thresolds,
     # LNet Monitoring
     lnetmon = LNetMonitor(task, fs_name, alert_mgr, lnet_args)
 
+    # LNetMonitor is needed by HACore (managed by AlertManager) to check the
+    # LNet state on Critical Alert before performing failover.
+    alert_mgr.lnetmon = lnetmon
+
     # Initialize main event handler
     meh = MainEventHandler(fsmon, lnetmon)
 
     # Create a task port to receive async messages from the action threads
     meh.port = task.port(handler=meh)
+
+    # HACore should be able to launch shine commands
+    alert_mgr.reply_port = meh.port
 
     # Install main monitor timer
     LOGGER.debug('starting monitoring timer with %.1fs interval',

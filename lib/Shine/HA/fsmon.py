@@ -34,7 +34,7 @@ from Shine.Lustre.Component import MIGRATED, MOUNTED, CLIENT_ERROR, \
 from Shine.HA.alerts import ALERT_CLS_FS
 
 
-STATE_TXTID_MAP = {'OFFLINE': OFFLINE, 'NO_DEVICE': NO_DEVICE,
+STATE_TXTID_MAP = {'MOUNTED': MOUNTED, 'OFFLINE': OFFLINE, 'NO_DEVICE': NO_DEVICE,
                    'TARGET_ERROR': TARGET_ERROR, 'RUNTIME_ERROR': RUNTIME_ERROR,
                    'RECOVERING': RECOVERING, 'CLIENT_ERROR': CLIENT_ERROR}
 STATE_IDTXT_MAP = {v: k for k, v in STATE_TXTID_MAP.iteritems()}
@@ -116,9 +116,10 @@ class FSMonitor(object):
                 LOGGER.info(msg)
                 if True: #not self.state_optimal:
                     ctx = {'FSMonitor': self,
+                           'fs_name': self.fs_name,
                            'FileSystem': self._last_fs}
-                    self.alert_mgr.info(ALERT_CLS_FS, msg, ctx)
                     self.state_optimal = True
+                    self.alert_mgr.info(ALERT_CLS_FS, msg, ctx)
 
     def set_fs(self, fs_conf, fs):
         assert self.fs_name == fs.fs_name
@@ -136,7 +137,7 @@ class FSMonitor(object):
             if comp.state not in (MIGRATED, MOUNTED):
                 not_mounted_cnt += 1
         if not_mounted_cnt > 0:
-            LOGGER.error('Cannot run in current state: %d targets not mounted',
+            LOGGER.error('Cannot run in current state: %d targets not ready',
                          not_mounted_cnt)
             sys.exit(1)
         else:
@@ -207,6 +208,7 @@ class FSMonitor(object):
             LOGGER.warning('[%s] %s', level_name, msg)
 
             ctx = {'FSMonitor': self,
+                   'fs_name': self.fs_name,
                    'FileSystem': self._last_fs,
                    'comp_st_cnt_list': comp_st_cnt_mtx[level]}
 

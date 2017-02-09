@@ -52,6 +52,7 @@ alerts:
     WARN: [ slack ]
     CRIT: [ slack, email ]
 
+
 ##
 # Lustre filesystem monitoring
 ##
@@ -69,7 +70,7 @@ alerts:
 # these values.
 #
 # NOTE: shine-HA will alert on:
-#   NO_DEVICE, OFFLINE, TARGET_ERROR, RECOVERING
+#   NO_DEVICE, OFFLINE, TARGET_ERROR, RECOVERING, RUNTIME_ERROR
 #
 # Target OK if state is MOUNTED or MIGRATED
 # Target IGNORED if state is EXTERNAL or INACTIVE
@@ -84,8 +85,9 @@ fs_monitor_state_count_thresholds:
     #
     NO_DEVICE: [2, 2, 4]        # both target and md device not started
     OFFLINE: [4, 4, 6]          # target offline but block device started
-    TARGET_ERROR: [10, 10, 20]  # this can be a transient state and not an error
     RECOVERING: [4, 20, 30]     # alert if recovery takes a very long time
+    TARGET_ERROR: [10, 10, 20]  # this can be a transient state and not an error
+    RUNTIME_ERROR: [1, 1, 10]   # usually means cannot check status or ssh not working
 
 
 ##
@@ -93,6 +95,35 @@ fs_monitor_state_count_thresholds:
 ##
 
 lnet_monitoring:
-    command: '/usr/bin/clush -NS --nostdin --pick 1 -w @oss lctl ping %s'
-    command_timeout: 4
-    failure_count_thresholds: [2, 2, 4]
+    command: '/usr/bin/clush -NS --nostdin --pick 1 -w @pinger_nodes lctl ping %s'
+    command_timeout: 5
+    failure_count_thresholds: [2, 2, 6]
+
+
+##
+# Lustre filesystem HA
+##
+
+HA:
+    # HA actions will ONLY be performed when the CRITICAL state is reached
+    # for the concerned targets, so that their states are clearly confirmed.
+    #
+    # Adjust fs_monitor_state_count_thresholds above FIRST!
+
+    # *migrate_targets_on_server_failure*
+    #
+    # If set to true and all active targets on a Lustre server are in an
+    # error state (not offline, no_device or recovery), shine-HA will fence
+    # the server using the fence_command below. If the fence operation does
+    # succeed, it will perform all required target failover.
+    #
+    migrate_targets_on_server_failure: false
+
+    # *fence_command*
+    #
+    # Shell command used to fence a Lustre server for target failover.
+    # The node name as configured in shine is passed as parameter.
+    # Should return 0 if fence was successful, !=0 otherwise.
+    #
+    fence_command: rpower %s reset
+    fence_command_timeout: 20
