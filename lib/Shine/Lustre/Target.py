@@ -206,12 +206,13 @@ class Target(Component, Disk):
     def update_server(self):
         """
         Compute and set component's server based on remote nodes results.
+
         If the component is started, server is the one on which it is started.
-        If the component is stopped or on error, server is the default server.
-        Returns False if target is started twice, True in all other cases.
+        If not started but a state is available on only one server, use it.
+
+        Return False if target is started more than once, True otherwise.
         """
         srvname = None
-        self.server = self.defaultserver
 
         servers = [srv for srv, state in self._states.iteritems()
                    if state in (MOUNTED, RECOVERING)]
@@ -219,6 +220,12 @@ class Target(Component, Disk):
             return False
         elif len(servers) == 1:
             srvname = servers[0]
+        else:
+            servers = [srv for srv, state in self._states.iteritems()
+                       if state is not None]
+            if len(servers) == 1:
+                srvname = servers[0]
+            # Maybe we should do something if len(servers) > 1?
 
         if srvname is not None:
             self.server = self.allservers().select(NodeSet(srvname))[0]
