@@ -58,21 +58,6 @@ class FSError(Exception):
     Base FileSystem error exception.
     """
 
-class FSBadTargetError(FSError):
-    """
-    Raise when a attempt to create an unknown target is detected.
-    """
-    def __init__(self, target_name):
-        msg = "Syntax error: unrecognized target \"%s\"" % target_name
-        FSError.__init__(msg)
-
-class FSStructureError(FSError):
-    """
-    Lustre file system structure error, raised after an invalid configuration
-    is encountered. For example, you will get this error if you try to assign
-    two targets `MGT' to a filesystem.
-    """
-
 class FSRemoteError(FSError):
     """
     Remote host(s) not available, or a remote operation failed.
@@ -207,7 +192,7 @@ class FileSystem:
     def _attach_component(self, comp):
         if comp.TYPE == MGT.TYPE:
             if self.mgt and len(self.mgt.get_nids()) > 0:
-                raise FSStructureError("A Lustre FS has only one MGT.")
+                raise FSError("A Lustre filesystem has only one MGT.")
             self.mgt = comp
         self.components.add(comp)
 
@@ -218,9 +203,8 @@ class FileSystem:
         Create a new attached target.
         """
         TYPE_CLASSES = {MGT.TYPE: MGT, MDT.TYPE: MDT, OST.TYPE: OST}
-
         if type not in TYPE_CLASSES:
-            raise FSBadTargetError(type)
+            raise FSError("Unrecognized target type \"%s\"" % type)
 
         target = TYPE_CLASSES[type](fs=self, server=server, index=index,
                                     dev=dev, jdev=jdev, group=group, tag=tag,
