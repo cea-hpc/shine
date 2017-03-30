@@ -99,12 +99,14 @@ class Globals(object):
             self.add_element('log_file',            check='path')
             self.add_element('log_level',           check='string')
 
-        def add_element(self, name, multiple=False, **kwargs):
-            """For this class, all elements are replaced by the local
+        def add_element(self, name, multiple=False, fold=False, **kwargs):
+            """
+            For this class, all elements are replaced by the local
             DefaultElement class.
 
-            Only for convenience."""
-            self.add_custom(name, DefaultElement(**kwargs), multiple)
+            Only for convenience.
+            """
+            self.add_custom(name, DefaultElement(**kwargs), multiple, fold)
 
         def lustre_version_is_smaller(self, version):
             """
