@@ -166,8 +166,8 @@ class Target(ModelFile):
                             break
                         # Match each criteria with its equivalent in backend
                         # definition. Break at first that differs.
-                        if [ True for bk, rgexp in zip(bknds, regexp)
-                                      if not re.match('^' + rgexp + '$', bk) ]:
+                        if [True for bk, rgexp in zip(bknds, regexp)
+                                      if not re.match('^' + rgexp + '$', bk)]:
                             break
 
                     # Or a simple element

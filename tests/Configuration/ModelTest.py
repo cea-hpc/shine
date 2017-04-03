@@ -120,13 +120,41 @@ mgt: node=(\<badregexp>""")
         self.assertRaises(ModelFileValueError, model.get('mgt')[0].match_device,
                 candidate)
 
+    def test_match_device_simple_pattern(self):
+        """check different values do not match in match_device()"""
+        candidate = [{'node': 'foo7', 'dev': '/dev/sda'}]
+        model = Model()
+        model.parse(textwrap.dedent("""fs_name: match
+            nid_map: nodes=foo8 nids=foo8@tcp
+            mgt: node=foo8"""))
+        self.assertEqual(len(model.get('mgt')[0].match_device(candidate)), 0)
+
     def test_match_device_missing_prop(self):
         """check missing property does not match in match_device()"""
         model = Model()
-        model.parse("""fs_name: nids
-nid_map: nodes=foo[7] nids=foo[7]@tcp
-mgt: node=foo7 network=tcp""")
-        candidate = [ {'node': 'foo7', 'dev': '/dev/sda'} ]
+        model.parse(textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[7] nids=foo[7]@tcp
+            mgt: node=foo7 network=tcp"""))
+        candidate = [{'node': 'foo7', 'dev': '/dev/sda'}]
+        self.assertEqual(len(model.get('mgt')[0].match_device(candidate)), 0)
+
+    def test_match_device_list_values(self):
+        """check various list content do not match in match_device()"""
+        # Different value count
+        candidate = [{'node': 'foo7', 'ha_node': ['foo8'], 'dev': '/dev/sda'}]
+        model = Model()
+        model.parse(textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[7-10] nids=foo[7-10]@tcp
+            mgt: node=foo7 ha_node=foo8 ha_node=foo9"""))
+        self.assertEqual(len(model.get('mgt')[0].match_device(candidate)), 0)
+
+        # Different list values
+        candidate = [{'node': 'foo7', 'ha_node': ['foo7', 'foo8'],
+                      'dev': '/dev/sda'}]
+        model = Model()
+        model.parse(textwrap.dedent("""fs_name: nids
+            nid_map: nodes=foo[7-10] nids=foo[7-10]@tcp
+            mgt: node=foo7 ha_node=foo8 ha_node=foo9"""))
         self.assertEqual(len(model.get('mgt')[0].match_device(candidate)), 0)
 
     def test_several_spaces(self):
