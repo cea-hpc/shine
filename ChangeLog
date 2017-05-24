@@ -1,3 +1,6 @@
+2017-05-25 Aurelien Degremont <aurelien.degremont@cea.fr>
+	* Release: 1.5
+
 2017-05-24 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* On error, still apply tuning on other nodes (ticket #46)
 
@@ -6,6 +9,12 @@
 
 2017-03-30 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Fold 'client' and 'router' options in XMF files (ticket #177)
+
+2016-09-15 Dominique Martinet <dominique.martinet@cea.fr>
+	* Better filesystem start when using several MDTs with DNE
+
+2016-06-14 Pierre Charruau <pierre.charruau@atos.net>
+	* Return a non-zero status when a target is migrated (ticket #198)
 
 2015-10-27 Florent Thery <florent.thery@atos.net>
 	* Detect and display target migrated status (ticket #14)
