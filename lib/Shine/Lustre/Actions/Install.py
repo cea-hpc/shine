@@ -33,6 +33,7 @@ class Install(CommonAction):
 
     def __init__(self, nodes, fs, config_file, comps=None, **kwargs):
         CommonAction.__init__(self)
+        assert config_file is not None
         self.nodes = nodes
         self.fs = fs
         self.config_file = config_file
