@@ -413,7 +413,7 @@ class FileSystem:
                     else:
                         act = self._proxy_action(action, srv.hostname,
                                                  comps, **kwargs)
-                        if tunings:
+                        if tunings and tunings.filename:
                             copy = Install(srv.hostname, self, tunings.filename,
                                            comps=comps, **kwargs)
                             act.depends_on(copy)
@@ -584,11 +584,13 @@ class FileSystem:
             else:
                 act = self._proxy_action('tune', server.hostname, srvcomps,
                                          **kwargs)
-                copy = Install(server.hostname, self, tuning_model.filename,
-                               comps=srvcomps, **kwargs)
-                act.depends_on(copy)
+                if tuning_model.filename:
+                    copy = Install(server.hostname, self, tuning_model.filename,
+                                   comps=srvcomps, **kwargs)
+                    act.depends_on(copy)
+                    actions.add(copy)
+
                 actions.add(act)
-                actions.add(copy)
 
         # Run local actions and FSProxyAction
         actions.launch()
