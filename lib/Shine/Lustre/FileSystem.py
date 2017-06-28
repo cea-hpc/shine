@@ -413,7 +413,7 @@ class FileSystem:
                     else:
                         act = self._proxy_action(action, srv.hostname,
                                                  comps, **kwargs)
-                        if tunings:
+                        if tunings and tunings.filename:
                             copy = Install(srv.hostname, self, tunings.filename,
                                            comps=comps, **kwargs)
                             act.depends_on(copy)
@@ -581,7 +581,7 @@ class FileSystem:
             if server.is_local():
                 actions.add(server.tune(tuning_model, srvcomps, self.fs_name,
                                         **kwargs))
-            else:
+            elif tuning_model.filename:
                 act = self._proxy_action('tune', server.hostname, srvcomps,
                                          **kwargs)
                 copy = Install(server.hostname, self, tuning_model.filename,
