@@ -38,8 +38,8 @@ def _graph2obj(graph):
         return result
 
 class FakeTunings(object):
-    def __init__(self):
-        self.filename = 'foo'
+    def __init__(self, filename='foo'):
+        self.filename = filename
 
 
 class PrepareTest(unittest.TestCase):
@@ -87,6 +87,12 @@ class PrepareTest(unittest.TestCase):
                          [[[{'NAME': 'install', 'config_file': 'foo'},
                             {'NAME': 'proxy', 'action': 'dummy'}]]])
         self.assertEqual(str(graph[0][0][1].nodes), 'remote')
+
+        # With tunings but without tuning_file 
+        graph = self.fs._prepare('dummy', tunings=FakeTunings(None))
+        self.assertEqual(_graph2obj(graph),
+                         [[[{'NAME': 'proxy', 'action': 'dummy'}]]])
+        self.assertEqual(str(graph[0][0][0].nodes), 'remote')
 
     def test_local_tunings(self):
         """prepare is ok with or without tunings"""
