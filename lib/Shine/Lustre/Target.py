@@ -526,11 +526,16 @@ class MDT(Target):
     START_ORDER = MGT.START_ORDER + 1
     DISPLAY_ORDER = MGT.DISPLAY_ORDER + 1
 
+    def __init__(self, **kwargs):
+        Target.__init__(self, **kwargs)
+        if self.index != 0:
+            self.START_ORDER = self.START_ORDER + 1
+
 
 class OST(Target):
 
     TYPE = 'ost'
-    START_ORDER = MDT.START_ORDER + 1
+    START_ORDER = MDT.START_ORDER + 2
     DISPLAY_ORDER = MDT.DISPLAY_ORDER + 1
 
 class Journal(Component):
