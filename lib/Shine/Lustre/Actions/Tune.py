@@ -50,7 +50,7 @@ class _TuningAction(CommonAction):
         self._tune._server.hdlr.log('detail',
                                     msg='[RUN] %s' % self._command)
         if self.dryrun:
-            self.set_status(ACT_OK)
+            self.task.shell(':', handler=self)
         else:
             self.task.shell(self._command, handler=self)
 
