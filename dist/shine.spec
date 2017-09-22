@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/shine/*.conf
 %config %{_sysconfdir}/shine/*.conf.example
 %config %{_sysconfdir}/shine/models/*.lmf
-%doc LICENSE README ChangeLog
+%doc LICENSE README.md ChangeLog
 %doc %{_mandir}/man1/shine.1.gz
 %doc %{_mandir}/man5/shine.conf.5.gz
 
