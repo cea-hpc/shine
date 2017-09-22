@@ -1,43 +1,41 @@
 
-Name: shine
-Summary: Lustre administration utility
-Version: %{version}
-Release: 1%{?dist}
-Source0: %{name}-%{version}.tar.gz
-License: GPL
-Group: Development/Libraries
+Name:      shine
+Version:   1.5
+Release:   1%{?dist}
+Vendor:    CEA
+License:   GPL
+Summary:   Lustre administration utility
+Url:       https://github.com/cea-hpc/shine
+Source0:   %{name}-%{version}.tar.gz
+Group:     Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-buildroot
-Prefix: %{_prefix}
-BuildArchitectures: noarch
-Requires: clustershell >= 1.5.1
-Vendor: CEA
-Url: http://lustre-shine.sourceforge.net/
+BuildArch: noarch
+Requires:  clustershell >= 1.5.1
 
 %description
 Lustre administration utility.
 
 %prep
-%setup
+%setup -q
 
 %build
 python setup.py build
 
 %install
-python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
-mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
-cp conf/*.conf* $RPM_BUILD_ROOT/%{_sysconfdir}/shine
-cp conf/models/* $RPM_BUILD_ROOT/%{_sysconfdir}/shine/models
+python setup.py install -O1 --skip-build --root %{buildroot} --record INSTALLED_FILES
+# move 'shine' into /usr/sbin
+mv %{buildroot}/usr/bin %{buildroot}/usr/sbin
+sed -i 's#/usr/bin/shine#/usr/sbin/shine#' INSTALLED_FILES
 # man pages
-mkdir -p $RPM_BUILD_ROOT/%{_mandir}/{man1,man5}
-gzip -c doc/shine.1 >$RPM_BUILD_ROOT/%{_mandir}/man1/shine.1.gz
-gzip -c doc/shine.conf.5 >$RPM_BUILD_ROOT/%{_mandir}/man5/shine.conf.5.gz
+mkdir -p %{buildroot}/%{_mandir}/{man1,man5}
+gzip -c doc/shine.1 >%{buildroot}/%{_mandir}/man1/shine.1.gz
+gzip -c doc/shine.conf.5 >%{buildroot}/%{_mandir}/man5/shine.conf.5.gz
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
-
 %config(noreplace) %{_sysconfdir}/shine/*.conf
 %config %{_sysconfdir}/shine/*.conf.example
 %config %{_sysconfdir}/shine/models/*.lmf
