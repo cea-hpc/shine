@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2007-2013 CEA
+# Copyright (C) 2007-2017 CEA
 #
 # This file is part of shine
 #
@@ -19,30 +19,35 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-from distutils.core import setup
-import os
+from setuptools import setup, find_packages
+
+VERSION='1.5'
 
 setup(name='shine',
-      version=os.environ['SHINEVERSION'],
-      license='GPL',
+      version=VERSION,
+      license='GPLv2+',
       description='Lustre administration utility',
-      author='Stephane Thiell',
-      author_email='stephane.thiell@cea.fr',
-      url='http://lustre-shine.sourceforge.net/',
+      author='Aurelien Degremont',
+      author_email='aurelien.degremont@cea.fr',
+      url='https://github.com/cea-hpc/shine',
+      download_url='https://github.com/cea-hpc/shine/releases/v%s' % VERSION,
       package_dir={'': 'lib'},
-      packages=['Shine',
-               'Shine.CLI',
-               'Shine.Commands',
-               'Shine.Commands.Base',
-               'Shine.Configuration',
-               'Shine.Configuration.Backend',
-               'Shine.Lustre',
-               'Shine.Lustre.Actions'],
-      data_files=[('/usr/sbin', ['scripts/shine']),
-                  ('/var/cache/shine/conf', ['conf/cache/README']),
-                  ('/usr/share/vim/vim70/syntax', ['doc/extras/vim/syntax/shine.vim']),
-                  ('/usr/share/vim/vim70/syntax', ['doc/extras/vim/syntax/shinefs.vim']),
-                  ('/usr/share/vim/vim70/ftdetect', ['doc/extras/vim/ftdetect/shine.vim']),
-                  ('/usr/share/shine', ['scripts/shine.init.redhat'])]
+      packages=find_packages('lib'),
+      data_files=[('/var/cache/shine/conf', ['conf/cache/README']),
+                  ('/usr/share/shine', ['scripts/shine.init.redhat'])],
+      entry_points={'console_scripts': ['shine=Shine.Controller:main']},
+      classifiers=[
+          "Development Status :: 5 - Production/Stable",
+          "Environment :: Console",
+          "Intended Audience :: System Administrators",
+          "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+          "Operating System :: POSIX :: Linux",
+          "Programming Language :: Python",
+          "Programming Language :: Python :: 2.4",
+          "Programming Language :: Python :: 2.5",
+          "Programming Language :: Python :: 2.6",
+          "Programming Language :: Python :: 2.7",
+          "Topic :: System :: Clustering",
+          "Topic :: System :: Distributed Computing"
+      ],
      )
-
