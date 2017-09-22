@@ -6,7 +6,6 @@ include conf/shine.conf
 include conf/storage.conf
 include conf/tuning.conf.example
 include conf/cache/README
-include scripts/shine
 include scripts/shine.init.redhat
 include doc/shine.1
 include doc/shine.conf.5
