@@ -287,3 +287,6 @@ class Controller(object):
             pass
 
         return rc
+
+if __name__ == '__main__':
+    Controller().run_command()

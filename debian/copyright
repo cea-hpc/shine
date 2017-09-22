@@ -1,9 +1,9 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: shine
-Source: http://lustre-shine.sourceforge.net/
+Source: https://github.com/cea-hpc/shine
 
 Files: *
-Copyright: 2008-2015 Commissariat à l'Energie Atomique et aux Energies Alternatives (CEA)
+Copyright: 2008-2017 Commissariat à l'Energie Atomique et aux Energies Alternatives (CEA)
 Authors: Stephane Thiell <stephane.thiell@cea.fr>
          Aurelien Degremont  <aurelien.degremont@cea.fr>
 License: GPL-2+
