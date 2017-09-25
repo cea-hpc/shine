@@ -110,19 +110,19 @@ alias daemon_file=/proc/sys/lnet/daemon_file
     def testOnNodes(self):
         """test tuning with nodes"""
         m = self.makeTempTuningModel("""
-alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug 
+alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
 1 panic_on_lbug MDS;CLT;foo[1-5]""")
         m.parse()
 
         # We have one tuning for each
         tuning = TuningParameter("/proc/sys/lnet/panic_on_lbug", "1", \
                                  ["mds","clt"], NodeSet("foo[1-5]"))
-        # Check node types                         
+        # Check node types
         for t in ["mds","client"]:
             tunings = m.get_params_for_name(None, [t])
             self.assertEqual(len(tunings), 1)
             self.assertTrue(tunings[0] == tuning)
-        # Check node name    
+        # Check node name
         tunings = m.get_params_for_name(NodeSet("foo[1-2]"), [])
         self.assertEqual(len(tunings), 1)
         self.assertTrue(tunings[0] == tuning)
@@ -146,4 +146,3 @@ alias panic_on_lbug=/proc/sys/lnet/panic_on_lbug
 1 panic_on_lbug ROUTER
 0 panic_on_lbug ROUTER""")
         self.assertRaises(TuningError, model.parse)
-

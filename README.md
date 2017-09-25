@@ -6,7 +6,8 @@ Requirements
 
 * Python: 2.4+
 * ClusterShell: 1.5.1+ (http://github.com/cea-hpc/clustershell/)
-* Lustre (http://lustre.org/)
+
+* Supports *Lustre* (http://lustre.org/) versions: 1.8, 2.1, 2.4 and above
 
 Installation
 ------------
@@ -64,14 +65,24 @@ Testing code
 ------------
 
 If you modify Shine source code, do not forget to test it with the test suite
-available in `tests/` directory of the source code. This testsuite requires
-`python-nose` to run.
+available in `tests/` directory of the source code.
+
+`python-nose` is the recommended way to run the testsuite. However `unittest`
+provided with Python 2.7 and above should also works.
 
     $ export PYTHONPATH=$PWD/lib
     $ cd tests
-    $ nosetests -v --exe --all-modules
+    $ nosetests -v <TESTFILE.PY>
+    $ nosetests -v --all-modules
+
+Some tests require real block file to work. This needs to be configured in
+`tests/tests.conf`:
+
+    [general]
+    noformat_dev=/dev/sda   # Real block device file, only used in read-only
+    noformat_jdev=/dev/sda1
 
 Some tests needs to launch real Lustre commands and so needs to have root permissions.
-These tests will be skipped if you do not these permissions.
+These tests will be skipped if you do not have these permissions.
 
-    # nosetests -v --exe --all-modules
+    # nosetests -v --all-modules
