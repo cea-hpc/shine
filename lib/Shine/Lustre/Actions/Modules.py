@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+import os
+
 """
 Action classes for Lustre module managements.
 """
@@ -166,7 +168,12 @@ class UnloadModules(ServerAction):
         """Return the number of loaded Lustre devices."""
         count = 0
         try:
-            devices = open('/proc/fs/lustre/devices')
+            devicesfile = '/sys/kernel/debug/lustre/devices'
+            # Compat code for lustre versions prior to 2.10 (2.9 and below)
+            if os.access('/proc/fs/lustre/devices', os.F_OK):
+                devicesfile = '/proc/fs/lustre/devices'
+
+            devices = open(devicesfile)
 
             for line in devices.readlines():
 
