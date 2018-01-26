@@ -94,20 +94,18 @@ class MainEventHandler(EventHandler):
         self.fsmon = fsmon
         self.lnetmon = lnetmon
         self.port = port
-        self.got_response = True # True the first time
+        self.status_thr = None
 
     def ev_timer(self, timer):
         """ClusterShell timer fired at polling_interval..."""
-        # Ensure that we got a response before triggering next shine status...
-        if not self.got_response:
-            msg = 'Skipping next status: previous status not received yet!'
-            LOGGER.error(msg)
-            return
-
-        self.got_response = False
+        if self.status_thr is not None:
+            msg = 'Status: previous status not received yet! retrying...'
+            LOGGER.warning(msg)
+            # ignore future updates from previous StatusThread
+            self.status_thr.invalidate()
 
         # Check status of Lustre components using shine API in another thread
-        StatusThread(self.fsmon.fs_name, self.port).start()
+        self.status_thr = StatusThread(self.fsmon.fs_name, self.port).start()
 
         # Check Lnet status
         self.lnetmon.ping()
@@ -125,7 +123,7 @@ class MainEventHandler(EventHandler):
             if hasattr(fs, 'TEST_COMPLETED'): # just a hook for the tests
                 task_terminate()
             else:
-                self.got_response = True
+                self.status_thr = None
 
                 # LNet: set or update filesystem configuration
                 self.lnetmon.fs_conf = fs_conf

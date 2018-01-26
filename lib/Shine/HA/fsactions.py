@@ -22,7 +22,7 @@
 """Lustre Shine HA - File System Actions"""
 
 import logging
-from threading import Thread
+from threading import Lock, Thread
 
 from ClusterShell.NodeSet import NodeSet
 from ClusterShell.Task import task_terminate
@@ -34,15 +34,27 @@ import Shine.FSUtils as FSUtils
 LOGGER = logging.getLogger(__name__)
 
 
-class StatusThread(Thread):
+class BaseThread(Thread):
     """
-    Thread used by shine-HA to get the status of the filesystem using Shine API.
+    Base Thread class for shine-HA with support for invalidation.
     """
+
     def __init__(self, fs_name, reply_port):
         Thread.__init__(self)
         self.fs_name = fs_name
         self.reply_port = reply_port
+        self.valid_lock = Lock()
 
+    def invalidate(self):
+        self.valid_lock.acquire()
+        self.reply_port = None
+        self.valid_lock.release()
+
+
+class StatusThread(BaseThread):
+    """
+    Thread used by shine-HA to get the status of the filesystem using Shine API.
+    """
     def run(self):
         # Get only status of targets for now
         try:
@@ -62,7 +74,11 @@ class StatusThread(Thread):
             LOGGER.error("StatusThread: proxy error msg from %s: %s", nodeset,
                          msg)
 
-        self.reply_port.msg_send(('status', fs_conf, fs))
+        self.valid_lock.acquire()
+        if self.reply_port is not None:
+            self.reply_port.msg_send(('status', fs_conf, fs))
+        self.valid_lock.release()
+
         task_terminate()
 
 
@@ -71,9 +87,7 @@ class StartThread(Thread):
     Thread used by shine-HA to start failover targets using Shine API.
     """
     def __init__(self, fs_name, reply_port, comps, failover=None):
-        Thread.__init__(self)
-        self.fs_name = fs_name
-        self.reply_port = reply_port
+        BaseThread.__init__(self, fs_name, reply_port)
         self.comps = comps # ComponentGroup
         self.failover = failover
 
@@ -93,5 +107,10 @@ class StartThread(Thread):
             LOGGER.error("StartThread: proxy error msg from %s: %s", nodeset,
                          msg)
 
-        self.reply_port.msg_send(('start', self.fs_name, self.comps, fs_result))
+        self.valid_lock.acquire()
+        if self.reply_port is not None:
+            self.reply_port.msg_send(('start', self.fs_name, self.comps,
+                                      fs_result))
+        self.valid_lock.release()
+
         task_terminate()
