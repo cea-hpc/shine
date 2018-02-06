@@ -98,7 +98,6 @@ class Fsck(FSAction):
         self._output.append(worker.current_msg)
 
     def ev_error(self, worker):
-        FSAction.ev_error(self, worker)
         try:
             line = worker.current_errmsg
             passid, current, total, dummy = line.split(' ', 3)
