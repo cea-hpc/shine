@@ -516,7 +516,9 @@ class FileSystem(object):
         if self._start_backend():
             result = self.backend.unregister_fs(self)
 
-        if not result:
+        # XMF file could have been already deleted if this is a local
+        # filesystem
+        if os.path.exists(self.xmf_path) and not result:
             os.unlink(self.xmf_path)
 
         return result
