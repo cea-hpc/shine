@@ -71,7 +71,10 @@ class Globals(object):
                     default='/var/cache/shine/conf')
             self.add_element('lmf_dir',             check='path',
                     default='/etc/shine/models')
+
+            # Optional config files
             self.add_element('tuning_file',         check='path')
+            self.add_element('lnet_conf',           check='path')
 
             # Timeouts
             self.add_element('ssh_connect_timeout', check='digit',

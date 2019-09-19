@@ -117,7 +117,7 @@ class StartTarget(FSAction):
     def needed_modules(self):
         if Globals().lustre_version_is_smaller('2.4') or \
            not Globals().lustre_version_is_smaller('2.5'):
-            return ['lustre', 'ldiskfs']
+            return ['lnet', 'lustre', 'ldiskfs']
         else:
             # lustre 2.4 needs fsfilt_ldiskfs
-            return ['lustre', 'fsfilt_ldiskfs']
+            return ['lnet', 'lustre', 'fsfilt_ldiskfs']

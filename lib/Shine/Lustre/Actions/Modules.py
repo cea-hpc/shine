@@ -154,6 +154,10 @@ class LoadModules(ServerAction):
         command = ['modprobe %s' % self._modname]
         if self._options is not None:
             command.append(' "%s"' % self._options)
+        if self._modname == 'lnet' and Globals().get('lnet_conf'):
+            lnet_conf = Globals().get('lnet_conf')
+            command.append(' && lnetctl lnet configure')
+            command.append(' && lnetctl import "%s"' % (lnet_conf))
         return command
 
 
@@ -207,4 +211,9 @@ class UnloadModules(ServerAction):
         self.server.raise_if_mod_in_use()
 
     def _prepare_cmd(self):
-        return ['lustre_rmmod']
+        command = []
+        if Globals().get('lnet_conf'):
+            command.append('lustre_rmmod ptlrpc &&')
+            command.append('lnetctl lnet unconfigure &&')
+        command.append('lustre_rmmod')
+        return command
