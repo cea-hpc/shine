@@ -127,6 +127,9 @@ Default directory is
 .It Ic tuning_file Ns = Ns Ar pathname
 is the file describing Lustre tuning parameters applicable for all installed filesystems.
 If not set, no tuning is applied.
+.It Ic lnet_conf Ns = Ns Ar pathname
+is the file describing Lnet configuration is loaded with lnetctl import after module loading.
+If not set, lnet is not initialized separately from module loading.
 .El
 .Ss Advanced settings
 .Bl -tag -width Ds -compact

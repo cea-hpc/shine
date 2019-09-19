@@ -142,6 +142,8 @@ class Show(Command):
             tbl.append({'name': 'stripping', 'value': stripping})
             tbl.append({'name': 'tuning',
                         'value': Globals().get_tuning_file()})
+            tbl.append({'name': 'lnet_conf',
+                        'value': Globals().get('lnet_conf')})
             tbl.append({'name': 'description',
                         'value': fs_conf.get_description()})
 

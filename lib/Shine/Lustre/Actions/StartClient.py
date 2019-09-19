@@ -31,7 +31,7 @@ class StartClient(FSAction):
     """
 
     NAME = 'mount'
-    NEEDED_MODULES = ['lustre']
+    NEEDED_MODULES = ['lnet', 'lustre']
 
     def _already_done(self):
         """Return a Result object if the client is already mounted."""

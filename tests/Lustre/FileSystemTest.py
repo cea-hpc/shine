@@ -60,8 +60,9 @@ class PrepareTest(unittest.TestCase):
         self.assertEqual(_graph2obj(graph),
                          [[[{'NAME': 'start', 'comp': comp}],
                            [{'NAME': 'load modules'},
+                            {'NAME': 'load modules'},
                             {'NAME': 'load modules'}]]])
-        self.assertEqual(graph[0][1][0]._modname, 'lustre')
+        self.assertEqual(graph[0][1][0]._modname, 'lnet')
 
     def test_simple_remote_action(self):
         """prepare a simple action on a remote component"""
@@ -104,16 +105,18 @@ class PrepareTest(unittest.TestCase):
         self.assertEqual(_graph2obj(graph),
                          [[[{'NAME': 'start', 'comp': comp}],
                            [{'NAME': 'load modules'},
+                            {'NAME': 'load modules'},
                             {'NAME': 'load modules'}]]])
-        self.assertEqual(graph[0][1][0]._modname, 'lustre')
+        self.assertEqual(graph[0][1][0]._modname, 'lnet')
 
         # With tunings
         graph = self.fs._prepare('start', tunings=FakeTunings())
         self.assertEqual(_graph2obj(graph),
                          [[[{'NAME': 'start', 'comp': comp}],
                            [{'NAME': 'load modules'},
+                            {'NAME': 'load modules'},
                             {'NAME': 'load modules'}], []]])
-        self.assertEqual(graph[0][1][0]._modname, 'lustre')
+        self.assertEqual(graph[0][1][0]._modname, 'lnet')
         self.assertEqual(graph[0][2].NAME, 'tune')
 
     def test_need_unload(self):

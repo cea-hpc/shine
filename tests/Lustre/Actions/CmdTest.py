@@ -67,7 +67,7 @@ class ActionsTest(unittest.TestCase):
         self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
         client = self.fs.new_client(self.srv1, "/foo")
         action = StartClient(client)
-        self.assertEqual(sorted(action.needed_modules()), ['lustre'])
+        self.assertEqual(sorted(action.needed_modules()), ['lnet', 'lustre'])
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
                              '/bin/mount -t lustre localhost@tcp:/action /foo')
 
@@ -195,21 +195,21 @@ class ActionsTest(unittest.TestCase):
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
         action = StartTarget(tgt)
         self.assertEqual(sorted(action.needed_modules()),
-                          ['ldiskfs', 'lustre'])
+                          ['ldiskfs', 'lnet', 'lustre'])
 
     def test_start_target_modules_v2_4x(self):
         Globals().replace('lustre_version', '2.4')
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
         action = StartTarget(tgt)
         self.assertEqual(sorted(action.needed_modules()),
-                          ['fsfilt_ldiskfs', 'lustre'])
+                          ['fsfilt_ldiskfs', 'lnet', 'lustre'])
 
     def test_start_target_modules_v2_5x(self):
         Globals().replace('lustre_version', '2.5')
         tgt = self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
         action = StartTarget(tgt)
         self.assertEqual(sorted(action.needed_modules()),
-                          ['ldiskfs', 'lustre'])
+                          ['ldiskfs', 'lnet', 'lustre'])
 
     def test_start_target(self):
         """test command line start target"""
