@@ -332,10 +332,12 @@ class Target(Component, Disk):
 
         self.local_state = None   # Unknown
 
-        # find pathnames matching wanted lustre procfs
-        # (Since Lustre 2.4. More than one path could be returned.
-        #  The first one is fine.)
-        mntdev_path = glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
+        # find lustre parameters in procfs or sysfs
+        # (Since Lustre 2.4, more than one path could be returned.
+        #  The first one is fine. Since 2.13 it will be in sysfs.)
+        mntdev_path = glob('/sys/fs/lustre/*/%s/mntdev' % self.label)
+        if len(mntdev_path) == 0:
+            mntdev_path = glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
 
         recov_path = glob('/proc/fs/lustre/*/%s/recovery_status' % self.label)
         assert len(recov_path) <= 1
