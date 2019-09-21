@@ -75,12 +75,8 @@ provided with Python 2.7 and above should also works.
     $ nosetests -v <TESTFILE.PY>
     $ nosetests -v --all-modules
 
-Some tests require real block file to work. This needs to be configured in
-`tests/tests.conf`:
-
-    [general]
-    noformat_dev=/dev/sda   # Real block device file, only used in read-only
-    noformat_jdev=/dev/sda1
+Some tests expect being able to ssh into the current hostname without password,
+make sure `ssh $HOSTNAME echo ok` works.
 
 Some tests needs to launch real Lustre commands and so needs to have root permissions.
 These tests will be skipped if you do not have these permissions.

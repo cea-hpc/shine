@@ -5,9 +5,6 @@
 import os
 import socket
 import tempfile
-import ConfigParser
-
-TESTS_CONFIG='tests.conf'
 
 from Shine.Configuration.Globals import Globals
 
@@ -40,6 +37,18 @@ def make_disk(size=200):
     return disk
 
 #
+# Some tests need a block device to stat.
+# Index is used to get a different one if possible
+#
+def get_block_dev(i=0):
+    with open("/proc/partitions", 'r') as partitions:
+        # skip first two lines (header)
+        lines = partitions.readlines()[2:]
+        i %= len(lines)
+        d_info = lines[i].rstrip('\n').split(' ')
+        return '/dev/' + d_info[-1]
+
+#
 # Temp files
 #
 def makeTempFilename():
@@ -70,14 +79,3 @@ def setup_tempdirs():
 
 def clean_tempdirs():
     clean_tempdir(Globals().get('conf_dir'))
-
-#
-# Configuration params for tests
-#
-def config_options(optname, section="general"):
-    conf_file = TESTS_CONFIG
-
-    config = ConfigParser.ConfigParser()
-    config.read(conf_file)
-
-    return config.get(section, optname)

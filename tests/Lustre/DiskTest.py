@@ -144,7 +144,7 @@ class DiskOtherTest(unittest.TestCase):
     ### XXX: This does not check the device size
     def testBlockDevCheck(self):
         """test device check with a block device"""
-        disk = Disk(Utils.config_options('noformat_dev'))
+        disk = Disk(Utils.get_block_dev())
         disk._device_check()
         self.assertEqual(disk.dev_isblk, True)
         self.assertNotEqual(disk.dev_size, 0)
