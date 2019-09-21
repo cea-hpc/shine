@@ -288,5 +288,8 @@ class Controller(object):
 
         return rc
 
-if __name__ == '__main__':
+def run():
     Controller().run_command()
+
+if __name__ == '__main__':
+    run()

@@ -45,7 +45,7 @@ setup(name='shine',
                   ('/usr/share/vim/vimfiles/ftdetect',
                    ['doc/extras/vim/ftdetect/shine.vim']),
                   ('/usr/share/shine', ['scripts/shine.init.redhat'])],
-      entry_points={'console_scripts': ['shine=Shine.Controller:main']},
+      entry_points={'console_scripts': ['shine=Shine.Controller:run']},
       classifiers=[
           "Development Status :: 5 - Production/Stable",
           "Environment :: Console",
