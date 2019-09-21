@@ -67,13 +67,17 @@ class Router(Component):
         """
 
         # LNET is not loaded
-        if not os.path.isfile("/proc/sys/lnet/routes"):
-            self.state = OFFLINE
-            return 
+        # Lustre 2.11+ moved lnet to sysfs, try both paths
+        routesfile = '/sys/kernel/debug/lnet/routes'
+        if not os.path.isfile(routesfile):
+            routesfile='/proc/sys/lnet/routes'
+            if not os.path.isfile(routesfile):
+                self.state = OFFLINE
+                return
 
         # Read routing information
         try:
-            routes = open("/proc/sys/lnet/routes")
+            routes = open(routesfile)
             # read only first line
             state = routes.readline().strip().lower()
         except:
