@@ -118,7 +118,7 @@ class Client(Component):
         Check Client health at Lustre level.
         """
 
-        self.state = None   # Undefined
+        self.state = OFFLINE
 
         proc_lov_match = glob("/proc/fs/lustre/lov/%s-clilov-*" %
                               self.fs.fs_name)
@@ -130,7 +130,6 @@ class Client(Component):
         #
         # There is at least one clilov declared. Check for coherence.
         #
-        loaded = os.path.isdir(proc_lov_match[0])
 
         # check for presence in /proc/mounts
         f_proc_mounts = open("/proc/mounts", 'r')
@@ -138,6 +137,8 @@ class Client(Component):
             curr_lnetdev = None
             for line in f_proc_mounts:
                 if line.find(" %s lustre " % self.mount_path) > 0:
+                    loaded = os.path.isdir(proc_lov_match[0])
+
                     lnetdev, mntp = line.split(' ', 2)[0:2]
                     if loaded:
                         curr_lnetdev = lnetdev
@@ -154,15 +155,9 @@ class Client(Component):
                             raise ComponentError(self, "multiple mounts "
                                                  "detected for %s (%s)" %
                                                  (lnetdev, self.mount_path))
+                    break
         finally:
             f_proc_mounts.close()
-
-        if loaded and self.state != MOUNTED:
-            # up but not mounted = incoherent state
-            self.state = CLIENT_ERROR
-            raise ComponentError(self, "incoherent client state for FS '%s'"
-                                       " (not mounted but loaded. Mount in "
-                                       "progress?)" % self.fs.fs_name)
 
         # Look for some evictions
         self._lustre_check_proc_state()
