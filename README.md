@@ -4,7 +4,7 @@ Shine - Lustre file system administration utility
 Requirements
 ------------
 
-* Python: 2.4+
+* Python: 2.7+
 * ClusterShell: 1.5.1+ (http://github.com/cea-hpc/clustershell/)
 
 * Supports *Lustre* (http://lustre.org/) versions: 1.8, 2.1, 2.4 and above

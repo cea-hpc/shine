@@ -32,6 +32,12 @@ from Shine.Lustre.Server import Server
 from Shine.Commands.Base.CommandRCDefs import RC_FLAG_RUNTIME_ERROR
 from Shine.Commands.Base.RemoteCallEventHandler import RemoteCallEventHandler
 
+# python2/3 compat: raw_input got removed and input behaves differently
+try:
+    input = raw_input
+except NameError:
+    pass
+
 class CommandException(Exception):
     """Generic exception for Shine.Commands.Base.Command"""
 
@@ -79,7 +85,7 @@ class Command(object):
         if self.options.yes:
             return True
 
-        i = raw_input("%s (y)es/(N)o: " % prompt)
+        i = input("%s (y)es/(N)o: " % prompt)
         return i.lower() in ('y', 'yes')
 
     def filter_rc(self, rc):

@@ -149,16 +149,17 @@ def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
         comps = comps.filter(supports=viewsupports)
     def fieldvals(comp):
         """Get the value list of field for ``comp''."""
-        return _get_fields(comp, pat_fields).values()
+        return list(_get_fields(comp, pat_fields).values())
     grplst = [ (list(compgrp)[0], compgrp) for _, compgrp in \
                comps.groupby(key=fieldvals) ]
 
     # Sort
-    def sorter((first, _)):
+    def sorter(compgrp):
         """
         Sort grplist based on provided sort_key for the first element of
         compgrp.
         """
+        (first, _) = compgrp
         if sort_key is None:
             return None
         return sort_key(first)

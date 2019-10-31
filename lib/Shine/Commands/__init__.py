@@ -43,7 +43,7 @@ for cmd in [ "Show",
              "Execute"]:
 
     # Import command class file
-    mod = __import__(cmd, globals(), locals(), [cmd])
+    mod = __import__("Shine.Commands." + cmd, globals(), locals(), [cmd])
 
     # Add class to global command list
     cls = getattr(mod, cmd)

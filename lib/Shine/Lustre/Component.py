@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import sys
 
-from itertools import ifilter, groupby
+from itertools import groupby
 from operator import attrgetter, itemgetter
 
 from ClusterShell.NodeSet import NodeSet
@@ -358,7 +358,7 @@ class ComponentGroup(object):
         else:
             filter_key = key
 
-        return ComponentGroup(ifilter(filter_key, iter(self)))
+        return ComponentGroup(filter(filter_key, iter(self)))
 
     def enabled(self):
         """Uses filter() to return only the enabled components."""

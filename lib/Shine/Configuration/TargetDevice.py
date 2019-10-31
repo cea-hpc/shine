@@ -49,7 +49,7 @@ class TargetDevice:
         return line.strip()
 
     def has_index(self):
-        return self.params.has_key('index')
+        return 'index' in self.params
     
     def add_index(self, index):
         self.params['index'] = index
