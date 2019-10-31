@@ -191,7 +191,7 @@ class TuningModel(object):
 
             tuning_file.close()
 
-        except IOError, error:
+        except IOError as error:
             msg = "Error while reading tuning configuration file: %s" % error
             raise TuningError(msg)
 

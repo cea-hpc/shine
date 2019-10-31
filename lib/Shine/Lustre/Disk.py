@@ -83,7 +83,7 @@ class Disk:
         """
         try:
             info = os.stat(self.dev)
-        except OSError, error:
+        except OSError as error:
             raise DiskDeviceError(self, str(error))
 
         mode = info[stat.ST_MODE]

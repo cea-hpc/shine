@@ -253,26 +253,26 @@ class Controller(object):
             command = COMMAND_LIST[cmdname](options, args)
             rc = command.filter_rc(command.execute())
 
-        except CommandHelpException, error:
+        except CommandHelpException as error:
             self.print_error(error)
 
         # Command exceptions
-        except DisplayError, error:
+        except DisplayError as error:
             self.print_error(error)
-        except CommandException, error:
+        except CommandException as error:
             self.print_error(error)
 
         # Configuration exceptions
-        except ConfigException, error:
+        except ConfigException as error:
             self.print_error("Configuration - %s" % error)
-        except ModelFileValueError, error:
+        except ModelFileValueError as error:
             self.print_error(error)
 
         # File system exceptions
-        except FSRemoteError, error:
+        except FSRemoteError as error:
             self.print_error(error)
             rc = error.rc
-        except [ComponentError, NodeSetParseError, RangeSetParseError], error:
+        except (ComponentError, NodeSetParseError, RangeSetParseError) as error:
             self.print_error(error)
 
         # Special error

@@ -174,7 +174,7 @@ class FileSystem:
 
                 # substitute target parameter by local one
                 params['comp'] = comp
-            except KeyError, error:
+            except KeyError as error:
                 print >> sys.stderr, "ERROR: Component update " \
                                      "failed (%s)" % str(error)
 

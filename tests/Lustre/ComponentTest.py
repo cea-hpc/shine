@@ -37,7 +37,7 @@ class ComponentGroupTest(unittest.TestCase):
         # Could not add() twice the same component
         try:
             grp.add(comp)
-        except KeyError, error:
+        except KeyError as error:
             txt = "'A component with id comp-A-foo@tcp already exists.'"
             self.assertEqual(str(error), txt)
 

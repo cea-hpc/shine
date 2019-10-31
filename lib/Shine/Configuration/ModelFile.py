@@ -158,7 +158,7 @@ class SimpleElement(object):
                     retval = int(value, base=16)
                 else:
                     retval = int(value)
-            except ValueError, error:
+            except ValueError as error:
                 raise ModelFileValueError(str(error))
             return retval
 
@@ -686,7 +686,7 @@ class ModelFile(object):
                     raise ModelFileValueError("Wrong syntax '%s'" % line)
                 try:
                     self._elements[key.strip()].parse(value.strip())
-                except KeyError, exp:
+                except KeyError as exp:
                     raise ModelFileValueError("Unknown key %s" % exp)
 
     # File handling
@@ -699,7 +699,7 @@ class ModelFile(object):
             if line:
                 try:
                     self.parse(line)
-                except ModelFileValueError, error:
+                except ModelFileValueError as error:
                     raise ModelFileValueError("%s at %s:%d" % \
                                                 (error, filename, nbr + 1))
         modelfd.close()

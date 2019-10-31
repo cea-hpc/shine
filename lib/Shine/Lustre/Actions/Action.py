@@ -395,7 +395,7 @@ class FSAction(CommonAction):
                 self.comp.action_event(self, 'done', result)
                 self.set_status(ACT_OK)
 
-        except ComponentError, error:
+        except ComponentError as error:
             self.comp.action_event(self, 'failed', Result(str(error)))
             self.set_status(ACT_ERROR)
 

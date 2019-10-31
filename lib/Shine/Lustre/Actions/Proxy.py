@@ -64,14 +64,14 @@ def shine_msg_unpack(msg):
     try:
         version, data = msg[len(SHINE_MSG_MAGIC):].split(':', 1)
         version = int(version)
-    except Exception, exp:
+    except Exception as exp:
         raise ProxyActionUnpackError("Malformed Shine message: %s" % exp)
 
     if version == SHINE_MSG_VERSION:
         try:
             # unpack and unpickle object
             return pickle.loads(binascii.a2b_base64(data))
-        except Exception, exp:
+        except Exception as exp:
             msg = "Cannot unpickle message (check Shine and ClusterShell " \
                   "versions): %s" % exp
             raise ProxyActionUnpickleError(msg)
@@ -79,7 +79,7 @@ def shine_msg_unpack(msg):
     elif version == 2:
         try:
             return shine_msg_unpack_v2(data)
-        except Exception, exp:
+        except Exception as exp:
             raise ProxyActionUnpackError("Unknown error: %s" % exp)
 
     else:
@@ -220,13 +220,13 @@ class FSProxyAction(CommonAction):
                 evtype = data.pop('evtype')
 
             self.fs.distant_event(evtype, node=node, **data)
-        except ProxyActionUnpickleError, exp:
+        except ProxyActionUnpickleError as exp:
             # Maintain a standalone list of unpickling errors.
             # Node could have unpickling error but still exit with 0
             msg = str(exp)
             if msg not in self._errpickle.get(node, ""):
                 self._errpickle.add(node, msg)
-        except AttributeError, exp:
+        except AttributeError as exp:
             msg = "Cannot read message (check Shine and ClusterShell " \
                   "version): %s" % str(exp)
             if msg not in self._errpickle.get(node, ""):

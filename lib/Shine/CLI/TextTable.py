@@ -131,7 +131,7 @@ class TextTable(object):
                 length = matchobj.group(2) or self._max_width[key]
                 length = int(length)
                 value = getter(key) or ""
-            except KeyError, ex:
+            except KeyError as ex:
                 if self.ignore_bad_keys:
                     value = "%%%s" % key
                     length = len(value)

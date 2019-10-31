@@ -104,7 +104,7 @@ class Install(Command):
             if tuning_conf:
                 fs.install(tuning_conf, dryrun=self.options.dryrun)
 
-        except FSRemoteError, error:
+        except FSRemoteError as error:
             print "WARNING: Due to error, installation skipped on %s" \
                    % error.nodes
             rc = RC_FAILURE

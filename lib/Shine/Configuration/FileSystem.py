@@ -304,7 +304,7 @@ class FileSystem(object):
                             self.model.elements(target).parse(
                                                             matching.getline())
 
-                except KeyError, error:
+                except KeyError as error:
                     raise ConfigInvalidFileSystem(self, \
                             "Index %s for %s used twice." % \
                             (str(error), target))
@@ -329,7 +329,7 @@ class FileSystem(object):
                             params.add('index', str(indexes[0]))
                             indexes.remove(indexes[0])
 
-                except KeyError, error:
+                except KeyError as error:
                     raise ConfigInvalidFileSystem(self, \
                              "Index %s for %s used twice." % \
                               (str(error), target))

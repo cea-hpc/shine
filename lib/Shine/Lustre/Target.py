@@ -318,7 +318,7 @@ class Target(Component, Disk):
             if self.journal:
                 self.journal.full_check()
 
-        except (ComponentError, DiskDeviceError), error:
+        except (ComponentError, DiskDeviceError) as error:
             self.local_state = TARGET_ERROR
             raise ComponentError(self, str(error))
 
@@ -568,7 +568,7 @@ class Journal(Component):
 
         try:
             info = os.stat(self.dev)
-        except OSError, exp:
+        except OSError as exp:
             raise ComponentError(self, str(exp))
 
         if not stat.S_ISBLK(info[stat.ST_MODE]):

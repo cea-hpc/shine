@@ -71,7 +71,7 @@ class ServerAction(CommonAction):
                 self.server.action_event(self, 'done', result)
                 self.set_status(ACT_OK)
 
-        except ServerError, error:
+        except ServerError as error:
             self.server.action_event(self, 'failed', Result(str(error)))
             self.set_status(ACT_ERROR)
 

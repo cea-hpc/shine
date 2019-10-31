@@ -184,7 +184,7 @@ class Update(Command):
         try:
             self.__verbose("Update configuration file: %s" % conf_file)
             fs.install(conf_file, dryrun=self.options.dryrun)
-        except FSRemoteError, error:
+        except FSRemoteError as error:
             self.__warning("Due to error, configuration update skipped on %s" \
                % error.nodes)
             return RC_FAILURE
@@ -293,7 +293,7 @@ class Update(Command):
                 self.__verbose("Remove configuration from %s" % removedsrvs)
                 self._remove(oldfs, oldfs.remove, "uninstall", removedsrvs)
 
-        except CannotApplyError, exp:
+        except CannotApplyError as exp:
             self.__warning(str(exp))
             print "Please fix the error or disable %s and restart the update" \
                   % exp.elements + " command"

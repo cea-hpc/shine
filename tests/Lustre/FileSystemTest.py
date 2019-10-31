@@ -154,7 +154,7 @@ class SimpleFileSystemTest(unittest.TestCase):
         fs.new_client(badsrv2, '/testfs')
         try:
             fs.install(fs_config_file=Utils.makeTempFilename())
-        except FSRemoteError, ex:
+        except FSRemoteError as ex:
             self.assertEqual(str(ex.nodes), 'badnode[1-2]')
             self.assertEqual(ex.rc, 1)
             # Partial comparison to support RHEL5 OpenSSH output
