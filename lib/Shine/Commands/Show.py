@@ -24,6 +24,8 @@ Shine `show' command classes.
 The show command aims to show various shine configuration parameters.
 """
 
+from __future__ import print_function
+
 import sys
 
 # Configuration
@@ -53,7 +55,7 @@ class Show(Command):
 
         for key, value in Globals().as_dict().items():
             tbl.append({'param': key, 'value': str(value)})
-        print str(tbl)
+        print(str(tbl))
         return 0
 
     def cmd_show_fs(self):
@@ -67,15 +69,15 @@ class Show(Command):
             try:
                 fs_conf = Configuration.load_from_cache(fsname)
             except:
-                print "Error with FS ``%s'' configuration files." % fsname
+                print("Error with FS ``%s'' configuration files." % fsname)
                 raise
             if not verb:
-                print fs_conf.get_fs_name()
+                print(fs_conf.get_fs_name())
             else:
                 tbl.append({'fsname': fs_conf.get_fs_name(),
                             'description': fs_conf.get_description()})
         if verb:
-            print str(tbl)
+            print(str(tbl))
 
         return 0
 
@@ -92,7 +94,7 @@ class Show(Command):
                 # We fail to get current file system configuration information.
                 # Display an error message.
                 msg = "Error with FS ``%s'' configuration files." % fsname
-                print >> sys.stderr, msg
+                print(msg, file=sys.stderr)
                 raise
 
             # Retrieve quota configuration information
@@ -144,7 +146,7 @@ class Show(Command):
                         'value': fs_conf.get_description()})
 
             # Display the list of collected configuration information
-            print str(tbl)
+            print(str(tbl))
 
 
     def cmd_show_storage(self):
@@ -156,16 +158,16 @@ class Show(Command):
             assert Globals().get_backend() == "None", \
                     "Error: please check your storage backend configuration" \
                     "(backend=%s)" % Globals().get_backend()
-            print "Storage backend is disabled, please check storage " \
-                  "information as a per-filesystem basis with ``show info''."
+            print("Storage backend is disabled, please check storage "
+                  "information as a per-filesystem basis with ``show info''.")
         else:
             backend.start()
             cnt = 0
             for tgt in [ 'mgt', 'mdt', 'ost']:
                 for dev in backend.get_target_devices(tgt):
-                    print dev
+                    print(dev)
                     cnt += 1
-            print "Total: %d devices" % cnt
+            print("Total: %d devices" % cnt)
         return 0
 
     def execute(self):

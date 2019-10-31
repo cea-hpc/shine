@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from __future__ import print_function
+
 import sys
 
 from itertools import ifilter, groupby
@@ -141,8 +143,8 @@ class Component(object):
             actions = ""
             if len(self._list_action()):
                 actions = "actions: " + ", ".join(self._list_action())
-            print >> sys.stderr, "ERROR: bad state for %s: %d %s" % \
-                            (self.label, self.state, actions)
+            print("ERROR: bad state for %s: %d %s" %
+                  (self.label, self.state, actions), file=sys.stderr)
             self.state = RUNTIME_ERROR
 
     def __getstate__(self):

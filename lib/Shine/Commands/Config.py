@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from __future__ import print_function
+
 from Shine.CLI.Display import display
 
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
@@ -37,4 +39,4 @@ class Config(FSLiveCommand):
     DESCRIPTION = "Display filesystem component information"
 
     def execute_fs(self, fs, fs_conf, hdl, vlevel):
-        print display(self, fs)
+        print(display(self, fs))

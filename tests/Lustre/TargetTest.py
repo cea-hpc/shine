@@ -46,7 +46,6 @@ class TargetTest(unittest.TestCase):
         tgt2.add_server(srv2b)
         tgt2.failover(NodeSet('foo2'))
 
-        print tgt2.uniqueid()
         self.assertEqual(tgt2.uniqueid(), tgt1.uniqueid())
 
     def testAllServers(self):

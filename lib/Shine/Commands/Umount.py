@@ -24,6 +24,8 @@ Shine `umount' command classes.
 The umount command aims to stop Lustre filesystem clients.
 """
 
+from __future__ import print_function
+
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, \
@@ -77,8 +79,8 @@ class Umount(FSLiveCommand):
             if rc == RC_OK:
                 if vlevel > 0:
                     key = lambda c: c.state == OFFLINE
-                    print "%s was successfully unmounted on %s" % \
-                        (fs.fs_name, comps.filter(key=key).servers())
+                    print("%s was successfully unmounted on %s" %
+                          (fs.fs_name, comps.filter(key=key).servers()))
             elif rc == RC_RUNTIME_ERROR:
                 self.display_proxy_errors(fs)
 

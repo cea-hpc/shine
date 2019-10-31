@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -158,12 +160,13 @@ class Command(object):
             if fs_nodes:
                 selected_nodes = selected_nodes - fs_nodes
             if selected_nodes:
-                print >> sys.stderr, "WARNING: Nothing to %s on %s for `%s'" % \
-                    (action_txt, selected_nodes, fs_name)
+                print("WARNING: Nothing to %s on %s for `%s'" %
+                      (action_txt, selected_nodes, fs_name), file=sys.stderr)
 
         # All nodes were disabled?
         if len(fs_nodes) == 0:
-            print >> sys.stderr, "WARNING: Nothing was done for `%s'." % fs_name
+            print("WARNING: Nothing was done for `%s'." % fs_name,
+                  file=sys.stderr)
             return False
 
         return True
@@ -174,7 +177,7 @@ class Command(object):
         for msg, nodes in fs.proxy_errors.walk():
             nodes = str(NodeSet.fromlist(nodes))
             msg = str(msg).replace('THIS_SHINE_HOST', nodes)
-            print >> sys.stderr, "%s: %s" % (nodes, msg)
+            print("%s: %s" % (nodes, msg), file=sys.stderr)
 
 class RemoteCommand(Command):
 

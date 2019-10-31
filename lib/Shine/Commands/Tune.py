@@ -26,6 +26,8 @@ The tune command aims to apply tuning parameters on any components of a
 Lustre filesystem.
 """
 
+from __future__ import print_function
+
 from Shine.Configuration.Globals import Globals
 
 from Shine.Configuration.TuningModel import TuningModel
@@ -74,10 +76,10 @@ class Tune(FSLiveCommand):
         tuning = self.get_tuning(fs_conf, fs.components)
 
         if vlevel > 1:
-            print "Tuning filesystem %s..." % fs.fs_name
+            print("Tuning filesystem %s..." % fs.fs_name)
 
         if not self.options.remote and vlevel > 1:
-            print tuning
+            print(tuning)
 
         # Call a pre_format method if defined by event handler
         if hasattr(eh, 'pre'):
@@ -90,10 +92,10 @@ class Tune(FSLiveCommand):
         rc = self.fs_status_to_rc(status)
 
         if rc == RC_OK:
-            print "Filesystem %s successfully tuned." % fs.fs_name
+            print("Filesystem %s successfully tuned." % fs.fs_name)
         else:
             self.display_proxy_errors(fs)
-            print "Tuning of filesystem %s failed." % fs.fs_name
+            print("Tuning of filesystem %s failed." % fs.fs_name)
 
         return rc
 

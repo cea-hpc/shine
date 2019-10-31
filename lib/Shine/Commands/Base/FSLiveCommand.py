@@ -22,6 +22,8 @@
 Base class for live filesystem commands (start, stop, status, etc.).
 """
 
+from __future__ import print_function
+
 from Shine.Configuration.Globals import Globals
 
 from Shine.Commands.Base.Command import RemoteCommand, CommandHelpException
@@ -98,7 +100,7 @@ class FSLiveCommand(RemoteCommand):
 
             # Separate each fsname with a blank line
             if not first:
-                print
+                print()
             first = False
 
             # Run the real job

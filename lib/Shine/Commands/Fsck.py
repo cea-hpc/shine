@@ -24,6 +24,8 @@ Shine `fsck' command.
 Run a low-level filesystem check for filesystem targets.
 """
 
+from __future__ import print_function
+
 import sys
 
 # Command base class
@@ -130,12 +132,12 @@ class Fsck(FSLiveCommand):
 
         if rc == RC_OK:
             if vlevel > 0:
-                print "Fsck successful."
+                print("Fsck successful.")
         else:
             if rc == RC_RUNTIME_ERROR:
                 self.display_proxy_errors(fs)
             if vlevel > 0:
-                print "Fsck failed"
+                print("Fsck failed")
 
         # Call a post_fsck method if defined by the event handler.
         if hasattr(eh, 'post'):

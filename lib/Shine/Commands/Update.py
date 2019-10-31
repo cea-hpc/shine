@@ -22,6 +22,8 @@
 Shine 'update' command class.
 """
 
+from __future__ import print_function
+
 from Shine.Configuration.Globals import Globals
 
 from Shine.Commands.Base.Command import Command, CommandHelpException
@@ -60,7 +62,7 @@ class Update(Command):
 
         lmf = self.get_lmf_path()
         if lmf:
-            print "Using Lustre model file %s" % lmf
+            print("Using Lustre model file %s" % lmf)
         else:
             raise CommandHelpException("Lustre model file for ``%s'' not found:"
                     " please use filename or full LMF path.\n Your default "
@@ -70,18 +72,18 @@ class Update(Command):
 
     def __warning(self, message):
         """Helper to display a warning message."""
-        print "WARNING: %s" % message
+        print("WARNING: %s" % message)
 
     def __verbose(self, message):
         """Helper to display a verbose message, if enabled."""
         # XXX: Should use a constant here
         if self.options.verbose > 0:
-            print message
+            print(message)
 
     def __debug(self, message):
         """Helper to display a debug message, if enabled."""
         if self.options.debug:
-            print "DEBUG ", message
+            print("DEBUG ", message)
 
     @classmethod
     def display_details(cls, comps):
@@ -121,7 +123,7 @@ class Update(Command):
             txt += txt_new
 
         if txt:
-            print "FILESYSTEM CHANGES\n%s\n" % "\n".join(txt)
+            print("FILESYSTEM CHANGES\n%s\n" % "\n".join(txt))
 
     def _apply(self, fs, action, actiontxt, comps, expected):
         """Apply an action on the provided filesystem and check for errors."""
@@ -295,8 +297,8 @@ class Update(Command):
 
         except CannotApplyError as exp:
             self.__warning(str(exp))
-            print "Please fix the error or disable %s and restart the update" \
-                  % exp.elements + " command"
+            print("Please fix the error or disable %s and restart the update"
+                  % exp.elements + " command")
             return 1
             
 
@@ -387,11 +389,11 @@ class Update(Command):
 
         # Print this line only if there is other actions to be performed
         if next_actions:
-            print
-            print "NEXT ACTIONS (should be done manually)"
+            print()
+            print("NEXT ACTIONS (should be done manually)")
             for txt in next_actions:
-                print ">%s" % txt
+                print(">%s" % txt)
 
-        print "Update is finished."
+        print("Update is finished.")
 
         return rc

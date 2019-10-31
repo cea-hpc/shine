@@ -26,6 +26,8 @@ The remove command aims to uninstall a Lustre filesystem setup with Shine.
 This will interact with the backend and will remove local cached files.
 """
 
+from __future__ import print_function
+
 import sys
 
 from Shine.Configuration.FileSystem import ModelFileIOError
@@ -85,12 +87,12 @@ class Remove(FSLiveCommand):
                 # Mounted filesystem!
                 if state in [MOUNTED, RECOVERING]:
                     labels = targets.labels()
-                    print "WARNING: Some targets are started: %s" % labels
+                    print("WARNING: Some targets are started: %s" % labels)
                 # Error, won't be able to remove on these nodes
                 elif state == RUNTIME_ERROR:
                     self.display_proxy_errors(fs)
-                    print "WARNING: Removing %s might failed on some nodes " \
-                          "(see above)!" % fs.fs_name
+                    print("WARNING: Removing %s might failed on some nodes "
+                          "(see above)!" % fs.fs_name)
 
             # Confirmation
             if not self.ask_confirm("Please confirm the removal of filesystem" \
@@ -98,10 +100,10 @@ class Remove(FSLiveCommand):
                 return RC_FAILURE
 
             # Do the job now!
-            print "Removing filesystem %s..." % fs.fs_name
+            print("Removing filesystem %s..." % fs.fs_name)
             if fs.remove(dryrun=self.options.dryrun):
-                print "WARNING: failed to remove all filesystem %s " \
-                      "configuration files" % fs.fs_name
+                print("WARNING: failed to remove all filesystem %s "
+                      "configuration files" % fs.fs_name)
 
             # XXX: This is not really nice. Need to find a better way.
             if not self.options.nodes \
@@ -111,7 +113,7 @@ class Remove(FSLiveCommand):
                and not self.options.failover \
                and not self.options.indexes:
 
-                print "Unregistering FS %s from backend..." % fs.fs_name
+                print("Unregistering FS %s from backend..." % fs.fs_name)
                 if self.options.dryrun:
                     retcode = 0
                 else:
@@ -119,10 +121,10 @@ class Remove(FSLiveCommand):
                 if retcode:
                     msg = "Error: failed to unregister FS from backend " \
                           "(rc = %d)" % retcode
-                    print >> sys.stderr, msg
+                    print(msg, file=sys.stderr)
                     return RC_FAILURE
 
-            print "Filesystem %s removed." % fs.fs_name
+            print("Filesystem %s removed." % fs.fs_name)
 
         # Local mode (either -R or -L)
         else:
@@ -130,11 +132,11 @@ class Remove(FSLiveCommand):
                 if self.options.local:
                     msg = "Error: failed to remove filesystem ```%s'' " \
                           "configuration files" % fs.fs_name
-                    print >> sys.stderr, msg
+                    print(msg, file=sys.stderr)
                 return RC_FAILURE
 
             elif self.options.local:
-                print "Filesystem %s removed." % fs.fs_name
+                print("Filesystem %s removed." % fs.fs_name)
 
         return rc
 

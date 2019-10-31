@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from __future__ import print_function
+
 import os
 import sys
 import binascii, pickle
@@ -140,7 +142,7 @@ class FSProxyAction(CommonAction):
         self._silentnodes = NodeSet() # Error nodes without output
 
         if self.fs.debug:
-            print "FSProxyAction %s on %s" % (action, nodes)
+            print("FSProxyAction %s on %s" % (action, nodes))
 
     def info(self):
         return ActionInfo(self, description='Proxy action')

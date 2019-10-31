@@ -22,6 +22,8 @@
 Command event handler classes used to display information when receiving events.
 """
 
+from __future__ import print_function
+
 import datetime
 
 from ClusterShell.Task import task_self
@@ -74,17 +76,17 @@ class FSLocalEventHandler(LustreEH):
 
     def log_warning(self, msg):
         """Display a warning message."""
-        print msg
+        print(msg)
 
     def log_info(self, msg):
         """Display an informative message, only if verbosity is not 0."""
         if self.verbose > 0:
-            print msg
+            print(msg)
 
     def log_verbose(self, msg):
         """Display a verbose message. Verbosity should be 2 or above."""
         if self.verbose > 1:
-            print msg
+            print(msg)
 
     def log_detail(self, msg):
         """Display a 'detail' message (more than verbose).
@@ -92,7 +94,7 @@ class FSLocalEventHandler(LustreEH):
         Verbosity should be 3 or above.
         """
         if self.verbose > 2:
-            print msg
+            print(msg)
 
     #
     # Event handlers
@@ -198,7 +200,7 @@ class FSLocalEventHandler(LustreEH):
         SUMMARY is set for this command (True by default).
         """
         if self.SUMMARY and self.verbose > 0:
-            print display(self.command, fs, supports=self.fs_action)
+            print(display(self.command, fs, supports=self.fs_action))
 
     def post(self, fs):
         """Do any post-processing. This is called for each filesystem."""
@@ -254,11 +256,11 @@ class FSGlobalEventHandler(FSLocalEventHandler):
             self.status_changed = False
             now = datetime.datetime.now().strftime("%H:%M")
             if len(target_servers) > 8:
-                print "[%s] In progress for %d component(s) on %d servers ..." \
-                    % (now, target_count, len(target_servers))
+                print("[%s] In progress for %d component(s) on %d servers ..."
+                      % (now, target_count, len(target_servers)))
             else:
-                print "[%s] In progress for %d component(s) on %s ..." % \
-                      (now, target_count, target_servers)
+                print("[%s] In progress for %d component(s) on %s ..." %
+                      (now, target_count, target_servers))
 
     def _update(self):
         """

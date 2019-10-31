@@ -2,6 +2,8 @@
 # Utilities function for Shine unit tests.
 # Written by A. Degremont
 
+from __future__ import print_function
+
 import os
 import socket
 import tempfile
@@ -21,7 +23,7 @@ def rootonly(method):
         if os.getuid() == 0:
             method(self)
         else:
-            print "SKIP. Root permission required."
+            print("SKIP. Root permission required.")
     root_tested.__name__ = method.__name__
     root_tested.__doc__ = method.__doc__
     return root_tested

@@ -24,6 +24,8 @@ Lustre FileSystem class.
 Represents a Lustre FS.
 """
 
+from __future__ import print_function
+
 import os
 import sys
 import socket
@@ -126,7 +128,7 @@ class FileSystem:
         except socket.error:
             logging.raiseExceptions = False
             msg = "Error connecting to syslog, disabling logging."
-            print >> sys.stderr, "WARNING: %s" % msg
+            print("WARNING: %s" % msg, file=sys.stderr)
 
         return logger
 
@@ -175,8 +177,8 @@ class FileSystem:
                 # substitute target parameter by local one
                 params['comp'] = comp
             except KeyError as error:
-                print >> sys.stderr, "ERROR: Component update " \
-                                     "failed (%s)" % str(error)
+                print("ERROR: Component update failed (%s)" % str(error),
+                      file=sys.stderr)
 
         self.hdlr.event_callback(evtype, node=node, **params)
 
@@ -281,7 +283,7 @@ class FileSystem:
             # (ie: cannot unpickle due to ClusterShell version mismatch)
             if comp.state is None:
                 msg = "WARNING: no state report from node %s" % comp.server
-                print >> sys.stderr, msg
+                print(msg, file=sys.stderr)
                 comp.state = RUNTIME_ERROR
 
             if comp.state not in expected_states:

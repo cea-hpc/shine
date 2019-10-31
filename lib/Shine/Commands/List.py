@@ -25,6 +25,8 @@ Shine `list' command classes.
 List installed filename names.
 """
 
+from __future__ import print_function
+
 from Shine.Commands.Base.Command import Command
 
 class List(Command):
@@ -45,4 +47,4 @@ class List(Command):
         self.forbidden(self.options.indexes, "-i")
         self.forbidden(self.options.failover, "-F")
 
-        print "\n".join(self.iter_fsname())
+        print("\n".join(self.iter_fsname()))

@@ -28,6 +28,8 @@ of the filesystem, or if needed, to enquire about filesystem components
 detailed states.
 """
 
+from __future__ import print_function
+
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_ST_OFFLINE, RC_ST_EXTERNAL, \
@@ -93,7 +95,7 @@ class Status(FSLiveCommand):
         # Display error messages for each node that failed.
         if len(fs.proxy_errors) > 0:
             self.display_proxy_errors(fs)
-            print
+            print()
 
         result = self.fs_status_to_rc(fs_result)
 

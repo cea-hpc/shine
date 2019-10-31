@@ -23,6 +23,8 @@ Shine `format' classes.
 Format or reformat any installed filesystem.
 """
 
+from __future__ import print_function
+
 # Command base class
 from Shine.Commands.Base.FSLiveCommand import FSLiveCommand
 from Shine.Commands.Base.CommandRCDefs import RC_OK, RC_ST_EXTERNAL, \
@@ -100,12 +102,12 @@ class Format(FSLiveCommand):
 
         if rc == RC_OK:
             if vlevel > 0:
-                print "Format successful."
+                print("Format successful.")
         else:
             if rc == RC_RUNTIME_ERROR:
                 self.display_proxy_errors(fs)
             if vlevel > 0:
-                print "Format failed"
+                print("Format failed")
 
         # Call a post_format method if defined by the event handler.
         if hasattr(eh, 'post'):

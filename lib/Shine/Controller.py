@@ -18,6 +18,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
+from __future__ import print_function
+
 import re
 import sys
 import copy
@@ -46,9 +48,9 @@ from ClusterShell.NodeSet import NodeSet, NodeSetException, NodeSetParseError, \
 def print_csdebug(task, msg):
     match = re.match(r'\w+: SHINE:\d:', msg)
     if match:
-        print "%s<pickle>" % match.group(0)
+        print("%s<pickle>" % match.group(0))
     else:
-        print msg
+        print(msg)
 
 
 class Controller(object):
@@ -64,7 +66,7 @@ class Controller(object):
 
     @classmethod
     def print_error(cls, msg):
-        print >> sys.stderr, "Error: %s" % msg
+        print("Error: %s" % msg, file=sys.stderr)
 
     @classmethod
     def handle_options(cls):
@@ -277,7 +279,7 @@ class Controller(object):
 
         # Special error
         except KeyboardInterrupt:
-            print >> sys.stderr, "Exiting."
+            print("Exiting.", file=sys.stderr)
             rc = 0
 
         # Avoid BrokenPipe error if stdout is closed before we exit

@@ -26,6 +26,8 @@ of the filesystem targets on local or remote servers. It is available
 for any filesystems previously installed and formatted.
 """
 
+from __future__ import print_function
+
 from Shine.Commands.Tune import Tune
 
 # Command base class
@@ -98,7 +100,7 @@ class Start(FSLiveCommand):
 
         if rc == RC_OK:
             if vlevel > 0:
-                print "Start successful."
+                print("Start successful.")
         elif rc == RC_RUNTIME_ERROR:
             self.display_proxy_errors(fs)
 
