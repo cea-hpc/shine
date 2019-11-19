@@ -195,7 +195,7 @@ class Client(Component):
 
         text = Component.text_status(self)
         states = []
-        for state, total in self.proc_states.iteritems():
+        for state, total in self.proc_states.items():
             if state != 'FULL':
                 states.append("%s=%d" % (state.lower(), total))
         if states:

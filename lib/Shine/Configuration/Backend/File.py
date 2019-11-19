@@ -74,7 +74,7 @@ class File(Backend):
         pass
 
     def stop(self):
-        for cli in self.status_clients.itervalues():
+        for cli in self.status_clients.values():
             cli.close()
         self.status_clients = {}
 

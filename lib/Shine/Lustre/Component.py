@@ -275,7 +275,7 @@ class ComponentGroup(object):
         return len(self._elems)
 
     def __iter__(self):
-        return self._elems.itervalues()
+        return iter(self._elems.values())
 
     def __contains__(self, comp):
         return comp.uniqueid() in self._elems

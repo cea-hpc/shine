@@ -41,7 +41,7 @@ class TargetDevice:
 
     def getline(self):
         line = ""
-        for k, v in self.params.iteritems():
+        for k, v in self.params.items():
             if type(v) is list:
                 for lv in v:
                     line += "%s=%s " % (k, lv)

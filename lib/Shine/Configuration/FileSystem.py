@@ -360,8 +360,8 @@ class FileSystem(object):
         actions = {}
         added, changed, removed = self.model.diff(otherfs.model)
 
-        anyset = set(changed.iterkeys()) | set(added.iterkeys()) \
-                  | set(removed.iterkeys())
+        anyset = set(changed.keys()) | set(added.keys()) \
+                  | set(removed.keys())
 
         # Read-only keys: fs_name
         readonly = set(['fs_name'])

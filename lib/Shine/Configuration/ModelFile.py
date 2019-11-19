@@ -583,14 +583,14 @@ class ModelFile(object):
 
     def __str__(self):
         elems = []
-        for key, values in self._elements.iteritems():
+        for key, values in self._elements.items():
             if len(values):
                 for value in str(values).splitlines():
                     elems.append(''.join([key, self._sep, value]))
         return self._linesep.join(elems)
 
     def __len__(self):
-        return len(list(self.iterkeys()))
+        return len(list(self.keys()))
 
     # To behave more like a dict
     def __contains__(self, key):
@@ -603,9 +603,9 @@ class ModelFile(object):
     def __delitem__(self, key):
         self._elements[key].clear()
 
-    def iterkeys(self):
+    def keys(self):
         """Iterate over the keys with non-empty value."""
-        return (key for key, value in self._elements.iteritems() if len(value))
+        return (key for key, value in self._elements.items() if len(value))
 
     # Content access
 
@@ -620,7 +620,7 @@ class ModelFile(object):
         self._elements[key].replace(value)
 
     def __iter__(self):
-        return self.iterkeys()
+        return iter(self.keys())
 
     def __eq__(self, other):
         if type(other) != type(self):
@@ -630,7 +630,7 @@ class ModelFile(object):
 
     def __hash__(self):
         value = hash(self.__class__)
-        for key, elem in self._elements.iteritems():
+        for key, elem in self._elements.items():
             value = value ^ hash(key) ^ hash(elem)
         return value
 
@@ -643,8 +643,8 @@ class ModelFile(object):
         Third one contains only the elements removed from self.
         """
 
-        localkeys = set(self.iterkeys())
-        otherkeys = set(other.iterkeys())
+        localkeys = set(self.keys())
+        otherkeys = set(other.keys())
 
         added = self.emptycopy()
         for key in otherkeys - localkeys:
@@ -674,7 +674,7 @@ class ModelFile(object):
         """Return a dict containing all elements and content using only Python
         built-in objects."""
         return dict([(key, self._elements[key].as_dict())
-                     for key in self.iterkeys()])
+                     for key in self.keys()])
 
     def parse(self, data):
         """Parse @data based on separators and declared elements."""

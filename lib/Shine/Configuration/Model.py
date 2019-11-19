@@ -148,7 +148,7 @@ class Target(ModelFile):
         for target in candidates:
 
             # Verify my keys match its attributes
-            for key, regexp in self.as_dict().iteritems():
+            for key, regexp in self.as_dict().items():
                 # Index and active have a special meaning
                 # and should not be considered
                 if key in ('index', 'active'):
