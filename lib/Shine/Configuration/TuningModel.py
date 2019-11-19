@@ -157,7 +157,7 @@ class TuningModel(object):
         # Build the patterns to retrieve alias and parameter declaration
         alias_re = re.compile("alias\s+(\S+)\s*=\s*(\S+)$")
         parameter_re = re.compile('("[^"]+"|\S+)\s+(\S+)\s+(\S+)$')
-        supported = NodeSet.fromlist(list(NODE_TYPES) + TYPE_ALIASES.keys())
+        supported = NodeSet.fromlist(list(NODE_TYPES) + list(TYPE_ALIASES.keys()))
 
         # Open the file to read each lines
         try:

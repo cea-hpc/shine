@@ -514,7 +514,7 @@ nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
 mount_path: /bar
 mgt: node=foo1 dev=/dev/sda
 """)
-        self.assertEqual(actions.keys(), ['copyconf'])
+        self.assertEqual(list(actions.keys()), ['copyconf'])
         self.assertTrue(actions.get('copyconf', False))
 
     def test_client_mount_options(self):

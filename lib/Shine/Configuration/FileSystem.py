@@ -224,7 +224,7 @@ class FileSystem(object):
                 continue
 
             # Lustre supports up to FFFF targets per type.
-            indexes = range(0, 65535)
+            indexes = list(range(0, 65535))
 
             if self.backend:
 

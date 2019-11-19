@@ -600,7 +600,7 @@ class ServerActionTest(CommonTestCase):
         result = self.check_base(self.srv, 'server', act, ACT_OK,
                                  ['start', 'done'],
                                  "load module 'ldiskfs'")
-        self.assertEqual(self.srv.modules.keys(), ['ldiskfs'])
+        self.assertEqual(list(self.srv.modules.keys()), ['ldiskfs'])
 
     @Utils.rootonly
     def test_module_load_error(self):

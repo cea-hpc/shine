@@ -117,7 +117,7 @@ class Target(Component, Disk):
         sdict = {}
         sorted_states = sorted(self._states.items(), key=itemgetter(1))
         for state, nodes in groupby(sorted_states, key=itemgetter(1)):
-            sdict[state] = map(itemgetter(0), nodes)
+            sdict[state] = list(map(itemgetter(0), nodes))
 
         if None in sdict and len(sdict[None]) == len(self._states):
             return None
