@@ -81,7 +81,7 @@ class Server(object):
     _CACHE_HOSTNAME_LONG = None
 
     def __init__(self, hostname, nids, hdlr=None):
-        assert type(nids) is list
+        assert isinstance(nids, list)
         self.nids = nids
         self.hostname = NodeSet(hostname)
         self.modules = dict()

@@ -106,7 +106,7 @@ class SimpleElement(object):
         return hash(self.__class__) ^ hash(self._content) ^ hash(self._check)
 
     def __eq__(self, other):
-        if type(other) != type(self):
+        if not isinstance(other, type(self)):
             return NotImplemented
         return self._content == other._content and self._check == other._check
 
@@ -171,7 +171,7 @@ class SimpleElement(object):
                 raise ModelFileValueError("'%s' not a boolean value" % value)
 
         elif self._check == 'string':
-            if type(value) is not str:
+            if not isinstance(value, str):
                 raise ModelFileValueError("'%s' not a string" % value)
             return str(value)
 
@@ -623,7 +623,7 @@ class ModelFile(object):
         return iter(self.keys())
 
     def __eq__(self, other):
-        if type(other) != type(self):
+        if not isinstance(other, type(self)):
             return NotImplemented
         return self._sep == other._sep and self._linesep == self._linesep \
                 and self.elements() == other.elements()

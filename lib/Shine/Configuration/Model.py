@@ -159,7 +159,7 @@ class Target(ModelFile):
 
                 try:
                     # If this is a list
-                    if type(regexp) is list:
+                    if isinstance(regexp, list):
                         bknds = target.get(key)
                         # If there's more criteria in model, it does not match
                         if len(regexp) > len(bknds):

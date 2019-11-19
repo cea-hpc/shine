@@ -268,7 +268,7 @@ class FileSystem:
 
         If there is no error, it returns the expected state.
         """
-        assert type(expected_states) is list
+        assert isinstance(expected_states, list)
         result = set()
 
         if actions and actions.status() == ACT_ERROR:

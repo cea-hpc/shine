@@ -58,7 +58,7 @@ class Target:
         nodes = self.dic.get('ha_node')
         if not nodes:
             nodes = []
-        elif type(nodes) is not list:
+        elif not isinstance(nodes, list):
             nodes = [nodes]
         return nodes
 
