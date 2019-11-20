@@ -22,8 +22,7 @@ before_script:
     - printf '%s\n    %s\n    %s\n' 'Host *' 'StrictHostKeyChecking no' 'LogLevel ERROR' >> ~/.ssh/config
 
 script:
-    - echo -e "[general]\nnoformat_dev=/dev/sda\nnoformat_jdev=/dev/sda1\n" > tests/tests.conf
-    - cd tests; PYTHONPATH=$PYTHONPATH:$PWD/../lib nosetests -v --all-modules --with-coverage -I CmdTest.py
+    - cd tests; PYTHONPATH=$PYTHONPATH:$PWD/../lib nosetests -v --all-modules --with-coverage
 
 # Push the results back to codecov
 after_success:
