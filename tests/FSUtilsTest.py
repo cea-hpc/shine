@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.FSUtils test suite
 # Written by A. Degremont 2010-11-20
-# $Id$
 
 
 """Unit test for FSUtils"""

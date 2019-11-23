@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.Configuration.Globals test suite
 # Written by A. Degremont 2010-11-07
-# $Id$
 
 
 """Unit test for Globals"""

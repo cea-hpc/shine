@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Shine.Lustre.Client test suite
 # Written by A. Degremont 2010-12-20
-# $Id$
 
 """Unit test for Client"""
 
