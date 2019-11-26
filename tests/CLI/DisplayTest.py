@@ -204,8 +204,8 @@ class SimpleFillTests(unittest.TestCase):
 
     def test_client_fields(self):
         """fill with client fields"""
-        self._fs.new_client(Server('foo', ['foo@tcp']), '/mnt/foo', 'ro')
-        self._fmt_str("%mntpath %mntopts", '/mnt/foo ro')
+        self._fs.new_client(Server('foo', ['foo@tcp']), '/mnt/foo', 'ro', 'dir')
+        self._fmt_str("%mntpath %mntopts %subdir", '/mnt/foo ro dir')
 
 class ComplexFillTests(unittest.TestCase):
 

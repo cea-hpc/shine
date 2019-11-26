@@ -68,7 +68,7 @@ class StartClient(FSAction):
         # List of node nids ['foo1@tcp0,foo1@tcp1', 'foo2@tcp0,foo2@tcp1']
         nodenids = [','.join(nids) for nids in self.comp.fs.get_mgs_nids()]
         mgsfullnid = ':'.join(nodenids)
-        command.append("%s:/%s" % (mgsfullnid, self.comp.fs.fs_name))
+        command.append("%s:/%s" % (mgsfullnid, self.comp.fspath))
 
         command.append(mount_path)
 

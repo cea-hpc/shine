@@ -576,6 +576,26 @@ client: node=foo2 mount_options=ro
         self.assertTrue(actions.get('unmount', False))
         self.assertTrue(actions.get('mount', False))
 
+    def test_per_client_subdir_update(self):
+        actions = self._compare(
+            """fs_name: compare
+            nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+            mount_path: /foo
+            mgt: node=foo1 dev=/dev/sda
+            client: node=foo2
+            """,
+            """fs_name: compare
+            nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
+            mount_path: /foo
+            mgt: node=foo1 dev=/dev/sda
+            client: node=foo2 subdir=/projects
+            """)
+        self.assertEqual(sorted(actions.keys()),
+                         ['copyconf', 'mount', 'unmount'])
+        self.assertTrue(actions.get('copyconf', False))
+        self.assertTrue(actions.get('unmount', False))
+        self.assertTrue(actions.get('mount', False))
+
     def test_update_target_ha_node(self):
         actions = self._compare(
 """fs_name: compare

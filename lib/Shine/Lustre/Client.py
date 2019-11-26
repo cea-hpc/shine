@@ -64,22 +64,33 @@ class Client(Component):
 
 
     def __init__(self, fs, server, mount_path, mount_options=None,
-                 enabled=True):
+                 subdir=None, enabled=True):
         """
         Initialize a Lustre client object.
         """
         self.mount_options = mount_options
         self.mount_path = mount_path
+        self.subdir = subdir
 
         Component.__init__(self, fs, server, enabled)
         self.mtpt = None
         self.proc_states = {}
 
+    @property
+    def fspath(self):
+        """
+        Return the full filesystem name needed to mount this client
+        """
+        if self.subdir:
+            return '/'.join((self.fs.fs_name, self.subdir.lstrip('/')))
+        else:
+            return self.fs.fs_name
+
     def longtext(self):
         """
         Return the client filesystem name and mount point.
         """
-        return "%s on %s" % (self.fs.fs_name, self.mount_path)
+        return "%s on %s" % (self.fspath, self.mount_path)
 
     def uniqueid(self):
         """
@@ -100,6 +111,7 @@ class Client(Component):
         self.mount_options = getattr(other, 'mount_options', None)
         self.mtpt = getattr(other, 'mtpt', getattr(other, 'status_info', None))
         self.proc_states = getattr(other, 'proc_states', {})
+        self.subdir = getattr(other, 'subdir', None)
 
     def lustre_check(self):
         """

@@ -62,8 +62,8 @@ client: node=foo[2-3]
         # Simplest conf, using global mount_path
         mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 2)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo', None))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo', None))
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', None, None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', None, None))
 
     def test_simple_iter_clients_options(self):
         """Configuration iter_clients (global options)"""
@@ -79,8 +79,8 @@ client: node=foo[2-3]
         # Simplest conf, using global mount_path
         mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 2)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl'))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl'))
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl', None))
 
     def test_several_iter_clients(self):
         """Configuration iter_clients (several)"""
@@ -95,11 +95,11 @@ client: node=foo[3-5] mount_path=/foo2
 
         mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 5)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo', None))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo', None))
-        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None))
-        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None))
-        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None))
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', None, None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', None, None))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None, None))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None, None))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None, None))
 
     def test_several_iter_clients_options(self):
         """Configuration iter_clients (several options)"""
@@ -111,15 +111,17 @@ mount_path: /foo
 mount_options: acl
 client: node=foo[2-3]
 client: node=foo[3-5] mount_path=/foo2 mount_options=noatime
+client: node=foo6 subdir=/projects
         """)
 
         mountpaths = list(self._conf.iter_clients())
-        self.assertEqual(len(mountpaths), 5)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl'))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl'))
-        self.assertEqual(mountpaths[2], ('foo3', '/foo2', 'noatime'))
-        self.assertEqual(mountpaths[3], ('foo4', '/foo2', 'noatime'))
-        self.assertEqual(mountpaths[4], ('foo5', '/foo2', 'noatime'))
+        self.assertEqual(len(mountpaths), 6)
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl', None))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', 'noatime', None))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', 'noatime', None))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', 'noatime', None))
+        self.assertEqual(mountpaths[5], ('foo6', '/foo', 'acl', '/projects'))
 
     def test_specific_iter_clients(self):
         """Configuration iter_clients (no global)"""
@@ -128,16 +130,16 @@ fs_name: climount
 nid_map: nodes=foo[1-10] nids=foo[1-10]@tcp
 mgt: mode=external
 client: node=foo[2-3] mount_path=/foo1
-client: node=foo[3-5] mount_path=/foo2
+client: node=foo[3-5] mount_path=/foo2 subdir=home
         """)
 
         mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 5)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo1', None))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo1', None))
-        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None))
-        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None))
-        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None))
+        self.assertEqual(mountpaths[0], ('foo2', '/foo1', None, None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo1', None, None))
+        self.assertEqual(mountpaths[2], ('foo3', '/foo2', None, 'home'))
+        self.assertEqual(mountpaths[3], ('foo4', '/foo2', None, 'home'))
+        self.assertEqual(mountpaths[4], ('foo5', '/foo2', None, 'home'))
 
     def test_specific_iter_clients_options(self):
         """Configuration iter_clients (no global mount_options)"""
@@ -152,10 +154,10 @@ client: node=foo[4-5]
 
         mountpaths = list(self._conf.iter_clients())
         self.assertEqual(len(mountpaths), 4)
-        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl,noatime'))
-        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl,noatime'))
-        self.assertEqual(mountpaths[2], ('foo4', '/foo', None))
-        self.assertEqual(mountpaths[3], ('foo5', '/foo', None))
+        self.assertEqual(mountpaths[0], ('foo2', '/foo', 'acl,noatime', None))
+        self.assertEqual(mountpaths[1], ('foo3', '/foo', 'acl,noatime', None))
+        self.assertEqual(mountpaths[2], ('foo4', '/foo', None, None))
+        self.assertEqual(mountpaths[3], ('foo5', '/foo', None, None))
 
     def test_missing_iter_clients(self):
         """Configuration iter_clients (missing path)"""

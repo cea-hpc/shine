@@ -194,12 +194,13 @@ class Router(ModelFile):
 class Client(ModelFile):
     """
     Define 'client' in model file:
-    nodes=<NODES> [mount_path=<PATH>] [mount_options=<PATH>]
+    nodes=<NODES> [mount_path=<PATH>] [mount_options=<PATH>] [subdir=<PATH>]
     """
 
     def __init__(self, sep='=', linesep=' '):
         ModelFile.__init__(self, sep, linesep)
         self.add_element('node',          check='string')
+        self.add_element('subdir',        check='string')
         self.add_element('mount_options', check='string')
         self.add_element('mount_path',    check='path')
 

@@ -220,11 +220,13 @@ class FileSystem:
         self._attach_component(target)
         return target
 
-    def new_client(self, server, mount_path, mount_options=None, enabled=True):
+    def new_client(self, server, mount_path, mount_options=None, subdir=None,
+                   enabled=True):
         """
         Create a new attached client.
         """
-        client = Client(self, server, mount_path, mount_options, enabled)
+        client = Client(self, server, mount_path, mount_options, subdir,
+                        enabled)
         self._attach_component(client)
         return client
 

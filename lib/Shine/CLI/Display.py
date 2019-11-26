@@ -93,6 +93,8 @@ COMP_FIELDS = {
                      'getter': attrgetter('mount_path') },
         'mntopts': { 'supports': 'mount_options',
                      'getter': attrgetter('mount_options') },
+        'subdir':  { 'supports': 'subdir',
+                     'getter': attrgetter('subdir') },
 
     }
 

@@ -55,8 +55,8 @@ ost: node=nova6 dev=/dev/sde
 
 # client
 # FS clients definition. Like targets, use multiple lines if you want.
-client: node=nova[8-32]
-client: node=nova[33-34]
+client: node=nova[8-30]
+client: node=nova[31-32]
 
 # Sometimes it is needed for some nodes to mount this FS on a different
 # mount point (not the default mount_path). In that case, use the
@@ -68,6 +68,9 @@ client: node=nova[35-38] mount_path=/my/specific/example
 # Also, to override default client mount options, add the following
 # mount_options inline option:
 client: node=nova39 mount_path=/my/specific/example mount_options=noatime
+
+# To mount only a sub-directory of the Lustre namespace
+client: node=nova33 subdir=/projects
 
 # Lustre routers
 #

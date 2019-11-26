@@ -399,7 +399,7 @@ class FileSystem(object):
                         break
 
         # Need to unmount then remount clients
-        remountkeys = set(['mount_options', 'mount_path'])
+        remountkeys = set(['mount_options', 'mount_path', 'subdir'])
         if remountkeys & anyset:
             actions['copyconf'] = True
             # Could be improved if doing this only on clients without specific

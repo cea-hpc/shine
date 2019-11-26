@@ -97,6 +97,14 @@ class ActionsTest(unittest.TestCase):
         self.check_cmd(action, 'mkdir -p "/foo" && ' +
                       '/bin/mount -t lustre -o acl localhost@tcp:/action /foo')
 
+    def test_start_client_subdir(self):
+        """test command line start client (subdir)"""
+        self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
+        client = self.fs.new_client(self.srv1, "/foo", subdir="projects")
+        action = StartClient(client)
+        self.check_cmd(action, 'mkdir -p "/foo" && ' +
+                    '/bin/mount -t lustre localhost@tcp:/action/projects /foo')
+
     def test_start_client_addl_options(self):
         """test command line start client (addl options)"""
         self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
@@ -708,9 +716,9 @@ class ActionsTest(unittest.TestCase):
     def test_execute_client(self):
         """test execute with client fields"""
         self.fs.new_target(self.srv1, 'mgt', 0, self.block1)
-        client = self.fs.new_client(self.srv1, "/foo", "ro")
-        action = Execute(client, addopts="mount %mntpath %mntopts")
-        self.check_cmd(action, "mount /foo ro")
+        client = self.fs.new_client(self.srv1, "/foo", "ro", "home")
+        action = Execute(client, addopts="mount %mntpath %mntopts %subdir")
+        self.check_cmd(action, "mount /foo ro home")
 
     def test_execute_client_bad_fields(self):
         """test execute with client and dev fields"""

@@ -21,6 +21,7 @@ syn keyword shineFSKey              mdt_mount_path
 syn keyword shineFSKey              mdt_format_params
 syn keyword shineFSKey              mount_options
 syn keyword shineFSKey              mount_path
+syn keyword shineFSKey              subdir
 syn keyword shineFSKey              mgt_mkfs_options
 syn keyword shineFSKey              mgt_mount_options
 syn keyword shineFSKey              mgt_mount_path

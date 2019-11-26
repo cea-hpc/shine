@@ -36,7 +36,8 @@ def _create_comp(fs_conf, fs, comp):
     if comp_type == 'client':
         newcomp = Client(fs, server,
                comp.get_mount_path() or fs_conf.get_default_mount_path(),
-               comp.get_mount_options() or fs_conf.get_default_mount_options())
+               comp.get_mount_options() or fs_conf.get_default_mount_options(),
+               comp.get('subdir'))
     elif comp_type == 'mgt':
         newcomp = MGT(fs, server, comp.get_index(), comp.get_dev(),
                       comp.get_jdev())
@@ -151,7 +152,7 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
 
 
     # Create attached file system clients...
-    for client_node, mount_path, mount_options in fs_conf.iter_clients():
+    for client_node, mount_path, mount_options, subdir in fs_conf.iter_clients():
         server = _get_server(client_node, fs, fs_conf, event_handler,
                              nodes=nodes, excluded=excluded)
 
@@ -162,8 +163,8 @@ def instantiate_lustrefs(fs_conf, target_types=None, nodes=None, excluded=None,
             (excluded is not None and server.hostname in excluded):
             client_action_enabled = False
 
-        client = fs.new_client(server, mount_path, mount_options, \
-                               client_action_enabled)
+        client = fs.new_client(server, mount_path, mount_options, subdir, \
+                               enabled=client_action_enabled)
 
         # Now the device is instanciated, we could check label name
         if (labels is not None and client.label not in labels):
