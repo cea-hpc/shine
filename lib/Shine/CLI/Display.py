@@ -156,17 +156,10 @@ def table_fill(tbl, fs, sort_key=None, supports=None, viewsupports=None):
                comps.groupby(key=fieldvals) ]
 
     # Sort
-    def sorter(compgrp):
-        """
-        Sort grplist based on provided sort_key for the first element of
-        compgrp.
-        """
-        (first, _) = compgrp
-        if sort_key is None:
-            return None
-        return sort_key(first)
+    if sort_key is not None:
+        grplst.sort(key=lambda group: sort_key(group[0]))
 
-    for first, compgrp in sorted(grplst, key=sorter):
+    for first, compgrp in grplst:
 
         # Get component fields
         fields = _get_fields(first, pat_fields)
