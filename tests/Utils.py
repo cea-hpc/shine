@@ -59,7 +59,7 @@ def makeTempFilename():
 
 def makeTempFile(text):
     """ Create a temporary file with the provided text."""
-    tmp = tempfile.NamedTemporaryFile(prefix='shine-test-')
+    tmp = tempfile.NamedTemporaryFile(prefix='shine-test-', mode='w')
     tmp.write(text)
     tmp.flush()
     return tmp
