@@ -299,7 +299,7 @@ class Controller(object):
         return rc
 
 def run():
-    Controller().run_command()
+    return Controller().run_command()
 
 if __name__ == '__main__':
     run()
