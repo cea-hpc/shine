@@ -20,7 +20,7 @@ if [ `grep -c "^public_version = \"$version\"" $VERSIONFILE` -eq 0 ]; then
 fi
 
 # build a source distribution
-python setup.py sdist || exit 1
+python3 setup.py sdist || exit 1
 
 # build RPMs
 rpmbuild -ba \

@@ -79,7 +79,7 @@ class AlertManager(object):
         # Load defined Alert plugins
         if 'alert_plugins' in config_dic:
             alert_plugins = config_dic['alert_plugins']
-            for name, plugin_cfg in alert_plugins.iteritems():
+            for name, plugin_cfg in alert_plugins.items():
                 LOGGER.debug('Found Alert plugin %s in config: %s', name,
                              plugin_cfg)
                 try:
@@ -119,21 +119,21 @@ class AlertManager(object):
 
     def info(self, aclass, message, ctx=None):
         """Trigger an informative alert"""
-        for alert in sorted(self.alerts.values(), key=attrgetter('sortkey')):
+        for alert in sorted(list(self.alerts.values()), key=attrgetter('sortkey')):
             if 0 in alert.levels:
                 LOGGER.debug('Triggering Alert %s (INFO)', alert.name)
                 alert.info(aclass, message, ctx)
 
     def warning(self, aclass, message, ctx=None):
         """Trigger a warning alert"""
-        for alert in sorted(self.alerts.values(), key=attrgetter('sortkey')):
+        for alert in sorted(list(self.alerts.values()), key=attrgetter('sortkey')):
             if 1 in alert.levels:
                 LOGGER.debug('Triggering Alert %s (WARNING)', alert.name)
                 alert.warning(aclass, message, ctx)
 
     def critical(self, aclass, message, ctx=None):
         """Trigger a critical alert"""
-        for alert in sorted(self.alerts.values(), key=attrgetter('sortkey')):
+        for alert in sorted(list(self.alerts.values()), key=attrgetter('sortkey')):
             if 2 in alert.levels:
                 LOGGER.debug('Triggering Alert %s (CRITICAL)', alert.name)
                 alert.critical(aclass, message, ctx)

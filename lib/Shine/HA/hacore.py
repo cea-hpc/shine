@@ -124,7 +124,7 @@ class HACore(Alert):
                 continue
 
             found = False
-            for failserv, state in comp._states.items():
+            for failserv, state in list(comp._states.items()):
                 if failserv == server:
                     continue
                 # Look for offline (no error) states on the failover server
@@ -150,7 +150,7 @@ class HACore(Alert):
     def fence_and_migrate(self, fs_name, server, failover_servers):
         """Fence server and migrate targets to failover_servers."""
         LOGGER.warning('fence_and_migrate %s to %s', server,
-                       NodeSet.fromlist(failover_servers.keys()))
+                       NodeSet.fromlist(list(failover_servers.keys())))
         # Trigger failover
         msg = 'Target errors and lnet down on `%s`: triggering *failover*!' \
               % server
@@ -189,7 +189,7 @@ class HACore(Alert):
         servers = {}
 
         for comp in comps:
-            sorted_states = sorted(comp._states.iteritems(), key=itemgetter(1))
+            sorted_states = sorted(iter(comp._states.items()), key=itemgetter(1))
 
             # Regroup by server
             for server, states in groupby(sorted_states, key=itemgetter(0)):
@@ -197,7 +197,7 @@ class HACore(Alert):
                 LOGGER.debug('server=%s states=%s', server, statelist)
                 servers.setdefault(server, set()).update(statelist)
 
-        for server, states in servers.items():
+        for server, states in list(servers.items()):
             if states.issubset(set([RUNTIME_ERROR, TARGET_ERROR])):
                 LOGGER.debug('All %s components from %s are in an error state',
                              ctx['fs_name'], server)
@@ -237,7 +237,7 @@ class HACore(Alert):
 
     def fence_successful(self, server):
         LOGGER.warning('Fence command successful for server %s', server)
-        for server, complist in self.failover_servers.items():
+        for server, complist in list(self.failover_servers.items()):
             targets = NodeSet.fromlist(comp.uniqueid() for comp in complist)
             LOGGER.warning('Starting %s on %s', targets, server)
             # We cannot start resident and failover targets in one shot, so we

@@ -21,7 +21,7 @@
 
 """shine-HA email alerting"""
 
-from __future__ import absolute_import
+
 
 from datetime import datetime
 from email.mime.text import MIMEText
