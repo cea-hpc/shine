@@ -40,3 +40,4 @@ class Config(FSLiveCommand):
 
     def execute_fs(self, fs, fs_conf, hdl, vlevel):
         print(display(self, fs))
+        return 0
