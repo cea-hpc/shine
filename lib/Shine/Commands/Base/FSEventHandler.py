@@ -123,7 +123,7 @@ class FSLocalEventHandler(LustreEH):
         if action == 'proxy':
             return
 
-        if result and result.duration >= 100:
+        if result and result.duration is not None and result.duration >= 100:
             duration = " (%.1f min)" % (result.duration / 60.0)
         # start and stop sent Result message without duration when already done
         elif result and result.duration is not None:
