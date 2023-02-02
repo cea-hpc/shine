@@ -37,7 +37,7 @@ from Shine.HA.alerts import ALERT_CLS_FS
 STATE_TXTID_MAP = {'MOUNTED': MOUNTED, 'OFFLINE': OFFLINE, 'NO_DEVICE': NO_DEVICE,
                    'TARGET_ERROR': TARGET_ERROR, 'RUNTIME_ERROR': RUNTIME_ERROR,
                    'RECOVERING': RECOVERING, 'CLIENT_ERROR': CLIENT_ERROR}
-STATE_IDTXT_MAP = {v: k for k, v in STATE_TXTID_MAP.iteritems()}
+STATE_IDTXT_MAP = {v: k for k, v in STATE_TXTID_MAP.items()}
 
 LOGGER = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ class FSMonitor(object):
         # Check for errors...
         comp_st_cnt_mtx = [[], [], []] # info,warn,crit
 
-        for compid, st_cnt_obj in self.comp_state_cnt_dic.items():
+        for compid, st_cnt_obj in list(self.comp_state_cnt_dic.items()):
             state_cnt = st_cnt_obj.state_cnt
             last_state_id = STATE_IDTXT_MAP[st_cnt_obj.state]
             thresholds = self.comp_alert_thresholds[last_state_id]
@@ -184,7 +184,7 @@ class FSMonitor(object):
 
             # Class components based on state_cnt that reached the thresholds
             # (no alerted_level is performed here to included all components)
-            for level in reversed(range(3)):
+            for level in reversed(list(range(3))):
                 if state_cnt >= thresholds[level]:
                     comp_st_cnt_mtx[level].append(st_cnt_obj)
                     break

@@ -135,7 +135,7 @@ class SlackWebhookAlert(Alert):
 
     def _ha_info(self, message, ctx, emoji, color):
         fields = []
-        for server, complist in ctx['failover_servers'].items():
+        for server, complist in list(ctx['failover_servers'].items()):
             compset = NodeSet.fromlist(comp.uniqueid() for comp in complist)
             fields.append({"title": "Migrating to %s" % server,
                            "value": str(compset),

@@ -51,13 +51,13 @@ class NodeNidsState(object):
         self.down_count = 0
 
     def __iter__(self):
-        return self._states.iterkeys()
+        return iter(self._states.keys())
 
     def __len__(self):
         return len(self._states)
 
     def nids(self):
-        return self._states.keys()
+        return list(self._states.keys())
 
     def set_nids(self, nids):
         for nid in nids:
@@ -140,7 +140,7 @@ class LNetMonitor(EventHandler):
             self.nnidss.setdefault(node, NodeNidsState(node)).set_nids(nids)
 
         cnt = 0
-        for node, nidss in self.nnidss.items():
+        for node, nidss in list(self.nnidss.items()):
             cnt += len(nidss)
             for nid in nidss:
                 command = self.command % nid
@@ -163,7 +163,7 @@ class LNetMonitor(EventHandler):
             self.checkerr_timer = self.task.timer(1, handler=self)
 
     def nodes_down(self):
-        return ((nidss.node, nidss) for nidss in self.nnidss.values()
+        return ((nidss.node, nidss) for nidss in list(self.nnidss.values())
                 if nidss.get_state() != NID_STATE_UP)
 
     def ev_timer(self, timer):
@@ -179,7 +179,7 @@ class LNetMonitor(EventHandler):
             optimal = False
             nidss.down_count += 1
 
-            for level in reversed(range(3)):
+            for level in reversed(list(range(3))):
                 if nidss.down_count == self.alert_thresholds[level]:
                     down_cnt_mtx[level].append(nidss)
                     break
