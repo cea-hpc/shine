@@ -140,14 +140,16 @@ class Disk:
 
         for line in output.splitlines():
             line = line.strip()
-            if line.startswith('Flags:'):
-                self._ldd_flags = int(line.split(':')[1], 16)
-            elif line.startswith('Target:'):
-                self.ldd_svname = line.split(':', 1)[1].strip()
-            elif line.startswith('Permanent disk data:'):
+            if line.startswith(b'Flags:'):
+                self._ldd_flags = int(line.split(b':')[1], 16)
+            elif line.startswith(b'Target:'):
+                self.ldd_svname = line.split(b':', 1)[1].strip()
+            elif line.startswith(b'Permanent disk data:'):
                 break
 
         if label_check:
+            label_check = label_check.encode()
+
             # Lustre 2.3 changed the label patterns.
             # fsname and svname could be separated by '-', ':' and '='
             # For compatibility reasons, we ignore ':' and '='.

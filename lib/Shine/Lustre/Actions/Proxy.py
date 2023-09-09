@@ -205,7 +205,6 @@ class FSProxyAction(CommonAction):
         buf = worker.current_msg
         try:
             data = shine_msg_unpack(buf)
-
             # COMPAT: Prior to 1.4, 'comp'+'action' was used.
             # 1.4+ uses ActionInfo
             if 'comp' in data:
