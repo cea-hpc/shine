@@ -422,7 +422,10 @@ class ComponentGroup(object):
 
         # Sort the components using the server name in each tuple as key,
         # and then, group results using the same key.
-        sortlist = sorted(srvcomps, key=itemgetter(0))
+        def srvname_getter(srvcomp):
+            return str(srvcomp[0])
+
+        sortlist = sorted(srvcomps, key=srvname_getter)
         grouped = groupby(sortlist, key=itemgetter(0))
 
         return ((grpkey, ComponentGroup(map(itemgetter(1), tpl)))
