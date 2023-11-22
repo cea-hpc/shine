@@ -180,9 +180,9 @@ class Command(object):
     @classmethod
     def display_proxy_errors(cls, fs):
         """Display proxy error messages for the specified filesystem."""
-        for msg, nodes in fs.proxy_errors.walk():
+        for msgelem, nodes in fs.proxy_errors.walk():
             nodes = str(NodeSet.fromlist(nodes))
-            msg = str(msg).replace('THIS_SHINE_HOST', nodes)
+            msg = msgelem.message().decode().replace('THIS_SHINE_HOST', nodes)
             print("%s: %s" % (nodes, msg), file=sys.stderr)
 
 class RemoteCommand(Command):
