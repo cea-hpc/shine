@@ -348,9 +348,9 @@ class Target(Component, Disk):
         # find lustre parameters in procfs or sysfs
         # (Since Lustre 2.4, more than one path could be returned.
         #  The first one is fine. Since 2.13 it will be in sysfs.)
-        mntdev_path = glob('/sys/fs/lustre/*/%s/mntdev' % self.label)
+        mntdev_path = glob('/sys/fs/lustre/osd-*/%s/mntdev' % self.label)
         if len(mntdev_path) == 0:
-            mntdev_path = glob('/proc/fs/lustre/*/%s/mntdev' % self.label)
+            mntdev_path = glob('/proc/fs/lustre/osd-*/%s/mntdev' % self.label)
 
         recov_path = glob('/proc/fs/lustre/*/%s/recovery_status' % self.label)
         assert len(recov_path) <= 1
@@ -407,7 +407,7 @@ class Target(Component, Disk):
                     fproc = open(recov_path[0], 'r')
                 except (IOError, IndexError):
                     self.local_state = TARGET_ERROR
-                    raise ComponentError(self, "recovery_state file not " \
+                    raise ComponentError(self, "recovery_status file not " \
                                                   "found for %s" % self.label)
 
                 try:
