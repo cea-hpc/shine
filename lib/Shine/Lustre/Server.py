@@ -93,9 +93,11 @@ class Server(object):
     def __str__(self):
         return "%s (%s)" % (self.hostname, ','.join(self.nids))
 
+    def __eq__(self, other):
+        return str(self).__eq__(str(other))
+
     def __lt__(self, other):
-	# Cast hostname into str until NodeSet is sortable
-        return (str(self.hostname), self.nids) < (str(other.hostname), self.nids)
+        return str(self).__lt__(str(other))
 
     @classmethod
     def hostname_long(cls):
