@@ -218,7 +218,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt)
         self.check_cmd(action,
                 'mkdir -p "/mnt/action/mgt/0" && ' +
-                '/bin/mount -t lustre %s /mnt/action/mgt/0' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/action/mgt/0' %
+                self.block1)
 
     def test_start_target_addopts(self):
         """test command line start target (addl options)"""
@@ -227,7 +228,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, addopts='abort_recov')
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
-               '/bin/mount -t lustre -o abort_recov %s /mnt/action/mgt/0' % self.block1)
+               '/bin/mount -t lustre_tgt,lustre -o abort_recov %s '
+               '/mnt/action/mgt/0' % self.block1)
 
     def test_start_target_mount_options(self):
         """test command line start target (mount_options)"""
@@ -236,7 +238,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
-               '/bin/mount -t lustre -o abort_recov %s /mnt/action/mgt/0' % self.block1)
+               '/bin/mount -t lustre_tgt,lustre -o abort_recov %s '
+               '/mnt/action/mgt/0' % self.block1)
 
     def test_start_target_mount_options_none(self):
         """test command line start target (mount_options missing)"""
@@ -245,12 +248,14 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, mount_options={'mdt': 'abort_recov'})
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
-               '/bin/mount -t lustre %s /mnt/action/mgt/0' % self.block1)
+               '/bin/mount -t lustre_tgt,lustre %s /mnt/action/mgt/0' %
+               (self.block1))
 
         action = StartTarget(tgt, mount_options={'mgt': None})
         self.check_cmd(action,
                'mkdir -p "/mnt/action/mgt/0" && ' +
-               '/bin/mount -t lustre %s /mnt/action/mgt/0' % self.block1)
+               '/bin/mount -t lustre_tgt,lustre %s /mnt/action/mgt/0' %
+               self.block1)
 
     def test_start_target_both_options(self):
         """test command line start target (both options)"""
@@ -260,7 +265,8 @@ class ActionsTest(unittest.TestCase):
                              mount_options={'mgt': 'abort_recov'})
         self.check_cmd(action,
              'mkdir -p "/mnt/action/mgt/0" && ' +
-             '/bin/mount -t lustre -o abort_recov,ro %s /mnt/action/mgt/0' % self.block1)
+             '/bin/mount -t lustre_tgt,lustre -o abort_recov,ro %s '
+             '/mnt/action/mgt/0' % self.block1)
 
     def test_start_target_jdev(self):
         """test command line start target (with journal)"""
@@ -273,8 +279,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt)
         self.check_cmd(action,
           'mkdir -p "/mnt/action/mgt/0" && ' +
-          '/bin/mount -t lustre -o journal_dev=%#x %s /mnt/action/mgt/0' %
-          (majorminor, dev))
+          '/bin/mount -t lustre_tgt,lustre -o journal_dev=%#x %s '
+          '/mnt/action/mgt/0' % (majorminor, dev))
 
     def test_start_target_file_device(self):
         """test command line start target (file device)"""
@@ -283,7 +289,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt)
         self.check_cmd(action,
                 'mkdir -p "/mnt/action/mgt/0" && ' +
-                '/bin/mount -t lustre -o loop /etc/passwd /mnt/action/mgt/0')
+                '/bin/mount -t lustre_tgt,lustre -o loop /etc/passwd '
+                '/mnt/action/mgt/0')
 
     def test_start_target_mount_paths(self):
         """test command line start target (mount paths)"""
@@ -292,7 +299,8 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/mypath'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/mypath" && ' +
-                '/bin/mount -t lustre %s /mnt/mypath' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/mypath' %
+                self.block1)
 
     def test_start_target_custom_mount_paths(self):
         """test command line start target (custom mount paths)"""
@@ -303,36 +311,43 @@ class ActionsTest(unittest.TestCase):
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name/mgt'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/action/mgt" && ' +
-                '/bin/mount -t lustre %s /mnt/action/mgt' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/action/mgt' %
+                self.block1)
         # index
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/mgt/$index'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/mgt/0" && ' +
-                '/bin/mount -t lustre %s /mnt/mgt/0' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/mgt/0' %
+                self.block1)
         # type
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$type/$index'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/mgt/0" && ' +
-                '/bin/mount -t lustre %s /mnt/mgt/0' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/mgt/0' %
+                self.block1)
         # label
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$label'})
         self.check_cmd(action, 'mkdir -p "/mnt/MGS"' +
-                               ' && /bin/mount -t lustre %s /mnt/MGS' % self.block1)
+                               ' && /bin/mount -t lustre_tgt,lustre %s '
+                               '/mnt/MGS' % self.block1)
         # dev
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name-$dev'})
         loopname = self.block1[self.block1.rindex('/') + 1:]
         self.check_cmd(action, 'mkdir -p "/mnt/action-%s"' % loopname +
-                        ' && /bin/mount -t lustre %s /mnt/action-%s' % (self.block1, loopname))
+                        ' && /bin/mount -t lustre_tgt,lustre %s '
+                        '/mnt/action-%s' % (self.block1, loopname))
         # No jdev
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$fs_name-$jdev'})
         self.check_cmd(action, 'mkdir -p "/mnt/action-$jdev"' +
-                        ' && /bin/mount -t lustre %s /mnt/action-$jdev' % self.block1)
+                        ' && /bin/mount -t lustre_tgt,lustre %s '
+                        '/mnt/action-$jdev' % self.block1)
 
         # Bad variable, leave it as-is
         action = StartTarget(tgt, mount_paths={'mgt': '/mnt/$bad'})
         self.check_cmd(action,
                 'mkdir -p "/mnt/$bad" && ' +
-                '/bin/mount -t lustre %s /mnt/$bad' % self.block1)
+                '/bin/mount -t lustre_tgt,lustre %s /mnt/$bad' %
+                self.block1)
 
         # jdev
         dirname = self.block2[self.block2.rfind('/')+1:]
@@ -341,7 +356,8 @@ class ActionsTest(unittest.TestCase):
         tgt.full_check(mountdata=False)
         action = StartTarget(tgt, mount_paths={'mdt': '/mnt/$jdev'})
         self.check_cmd(action, 'mkdir -p "/mnt/%s" && ' % dirname +
-              '/bin/mount -t lustre -o journal_dev=%#x ' % majorminor +
+              '/bin/mount -t lustre_tgt,lustre '
+              '-o journal_dev=%#x ' % majorminor +
               '%s /mnt/%s' % (self.block1, dirname))
 
     # Stop

@@ -76,10 +76,13 @@ class StartTarget(FSAction):
         mount_path = self._vars_substitute(mount_path, var_map)
 
         #
-        # Build command
+        # Build command. Try both old and new Lustre FS types. The mount command
+        # first tries to exec mount.lustre_tgt and fallback to mount.lustre if
+        # not found. The lustre_tgt FS type is set in the first place as it is
+        # more future proof.
         #
         command = ["mkdir -p \"%s\"" % mount_path]
-        command += ["&& /bin/mount -t lustre"]
+        command += ["&& /bin/mount -t lustre_tgt,lustre"]
 
         # Loop devices handling
         if not self.comp.dev_isblk:
