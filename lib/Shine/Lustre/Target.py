@@ -377,7 +377,7 @@ class Target(Component, Disk):
             try:
                 for line in f_proc_mounts:
                     if line.find("%s " % self.mntdev) == 0:
-                        if line.split(' ', 3)[2] == "lustre":
+                        if line.split(' ', 3)[2] in ("lustre", "lustre_tgt"):
                             if loaded:
                                 self.local_state = MOUNTED
                             else:
