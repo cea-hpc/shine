@@ -1,0 +1,46 @@
+---
+name: Unit tests
+run-name: Shine Unit tests
+on: [workflow_dispatch, push, pull_request]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+
+jobs:
+  launch_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          #pip install -r requirements.txt
+          pip install clustershell
+          pip install nose
+          pip install coverage
+
+      - name: Set up passordless ssh connection
+        run: |
+          ssh-keygen -f ~/.ssh/id_rsa -N ""
+          cp ~/.ssh/{id_rsa.pub,authorized_keys}
+          # Avoid ssh "known hosts" warnings
+          echo -e 'Host *\n  StrictHostKeyChecking no\n  LogLevel ERROR' \
+            >> ~/.ssh/config
+
+      - name: Run nosetests
+        run: |
+          cd tests
+          PYTHONPATH=$PYTHONPATH:$PWD/../lib nosetests \
+              -v --all-modules \
+              --with-coverage
