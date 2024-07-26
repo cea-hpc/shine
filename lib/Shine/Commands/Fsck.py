@@ -54,7 +54,7 @@ class GlobalFsckEventHandler(FSGlobalEventHandler):
 
     def action_progress(self, node, action, comp, result):
         self._comps[comp] = result.progress
-        self._current = sum(self._comps.values()) / len(self._comps)
+        self._current = sum(self._comps.values()) // len(self._comps)
         header = self.command.NAME.capitalize()
         sys.stdout.write("%s in progress: %d %%\r" % (header, self._current))
         sys.stdout.flush()
@@ -75,7 +75,7 @@ class LocalFsckEventHandler(FSLocalEventHandler):
 
     def action_progress(self, node, action, comp, result):
         self._comps[comp] = result.progress
-        self._current = sum(self._comps.values()) / len(self._comps)
+        self._current = sum(self._comps.values()) // len(self._comps)
         header = self.command.NAME.capitalize()
         sys.stdout.write("%s in progress: %d %%\r" % (header, self._current))
         sys.stdout.flush()

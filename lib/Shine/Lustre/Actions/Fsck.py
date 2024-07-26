@@ -46,7 +46,7 @@ class FsckProgress(Result):
     @property
     def progress(self):
         """Current fsck command progression value, between 1 and 100."""
-        return ((self.pass_id - 1 + self.pass_progress) / self._NB_PASSES) * 100
+        return ((self.pass_id - 1 + self.pass_progress) // self._NB_PASSES) * 100
 
 class Fsck(FSAction):
     """

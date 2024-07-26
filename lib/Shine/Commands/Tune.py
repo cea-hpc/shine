@@ -167,7 +167,7 @@ class Tune(FSLiveCommand):
             tunings.create_parameter_alias("quota_btune_oss", path)
 
             # Convert the values to the right units
-            quota_btune = str(int(quota_btune) * int(quota_bunit) / 100)
+            quota_btune = str(int(quota_btune) * int(quota_bunit) // 100)
 
             # Create the quota tuning parameters with the right values
             tunings.create_parameter('quota_btune_mds', quota_btune, ['mds'])
@@ -196,7 +196,7 @@ class Tune(FSLiveCommand):
             tunings.create_parameter_alias("quota_itune_oss", path)
 
             # Convert the values to the right units
-            quota_itune = str(int(quota_itune) * int(quota_iunit) / 100)
+            quota_itune = str(int(quota_itune) * int(quota_iunit) // 100)
 
             # Create the quota tuning parameters with the right values
             tunings.create_parameter('quota_itune_mds', quota_itune, ['mds'])

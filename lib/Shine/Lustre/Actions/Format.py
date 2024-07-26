@@ -225,7 +225,7 @@ class Format(CommonFormat):
 
         # loop back devices
         if not self.comp.dev_isblk:
-            command.append('--device-size=%d' % (self.comp.dev_size / 1024))
+            command.append('--device-size=%d' % (self.comp.dev_size // 1024))
 
         command.append(self.comp.dev)
 
