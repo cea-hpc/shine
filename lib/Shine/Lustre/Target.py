@@ -196,7 +196,7 @@ class Target(Component, Disk):
                   "\tPartial results may show up.\n" \
                   "\tMigrated targets may not be detected.\n" \
                   "\tTo avoid this, please synchronize shine versions."
-            self.fs._handle_shine_proxy_error(srvname, msg)
+            self.fs._handle_shine_proxy_error(srvname, msg.encode())
 
     def add_server(self, server):
         assert isinstance(server, Server)

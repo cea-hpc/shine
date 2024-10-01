@@ -189,7 +189,7 @@ class FileSystem:
         Hostnames are replaced by 'THIS_SHINE_HOST' to allow message grouping.
         Grouping outputs which only differ by the host name.
         """
-        message = message.replace(str(nodes), 'THIS_SHINE_HOST')
+        message = message.replace(str(nodes).encode(), b'THIS_SHINE_HOST')
         self.proxy_errors.add(str(nodes), message)
 
     #
@@ -299,7 +299,7 @@ class FileSystem:
             # best place to compute the component server.
             if comp.update_server() is False:
                 msg = "WARNING: %s is mounted multiple times" % comp.label
-                self._handle_shine_proxy_error(str(comp.server.hostname), msg)
+                self._handle_shine_proxy_error(str(comp.server.hostname), msg.encode())
 
         # if empty set, add expected_states[0]
         if not result:
@@ -328,7 +328,8 @@ class FileSystem:
                 # FSRemoteError is limited and cannot handle more than 1 error
                 msg, nodes = list(self.proxy_errors.walk())[0]
                 nodes = NodeSet.fromlist(nodes)
-                msg = str(msg).replace('THIS_SHINE_HOST', str(nodes))
+                msg = msg.message().decode().replace('THIS_SHINE_HOST',
+                                                     str(nodes))
                 raise FSRemoteError(nodes, err_code, msg)
 
     def install(self, fs_config_file, servers=None, **kwargs):

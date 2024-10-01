@@ -37,5 +37,5 @@ class RemoteCallEventHandler(EventHandler):
         if 'node' in kwargs:
             del kwargs['node']
         msg = shine_msg_pack(evtype=evtype, **kwargs)
-        sys.stdout.write(msg)
+        sys.stdout.write(msg.decode())
         sys.stdout.flush()

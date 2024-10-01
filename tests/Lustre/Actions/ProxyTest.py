@@ -56,7 +56,7 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([MOUNTED], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
+        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
                          "Remote action start failed: No response")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
         self.assertEqual(self.act.status(), ACT_ERROR)
@@ -71,7 +71,7 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([MOUNTED], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
+        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
                          "Remote action start failed: \nBAD\n")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
         self.assertEqual(self.act.status(), ACT_ERROR)
@@ -109,7 +109,7 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([MOUNTED], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0],
+        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
                          "Remote action start failed: \n\nOops\n")
         self.assertEqual(self.tgt.state, MOUNTED)
         self.assertEqual(self.act.status(), ACT_ERROR)
@@ -127,7 +127,7 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([OFFLINE], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
+        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
                          "Cannot read message (check Shine and ClusterShell "
                          "version): 'MGT' object has no attribute "
                          "'wrong_property'")
@@ -145,7 +145,7 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([OFFLINE], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(str(list(self.fs.proxy_errors.messages())[0]),
+        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
                          "Cannot unpickle message (check Shine and ClusterShell"
                          " versions): pop from empty list")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
