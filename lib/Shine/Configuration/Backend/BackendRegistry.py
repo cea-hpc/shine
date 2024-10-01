@@ -47,7 +47,8 @@ class BackendRegistry:
 
         # Import Backend if not already done
         if name not in self.backends:
-            mod = __import__(name, globals(), locals(), [])
+            mod = __import__("Shine.Configuration.Backend." + name, globals(),
+                             locals(), [name])
             cls = getattr(mod, mod.BACKEND_MODNAME)
             self.register(cls())
 
