@@ -65,7 +65,7 @@ class ProxyTest(unittest.TestCase):
         """send a start message then crashes"""
         msg = shine_msg_pack(evtype='comp', info=self.info, status='start')
 
-        self.act.fakecmd = 'echo "%s"; echo BAD; exit 1' % msg
+        self.act.fakecmd = 'echo "%s"; echo BAD; exit 1' % msg.decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([MOUNTED], self.fs.components)
@@ -85,7 +85,7 @@ class ProxyTest(unittest.TestCase):
         msgs.append(shine_msg_pack(evtype='comp', info=self.info,
                                    status='done'))
 
-        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
+        self.act.fakecmd = 'echo "%s"' % b'\n'.join(msgs).decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([MOUNTED], self.fs.components)
@@ -103,7 +103,7 @@ class ProxyTest(unittest.TestCase):
         msgs.append(shine_msg_pack(evtype='comp', info=self.info,
                                    status='done'))
 
-        self.act.fakecmd = 'echo "%s"; echo Oops; exit 1' % '\n'.join(msgs)
+        self.act.fakecmd = 'echo "%s"; echo Oops; exit 1' % b'\n'.join(msgs).decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([MOUNTED], self.fs.components)
@@ -121,7 +121,7 @@ class ProxyTest(unittest.TestCase):
             self.wrong_property = other.wrong_property
         self.tgt.update = types.MethodType(buggy_update, self.tgt)
 
-        self.act.fakecmd = 'echo "%s"' % msg
+        self.act.fakecmd = 'echo "%s"' % msg.decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([OFFLINE], self.fs.components)
@@ -136,10 +136,10 @@ class ProxyTest(unittest.TestCase):
 
     def test_cannot_unpickle(self):
         """send a forged message which fails due to bad pickle content"""
-        msg = "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
-                           binascii.b2a_base64('bad content'))
+        msg = b"%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
+                            binascii.b2a_base64(b'bad content'))
 
-        self.act.fakecmd = 'echo "%s"' % msg
+        self.act.fakecmd = 'echo "%s"' % msg.decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([OFFLINE], self.fs.components)
@@ -160,7 +160,7 @@ class ProxyTest(unittest.TestCase):
         msgs.append(shine_msg_pack(compname=self.tgt.TYPE, action='start',
                                    status='done', comp=self.tgt))
 
-        self.act.fakecmd = 'echo "%s"' % '\n'.join(msgs)
+        self.act.fakecmd = 'echo "%s"' % b'\n'.join(msgs).decode()
         self.act.launch()
         self.fs._run_actions()
         self.fs._check_errors([MOUNTED], self.fs.components)
