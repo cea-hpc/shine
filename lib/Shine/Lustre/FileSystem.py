@@ -190,7 +190,7 @@ class FileSystem:
         Grouping outputs which only differ by the host name.
         """
         message = message.replace(str(nodes), 'THIS_SHINE_HOST')
-        self.proxy_errors.add(NodeSet(nodes), message)
+        self.proxy_errors.add(str(nodes), message)
 
     #
     # file system construction
