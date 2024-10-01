@@ -69,7 +69,7 @@ class Install(CommonAction):
         # Action timed out
         if worker.did_timeout():
             nodes = NodeSet.fromlist(worker.iter_keys_timeout())
-            self.fs._handle_shine_proxy_error(nodes, "Nodes timed out")
+            self.fs._handle_shine_proxy_error(nodes, b"Nodes timed out")
             self.set_status(ACT_ERROR)
 
         # Action succeeded
@@ -88,6 +88,6 @@ class Install(CommonAction):
 
                 for output, nodes in worker.iter_buffers(match_keys=nodes):
                     nodes = NodeSet.fromlist(nodes)
-                    msg = "Copy failed: %s" % output
+                    msg = b"Copy failed: %s" % output.message()
                     self.fs._handle_shine_proxy_error(nodes, msg)
             self.set_status(ACT_ERROR)
