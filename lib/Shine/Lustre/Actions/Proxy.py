@@ -37,7 +37,7 @@ from Shine.Lustre.Actions.Action import ErrorResult
 #
 # SHINE PROXY PROTOCOL
 #
-SHINE_MSG_MAGIC = "SHINE:"
+SHINE_MSG_MAGIC = b"SHINE:"
 SHINE_MSG_VERSION = 3
 
 class ProxyActionUnpackError(Exception):
@@ -49,8 +49,8 @@ class ProxyActionUnpickleError(Exception):
 def shine_msg_pack(**kwargs):
     """Shine event serialization method."""
     # To be more evolutive, Shine message contains only a dict.
-    return "%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
-                        binascii.b2a_base64(pickle.dumps(kwargs, -1)))
+    return b"%s%d:%s" % (SHINE_MSG_MAGIC, SHINE_MSG_VERSION,
+                         binascii.b2a_base64(pickle.dumps(kwargs, -1)))
 
 def shine_msg_unpack(msg):
     """
@@ -64,7 +64,7 @@ def shine_msg_unpack(msg):
 
     # Identified shine msg of the form SHINE:<version>:<pickle>
     try:
-        version, data = msg[len(SHINE_MSG_MAGIC):].split(':', 1)
+        version, data = msg[len(SHINE_MSG_MAGIC):].split(b':', 1)
         version = int(version)
     except Exception as exp:
         raise ProxyActionUnpackError("Malformed Shine message: %s" % exp)
@@ -80,7 +80,7 @@ def shine_msg_unpack(msg):
 
     elif version == 2:
         try:
-            return shine_msg_unpack_v2(data)
+            return shine_msg_unpack_v2(data.decode())
         except Exception as exp:
             raise ProxyActionUnpackError("Unknown error: %s" % exp)
 
