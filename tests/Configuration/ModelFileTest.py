@@ -515,9 +515,9 @@ class ModelFileTest(unittest.TestCase):
         self.assertEqual(model.get('ost')[2].get('dev'), '/dev/sde')
         self.assertEqual(model.get('ost')[2].get('index'), 18)
 
-        self.assertEqual(str(model), "ost:index=4 dev=/dev/sdb\n"
-                "ost:index=5 dev=/dev/sdd\n"
-                "ost:index=18 dev=/dev/sde")
+        self.assertEqual(str(model), "ost:dev=/dev/sdb index=4\n"
+                "ost:dev=/dev/sdd index=5\n"
+                "ost:dev=/dev/sde index=18")
 
     def testDiffSimpleElement(self):
         """diff between 2 modelfiles with a SimpleElement"""
