@@ -215,6 +215,6 @@ client: node=foo1 mount_options=ro""")
             router: node=foo2"""))
         self.assertEqual(str(model), textwrap.dedent("""
             fs_name:fold
+            nid_map:nodes=foo[1-2] nids=foo[1-2]@tcp2
             client:node=foo[1-2]
-            router:node=foo[1-2]
-            nid_map:nids=foo[1-2]@tcp2 nodes=foo[1-2]""").lstrip())
+            router:node=foo[1-2]""").lstrip())

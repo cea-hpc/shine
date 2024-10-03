@@ -41,6 +41,7 @@ You can load and save from disk.
 
 import re
 import copy
+import collections
 
 from ClusterShell.NodeSet import RangeSet
 
@@ -497,7 +498,7 @@ class ModelFile(object):
     def __init__(self, sep=':', linesep="\n"):
         self._sep = sep
         self._linesep = linesep
-        self._elements = {}
+        self._elements = collections.OrderedDict()
 
     def emptycopy(self):
         """Return a new empty copy of this element, with the same attributes."""
