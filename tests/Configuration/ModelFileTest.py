@@ -257,7 +257,7 @@ class MultipleElementTest(unittest.TestCase):
             def __init__(self, check='digit', default=None, value=None):
                 SimpleElement.__init__(self, check, default, value)
             def key(self):
-                return self.get() / 2
+                return self.get() // 2
 
         elem = MultipleElement(MyElement())
         elem.add(7)
