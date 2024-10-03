@@ -115,7 +115,9 @@ class Target(Component, Disk):
         """Compute target global state based on remote nodes results."""
         # Group target's remote nodes statuses by state.
         sdict = {}
-        sorted_states = sorted(self._states.items(), key=itemgetter(1))
+        sorted_states = sorted(self._states.items(),
+                               key=lambda item: float('-inf')
+                                   if item[1] is None else item[1])
         for state, nodes in groupby(sorted_states, key=itemgetter(1)):
             sdict[state] = list(map(itemgetter(0), nodes))
 
