@@ -398,7 +398,7 @@ class FileSystem:
         first_comps = None
         last_comps = None
         localsrv = None
-        modules = set()
+        modules = list()
         localcomps = None
 
         if groupby:
@@ -442,7 +442,9 @@ class FileSystem:
 
                 # Build module loading list, if needed
                 for comp_action in compgrp:
-                    modules.update(comp_action.needed_modules())
+                    modules.extend(module
+                                   for module in comp_action.needed_modules()
+                                   if module not in modules)
 
             if len(proxygrp) > 0:
                 graph[-1].add(proxygrp)
