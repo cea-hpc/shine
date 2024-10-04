@@ -19,6 +19,7 @@
 #
 
 
+import sys
 import unittest
 import Utils
 
@@ -152,17 +153,22 @@ class SimpleFileSystemTest(unittest.TestCase):
         badsrv2 = Server('badnode2', ['127.0.0.3@tcp'])
         fs.new_target(badsrv1, 'mgt', 0, '/dev/fakedev')
         fs.new_client(badsrv2, '/testfs')
-        try:
-            fs.install(fs_config_file=Utils.makeTempFilename())
-        except FSRemoteError as ex:
-            self.assertEqual(str(ex.nodes), 'badnode[1-2]')
-            self.assertEqual(ex.rc, 1)
-            # Partial comparison to support RHEL5 OpenSSH output
-            self.assertTrue(str(ex).startswith("badnode[1-2]: Copy failed: "))
-            self.assertTrue(str(ex).endswith("badnode[1-2]: Name or service not"
-                                             " known\nlost connection [rc=1]"))
+
+        # assertion method name has changed in Python 3
+        if sys.version_info.major >= 3:
+            _assert = self.assertRaisesRegex
         else:
-            self.fail("did not raise FSRemoteError")
+            _assert = self.assertRaisesRegexp
+
+        with _assert(
+                FSRemoteError,
+                r"badnode\[1-2\]: Copy failed: .* badnode\[1-2\]: (Name or "
+                r"service not known|No address associated with hostname)\nlost "
+                r"connection \[rc=1\]"
+            ) as cm:
+            fs.install(fs_config_file=Utils.makeTempFilename())
+        self.assertEqual(cm.exception.rc, 1)
+        self.assertEqual(str(cm.exception.nodes), 'badnode[1-2]')
 
 
 class FileSystemTest(unittest.TestCase):
