@@ -22,6 +22,7 @@ import types
 import unittest
 import binascii
 import Utils
+import sys
 
 from Shine.Lustre.EventHandler import EventHandler
 from Shine.Lustre.FileSystem import FileSystem
@@ -145,9 +146,16 @@ class ProxyTest(unittest.TestCase):
         self.fs._check_errors([OFFLINE], self.fs.components)
 
         self.assertEqual(len(self.fs.proxy_errors), 1)
-        self.assertEqual(list(self.fs.proxy_errors.messages())[0].message().decode(),
-                         "Cannot unpickle message (check Shine and ClusterShell"
-                         " versions): pop from empty list")
+
+        # assertion method name has changed in Python 3
+        if sys.version_info.major >= 3:
+            _assert = self.assertRegex
+        else:
+            _assert = self.assertRegexpMatches
+
+        _assert(list(self.fs.proxy_errors.messages())[0].message().decode(),
+                r"^Cannot unpickle message \(check Shine and ClusterShell "
+                "versions\): .*$")
         self.assertEqual(self.tgt.state, RUNTIME_ERROR)
         self.assertEqual(self.act.status(), ACT_OK)
 
