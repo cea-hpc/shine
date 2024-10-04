@@ -247,7 +247,8 @@ class ComplexFillTests(unittest.TestCase):
         """fill with a support filter"""
         tbl = TextTable(fmt="%3type %node %count")
         tbl.show_header = False
-        table_fill(tbl, self._fs, None, supports='dev')
+        table_fill(tbl, self._fs, sort_key=lambda target: target.server,
+                   supports='dev')
         self.assertEqual(str(tbl), 'MGT foo1 1\nMDT foo2 1\nOST foo3 2')
 
 
