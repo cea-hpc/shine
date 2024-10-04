@@ -58,9 +58,9 @@ class TuningParameter(object):
     def __init__(self, name, value, node_types=None, node_list=None):
         self.name = name
         self.value = value
-        self._node_types = set()
+        self._node_types = list()
 
-        self.node_types = node_types or set()
+        self.node_types = node_types or list()
         self.node_list = NodeSet()
         if node_list is not None:
             self.node_list = NodeSet.fromlist(node_list)
@@ -71,12 +71,12 @@ class TuningParameter(object):
 
     def _set_node_types(self, types):
         """Setter for node types which handles type aliases (replace them)."""
-        self._node_types = set([TYPE_ALIASES.get(elm, elm) for elm in types])
+        self._node_types = [TYPE_ALIASES.get(elm, elm) for elm in types]
 
     node_types = property(_get_node_types, _set_node_types)
 
     def __eq__(self, other):
-        return other.name == self.name and other.node_types == self.node_types \
+        return other.name == self.name and set(other.node_types) == set(self.node_types) \
             and other.value == self.value and other.node_list == self.node_list
 
     def __str__(self):
@@ -158,7 +158,6 @@ class TuningModel(object):
         alias_re = re.compile("alias\s+(\S+)\s*=\s*(\S+)$")
         parameter_re = re.compile('("[^"]+"|\S+)\s+(\S+)\s+(\S+)$')
         supported = NodeSet.fromlist(list(NODE_TYPES) + list(TYPE_ALIASES.keys()))
-
         # Open the file to read each lines
         try:
             tuning_file = open(filename or self.filename)
@@ -224,7 +223,6 @@ class TuningModel(object):
         # Initialize thelist of tuning parameter that mus be applied to
         # the node identified by the node_name and the node_type
         params = []
-
         # Walk through the list of tuning parameters
         for parameters in self._parameter_dict.values():
 
@@ -234,7 +232,7 @@ class TuningModel(object):
 
                 # Is the node type one of the type supported by this tuning
                 # parameter?
-                if set(node_type) & parameter.node_types:
+                if set(node_type) & set(parameter.node_types):
                     # Save the parameter to the list that will be returned
                     params.append(parameter)
 
@@ -243,7 +241,7 @@ class TuningModel(object):
                 elif node_name in parameter.node_list:
                     # Save the parameter to the list that will be returned
                     params.append(parameter)
-        
+
         return params
         
     def _add_parameter(self, new_parameter):
@@ -262,7 +260,9 @@ class TuningModel(object):
                 
                 # Build the list of node type that are define on both parameter
                 # node type list
-                intersection = parameter.node_types & new_parameter.node_types
+                intersection = [node_type
+                                for node_type in new_parameter.node_types
+                                if node_type in parameter.node_types]
                 
                 # It several node type are declared for both parameter raise an
                 # exception to avoid overwritting

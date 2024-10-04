@@ -23,7 +23,7 @@ class TuningModelTest(unittest.TestCase):
 
     def test_tuning_param_str(self):
         """test TuningParameter.__str__()"""
-        param = TuningParameter("foo", 0, ('mds', 'clt'), ["toto15"])
+        param = TuningParameter("foo", 0, ['mds', 'clt'], ["toto15"])
         self.assertEqual(str(param), "foo=0 types=mds,client nodes=toto15")
 
     def testExampleFile(self):
