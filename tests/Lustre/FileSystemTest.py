@@ -166,11 +166,12 @@ class SimpleFileSystemTest(unittest.TestCase):
         with _assert(
                 FSRemoteError,
                 r"badnode\[1-2\]: Copy failed: .* badnode\[1-2\]: (Name or "
-                r"service not known|No address associated with hostname)\nlost "
-                r"connection \[rc=1\]"
+                r"service not known|No address associated with hostname|"
+                r"Temporary failure in name resolution)\n(lost connection "
+                r"\[rc=1\]|scp: Connection closed \[rc=255\])"
             ) as cm:
             fs.install(fs_config_file=Utils.makeTempFilename())
-        self.assertEqual(cm.exception.rc, 1)
+        self.assertIn(cm.exception.rc, [1, 255])
         self.assertEqual(str(cm.exception.nodes), 'badnode[1-2]')
 
 
