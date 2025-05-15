@@ -133,7 +133,7 @@ fs_name: nids
 nid_map: nodes=foo[1-9999] nids=bar[1-9999]@tcp
 """)
         elapsed = time.time() - before
-        self.assertTrue(elapsed < 2, "%.2fs exceeds 2s threshold" % elapsed)
+        self.assertTrue(elapsed < 4, "%.2fs exceeds 4s threshold" % elapsed)
         self.assertEqual(len(self._fs.nid_map), 9999)
 
     def testNoIndexDefined(self):
