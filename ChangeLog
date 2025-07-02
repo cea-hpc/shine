@@ -1,3 +1,21 @@
+* Tue Jul  1 2025 Aurelien Cedeyn <aurelien.cedeyn@cea.fr>
+	* Release: 1.6
+	* Add ha feature from Stanford university
+	* Various fixes :
+		* https://github.com/cea-hpc/shine/issues/199
+		* https://github.com/cea-hpc/shine/issues/201
+		* https://github.com/cea-hpc/shine/issues/208
+		* https://github.com/cea-hpc/shine/issues/211
+		* https://github.com/cea-hpc/shine/issues/213
+		* https://github.com/cea-hpc/shine/issues/215
+		* https://github.com/cea-hpc/shine/issues/216
+		* https://github.com/cea-hpc/shine/issues/219
+		* https://github.com/cea-hpc/shine/issues/220
+		* https://github.com/cea-hpc/shine/issues/221
+		* https://github.com/cea-hpc/shine/issues/222
+		* https://github.com/cea-hpc/shine/issues/223
+		* https://github.com/cea-hpc/shine/issues/224
+
 2017-05-25 Aurelien Degremont <aurelien.degremont@cea.fr>
 	* Release: 1.5
 

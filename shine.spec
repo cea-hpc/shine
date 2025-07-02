@@ -7,7 +7,7 @@
 %endif
 
 Name:      shine
-Version:   1.5
+Version:   1.6
 Release:   1%{?dist}
 Vendor:    CEA
 License:   GPLv2+
@@ -66,6 +66,9 @@ install -p -D -m 644 scripts/shine-ha.service %{buildroot}%{_unitdir}/shine-ha.s
 %endif
 
 %changelog
+* Wed Jul  2 2025 <aurelien.cedeyn@cea.fr> - 1.6-1
+- Update to shine 1.6
+
 * Wed Sep 11 2024 <sthiell@stanford.edu> - 1.5-2
 - Update from oak_ha branch at Stanford
 - Add shine-ha.service
